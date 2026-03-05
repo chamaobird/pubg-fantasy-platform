@@ -80,8 +80,8 @@ def create_access_token(subject: str, expires_delta: Optional[timedelta] = None)
 
 def decode_token(token: str) -> Optional[str]:
         """Decodifica um token JWT e retorna o subject."""
-        try:
-                    payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-                    return payload.get("sub")
-                except JWTError:
-                            return None
+            try:
+                        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+                        return payload.get("sub")
+                    except JWTError:
+                                return None
