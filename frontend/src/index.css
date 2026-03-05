@@ -1,0 +1,211 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: #0a0a0f;
+    color: #e8e8f0;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Barlow Condensed', sans-serif;
+    letter-spacing: 0.02em;
+    line-height: 1.1;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #0a0a0f;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(245, 166, 35, 0.3);
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(245, 166, 35, 0.6);
+  }
+
+  ::selection {
+    background: rgba(245, 166, 35, 0.3);
+    color: #fff;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-accent text-bg font-display font-bold uppercase tracking-widest px-6 py-3 text-sm
+           transition-all duration-200 hover:bg-accent-dark active:scale-95
+           border border-accent hover:border-accent-dark;
+    clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+  }
+
+  .btn-secondary {
+    @apply bg-transparent text-accent font-display font-bold uppercase tracking-widest px-6 py-3 text-sm
+           transition-all duration-200 hover:bg-accent-dim active:scale-95
+           border border-accent;
+    clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+  }
+
+  .btn-ghost {
+    @apply bg-transparent text-text-secondary font-display font-bold uppercase tracking-widest px-4 py-2 text-sm
+           transition-all duration-200 hover:text-accent hover:bg-accent-dim active:scale-95
+           border border-muted hover:border-accent;
+  }
+
+  .card {
+    @apply bg-card border border-border-color rounded-none relative overflow-hidden;
+  }
+
+  .card::before {
+    content: '';
+    @apply absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-accent to-transparent opacity-50;
+  }
+
+  .input-field {
+    @apply w-full bg-bg border border-border-color text-white font-body px-4 py-3
+           focus:outline-none focus:border-accent transition-colors duration-200
+           placeholder-muted;
+  }
+
+  .stat-badge {
+    @apply font-mono text-xs px-2 py-1 border;
+  }
+
+  .region-tag {
+    @apply font-display font-bold text-xs uppercase tracking-widest px-2 py-0.5 border;
+  }
+
+  .price-badge {
+    @apply font-mono font-bold text-accent bg-accent-dim border border-accent px-3 py-1;
+    clip-path: polygon(4px 0%, 100% 0%, calc(100% - 4px) 100%, 0% 100%);
+  }
+
+  .section-title {
+    @apply font-display font-black uppercase text-3xl tracking-wide text-white;
+  }
+
+  .section-title span {
+    @apply text-accent;
+  }
+
+  .glow-accent {
+    text-shadow: 0 0 20px rgba(245, 166, 35, 0.6), 0 0 40px rgba(245, 166, 35, 0.3);
+  }
+
+  .border-glow {
+    box-shadow: 0 0 20px rgba(245, 166, 35, 0.1), inset 0 0 20px rgba(245, 166, 35, 0.02);
+  }
+}
+
+@layer utilities {
+  .bg-noise {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  }
+
+  .text-gradient {
+    background: linear-gradient(135deg, #f5a623, #ffcc66);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .clip-slant {
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%);
+  }
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(30px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 5px rgba(245,166,35,0.3); }
+  50% { box-shadow: 0 0 20px rgba(245,166,35,0.6), 0 0 40px rgba(245,166,35,0.3); }
+}
+
+@keyframes scan-line {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease forwards;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease forwards;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.5s ease forwards;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-blink {
+  animation: blink 1s step-end infinite;
+}
+
+.stagger-1 { animation-delay: 0.1s; }
+.stagger-2 { animation-delay: 0.2s; }
+.stagger-3 { animation-delay: 0.3s; }
+.stagger-4 { animation-delay: 0.4s; }
+.stagger-5 { animation-delay: 0.5s; }
+
+/* Scanline overlay effect for cards */
+.scanlines::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.03) 2px,
+    rgba(0,0,0,0.03) 4px
+  );
+  pointer-events: none;
+  z-index: 1;
+}
