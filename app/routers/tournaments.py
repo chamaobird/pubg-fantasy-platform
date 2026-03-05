@@ -1,104 +1,106 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+# app/routers/tournaments.py
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models.tournament import ScoringRule, Tournament
-from app.models.user import User
-from app.schemas.tournament import (
-    ScoringRuleCreate,
-    ScoringRuleOut,
-    TournamentCreate,
-    TournamentOut,
-    TournamentUpdate,
+from app.models import Tournament
+
+router = APIRouter(prefix="/tournaments", tags=["Tournaments"])
+
+
+# ------------------------------------------------------------------
+# SCHEMAS
+# ------------------------------------------------------------------
+
+class TournamentResponse(BaseModel):
+    id: int
+    name: str
+    pubg_id: Optional[str] = None
+    region: Optional[str] = None
+    status: str
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    max_teams: int
+
+    class Config:
+        from_attributes = True
+
+
+# ------------------------------------------------------------------
+# GET /tournaments
+# ------------------------------------------------------------------
+
+@router.get(
+    "/",
+    response_model=list[TournamentResponse],
+    summary="Lista torneios com status e detalhes",
+    description="Retorna todos os torneios cadastrados. Suporta filtro por status e região.",
 )
-from app.services.auth import get_current_user, require_admin
-
-router = APIRouter(prefix="/tournaments", tags=["tournaments"])
-
-
-@router.get("/", response_model=list[TournamentOut])
 def list_tournaments(
-    region: str | None = None,
-    status: str | None = None,
+    status_filter: Optional[str] = Query(
+        None,
+        alias="status",
+        description="Filtrar por status: upcoming | active | finished",
+    ),
+    region: Optional[str] = Query(None, description="Filtrar por região (ex: NA, EU)"),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
     db: Session = Depends(get_db),
 ):
-    q = db.query(Tournament)
+    query = db.query(Tournament)
+
+    if status_filter:
+        query = query.filter(Tournament.status == status_filter)
     if region:
-        q = q.filter(Tournament.region == region)
-    if status:
-        q = q.filter(Tournament.status == status)
-    return q.all()
+        query = query.filter(Tournament.region == region.upper())
+
+    tournaments = (
+        query.order_by(Tournament.start_date.desc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+
+    return [
+        TournamentResponse(
+            id=t.id,
+            name=t.name,
+            pubg_id=t.pubg_id,
+            region=t.region,
+            status=t.status,
+            start_date=t.start_date.isoformat() if t.start_date else None,
+            end_date=t.end_date.isoformat() if t.end_date else None,
+            max_teams=t.max_teams,
+        )
+        for t in tournaments
+    ]
 
 
-@router.post("/", response_model=TournamentOut, status_code=201)
-def create_tournament(
-    payload: TournamentCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    t = Tournament(**payload.model_dump(), created_by=current_user.id)
-    db.add(t)
-    db.commit()
-    db.refresh(t)
-    return t
+# ------------------------------------------------------------------
+# GET /tournaments/{tournament_id}
+# ------------------------------------------------------------------
 
-
-@router.get("/{tournament_id}", response_model=TournamentOut)
+@router.get(
+    "/{tournament_id}",
+    response_model=TournamentResponse,
+    summary="Detalhes de um torneio específico",
+)
 def get_tournament(tournament_id: int, db: Session = Depends(get_db)):
-    t = db.get(Tournament, tournament_id)
-    if not t:
-        raise HTTPException(status_code=404, detail="Tournament not found")
-    return t
-
-
-@router.patch("/{tournament_id}", response_model=TournamentOut)
-def update_tournament(
-    tournament_id: int,
-    payload: TournamentUpdate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    t = db.get(Tournament, tournament_id)
-    if not t:
-        raise HTTPException(status_code=404, detail="Tournament not found")
-    if t.created_by != current_user.id and not current_user.is_admin:
-        raise HTTPException(status_code=403, detail="Not authorized")
-    for field, value in payload.model_dump(exclude_none=True).items():
-        setattr(t, field, value)
-    db.commit()
-    db.refresh(t)
-    return t
-
-
-@router.delete("/{tournament_id}", status_code=204)
-def delete_tournament(
-    tournament_id: int,
-    db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
-):
-    t = db.get(Tournament, tournament_id)
-    if not t:
-        raise HTTPException(status_code=404, detail="Tournament not found")
-    db.delete(t)
-    db.commit()
-
-
-@router.post("/{tournament_id}/scoring-rules", response_model=ScoringRuleOut, status_code=201)
-def set_scoring_rules(
-    tournament_id: int,
-    payload: ScoringRuleCreate,
-    db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
-):
-    existing = db.query(ScoringRule).filter(ScoringRule.tournament_id == tournament_id).first()
-    if existing:
-        for field, value in payload.model_dump().items():
-            setattr(existing, field, value)
-        db.commit()
-        db.refresh(existing)
-        return existing
-    rule = ScoringRule(tournament_id=tournament_id, **payload.model_dump())
-    db.add(rule)
-    db.commit()
-    db.refresh(rule)
-    return rule
+    tournament = db.query(Tournament).filter(Tournament.id == tournament_id).first()
+    if not tournament:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Tournament with id {tournament_id} not found.",
+        )
+    return TournamentResponse(
+        id=tournament.id,
+        name=tournament.name,
+        pubg_id=tournament.pubg_id,
+        region=tournament.region,
+        status=tournament.status,
+        start_date=tournament.start_date.isoformat() if tournament.start_date else None,
+        end_date=tournament.end_date.isoformat() if tournament.end_date else None,
+        max_teams=tournament.max_teams,
+    )
