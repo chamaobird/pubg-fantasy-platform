@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import get_current_user
+from app.services.auth import get_current_user
 from app.models import Player, Tournament, User
 from app.services.pubg_api import PUBGApiClient, calculate_fantasy_cost
 from app.config import settings
