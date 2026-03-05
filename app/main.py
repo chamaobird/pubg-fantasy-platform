@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.migrations import run_migrations
-from app.routers import auth, players, tournaments
+from app.routers import users, players, tournaments
 from app.routers.admin import router as admin_router
 
 logging.basicConfig(
@@ -61,7 +61,7 @@ app.add_middleware(
 )
 
 # Routers
-app.include_router(auth.router)
+app.include_router(users.router)
 app.include_router(players.router)
 app.include_router(tournaments.router)
 app.include_router(admin_router)
