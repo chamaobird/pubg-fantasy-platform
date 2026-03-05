@@ -306,7 +306,7 @@ async def recalculate_costs(
     return {
         "message": f"fantasy_cost recalculado para {updated} jogadores.",
         "updated": updated,
-
+}
         # ---------------------------------------------------------------
 # POST /admin/seed-database
 # ---------------------------------------------------------------
