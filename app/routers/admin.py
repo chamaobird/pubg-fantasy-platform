@@ -429,5 +429,5 @@ async def seed_database(
         "message": "Seed concluido com sucesso!",
         "created": results,
         "note": "Execute novamente para verificar idempotencia (deve retornar zeros).",
-    }
+    
     }
