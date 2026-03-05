@@ -3,10 +3,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import engine, Base
-from app.routers import auth, players, tournaments
+from app.routers import users, players, tournaments
 from app.routers.admin import router as admin_router
 
-# Cria/atualiza tabelas automaticamente (create_all é idempotente)
+# Cria/atualiza tabelas automaticamente (create_all e idempotente)
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
@@ -24,7 +24,7 @@ app.add_middleware(
 )
 
 # Routers
-app.include_router(auth.router)
+app.include_router(users.router)
 app.include_router(players.router)
 app.include_router(tournaments.router)
 app.include_router(admin_router)
