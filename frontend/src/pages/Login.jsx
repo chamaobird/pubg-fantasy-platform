@@ -10,7 +10,7 @@ export default function Login() {
   const navigate = useNavigate()
   const location = useLocation()
 
-  const [form, setForm] = useState({ username: '', password: '' })
+  const [form, setForm] = useState({ email: '', password: '' })
   const [error, setError] = useState('')
 
   const from = location.state?.from?.pathname || '/dashboard'
@@ -22,13 +22,13 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!form.username || !form.password) {
+    if (!form.email || !form.password) {
       setError('Please fill in all fields.')
       return
     }
-    const result = await login(form.username, form.password)
+    const result = await login(form.email, form.password)
     if (result.success) {
-      toast.success(`Welcome back, ${form.username}!`)
+      toast.success(`Welcome back!`)
       navigate(from, { replace: true })
     } else {
       setError(result.error)
@@ -40,89 +40,52 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center px-4 py-24 relative">
       {/* BG grid */}
       <div className="absolute inset-0 bg-grid-pattern bg-grid opacity-20" />
-
       <div className="relative w-full max-w-md">
-        {/* Header */}
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex flex-col items-center gap-1 mb-6">
-            <span className="font-display font-black uppercase text-white text-3xl tracking-wider">WARZONE</span>
-            <span className="font-display font-light uppercase text-accent text-sm tracking-[0.4em]">FANTASY</span>
-          </Link>
-          <h1 className="font-display font-black uppercase text-4xl text-white tracking-wide">Sign In</h1>
-          <p className="text-text-secondary font-body mt-2">Access your fantasy dashboard</p>
+          <div className="font-display text-3xl text-white tracking-wider">WARZONE</div>
+          <div className="font-display text-sm text-accent tracking-widest">FANTASY</div>
         </div>
-
-        {/* Form card */}
-        <div className="card p-8">
-          <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="bg-card border border-border-color rounded-2xl p-8">
+          <h1 className="font-display text-2xl text-white text-center mb-2">SIGN IN</h1>
+          <p className="text-text-secondary text-center text-sm mb-8">Access your fantasy dashboard</p>
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block font-display font-bold uppercase text-xs tracking-widest text-text-secondary mb-2">
-                Username
-              </label>
+              <label className="block font-mono text-xs text-text-secondary uppercase tracking-widest mb-2">Email</label>
               <input
-                type="text"
-                name="username"
-                value={form.username}
+                type="email"
+                name="email"
+                value={form.email}
                 onChange={handleChange}
-                placeholder="your_callsign"
-                className="input-field"
-                autoComplete="username"
-                autoFocus
+                placeholder="your@email.com"
+                className="w-full bg-bg border border-border-color rounded-lg px-4 py-3 text-white placeholder-text-secondary focus:outline-none focus:border-accent transition-colors"
               />
             </div>
-
             <div>
-              <label className="block font-display font-bold uppercase text-xs tracking-widest text-text-secondary mb-2">
-                Password
-              </label>
+              <label className="block font-mono text-xs text-text-secondary uppercase tracking-widest mb-2">Password</label>
               <input
                 type="password"
                 name="password"
                 value={form.password}
                 onChange={handleChange}
                 placeholder="••••••••"
-                className="input-field"
-                autoComplete="current-password"
+                className="w-full bg-bg border border-border-color rounded-lg px-4 py-3 text-white placeholder-text-secondary focus:outline-none focus:border-accent transition-colors"
               />
             </div>
-
-            {error && (
-              <div className="border border-danger/40 bg-danger/10 px-4 py-3 text-danger font-body text-sm animate-fade-in">
-                {error}
-              </div>
-            )}
-
+            {error && <p className="text-danger text-sm">{error}</p>}
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary w-full text-center text-base py-4 flex items-center justify-center gap-2"
+              className="w-full bg-accent text-bg font-display text-sm tracking-widest py-3 rounded-lg hover:bg-accent-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? (
-                <>
-                  <LoadingSpinner size="sm" />
-                  <span>Authenticating...</span>
-                </>
-              ) : (
-                'Login'
-              )}
+              {loading ? <LoadingSpinner size="sm" /> : 'LOGIN'}
             </button>
           </form>
-
-          <div className="mt-6 pt-6 border-t border-border-color text-center">
-            <p className="font-body text-text-secondary text-sm">
-              No account?{' '}
-              <Link to="/register" className="text-accent hover:text-white transition-colors font-semibold">
-                Register free
-              </Link>
-            </p>
-          </div>
+          <p className="text-center text-text-secondary text-sm mt-6">
+            No account? <Link to="/register" className="text-accent hover:text-accent-dark transition-colors">Register free</Link>
+          </p>
         </div>
-
-        {/* Back link */}
-        <div className="text-center mt-4">
-          <Link to="/" className="font-mono text-xs text-muted hover:text-accent transition-colors uppercase tracking-wider">
-            ← Back to home
-          </Link>
+        <div className="text-center mt-6">
+          <Link to="/" className="text-text-secondary text-sm hover:text-white transition-colors">← BACK TO HOME</Link>
         </div>
       </div>
     </div>

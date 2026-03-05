@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useCallback } from 'react'
 import { login as apiLogin, register as apiRegister } from '../api/auth'
 
 const AuthContext = createContext(null)
@@ -17,14 +17,13 @@ export const AuthProvider = ({ children }) => {
 
   const isAuthenticated = !!token && !!user
 
-  const login = useCallback(async (username, password) => {
+  const login = useCallback(async (email, password) => {
     setLoading(true)
     try {
-      const data = await apiLogin(username, password)
+      const data = await apiLogin(email, password)
       const { access_token } = data
       localStorage.setItem('wf_token', access_token)
-      // Decode basic user info from token or store username
-      const userData = { username }
+      const userData = { email }
       localStorage.setItem('wf_user', JSON.stringify(userData))
       setToken(access_token)
       setUser(userData)
