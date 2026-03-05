@@ -1,5 +1,11 @@
 # app/core/security.py
 
+from datetime import datetime, timedelta
+from typing import Optional
+
+from jose import JWTError, jwt
+
+from app.core.config import settings
 import hashlib
 import base64
 from passlib.context import CryptContext
@@ -60,3 +66,22 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     garantindo consistência com hash_password().
     """
     return pwd_context.verify(_prehash(plain_password), hashed_password)
+
+
+
+def create_access_token(subject: str, expires_delta: Optional[timedelta] = None) -> str:
+        """Cria um token JWT de acesso."""
+        expire = datetime.utcnow() + (
+            expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        )
+        payload = {"sub": subject, "exp": expire}
+        return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+
+def decode_token(token: str) -> Optional[str]:
+        """Decodifica um token JWT e retorna o subject."""
+        try:
+                    payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+                    return payload.get("sub")
+                except JWTError:
+                            return None
