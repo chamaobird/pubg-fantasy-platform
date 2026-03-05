@@ -9,7 +9,7 @@ const api = axios.create({
   },
 })
 
-// Request interceptor — attach JWT if present
+// Request interceptor - attach JWT if present
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('wf_token')
@@ -21,15 +21,10 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 )
 
-// Response interceptor — handle 401
+// Response interceptor - just pass through errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('wf_token')
-      localStorage.removeItem('wf_user')
-      window.location.href = '/login'
-    }
     return Promise.reject(error)
   }
 )
