@@ -40,8 +40,8 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
         if_not_exists=True,
     )
-    op.create_index("ix_matches_id",            "matches", ["id"],            unique=False, if_not_exists=True)
     op.create_index("ix_matches_pubg_match_id", "matches", ["pubg_match_id"], unique=True,  if_not_exists=True)
+    op.create_index("ix_matches_id",            "matches", ["id"],            unique=False, if_not_exists=True)
 
     # ── match_player_stats ─────────────────────────────────────────
     # Stats brutas da PUBG API + fantasy_points calculados pelo scoring engine.
