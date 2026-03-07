@@ -5,8 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import auth, players, tournaments
-from app.routers.admin import router as admin_router
+from app.routers import auth, players, tournaments, admin
 from app.routers.championships import router as championships_router
 
 logging.basicConfig(
@@ -44,7 +43,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(players.router)
 app.include_router(tournaments.router)
-app.include_router(admin_router)
+app.include_router(admin.router)
 app.include_router(championships_router)
 
 
