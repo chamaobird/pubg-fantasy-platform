@@ -4,49 +4,35 @@ Sistema de migration automática para o Warzone Fantasy.
 
 Estratégia em duas camadas:
   1. Base.metadata.create_all()  → cria tabelas que NÃO existem ainda
-  2. _run_column_migrations()    → adiciona colunas novas em tabelas já existentes
+  2. COLUMN_MIGRATIONS           → adiciona colunas novas em tabelas já existentes
                                    usando ALTER TABLE ... ADD COLUMN IF NOT EXISTS
                                    (idempotente: seguro rodar múltiplas vezes)
-
-Por que não usar Alembic?
-  - Alembic requer um diretório de versões e um comando CLI separado.
-  - Neste setup (Render sem Shell gratuito), precisamos que tudo rode
-    automaticamente no startup sem intervenção manual.
-  - Para projetos maiores, migrar para Alembic é recomendado.
 
 Como adicionar novas migrations:
   1. Altere o model em app/models.py
   2. Adicione o ALTER TABLE correspondente em COLUMN_MIGRATIONS abaixo
   3. Faça deploy — rodará automaticamente no próximo startup
+
+IMPORTANTE: nunca remova migrations antigas — elas são idempotentes
+e protegem deploys em ambientes que ainda não as receberam.
 """
 
 import logging
 from sqlalchemy import text
-from sqlalchemy.orm import Session
-
 from app.database import engine, Base
 
 logger = logging.getLogger(__name__)
 
 
-# ------------------------------------------------------------------
-# COLUMN MIGRATIONS
-# Cada item é um dict com:
-#   - description : texto legível para o log
-#   - sql         : comando SQL idempotente (IF NOT EXISTS garante isso)
-#
-# IMPORTANTE: nunca remova migrations antigas — elas são idempotentes
-# e protegem deploys em ambientes que ainda não as receberam.
-# ------------------------------------------------------------------
-
 COLUMN_MIGRATIONS = [
-    # ── users ──────────────────────────────────────────────────────
+
+    # ── users ──────────────────────────────────────────────────────────────
     {
         "description": "users: add is_admin boolean column",
         "sql": "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE NOT NULL",
     },
 
-    # ── players ────────────────────────────────────────────────────
+    # ── players ────────────────────────────────────────────────────────────
     {
         "description": "players: add pubg_id varchar column",
         "sql": "ALTER TABLE players ADD COLUMN IF NOT EXISTS pubg_id VARCHAR",
@@ -94,7 +80,7 @@ COLUMN_MIGRATIONS = [
         "sql": "ALTER TABLE players ADD COLUMN IF NOT EXISTS last_synced_at TIMESTAMP WITH TIME ZONE",
     },
 
-    # ── tournaments ────────────────────────────────────────────────
+    # ── tournaments ────────────────────────────────────────────────────────
     {
         "description": "tournaments: add pubg_id column",
         "sql": "ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS pubg_id VARCHAR",
@@ -117,23 +103,85 @@ COLUMN_MIGRATIONS = [
         "description": "tournaments: add region column",
         "sql": "ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS region VARCHAR",
     },
+
+    # ── matches ────────────────────────────────────────────────────────────
+    # (tabela criada pelo create_all — migrations só para colunas futuras)
+    {
+        "description": "matches: ensure pubg_match_id index exists",
+        "sql": """
+            DO $$ BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_indexes
+                    WHERE tablename = 'matches' AND indexname = 'ix_matches_pubg_match_id'
+                ) THEN
+                    CREATE UNIQUE INDEX ix_matches_pubg_match_id ON matches(pubg_match_id);
+                END IF;
+            END $$
+        """,
+    },
+
+    # ── match_player_stats ─────────────────────────────────────────────────
+    {
+        "description": "match_player_stats: ensure uq_match_player constraint",
+        "sql": """
+            DO $$ BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_constraint
+                    WHERE conname = 'uq_match_player'
+                ) THEN
+                    ALTER TABLE match_player_stats
+                    ADD CONSTRAINT uq_match_player UNIQUE (match_id, player_id);
+                END IF;
+            END $$
+        """,
+    },
+
+    # ── player_scores ──────────────────────────────────────────────────────
+    {
+        "description": "player_scores: ensure uq_player_league_score constraint",
+        "sql": """
+            DO $$ BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_constraint
+                    WHERE conname = 'uq_player_league_score'
+                ) THEN
+                    ALTER TABLE player_scores
+                    ADD CONSTRAINT uq_player_league_score UNIQUE (player_id, league_id);
+                END IF;
+            END $$
+        """,
+    },
+
+    # ── fantasy_team_players ───────────────────────────────────────────────
+    {
+        "description": "fantasy_team_players: ensure uq_fantasy_team_slot constraint",
+        "sql": """
+            DO $$ BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_constraint
+                    WHERE conname = 'uq_fantasy_team_slot'
+                ) THEN
+                    ALTER TABLE fantasy_team_players
+                    ADD CONSTRAINT uq_fantasy_team_slot UNIQUE (fantasy_team_id, slot);
+                END IF;
+            END $$
+        """,
+    },
 ]
 
 
-# ------------------------------------------------------------------
-# RUNNER PRINCIPAL
-# ------------------------------------------------------------------
-
 def run_migrations() -> None:
     """
-    Ponto de entrada chamado no startup do FastAPI.
+    Ponto de entrada chamado no startup do FastAPI (via app/main.py lifespan).
 
     Etapa 1 — create_all:
         Cria todas as tabelas definidas nos models que ainda não existem
         no banco. Tabelas já existentes são ignoradas (idempotente).
+        Novas tabelas nesta versão: matches, match_player_stats,
+        player_scores, fantasy_team_players.
 
     Etapa 2 — column migrations:
-        Percorre COLUMN_MIGRATIONS e executa cada ALTER TABLE.
+        Percorre COLUMN_MIGRATIONS e executa cada ALTER TABLE / CREATE INDEX.
         Cada SQL usa IF NOT EXISTS, tornando a operação segura para
         ser repetida a cada restart da aplicação.
     """
@@ -150,19 +198,17 @@ def run_migrations() -> None:
         logger.error(f"[Migration] ERRO no create_all: {e}")
         raise RuntimeError(f"Falha crítica no create_all: {e}") from e
 
-    # Etapa 2: adicionar colunas em tabelas existentes
-    logger.info(
-        f"[Migration] Etapa 2/2: {len(COLUMN_MIGRATIONS)} column migrations..."
-    )
+    # Etapa 2: column/constraint migrations
+    logger.info(f"[Migration] Etapa 2/2: {len(COLUMN_MIGRATIONS)} migrations de colunas/índices...")
 
     success = 0
     skipped = 0
-    errors = 0
+    errors  = 0
 
     with engine.connect() as conn:
         for migration in COLUMN_MIGRATIONS:
             desc = migration["description"]
-            sql = migration["sql"].strip()
+            sql  = migration["sql"].strip()
             try:
                 conn.execute(text(sql))
                 conn.commit()
@@ -170,11 +216,8 @@ def run_migrations() -> None:
                 success += 1
             except Exception as e:
                 error_msg = str(e).lower()
-                # Erros esperados de "já existe" — não são falhas reais
                 if any(phrase in error_msg for phrase in [
-                    "already exists",
-                    "duplicate column",
-                    "já existe",
+                    "already exists", "duplicate column", "já existe",
                 ]):
                     logger.debug(f"[Migration] ~ {desc} (já existe, ignorado)")
                     skipped += 1
@@ -183,8 +226,6 @@ def run_migrations() -> None:
                     logger.error(f"[Migration] ✗ {desc} → {e}")
                     errors += 1
                     conn.rollback()
-                    # Não levanta exceção: um erro de coluna não deve
-                    # impedir o servidor de subir. Será logado para revisão.
 
     logger.info("=" * 55)
     logger.info(
@@ -192,8 +233,5 @@ def run_migrations() -> None:
         f"{success} aplicadas, {skipped} já existiam, {errors} erros"
     )
     if errors:
-        logger.warning(
-            f"  ATENÇÃO: {errors} migration(s) falharam. "
-            "Verifique os logs acima."
-        )
+        logger.warning(f"  ATENÇÃO: {errors} migration(s) falharam. Verifique os logs.")
     logger.info("=" * 55)
