@@ -1,9 +1,30 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Numeric, String, UniqueConstraint, func
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    Numeric,
+    String,
+    Table,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+
+
+fantasy_team_players = Table(
+    "fantasy_team_players",
+    Base.metadata,
+    Column("fantasy_team_id", Integer, ForeignKey("fantasy_teams.id", ondelete="CASCADE"), primary_key=True),
+    Column("player_id", Integer, ForeignKey("players.id", ondelete="CASCADE"), primary_key=True),
+    Column("slot", Integer, nullable=False),
+    Column("added_at", DateTime(timezone=True), server_default=func.now()),
+)
 
 
 class FantasyTeam(Base):
@@ -24,6 +45,9 @@ class FantasyTeam(Base):
     captain: Mapped["Player | None"] = relationship("Player", foreign_keys=[captain_player_id])
     entries: Mapped[list["FantasyEntry"]] = relationship(
         "FantasyEntry", back_populates="fantasy_team", cascade="all, delete-orphan"
+    )
+    players: Mapped[list["Player"]] = relationship(
+        "Player", secondary=fantasy_team_players, backref="fantasy_teams_assoc"
     )
 
 

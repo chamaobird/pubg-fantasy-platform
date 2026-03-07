@@ -2,8 +2,8 @@ from app.models.user import User
 from app.models.team import Team
 from app.models.player import Player, PlayerPriceHistory
 from app.models.tournament import Tournament, ScoringRule
-from app.models.match import Match
-from app.models.fantasy import FantasyTeam, FantasyEntry, FantasyLeague
+from app.models.match import Match, MatchPlayerStat, PlayerScore
+from app.models.fantasy import FantasyTeam, FantasyEntry, FantasyLeague, fantasy_team_players
 
 __all__ = [
     "User",
@@ -13,7 +13,10 @@ __all__ = [
     "Tournament",
     "ScoringRule",
     "Match",
+    "MatchPlayerStat",
+    "PlayerScore",
     "FantasyLeague",
     "FantasyTeam",
     "FantasyEntry",
+    "fantasy_team_players",
 ]
