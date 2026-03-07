@@ -1,4 +1,6 @@
-from sqlalchemy import Boolean, ForeignKey, Numeric, String, UniqueConstraint
+from datetime import datetime
+
+from sqlalchemy import Boolean, DateTime, ForeignKey, Numeric, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -38,3 +40,16 @@ class FantasyEntry(Base):
 
     fantasy_team: Mapped["FantasyTeam"] = relationship("FantasyTeam", back_populates="entries")
     player: Mapped["Player"] = relationship("Player", back_populates="fantasy_entries")
+
+
+class FantasyLeague(Base):
+    __tablename__ = "fantasy_leagues"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    tournament_id: Mapped[int] = mapped_column(ForeignKey("tournaments.id"), nullable=False, index=True)
+    max_fantasy_teams: Mapped[int] = mapped_column(default=10)
+    budget_per_team: Mapped[float] = mapped_column(Numeric(8, 2), default=100.0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    tournament: Mapped["Tournament"] = relationship("Tournament")
