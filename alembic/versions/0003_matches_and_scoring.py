@@ -30,7 +30,7 @@ def upgrade() -> None:
     op.create_table(
         "matches",
         sa.Column("id",            sa.Integer(), nullable=False),
-        sa.Column("pubg_match_id", sa.String(),  nullable=False),
+        sa.Column("pubg_match_id", sa.String(),  nullable=False, unique=True),
         sa.Column("tournament_id", sa.Integer(), nullable=True),
         sa.Column("map_name",      sa.String(),  nullable=True),
         sa.Column("played_at",     sa.DateTime(timezone=True), nullable=True),
@@ -40,7 +40,6 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
         if_not_exists=True,
     )
-    op.create_index("ix_matches_pubg_match_id", "matches", ["pubg_match_id"], unique=True,  if_not_exists=True)
     op.create_index("ix_matches_id",            "matches", ["id"],            unique=False, if_not_exists=True)
 
     # ── match_player_stats ─────────────────────────────────────────
