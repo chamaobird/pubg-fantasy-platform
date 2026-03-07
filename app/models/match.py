@@ -1,7 +1,6 @@
-from datetime import datetime
-
-from sqlalchemy import DateTime, ForeignKey, Integer, Text
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
 
 from app.database import Base
 
@@ -9,11 +8,50 @@ from app.database import Base
 class Match(Base):
     __tablename__ = "matches"
 
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    tournament_id: Mapped[int] = mapped_column(ForeignKey("tournaments.id"), nullable=False, index=True)
-    match_number: Mapped[int] = mapped_column(Integer, nullable=False)
-    played_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    # Full match results as JSON: list of {player_id, kills, damage, placement, survival_minutes}
-    results_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    id = Column(Integer, primary_key=True, index=True)
+    pubg_match_id = Column(String, nullable=False, unique=True, index=True)
+    tournament_id = Column(Integer, ForeignKey("tournaments.id"), nullable=True)
+    map_name = Column(String, nullable=True)
+    played_at = Column(DateTime(timezone=True), nullable=True)
+    duration_secs = Column(Integer, server_default="0", nullable=True)
+    synced_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=True)
 
-    tournament: Mapped["Tournament"] = relationship("Tournament", back_populates="matches")
+    tournament = relationship("Tournament", back_populates="matches")
+    player_stats = relationship("MatchPlayerStat", back_populates="match")
+
+
+class MatchPlayerStat(Base):
+    __tablename__ = "match_player_stats"
+
+    id = Column(Integer, primary_key=True, index=True)
+    match_id = Column(Integer, ForeignKey("matches.id", ondelete="CASCADE"), nullable=False, index=True)
+    player_id = Column(Integer, ForeignKey("players.id", ondelete="CASCADE"), nullable=False, index=True)
+    kills = Column(Integer, server_default="0", nullable=True)
+    assists = Column(Integer, server_default="0", nullable=True)
+    damage_dealt = Column(Float, server_default="0.0", nullable=True)
+    placement = Column(Integer, server_default="28", nullable=True)
+    survival_secs = Column(Integer, server_default="0", nullable=True)
+    headshots = Column(Integer, server_default="0", nullable=True)
+    knocks = Column(Integer, server_default="0", nullable=True)
+    fantasy_points = Column(Float, server_default="0.0", nullable=True, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=True)
+
+    match = relationship("Match", back_populates="player_stats")
+    player = relationship("Player")
+
+
+class PlayerScore(Base):
+    __tablename__ = "player_scores"
+
+    id = Column(Integer, primary_key=True, index=True)
+    player_id = Column(Integer, ForeignKey("players.id", ondelete="CASCADE"), nullable=False, index=True)
+    league_id = Column(Integer, ForeignKey("fantasy_leagues.id", ondelete="CASCADE"), nullable=False, index=True)
+    total_points = Column(Float, server_default="0.0", nullable=True, index=True)
+    total_kills = Column(Integer, server_default="0", nullable=True)
+    total_assists = Column(Integer, server_default="0", nullable=True)
+    total_damage = Column(Float, server_default="0.0", nullable=True)
+    matches_scored = Column(Integer, server_default="0", nullable=True)
+    last_updated = Column(DateTime(timezone=True), server_default=func.now(), nullable=True)
+
+    player = relationship("Player")
+    league = relationship("FantasyLeague")
