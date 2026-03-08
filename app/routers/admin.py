@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, require_admin
 from app.models import Player, Tournament, User
 from app.services.pubg_api import PUBGApiClient, calculate_fantasy_cost
 from app.config import settings
@@ -20,23 +20,6 @@ from app.config import settings
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
-
-
-# ------------------------------------------------------------------
-# DEPENDENCY: verifica admin
-# ------------------------------------------------------------------
-
-def require_admin(current_user: User = Depends(get_current_user)) -> User:
-    """
-    Dependency que garante que o usuário autenticado tem is_admin=True.
-    Levanta 403 caso contrário.
-    """
-    if not current_user.is_admin:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied: administrator privileges required.",
-        )
-    return current_user
 
 
 # ------------------------------------------------------------------
@@ -327,7 +310,8 @@ async def seed_database(
 @router.post("/promote-to-admin", summary="[TEMP] Promove usuário a admin")
 async def promote_user_to_admin(
     email: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
 ):
     """
     ENDPOINT TEMPORÁRIO: Promove qualquer usuário a admin.
@@ -353,7 +337,10 @@ async def promote_user_to_admin(
 
 
 @router.get("/list-users", summary="[TEMP] Lista todos os emails")
-async def list_all_users(db: Session = Depends(get_db)):
+async def list_all_users(
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
     """TEMPORÁRIO: Lista emails de todos os usuários para debug"""
     users = db.query(User).all()
     return {
@@ -363,7 +350,10 @@ async def list_all_users(db: Session = Depends(get_db)):
 
 
 @router.post("/fix-database")
-async def fix_database_schema(db: Session = Depends(get_db)):
+async def fix_database_schema(
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
     from sqlalchemy import text
     db.execute(text("ALTER TABLE players ADD COLUMN IF NOT EXISTS fantasy_cost FLOAT DEFAULT 10.0"))
     db.commit()
@@ -371,7 +361,10 @@ async def fix_database_schema(db: Session = Depends(get_db)):
 
 
 @router.post("/fix-database-schema")
-async def fix_database_schema_no_auth(db: Session = Depends(get_db)):
+async def fix_database_schema_no_auth(
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
     """TEMP: Adiciona colunas faltantes na tabela players"""
     from sqlalchemy import text
 
