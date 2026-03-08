@@ -350,3 +350,13 @@ async def promote_user_to_admin(
         "email": user.email,
         "is_admin": user.is_admin
     }
+
+
+@router.get("/list-users", summary="[TEMP] Lista todos os emails")
+async def list_all_users(db: Session = Depends(get_db)):
+    """TEMPORÁRIO: Lista emails de todos os usuários para debug"""
+    users = db.query(User).all()
+    return {
+        "total": len(users),
+        "users": [{"id": u.id, "email": u.email, "is_admin": u.is_admin} for u in users]
+    }
