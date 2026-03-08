@@ -1,12 +1,9 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer, Numeric, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
-
-TournamentType = Enum("official", "custom", name="tournament_type")
-TournamentStatus = Enum("upcoming", "active", "finished", "cancelled", name="tournament_status")
 
 
 class Tournament(Base):
@@ -18,8 +15,8 @@ class Tournament(Base):
         String(255), unique=True, index=True, nullable=True
     )
     region: Mapped[str] = mapped_column(String(50), nullable=False)
-    type: Mapped[str] = mapped_column(TournamentType, nullable=False, default="official")
-    status: Mapped[str] = mapped_column(TournamentStatus, nullable=False, default="upcoming")
+    type: Mapped[str] = mapped_column(String(50), nullable=False, default="official")
+    status: Mapped[str] = mapped_column(String(50), nullable=False, default="upcoming")
     # JSON blob for any extra scoring configuration not covered by ScoringRule
     scoring_rules_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     start_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

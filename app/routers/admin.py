@@ -389,6 +389,18 @@ async def fix_database_schema_no_auth(db: Session = Depends(get_db)):
             "ALTER TABLE players ADD COLUMN IF NOT EXISTS raw_stats JSON",
             "ALTER TABLE players ADD COLUMN IF NOT EXISTS last_synced_at TIMESTAMP WITH TIME ZONE",
             "ALTER TABLE players ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()",
+
+            "ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS pubg_id VARCHAR",
+            "ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS region VARCHAR",
+            "ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS type VARCHAR DEFAULT 'official'",
+            "ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS status VARCHAR DEFAULT 'upcoming'",
+            "ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS scoring_rules_json TEXT",
+            "ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS start_date TIMESTAMP WITH TIME ZONE",
+            "ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS end_date TIMESTAMP WITH TIME ZONE",
+            "ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS max_teams INTEGER DEFAULT 16",
+            "ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS budget_limit NUMERIC(8,2) DEFAULT 100.0",
+            "ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS created_by INTEGER",
+            "ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()",
         ]
 
         for sql in alteracoes:
