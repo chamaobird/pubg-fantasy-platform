@@ -401,12 +401,51 @@ async def fix_database_schema_no_auth(db: Session = Depends(get_db)):
             "ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS budget_limit NUMERIC(8,2) DEFAULT 100.0",
             "ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS created_by INTEGER",
             "ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()",
+
+            """
+            DO $$
+            BEGIN
+              IF EXISTS (
+                SELECT 1
+                FROM information_schema.columns
+                WHERE table_name = 'tournaments'
+                  AND column_name = 'type'
+                  AND udt_name = 'tournament_type'
+              ) THEN
+                ALTER TABLE tournaments
+                  ALTER COLUMN type TYPE VARCHAR
+                  USING type::text;
+              END IF;
+            END $$;
+            """,
+
+            """
+            DO $$
+            BEGIN
+              IF EXISTS (
+                SELECT 1
+                FROM information_schema.columns
+                WHERE table_name = 'tournaments'
+                  AND column_name = 'status'
+                  AND udt_name = 'tournament_status'
+              ) THEN
+                ALTER TABLE tournaments
+                  ALTER COLUMN status TYPE VARCHAR
+                  USING status::text;
+              END IF;
+            END $$;
+            """,
         ]
 
         for sql in alteracoes:
             db.execute(text(sql))
-            coluna = sql.split("ADD COLUMN IF NOT EXISTS ")[1].split(" ")[0]
-            colunas_adicionadas.append(coluna)
+            if "ADD COLUMN IF NOT EXISTS" in sql:
+                coluna = sql.split("ADD COLUMN IF NOT EXISTS ")[1].split(" ")[0]
+                colunas_adicionadas.append(coluna)
+            elif "ALTER COLUMN type TYPE VARCHAR" in sql:
+                colunas_adicionadas.append("tournaments.type_cast_to_varchar")
+            elif "ALTER COLUMN status TYPE VARCHAR" in sql:
+                colunas_adicionadas.append("tournaments.status_cast_to_varchar")
 
         db.commit()
 
