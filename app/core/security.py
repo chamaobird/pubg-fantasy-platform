@@ -1,3 +1,10 @@
+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+
+# Updated: 2026-03-07 - Fix bcrypt 72-byte limit with SHA256 prehash
+#
+# NOTE: This comment exists to force a rebuild/redeploy on platforms that may
+# cache layers aggressively.
+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+
+
 import base64
 import hashlib
 from datetime import datetime, timedelta
