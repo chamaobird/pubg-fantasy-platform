@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.core.security import hash_password, verify_password
 from app.database import get_db
+from app.dependencies import get_current_user
 from app.models import User
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -71,10 +72,22 @@ def login(
         )
 
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.utcnow() + access_token_expires
+
+    # PONTO CRÍTICO: sub precisa ser string
     access_token = jwt.encode(
-        {"sub": user.id, "exp": datetime.utcnow() + access_token_expires},
+        {"sub": str(user.id), "exp": expire},
         settings.SECRET_KEY,
         algorithm=settings.ALGORITHM,
     )
 
     return {"access_token": access_token, "token_type": "bearer"}
+
+
+@router.get("/debug-current-user", summary="[TEMP] Debug token atual")
+def debug_current_user(current_user: User = Depends(get_current_user)):
+    return {
+        "id": current_user.id,
+        "email": current_user.email,
+        "is_admin": current_user.is_admin,
+    }
