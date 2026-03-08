@@ -360,3 +360,11 @@ async def list_all_users(db: Session = Depends(get_db)):
         "total": len(users),
         "users": [{"id": u.id, "email": u.email, "is_admin": u.is_admin} for u in users]
     }
+
+
+@router.post("/fix-database")
+async def fix_database_schema(db: Session = Depends(get_db)):
+    from sqlalchemy import text
+    db.execute(text("ALTER TABLE players ADD COLUMN IF NOT EXISTS fantasy_cost FLOAT DEFAULT 10.0"))
+    db.commit()
+    return {"message": "Campo fantasy_cost adicionado!"}
