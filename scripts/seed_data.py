@@ -240,10 +240,22 @@ def seed_tournaments(db: Session) -> None:
 
 def seed_players(db: Session) -> None:
     """Cria ou ignora os jogadores de seed com fantasy_cost calculado."""
+    tournaments = db.query(Tournament).all()
+    tournaments_by_region = {t.region: t for t in tournaments if t.region}
+    fallback_tournament = None
+    for t in tournaments:
+        if t.status == "active":
+            fallback_tournament = t
+            break
+    if not fallback_tournament and tournaments:
+        fallback_tournament = tournaments[0]
+
     for p_data in PLAYERS_SEED:
         existing = db.query(Player).filter(
             Player.pubg_id == p_data["pubg_id"]
         ).first()
+
+        tournament = tournaments_by_region.get(p_data["region"], fallback_tournament)
 
         fantasy_cost = calculate_fantasy_cost(
             avg_kills=p_data["avg_kills"],
@@ -258,6 +270,7 @@ def seed_players(db: Session) -> None:
                 name=p_data["name"],
                 pubg_id=p_data["pubg_id"],
                 region=p_data["region"],
+                tournament_id=(tournament.id if tournament else None),
                 avg_kills=p_data["avg_kills"],
                 avg_damage=p_data["avg_damage"],
                 avg_placement=p_data["avg_placement"],

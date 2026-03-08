@@ -4,6 +4,7 @@ from app.models.player import Player, PlayerPriceHistory
 from app.models.tournament import Tournament, ScoringRule
 from app.models.match import Match, MatchPlayerStat, PlayerScore
 from app.models.fantasy import FantasyTeam, FantasyEntry, FantasyLeague, fantasy_team_players
+from app.models.lineup import Lineup, lineup_players
 
 __all__ = [
     "User",
@@ -19,4 +20,6 @@ __all__ = [
     "FantasyTeam",
     "FantasyEntry",
     "fantasy_team_players",
+    "Lineup",
+    "lineup_players",
 ]
