@@ -5,62 +5,36 @@
 # cache layers aggressively.
 #+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+
 
-import base64
 import hashlib
+import base64
+import bcrypt
 from datetime import datetime, timedelta
 from typing import Optional
-
 from jose import JWTError, jwt
-from passlib.context import CryptContext
+from app.config import settings
 
-from app.core.config import settings
-
-pwd_context = CryptContext(
-    schemes=["bcrypt"],
-    deprecated="auto",
-    bcrypt__default_rounds=12,
-    bcrypt__min_rounds=4,
-    bcrypt__max_rounds=31,
-)
-
-
-def _prehash(password: str) -> str:
-    """
-    Aplica SHA-256 + base64url na senha para contornar o limite de 72 bytes
-    do bcrypt, preservando toda a entropia da senha original.
-
-    Retorna uma string ASCII de 44 caracteres, sempre abaixo do limite.
-    """
-
+def _prehash(password: str) -> bytes:
+    """Pré-hash SHA256 para evitar limite de 72 bytes do bcrypt"""
     digest = hashlib.sha256(password.encode("utf-8")).digest()
-    return base64.urlsafe_b64encode(digest).decode("ascii")
-
+    return base64.b64encode(digest)
 
 def hash_password(password: str) -> str:
-    """Gera o hash bcrypt de uma senha de qualquer comprimento."""
-
-    return pwd_context.hash(_prehash(password))
-
+    """Hash bcrypt de senha de qualquer tamanho"""
+    prehashed = _prehash(password)
+    hashed = bcrypt.hashpw(prehashed, bcrypt.gensalt())
+    return hashed.decode("utf-8")
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verifica se a senha em texto plano corresponde ao hash armazenado."""
-
-    return pwd_context.verify(_prehash(plain_password), hashed_password)
-
+    """Verifica senha contra hash"""
+    prehashed = _prehash(plain_password)
+    return bcrypt.checkpw(prehashed, hashed_password.encode("utf-8"))
 
 def create_access_token(subject: str, expires_delta: Optional[timedelta] = None) -> str:
-    """Cria um token JWT de acesso."""
-
-    expire = datetime.utcnow() + (
-        expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    )
+    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES))
     payload = {"sub": subject, "exp": expire}
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
-
 def decode_token(token: str) -> Optional[str]:
-    """Decodifica um token JWT e retorna o subject."""
-
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         return payload.get("sub")
