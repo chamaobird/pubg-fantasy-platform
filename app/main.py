@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer
 
 from app.routers import auth, players, tournaments, admin
 from app.routers.championships import router as championships_router
@@ -31,6 +32,8 @@ app = FastAPI(
     version="2.0.0",
     lifespan=lifespan,
 )
+
+security = HTTPBearer()
 
 app.add_middleware(
     CORSMiddleware,
