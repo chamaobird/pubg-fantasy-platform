@@ -31,6 +31,8 @@ class Tournament(Base):
     creator: Mapped["User | None"] = relationship("User", back_populates="tournaments")
     matches: Mapped[list["Match"]] = relationship("Match", back_populates="tournament")
     fantasy_teams: Mapped[list["FantasyTeam"]] = relationship("FantasyTeam", back_populates="tournament")
+    players: Mapped[list["Player"]] = relationship("Player", back_populates="tournament")
+    lineups: Mapped[list["Lineup"]] = relationship("Lineup", back_populates="tournament")
     scoring_rule: Mapped["ScoringRule | None"] = relationship(
         "ScoringRule", back_populates="tournament", uselist=False
     )

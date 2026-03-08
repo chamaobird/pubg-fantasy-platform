@@ -13,6 +13,8 @@ class Player(Base):
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     pubg_id: Mapped[str | None] = mapped_column(String(255), unique=True, index=True, nullable=True)
     region: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    nationality: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    tournament_id: Mapped[int | None] = mapped_column(ForeignKey("tournaments.id"), nullable=True, index=True)
     team_id: Mapped[int | None] = mapped_column(ForeignKey("teams.id"), nullable=True)
     fantasy_cost: Mapped[float] = mapped_column(Float, default=10.0)
     position: Mapped[str | None] = mapped_column(String(50), nullable=True)
@@ -28,6 +30,7 @@ class Player(Base):
     is_active: Mapped[bool] = column_property(true())
 
     team: Mapped["Team | None"] = relationship("Team", back_populates="players")
+    tournament: Mapped["Tournament | None"] = relationship("Tournament", back_populates="players")
     price_history: Mapped[list["PlayerPriceHistory"]] = relationship(
         "PlayerPriceHistory", back_populates="player", order_by="PlayerPriceHistory.changed_at.desc()"
     )

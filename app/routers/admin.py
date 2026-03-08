@@ -164,6 +164,9 @@ async def sync_players(
             )
         target_pubg_id = active_tournament.pubg_id
 
+    tournament = db.query(Tournament).filter(Tournament.pubg_id == target_pubg_id).first()
+    tournament_id = tournament.id if tournament else None
+
     try:
         async with PUBGApiClient() as client:
             players_data = await client.extract_players_from_tournament(
@@ -211,6 +214,7 @@ async def sync_players(
         if existing:
             existing.name = p_data["name"]
             existing.region = p_data["region"]
+            existing.tournament_id = tournament_id
             existing.avg_kills = p_data["avg_kills"]
             existing.avg_damage = p_data["avg_damage"]
             existing.avg_placement = p_data["avg_placement"]
@@ -224,6 +228,7 @@ async def sync_players(
                 name=p_data["name"],
                 pubg_id=p_data["pubg_id"],
                 region=p_data["region"],
+                tournament_id=tournament_id,
                 avg_kills=p_data["avg_kills"],
                 avg_damage=p_data["avg_damage"],
                 avg_placement=p_data["avg_placement"],
@@ -375,6 +380,8 @@ async def fix_database_schema_no_auth(
         alteracoes = [
             "ALTER TABLE players ADD COLUMN IF NOT EXISTS fantasy_cost FLOAT DEFAULT 10.0",
             "ALTER TABLE players ADD COLUMN IF NOT EXISTS position VARCHAR",
+            "ALTER TABLE players ADD COLUMN IF NOT EXISTS nationality VARCHAR",
+            "ALTER TABLE players ADD COLUMN IF NOT EXISTS tournament_id INTEGER",
             "ALTER TABLE players ADD COLUMN IF NOT EXISTS avg_kills FLOAT DEFAULT 0.0",
             "ALTER TABLE players ADD COLUMN IF NOT EXISTS avg_damage FLOAT DEFAULT 0.0",
             "ALTER TABLE players ADD COLUMN IF NOT EXISTS avg_placement FLOAT DEFAULT 0.0",
@@ -400,6 +407,33 @@ async def fix_database_schema_no_auth(
                 WHERE price IS NULL;
               END IF;
             END $$;
+            """,
+
+            """
+            CREATE TABLE IF NOT EXISTS lineups (
+              id SERIAL PRIMARY KEY,
+              user_id INTEGER NOT NULL,
+              tournament_id INTEGER NOT NULL,
+              name VARCHAR(100) NOT NULL,
+              captain_player_id INTEGER NOT NULL,
+              created_at TIMESTAMPTZ DEFAULT NOW(),
+              CONSTRAINT fk_lineups_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+              CONSTRAINT fk_lineups_tournament FOREIGN KEY (tournament_id) REFERENCES tournaments(id) ON DELETE CASCADE,
+              CONSTRAINT fk_lineups_captain FOREIGN KEY (captain_player_id) REFERENCES players(id)
+            );
+            """,
+
+            """
+            CREATE TABLE IF NOT EXISTS lineup_players (
+              lineup_id INTEGER NOT NULL,
+              player_id INTEGER NOT NULL,
+              slot INTEGER NOT NULL,
+              added_at TIMESTAMPTZ DEFAULT NOW(),
+              PRIMARY KEY (lineup_id, player_id),
+              CONSTRAINT uq_lineup_slot UNIQUE (lineup_id, slot),
+              CONSTRAINT fk_lineup_players_lineup FOREIGN KEY (lineup_id) REFERENCES lineups(id) ON DELETE CASCADE,
+              CONSTRAINT fk_lineup_players_player FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE
+            );
             """,
 
             """
@@ -475,6 +509,10 @@ async def fix_database_schema_no_auth(
                 colunas_adicionadas.append(coluna)
             elif "ALTER COLUMN price SET DEFAULT" in sql:
                 colunas_adicionadas.append("players.price_default_and_backfill")
+            elif "CREATE TABLE IF NOT EXISTS lineups" in sql:
+                colunas_adicionadas.append("lineups_table_created")
+            elif "CREATE TABLE IF NOT EXISTS lineup_players" in sql:
+                colunas_adicionadas.append("lineup_players_table_created")
             elif "ALTER COLUMN is_active SET DEFAULT" in sql:
                 colunas_adicionadas.append("players.is_active_default_and_backfill")
             elif "ALTER COLUMN type TYPE VARCHAR" in sql:

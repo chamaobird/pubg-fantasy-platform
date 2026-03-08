@@ -19,3 +19,4 @@ class User(Base):
     # relationships
     tournaments: Mapped[list["Tournament"]] = relationship("Tournament", back_populates="creator")
     fantasy_teams: Mapped[list["FantasyTeam"]] = relationship("FantasyTeam", back_populates="user")
+    lineups: Mapped[list["Lineup"]] = relationship("Lineup", back_populates="user")
