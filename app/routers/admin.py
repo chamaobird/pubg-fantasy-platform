@@ -409,6 +409,25 @@ async def fix_database_schema_no_auth(db: Session = Depends(get_db)):
             END $$;
             """,
 
+            """
+            DO $$
+            BEGIN
+              IF EXISTS (
+                SELECT 1
+                FROM information_schema.columns
+                WHERE table_name = 'players'
+                  AND column_name = 'is_active'
+              ) THEN
+                ALTER TABLE players
+                  ALTER COLUMN is_active SET DEFAULT true;
+
+                UPDATE players
+                  SET is_active = COALESCE(is_active, true)
+                WHERE is_active IS NULL;
+              END IF;
+            END $$;
+            """,
+
             "ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS pubg_id VARCHAR",
             "ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS region VARCHAR",
             "ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS type VARCHAR DEFAULT 'official'",
@@ -463,6 +482,8 @@ async def fix_database_schema_no_auth(db: Session = Depends(get_db)):
                 colunas_adicionadas.append(coluna)
             elif "ALTER COLUMN price SET DEFAULT" in sql:
                 colunas_adicionadas.append("players.price_default_and_backfill")
+            elif "ALTER COLUMN is_active SET DEFAULT" in sql:
+                colunas_adicionadas.append("players.is_active_default_and_backfill")
             elif "ALTER COLUMN type TYPE VARCHAR" in sql:
                 colunas_adicionadas.append("tournaments.type_cast_to_varchar")
             elif "ALTER COLUMN status TYPE VARCHAR" in sql:
