@@ -375,14 +375,32 @@ async def fix_database_schema_no_auth(db: Session = Depends(get_db)):
     """TEMP: Adiciona colunas faltantes na tabela players"""
     from sqlalchemy import text
 
+    colunas_adicionadas = []
+
     try:
-        # Adiciona fantasy_cost
-        db.execute(text("ALTER TABLE players ADD COLUMN IF NOT EXISTS fantasy_cost FLOAT DEFAULT 10.0"))
+        # Lista de todas as colunas que podem estar faltando
+        alteracoes = [
+            "ALTER TABLE players ADD COLUMN IF NOT EXISTS fantasy_cost FLOAT DEFAULT 10.0",
+            "ALTER TABLE players ADD COLUMN IF NOT EXISTS position VARCHAR",
+            "ALTER TABLE players ADD COLUMN IF NOT EXISTS avg_kills FLOAT DEFAULT 0.0",
+            "ALTER TABLE players ADD COLUMN IF NOT EXISTS avg_damage FLOAT DEFAULT 0.0",
+            "ALTER TABLE players ADD COLUMN IF NOT EXISTS avg_placement FLOAT DEFAULT 0.0",
+            "ALTER TABLE players ADD COLUMN IF NOT EXISTS matches_played INTEGER DEFAULT 0",
+            "ALTER TABLE players ADD COLUMN IF NOT EXISTS raw_stats JSON",
+            "ALTER TABLE players ADD COLUMN IF NOT EXISTS last_synced_at TIMESTAMP WITH TIME ZONE",
+            "ALTER TABLE players ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()",
+        ]
+
+        for sql in alteracoes:
+            db.execute(text(sql))
+            coluna = sql.split("ADD COLUMN IF NOT EXISTS ")[1].split(" ")[0]
+            colunas_adicionadas.append(coluna)
+
         db.commit()
 
         return {
-            "message": "Schema corrigido com sucesso!",
-            "columns_added": ["fantasy_cost"]
+            "message": "Todas as colunas adicionadas com sucesso!",
+            "colunas_adicionadas": colunas_adicionadas,
         }
     except Exception as e:
         db.rollback()
