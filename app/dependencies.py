@@ -11,7 +11,6 @@ from app.models import User
 logger = logging.getLogger(__name__)
 
 security = HTTPBearer()
-
 def get_current_user(
     token: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db)
@@ -41,3 +40,12 @@ def get_current_user(
         logger.warning("Usuário não encontrado para user_id=%s (sub=%r)", user_id, sub)
         raise credentials_exception
     return user
+
+
+def require_admin(current_user: User = Depends(get_current_user)) -> User:
+    if not current_user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied: administrator privileges required.",
+        )
+    return current_user

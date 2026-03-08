@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.core.security import hash_password, verify_password
 from app.database import get_db
-from app.dependencies import get_current_user
+from app.dependencies import require_admin
 from app.models import User
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -85,7 +85,7 @@ def login(
 
 
 @router.get("/debug-current-user", summary="[TEMP] Debug token atual")
-def debug_current_user(current_user: User = Depends(get_current_user)):
+def debug_current_user(current_user: User = Depends(require_admin)):
     return {
         "id": current_user.id,
         "email": current_user.email,
