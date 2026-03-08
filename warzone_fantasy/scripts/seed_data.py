@@ -274,8 +274,7 @@ def seed_players(db: Session) -> None:
 
 def seed_admin_user(db: Session) -> None:
     """Cria usuário admin padrão para testes."""
-    from passlib.context import CryptContext
-    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    from app.core.security import hash_password
 
     existing = db.query(User).filter(User.email == "admin@warzone.gg").first()
     if existing:
@@ -285,8 +284,7 @@ def seed_admin_user(db: Session) -> None:
     admin = User(
         email="admin@warzone.gg",
         username="admin",
-        hashed_password=pwd_context.hash("admin123"),
-        is_active=True,
+        hashed_password=hash_password("admin123"),
         is_admin=True,
     )
     db.add(admin)
