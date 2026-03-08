@@ -307,3 +307,18 @@ async def recalculate_costs(
         "message": f"fantasy_cost recalculado para {updated} jogadores.",
         "updated": updated,
     }
+
+
+@router.post("/seed-data")
+async def seed_database(
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    """Popula banco com dados de teste (3 torneios, 20 jogadores, 1 admin)"""
+    from scripts.seed_data import seed_tournaments, seed_players, seed_admin_user
+
+    seed_tournaments(db)
+    seed_players(db)
+    seed_admin_user(db)
+
+    return {"message": "Seed executado com sucesso!"}
