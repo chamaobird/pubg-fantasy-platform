@@ -390,6 +390,25 @@ async def fix_database_schema_no_auth(db: Session = Depends(get_db)):
             "ALTER TABLE players ADD COLUMN IF NOT EXISTS last_synced_at TIMESTAMP WITH TIME ZONE",
             "ALTER TABLE players ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()",
 
+            """
+            DO $$
+            BEGIN
+              IF EXISTS (
+                SELECT 1
+                FROM information_schema.columns
+                WHERE table_name = 'players'
+                  AND column_name = 'price'
+              ) THEN
+                ALTER TABLE players
+                  ALTER COLUMN price SET DEFAULT 10.0;
+
+                UPDATE players
+                  SET price = COALESCE(price, fantasy_cost, 10.0)
+                WHERE price IS NULL;
+              END IF;
+            END $$;
+            """,
+
             "ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS pubg_id VARCHAR",
             "ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS region VARCHAR",
             "ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS type VARCHAR DEFAULT 'official'",
@@ -442,6 +461,8 @@ async def fix_database_schema_no_auth(db: Session = Depends(get_db)):
             if "ADD COLUMN IF NOT EXISTS" in sql:
                 coluna = sql.split("ADD COLUMN IF NOT EXISTS ")[1].split(" ")[0]
                 colunas_adicionadas.append(coluna)
+            elif "ALTER COLUMN price SET DEFAULT" in sql:
+                colunas_adicionadas.append("players.price_default_and_backfill")
             elif "ALTER COLUMN type TYPE VARCHAR" in sql:
                 colunas_adicionadas.append("tournaments.type_cast_to_varchar")
             elif "ALTER COLUMN status TYPE VARCHAR" in sql:
