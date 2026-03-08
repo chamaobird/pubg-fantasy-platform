@@ -368,3 +368,22 @@ async def fix_database_schema(db: Session = Depends(get_db)):
     db.execute(text("ALTER TABLE players ADD COLUMN IF NOT EXISTS fantasy_cost FLOAT DEFAULT 10.0"))
     db.commit()
     return {"message": "Campo fantasy_cost adicionado!"}
+
+
+@router.post("/fix-database-schema")
+async def fix_database_schema_no_auth(db: Session = Depends(get_db)):
+    """TEMP: Adiciona colunas faltantes na tabela players"""
+    from sqlalchemy import text
+
+    try:
+        # Adiciona fantasy_cost
+        db.execute(text("ALTER TABLE players ADD COLUMN IF NOT EXISTS fantasy_cost FLOAT DEFAULT 10.0"))
+        db.commit()
+
+        return {
+            "message": "Schema corrigido com sucesso!",
+            "columns_added": ["fantasy_cost"]
+        }
+    except Exception as e:
+        db.rollback()
+        return {"status": "error", "message": str(e)}
