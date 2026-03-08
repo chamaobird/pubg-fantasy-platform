@@ -322,3 +322,31 @@ async def seed_database(
     seed_admin_user(db)
 
     return {"message": "Seed executado com sucesso!"}
+
+
+@router.post("/promote-to-admin", summary="[TEMP] Promove usuário a admin")
+async def promote_user_to_admin(
+    email: str,
+    db: Session = Depends(get_db)
+):
+    """
+    ENDPOINT TEMPORÁRIO: Promove qualquer usuário a admin.
+    ⚠️ REMOVER EM PRODUÇÃO! Deixar apenas para setup inicial.
+    """
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Usuário com email {email} não encontrado"
+        )
+
+    user.is_admin = True
+    db.commit()
+    db.refresh(user)
+
+    return {
+        "message": f"Usuário {email} promovido a admin com sucesso!",
+        "user_id": user.id,
+        "email": user.email,
+        "is_admin": user.is_admin
+    }
