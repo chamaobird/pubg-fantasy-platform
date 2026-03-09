@@ -380,8 +380,50 @@ async def fix_database_schema_no_auth(
         alteracoes = [
             "ALTER TABLE players ADD COLUMN IF NOT EXISTS fantasy_cost FLOAT DEFAULT 10.0",
             "ALTER TABLE players ADD COLUMN IF NOT EXISTS position VARCHAR",
-            "ALTER TABLE players ADD COLUMN IF NOT EXISTS nationality VARCHAR",
-            "ALTER TABLE players ADD COLUMN IF NOT EXISTS tournament_id INTEGER",
+            """
+            DO $$
+            BEGIN
+              IF NOT EXISTS (
+                SELECT 1
+                FROM information_schema.columns
+                WHERE table_name = 'players'
+                  AND column_name = 'nationality'
+              ) THEN
+                ALTER TABLE players ADD COLUMN nationality VARCHAR(50);
+              END IF;
+            END $$;
+            """,
+
+            """
+            DO $$
+            BEGIN
+              IF NOT EXISTS (
+                SELECT 1
+                FROM information_schema.columns
+                WHERE table_name = 'players'
+                  AND column_name = 'tournament_id'
+              ) THEN
+                ALTER TABLE players ADD COLUMN tournament_id INTEGER;
+              END IF;
+            END $$;
+            """,
+
+            """
+            DO $$
+            BEGIN
+              IF NOT EXISTS (
+                SELECT 1
+                FROM pg_constraint
+                WHERE conname = 'fk_players_tournament_id'
+              ) THEN
+                ALTER TABLE players
+                  ADD CONSTRAINT fk_players_tournament_id
+                  FOREIGN KEY (tournament_id)
+                  REFERENCES tournaments(id)
+                  ON DELETE SET NULL;
+              END IF;
+            END $$;
+            """,
             "ALTER TABLE players ADD COLUMN IF NOT EXISTS avg_kills FLOAT DEFAULT 0.0",
             "ALTER TABLE players ADD COLUMN IF NOT EXISTS avg_damage FLOAT DEFAULT 0.0",
             "ALTER TABLE players ADD COLUMN IF NOT EXISTS avg_placement FLOAT DEFAULT 0.0",
@@ -509,6 +551,12 @@ async def fix_database_schema_no_auth(
                 colunas_adicionadas.append(coluna)
             elif "ALTER COLUMN price SET DEFAULT" in sql:
                 colunas_adicionadas.append("players.price_default_and_backfill")
+            elif "ADD COLUMN nationality" in sql:
+                colunas_adicionadas.append("players.nationality")
+            elif "ADD COLUMN tournament_id" in sql:
+                colunas_adicionadas.append("players.tournament_id")
+            elif "fk_players_tournament_id" in sql:
+                colunas_adicionadas.append("players.tournament_id_fk")
             elif "CREATE TABLE IF NOT EXISTS lineups" in sql:
                 colunas_adicionadas.append("lineups_table_created")
             elif "CREATE TABLE IF NOT EXISTS lineup_players" in sql:
