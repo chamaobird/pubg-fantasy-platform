@@ -264,7 +264,27 @@ def seed_players(db: Session) -> None:
         )
 
         if existing:
-            print(f"  [SKIP] Player já existe: {p_data['name']} (cost={fantasy_cost})")
+            changed = False
+            expected_tournament_id = (tournament.id if tournament else None)
+            if existing.tournament_id != expected_tournament_id:
+                existing.tournament_id = expected_tournament_id
+                changed = True
+
+            if existing.region != p_data["region"]:
+                existing.region = p_data["region"]
+                changed = True
+
+            if float(existing.fantasy_cost or 0.0) != float(fantasy_cost):
+                existing.fantasy_cost = fantasy_cost
+                changed = True
+
+            if changed:
+                print(
+                    f"  [UPDATE] Player atualizado: {p_data['name']} "
+                    f"(tournament_id={existing.tournament_id}, cost={fantasy_cost})"
+                )
+            else:
+                print(f"  [SKIP] Player já existe: {p_data['name']} (cost={fantasy_cost})")
         else:
             player = Player(
                 name=p_data["name"],

@@ -312,6 +312,63 @@ async def seed_database(
     return {"message": "Seed executado com sucesso!"}
 
 
+@router.post("/backfill-player-tournament-ids", summary="[TEMP] Backfill tournament_id dos players")
+async def backfill_player_tournament_ids(
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    """TEMPORÁRIO: Preenche players.tournament_id baseado em region.
+
+    Regras:
+    - Para cada player com tournament_id NULL, tenta encontrar torneio ativo na mesma region.
+    - Se não houver ativo, usa qualquer torneio da mesma region.
+    - Se não existir torneio para a region, não altera.
+    """
+    from sqlalchemy import func
+
+    tournaments = db.query(Tournament).all()
+    tournaments_by_region: dict[str, Tournament] = {}
+
+    for t in tournaments:
+        if not t.region:
+            continue
+        region = t.region.upper()
+        current = tournaments_by_region.get(region)
+        if not current:
+            tournaments_by_region[region] = t
+            continue
+        if current.status != "active" and t.status == "active":
+            tournaments_by_region[region] = t
+
+    total_players = db.query(func.count(Player.id)).scalar() or 0
+    null_tournament_players = (
+        db.query(Player).filter(Player.tournament_id.is_(None)).all()
+    )
+
+    updated = 0
+    skipped = 0
+
+    for p in null_tournament_players:
+        region = (p.region or "").upper()
+        target = tournaments_by_region.get(region)
+        if not target:
+            skipped += 1
+            continue
+        p.tournament_id = target.id
+        updated += 1
+
+    db.commit()
+
+    return {
+        "message": "Backfill concluído",
+        "total_players": total_players,
+        "players_with_tournament_id_null": len(null_tournament_players),
+        "updated": updated,
+        "skipped": skipped,
+        "tournaments_by_region": {k: v.id for k, v in tournaments_by_region.items()},
+    }
+
+
 @router.post("/promote-to-admin", summary="[TEMP] Promove usuário a admin")
 async def promote_user_to_admin(
     email: str,
