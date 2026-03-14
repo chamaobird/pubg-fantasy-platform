@@ -974,3 +974,15 @@ async def run_migrations(
         "stdout": result.stdout,
         "stderr": result.stderr,
     }
+
+@router.get("/db-version", summary="[TEMP] Verifica versão atual do Alembic no banco")
+async def db_version(
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    from sqlalchemy import text
+    try:
+        result = db.execute(text("SELECT version_num FROM alembic_version")).fetchall()
+        return {"alembic_version": [r[0] for r in result]}
+    except Exception as e:
+        return {"error": str(e)}
