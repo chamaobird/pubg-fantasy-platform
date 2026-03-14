@@ -910,3 +910,25 @@ async def fix_teams_region(
     except Exception as e:
         db.rollback()
         return {"status": "error", "message": str(e)}
+
+@router.post("/reset-database", summary="[TEMP] Zera todos os dados de torneios, players e matches")
+async def reset_database(
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    from sqlalchemy import text
+    try:
+        # Deleta na ordem correta para respeitar FKs
+        db.execute(text("DELETE FROM match_player_stats"))
+        db.execute(text("DELETE FROM matches"))
+        db.execute(text("DELETE FROM lineup_scores"))
+        db.execute(text("DELETE FROM lineups"))
+        db.execute(text("DELETE FROM player_price_history"))
+        db.execute(text("DELETE FROM players"))
+        db.execute(text("DELETE FROM teams"))
+        db.execute(text("DELETE FROM tournaments"))
+        db.commit()
+        return {"status": "ok", "message": "Todos os dados zerados. Users mantidos."}
+    except Exception as e:
+        db.rollback()
+        return {"status": "error", "message": str(e)}
