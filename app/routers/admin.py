@@ -883,3 +883,16 @@ async def register_tournament(
         "pubg_id":       tournament.pubg_id,
         "status":        tournament.status,
     }
+@router.post("/fix-tournament-type", summary="[TEMP] Remove NOT NULL da coluna type em tournaments")
+async def fix_tournament_type(
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    from sqlalchemy import text
+    try:
+        db.execute(text('ALTER TABLE tournaments ALTER COLUMN "type" DROP NOT NULL'))
+        db.commit()
+        return {"status": "ok", "message": "type column is now nullable"}
+    except Exception as e:
+        db.rollback()
+        return {"status": "error", "message": str(e)}
