@@ -932,3 +932,28 @@ async def reset_database(
     except Exception as e:
         db.rollback()
         return {"status": "error", "message": str(e)}
+    
+@router.post("/fix-matches-schema", summary="[TEMP] Adiciona colunas faltando na tabela matches")
+async def fix_matches_schema(
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    from sqlalchemy import text
+    fixes = [
+        'ALTER TABLE matches ADD COLUMN IF NOT EXISTS pubg_match_id VARCHAR UNIQUE',
+        'ALTER TABLE matches ADD COLUMN IF NOT EXISTS match_number INTEGER',
+        'ALTER TABLE matches ADD COLUMN IF NOT EXISTS phase VARCHAR(50)',
+        'ALTER TABLE matches ADD COLUMN IF NOT EXISTS day INTEGER',
+        'ALTER TABLE matches ADD COLUMN IF NOT EXISTS duration_secs INTEGER DEFAULT 0',
+        'ALTER TABLE matches ADD COLUMN IF NOT EXISTS results_json TEXT',
+    ]
+    results = []
+    for sql in fixes:
+        try:
+            db.execute(text(sql))
+            db.commit()
+            results.append({"sql": sql, "status": "ok"})
+        except Exception as e:
+            db.rollback()
+            results.append({"sql": sql, "status": "error", "error": str(e)})
+    return {"results": results}
