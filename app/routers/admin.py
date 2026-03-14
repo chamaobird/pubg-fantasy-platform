@@ -986,3 +986,47 @@ async def db_version(
         return {"alembic_version": [r[0] for r in result]}
     except Exception as e:
         return {"error": str(e)}
+    
+@router.post("/fix-all-schema", summary="[TEMP] Adiciona todas as colunas faltando")
+async def fix_all_schema(
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    from sqlalchemy import text
+    fixes = [
+        # matches
+        'ALTER TABLE matches ADD COLUMN IF NOT EXISTS pubg_match_id VARCHAR UNIQUE',
+        'ALTER TABLE matches ADD COLUMN IF NOT EXISTS map_name VARCHAR',
+        'ALTER TABLE matches ADD COLUMN IF NOT EXISTS match_number INTEGER',
+        'ALTER TABLE matches ADD COLUMN IF NOT EXISTS phase VARCHAR(50)',
+        'ALTER TABLE matches ADD COLUMN IF NOT EXISTS day INTEGER',
+        'ALTER TABLE matches ADD COLUMN IF NOT EXISTS duration_secs INTEGER DEFAULT 0',
+        'ALTER TABLE matches ADD COLUMN IF NOT EXISTS results_json TEXT',
+        'ALTER TABLE matches ADD COLUMN IF NOT EXISTS played_at TIMESTAMP WITH TIME ZONE',
+        'ALTER TABLE matches ADD COLUMN IF NOT EXISTS synced_at TIMESTAMP WITH TIME ZONE DEFAULT now()',
+        # match_player_stats
+        'ALTER TABLE match_player_stats ADD COLUMN IF NOT EXISTS headshots INTEGER DEFAULT 0',
+        'ALTER TABLE match_player_stats ADD COLUMN IF NOT EXISTS knocks INTEGER DEFAULT 0',
+        'ALTER TABLE match_player_stats ADD COLUMN IF NOT EXISTS survival_secs INTEGER DEFAULT 0',
+        'ALTER TABLE match_player_stats ADD COLUMN IF NOT EXISTS damage_dealt FLOAT DEFAULT 0',
+        'ALTER TABLE match_player_stats ADD COLUMN IF NOT EXISTS fantasy_points FLOAT DEFAULT 0',
+        # players
+        'ALTER TABLE players ADD COLUMN IF NOT EXISTS avg_kills_50 FLOAT',
+        'ALTER TABLE players ADD COLUMN IF NOT EXISTS avg_damage_50 FLOAT',
+        'ALTER TABLE players ADD COLUMN IF NOT EXISTS avg_placement_50 FLOAT',
+        'ALTER TABLE players ADD COLUMN IF NOT EXISTS avg_kills_10 FLOAT',
+        'ALTER TABLE players ADD COLUMN IF NOT EXISTS computed_price FLOAT',
+        'ALTER TABLE players ADD COLUMN IF NOT EXISTS price_updated_at TIMESTAMP WITH TIME ZONE',
+        # lineups
+        'ALTER TABLE lineups ADD COLUMN IF NOT EXISTS total_points NUMERIC(10,2) DEFAULT 0',
+    ]
+    results = []
+    for sql in fixes:
+        try:
+            db.execute(text(sql))
+            db.commit()
+            results.append({"status": "ok", "sql": sql.split("ADD COLUMN")[1].strip()[:40]})
+        except Exception as e:
+            db.rollback()
+            results.append({"status": "error", "error": str(e)[:80], "sql": sql.split("ADD COLUMN")[1].strip()[:40]})
+    return {"total": len(fixes), "results": results}
