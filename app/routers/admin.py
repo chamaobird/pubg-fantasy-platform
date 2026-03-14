@@ -896,3 +896,17 @@ async def fix_tournament_type(
     except Exception as e:
         db.rollback()
         return {"status": "error", "message": str(e)}
+
+@router.post("/fix-teams-region", summary="[TEMP] Remove NOT NULL da coluna region em teams")
+async def fix_teams_region(
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    from sqlalchemy import text
+    try:
+        db.execute(text('ALTER TABLE teams ALTER COLUMN "region" DROP NOT NULL'))
+        db.commit()
+        return {"status": "ok", "message": "teams.region is now nullable"}
+    except Exception as e:
+        db.rollback()
+        return {"status": "error", "message": str(e)}
