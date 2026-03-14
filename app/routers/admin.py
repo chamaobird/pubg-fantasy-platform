@@ -957,3 +957,20 @@ async def fix_matches_schema(
             db.rollback()
             results.append({"sql": sql, "status": "error", "error": str(e)})
     return {"results": results}
+
+@router.post("/run-migrations", summary="[TEMP] Força alembic upgrade head")
+async def run_migrations(
+    admin: User = Depends(require_admin),
+):
+    import subprocess
+    result = subprocess.run(
+        ["alembic", "upgrade", "head"],
+        capture_output=True,
+        text=True,
+        cwd="/app"
+    )
+    return {
+        "returncode": result.returncode,
+        "stdout": result.stdout,
+        "stderr": result.stderr,
+    }
