@@ -14,7 +14,10 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.dependencies import get_current_user, require_admin
 from app.models import Player, Tournament, User
+from app.models.match import Match, MatchPlayerStat
+from app.models.lineup import Lineup
 from app.services.pubg_api import PUBGApiClient, calculate_fantasy_cost
+from app.services.lineup_scoring import score_all_lineups_for_match
 from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -515,11 +518,44 @@ async def fix_database_schema_no_auth(
               tournament_id INTEGER NOT NULL,
               name VARCHAR(100) NOT NULL,
               captain_player_id INTEGER NOT NULL,
+              reserve_player_id INTEGER,
               created_at TIMESTAMPTZ DEFAULT NOW(),
               CONSTRAINT fk_lineups_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
               CONSTRAINT fk_lineups_tournament FOREIGN KEY (tournament_id) REFERENCES tournaments(id) ON DELETE CASCADE,
-              CONSTRAINT fk_lineups_captain FOREIGN KEY (captain_player_id) REFERENCES players(id)
+              CONSTRAINT fk_lineups_captain FOREIGN KEY (captain_player_id) REFERENCES players(id),
+              CONSTRAINT fk_lineups_reserve FOREIGN KEY (reserve_player_id) REFERENCES players(id) ON DELETE SET NULL
             );
+            """,
+
+            """
+            DO $$
+            BEGIN
+              IF NOT EXISTS (
+                SELECT 1
+                FROM information_schema.columns
+                WHERE table_name = 'lineups'
+                  AND column_name = 'reserve_player_id'
+              ) THEN
+                ALTER TABLE lineups ADD COLUMN reserve_player_id INTEGER;
+              END IF;
+            END $$;
+            """,
+
+            """
+            DO $$
+            BEGIN
+              IF NOT EXISTS (
+                SELECT 1
+                FROM pg_constraint
+                WHERE conname = 'fk_lineups_reserve'
+              ) THEN
+                ALTER TABLE lineups
+                  ADD CONSTRAINT fk_lineups_reserve
+                  FOREIGN KEY (reserve_player_id)
+                  REFERENCES players(id)
+                  ON DELETE SET NULL;
+              END IF;
+            END $$;
             """,
 
             """
@@ -556,7 +592,6 @@ async def fix_database_schema_no_auth(
 
             "ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS pubg_id VARCHAR",
             "ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS region VARCHAR",
-            "ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS type VARCHAR DEFAULT 'official'",
             "ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS status VARCHAR DEFAULT 'upcoming'",
             "ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS scoring_rules_json TEXT",
             "ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS start_date TIMESTAMP WITH TIME ZONE",
@@ -565,23 +600,6 @@ async def fix_database_schema_no_auth(
             "ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS budget_limit NUMERIC(8,2) DEFAULT 100.0",
             "ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS created_by INTEGER",
             "ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()",
-
-            """
-            DO $$
-            BEGIN
-              IF EXISTS (
-                SELECT 1
-                FROM information_schema.columns
-                WHERE table_name = 'tournaments'
-                  AND column_name = 'type'
-                  AND udt_name = 'tournament_type'
-              ) THEN
-                ALTER TABLE tournaments
-                  ALTER COLUMN type TYPE VARCHAR
-                  USING type::text;
-              END IF;
-            END $$;
-            """,
 
             """
             DO $$
@@ -620,8 +638,6 @@ async def fix_database_schema_no_auth(
                 colunas_adicionadas.append("lineup_players_table_created")
             elif "ALTER COLUMN is_active SET DEFAULT" in sql:
                 colunas_adicionadas.append("players.is_active_default_and_backfill")
-            elif "ALTER COLUMN type TYPE VARCHAR" in sql:
-                colunas_adicionadas.append("tournaments.type_cast_to_varchar")
             elif "ALTER COLUMN status TYPE VARCHAR" in sql:
                 colunas_adicionadas.append("tournaments.status_cast_to_varchar")
 
@@ -634,3 +650,236 @@ async def fix_database_schema_no_auth(
     except Exception as e:
         db.rollback()
         return {"status": "error", "message": str(e)}
+
+
+# ------------------------------------------------------------------
+# POST /admin/matches/{match_id}/score
+# ------------------------------------------------------------------
+
+@router.post(
+    "/matches/{match_id}/score",
+    summary="Score all lineups for a match",
+    description=(
+        "For the given match_id, computes fantasy points for every Lineup "
+        "in the match's tournament using normalized MatchPlayerStat rows and "
+        "the tournament's ScoringRule. Creates or updates one LineupScore per "
+        "lineup and rebuilds each Lineup's total_points. Requires is_admin=True."
+    ),
+)
+async def score_match_lineups(
+    match_id: int,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    match = db.query(Match).filter(Match.id == match_id).first()
+    if not match:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Match {match_id} not found.",
+        )
+    if not match.tournament_id:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Match {match_id} has no tournament_id — cannot score lineups.",
+        )
+
+    try:
+        result = score_all_lineups_for_match(match_id, db)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+
+    return result
+
+
+# ------------------------------------------------------------------
+# POST /admin/seed-test-match
+# ------------------------------------------------------------------
+
+# Hardcoded per-slot stats — deterministic so results are predictable
+_TEST_STATS = [
+    {"kills": 5, "assists": 2, "damage_dealt": 380.0, "placement": 1, "survival_secs": 1750, "headshots": 3, "knocks": 4},
+    {"kills": 3, "assists": 1, "damage_dealt": 210.0, "placement": 1, "survival_secs": 1600, "headshots": 1, "knocks": 2},
+    {"kills": 2, "assists": 0, "damage_dealt": 145.0, "placement": 1, "survival_secs": 1500, "headshots": 0, "knocks": 1},
+    {"kills": 1, "assists": 1, "damage_dealt":  90.0, "placement": 1, "survival_secs": 1400, "headshots": 0, "knocks": 0},
+]
+
+_TEST_PUBG_MATCH_ID = "test-match-001"
+
+
+@router.post(
+    "/seed-test-match",
+    summary="[TEST] Seed a Match + MatchPlayerStat rows for scoring tests",
+    description=(
+        "Creates one Match and MatchPlayerStat rows for the first lineup found in the "
+        "given tournament. Idempotent: if 'test-match-001' already exists it returns "
+        "the existing match_id without inserting duplicates. "
+        "For local testing only — use before calling POST /admin/matches/{match_id}/score."
+    ),
+)
+async def seed_test_match(
+    tournament_id: int = Query(default=1, description="Tournament to seed the match into"),
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    # ── Validate tournament exists ─────────────────────────────────────────
+    tournament = db.query(Tournament).filter(Tournament.id == tournament_id).first()
+    if not tournament:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Tournament {tournament_id} not found.",
+        )
+
+    # ── Find first lineup for this tournament ─────────────────────────────
+    lineup = (
+        db.query(Lineup)
+        .filter(Lineup.tournament_id == tournament_id)
+        .first()
+    )
+    if not lineup:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=(
+                f"No lineups found for tournament {tournament_id}. "
+                "Create a lineup first via POST /tournaments/{id}/lineups."
+            ),
+        )
+
+    starter_players = lineup.players  # ordered by slot (slots 1-4)
+    if not starter_players:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Lineup {lineup.id} has no players in lineup_players.",
+        )
+
+    # ── Upsert Match (idempotent on pubg_match_id) ────────────────────────
+    match = (
+        db.query(Match)
+        .filter(Match.pubg_match_id == _TEST_PUBG_MATCH_ID)
+        .first()
+    )
+    created_match = False
+    if not match:
+        match = Match(
+            pubg_match_id = _TEST_PUBG_MATCH_ID,
+            tournament_id = tournament_id,
+            map_name      = "Erangel",
+            match_number  = 1,
+            phase         = "group",
+            day           = 1,
+        )
+        db.add(match)
+        db.flush()  # populate match.id
+        created_match = True
+
+    # ── Upsert MatchPlayerStat for each starter ───────────────────────────
+    player_ids = []
+    for i, player in enumerate(starter_players):
+        raw = _TEST_STATS[i] if i < len(_TEST_STATS) else _TEST_STATS[-1]
+        player_ids.append(player.id)
+
+        existing_stat = (
+            db.query(MatchPlayerStat)
+            .filter(
+                MatchPlayerStat.match_id  == match.id,
+                MatchPlayerStat.player_id == player.id,
+            )
+            .first()
+        )
+        if existing_stat:
+            # Overwrite with test values so re-seeding is safe
+            existing_stat.kills         = raw["kills"]
+            existing_stat.assists       = raw["assists"]
+            existing_stat.damage_dealt  = raw["damage_dealt"]
+            existing_stat.placement     = raw["placement"]
+            existing_stat.survival_secs = raw["survival_secs"]
+            existing_stat.headshots     = raw["headshots"]
+            existing_stat.knocks        = raw["knocks"]
+        else:
+            db.add(MatchPlayerStat(
+                match_id       = match.id,
+                player_id      = player.id,
+                kills          = raw["kills"],
+                assists        = raw["assists"],
+                damage_dealt   = raw["damage_dealt"],
+                placement      = raw["placement"],
+                survival_secs  = raw["survival_secs"],
+                headshots      = raw["headshots"],
+                knocks         = raw["knocks"],
+            ))
+
+    db.commit()
+
+    return {
+        "match_id":      match.id,
+        "tournament_id": tournament_id,
+        "lineup_id":     lineup.id,
+        "player_ids":    player_ids,
+        "match_created": created_match,
+        "message":       (
+            "Test match and stats created. "
+            f"Now call POST /admin/matches/{match.id}/score to compute LineupScores."
+        ),
+    }
+from pydantic import BaseModel as _BaseModel  # local alias to avoid collision if BaseModel already imported
+from typing import Optional as _Optional
+from datetime import datetime as _datetime
+
+
+class RegisterTournamentBody(_BaseModel):
+    name:       str
+    pubg_id:    str
+    region:     str                    = "AM"
+    status:     str                    = "active"
+    start_date: _Optional[_datetime]   = None
+    end_date:   _Optional[_datetime]   = None
+    max_teams:  int                    = 20
+
+
+@router.post("/register-tournament", summary="Register a new tournament (e.g. PAS Cup week N)")
+async def register_tournament(
+    body: RegisterTournamentBody,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    """
+    Creates a Tournament row for a new PAS Cup (or any tournament).
+    Idempotent: if pubg_id already exists, returns the existing row unchanged.
+
+    Typical weekly flow for PAS:
+      1. Run client.list_tournaments() in REPL — spot new am-pasNcup ID
+      2. POST /admin/register-tournament with the new pubg_id
+      3. POST /admin/players/bulk-upsert/{id} if roster changed
+      4. Scheduler picks it up automatically on next 15-min cycle
+    """
+    from app.models import Tournament
+
+    existing = db.query(Tournament).filter(Tournament.pubg_id == body.pubg_id).first()
+    if existing:
+        return {
+            "action":        "already_exists",
+            "tournament_id": existing.id,
+            "name":          existing.name,
+            "pubg_id":       existing.pubg_id,
+            "status":        existing.status,
+        }
+
+    tournament = Tournament(
+        name=body.name,
+        pubg_id=body.pubg_id,
+        region=body.region.upper(),
+        status=body.status,
+        start_date=body.start_date,
+        end_date=body.end_date,
+        max_teams=body.max_teams,
+    )
+    db.add(tournament)
+    db.commit()
+    db.refresh(tournament)
+
+    return {
+        "action":        "created",
+        "tournament_id": tournament.id,
+        "name":          tournament.name,
+        "pubg_id":       tournament.pubg_id,
+        "status":        tournament.status,
+    }

@@ -13,7 +13,8 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
     # PUBG API
-    PUBG_API_KEY: str = ""  # Deve ser setada via env ou .env
+    PUBG_API_KEY: str = ""        # set via .env
+    PUBG_SHARD: str = "pc-eu"    # pc-eu | pc-na | pc-as | pc-sea | etc.
 
     # Misc
     REDIS_URL: str = "redis://localhost:6379"

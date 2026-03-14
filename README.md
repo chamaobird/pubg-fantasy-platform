@@ -40,6 +40,9 @@ docker compose exec api alembic upgrade head
 # 5. Seed mock data (3 teams, 12 players, 1 tournament)
 docker compose exec api python scripts/seed.py
 
+# Alternative seed for lineup builder tests (tournaments + players with budget-friendly EU options)
+docker compose exec api python scripts/seed_data.py
+
 # 6. Open API docs
 open http://localhost:8000/docs
 ```
@@ -79,6 +82,9 @@ alembic upgrade head
 # 6. Seed mock data
 python scripts/seed.py
 
+# Alternative seed for lineup builder tests (tournaments + players with budget-friendly EU options)
+python scripts/seed_data.py
+
 # 7. Start the API
 uvicorn app.main:app --reload
 
@@ -111,6 +117,21 @@ open http://localhost:8000/docs
 | GET  | `/fantasy-teams/leaderboard/{tournament_id}` | Top 50 teams |
 
 Full interactive docs at `/docs` (Swagger) or `/redoc`.
+
+---
+
+## Suggested test scenario — Lineup with reserve (budget 100)
+
+After running `python scripts/seed_data.py`, use the tournament **"PUBG Global Championship 2024 - Europe"** (region EU). In the lineup builder:
+
+- Pick 4 starters including at least one of the cheap EU players (e.g. `EU_Budget_Anchor_15`, `EU_Budget_Anchor_12`, `EU_Budget_Anchor_10`, `EU_Budget_Anchor_5`).
+- Pick the reserve as another cheap EU player not in starters (e.g. reserve = `EU_Budget_Anchor_8`).
+
+Budget math example:
+
+- Starters: 15 + 12 + 10 + 5 = 42
+- Reserve applied cost = min(starters) = 5
+- Total with reserve = 42 + 5 = 47 (<= 100)
 
 ---
 

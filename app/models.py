@@ -88,13 +88,13 @@ class Team(Base):
 class Player(Base):
     __tablename__ = "players"
 
-    id            = Column(Integer, primary_key=True, index=True)
-    name          = Column(String,  nullable=False, index=True)
-    pubg_id       = Column(String,  unique=True, index=True, nullable=True)
-    region        = Column(String,  nullable=True)
-    team_id       = Column(Integer, ForeignKey("teams.id"), nullable=True)
-    fantasy_cost  = Column(Float,   default=10.0)
-    position      = Column(String,  nullable=True)   # IGL | Fragger | Sniper | Support
+    id           = Column(Integer, primary_key=True, index=True)
+    name         = Column(String,  nullable=False, index=True)
+    pubg_id      = Column(String,  unique=True, index=True, nullable=True)
+    region       = Column(String,  nullable=True)
+    team_id      = Column(Integer, ForeignKey("teams.id"), nullable=True)
+    fantasy_cost = Column(Float,   default=10.0)
+    position     = Column(String,  nullable=True)   # IGL | Fragger | Sniper | Support
 
     # Stats agregadas (atualizadas a cada sync)
     avg_kills      = Column(Float,   default=0.0)
@@ -103,11 +103,24 @@ class Player(Base):
     matches_played = Column(Integer, default=0)
     raw_stats      = Column(JSON,    nullable=True)
     last_synced_at = Column(DateTime(timezone=True), nullable=True)
-    created_at     = Column(DateTime(timezone=True), server_default=func.now())
 
-    team             = relationship("Team",            back_populates="players")
-    match_stats      = relationship("MatchPlayerStat", back_populates="player")
-    fantasy_teams    = relationship("FantasyTeam",     secondary=fantasy_team_players, back_populates="players")
+    # ── Pricing fields (populated by POST /historical/recalculate-prices) ──
+    avg_kills_50      = Column(Float,  nullable=True)   # last 50 matches
+    avg_damage_50     = Column(Float,  nullable=True)
+    avg_placement_50  = Column(Float,  nullable=True)
+    avg_kills_10      = Column(Float,  nullable=True)   # form window, last 10
+    computed_price    = Column(Float,  nullable=True)   # raw output before clamp
+    price_updated_at  = Column(DateTime(timezone=True), nullable=True)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    team          = relationship("Team", back_populates="players")
+    match_stats   = relationship("MatchPlayerStat", back_populates="player")
+    fantasy_teams = relationship(
+        "FantasyTeam",
+        secondary=fantasy_team_players,
+        back_populates="players",
+    )
 
 
 # ---------------------------------------------------------------------------

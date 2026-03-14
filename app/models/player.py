@@ -25,6 +25,14 @@ class Player(Base):
     raw_stats: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     last_synced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
+    # ── Pricing fields (populated by POST /historical/recalculate-prices) ──
+    avg_kills_50:     Mapped[float | None] = mapped_column(Float, nullable=True)
+    avg_damage_50:    Mapped[float | None] = mapped_column(Float, nullable=True)
+    avg_placement_50: Mapped[float | None] = mapped_column(Float, nullable=True)
+    avg_kills_10:     Mapped[float | None] = mapped_column(Float, nullable=True)
+    computed_price:   Mapped[float | None] = mapped_column(Float, nullable=True)
+    price_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
     price: Mapped[float] = synonym("fantasy_cost")
     role: Mapped[str | None] = synonym("position")
     is_active: Mapped[bool] = column_property(true())

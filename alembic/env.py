@@ -12,6 +12,7 @@ garantindo que o mesmo valor usado pelo FastAPI seja usado pelo Alembic.
 
 import os
 import sys
+import importlib.util
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config, pool
@@ -24,8 +25,21 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 # Importa Base (com todos os models registrados) e a config da aplicação.
 # O import de models.py é obrigatório para que o Alembic detecte as tabelas.
 from app.database import Base
-from app.config import settings
-import app.models  # noqa: F401 — registra todos os models no Base.metadata
+from app.core.config import settings
+
+# Carrega o arquivo legado app/models.py explicitamente.
+# Motivo: existe também um pacote app/models/ (novo) com mapeamentos diferentes.
+# Para manter alinhado com as migrations 0001–0003, o Alembic deve registrar
+# os models definidos em app/models.py (sem coluna tournaments.type).
+_legacy_models_path = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "app", "models.py")
+)
+_spec = importlib.util.spec_from_file_location("app_models_legacy", _legacy_models_path)
+if _spec and _spec.loader:
+    _legacy_models = importlib.util.module_from_spec(_spec)
+    _spec.loader.exec_module(_legacy_models)
+else:
+    raise RuntimeError("Could not load legacy models from app/models.py")
 
 # Objeto de configuração do Alembic (lê alembic.ini)
 config = context.config

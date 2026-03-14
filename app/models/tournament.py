@@ -14,10 +14,8 @@ class Tournament(Base):
     pubg_id: Mapped[str | None] = mapped_column(
         String(255), unique=True, index=True, nullable=True
     )
-    region: Mapped[str] = mapped_column(String(50), nullable=False)
-    type: Mapped[str] = mapped_column(String(50), nullable=False, default="official")
+    region: Mapped[str | None] = mapped_column(String(50), nullable=True)
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="upcoming")
-    # JSON blob for any extra scoring configuration not covered by ScoringRule
     scoring_rules_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     start_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     end_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

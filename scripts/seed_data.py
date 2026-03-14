@@ -40,20 +40,20 @@ Base.metadata.create_all(bind=engine)
 
 TOURNAMENTS_SEED = [
     {
-        "name": "PUBG Global Championship 2024 - North America",
-        "pubg_id": "pgc2024-na-qualifier",
-        "region": "NA",
-        "start_date": datetime.utcnow() - timedelta(days=7),
-        "end_date": datetime.utcnow() + timedelta(days=14),
-        "status": "active",
-        "max_teams": 16,
-    },
-    {
         "name": "PUBG Global Championship 2024 - Europe",
         "pubg_id": "pgc2024-eu-qualifier",
         "region": "EU",
         "start_date": datetime.utcnow() - timedelta(days=3),
         "end_date": datetime.utcnow() + timedelta(days=18),
+        "status": "active",
+        "max_teams": 16,
+    },
+    {
+        "name": "PUBG Global Championship 2024 - North America",
+        "pubg_id": "pgc2024-na-qualifier",
+        "region": "NA",
+        "start_date": datetime.utcnow() - timedelta(days=7),
+        "end_date": datetime.utcnow() + timedelta(days=14),
         "status": "active",
         "max_teams": 16,
     },
@@ -141,6 +141,63 @@ PLAYERS_SEED = [
         "region": "EU",
         "avg_kills": 2.9, "avg_damage": 240.0, "avg_placement": 9.1,
         "matches_played": 20, "position": "Support",
+    },
+
+    # ── EU Cheap Players (para testar lineup + reserva dentro do budget) ──────
+    {
+        "name": "EU_Budget_Anchor_5",
+        "pubg_id": "account.eu101",
+        "region": "EU",
+        "avg_kills": 0.5,
+        "avg_damage": 50.0,
+        "avg_placement": 12.0,
+        "matches_played": 10,
+        "position": "Support",
+        "fantasy_cost": 5.0,
+    },
+    {
+        "name": "EU_Budget_Anchor_8",
+        "pubg_id": "account.eu102",
+        "region": "EU",
+        "avg_kills": 0.8,
+        "avg_damage": 80.0,
+        "avg_placement": 10.0,
+        "matches_played": 10,
+        "position": "Support",
+        "fantasy_cost": 8.0,
+    },
+    {
+        "name": "EU_Budget_Anchor_10",
+        "pubg_id": "account.eu103",
+        "region": "EU",
+        "avg_kills": 1.0,
+        "avg_damage": 100.0,
+        "avg_placement": 9.5,
+        "matches_played": 10,
+        "position": "IGL",
+        "fantasy_cost": 10.0,
+    },
+    {
+        "name": "EU_Budget_Anchor_12",
+        "pubg_id": "account.eu104",
+        "region": "EU",
+        "avg_kills": 1.2,
+        "avg_damage": 120.0,
+        "avg_placement": 9.0,
+        "matches_played": 10,
+        "position": "Sniper",
+        "fantasy_cost": 12.0,
+    },
+    {
+        "name": "EU_Budget_Anchor_15",
+        "pubg_id": "account.eu105",
+        "region": "EU",
+        "avg_kills": 1.6,
+        "avg_damage": 150.0,
+        "avg_placement": 8.0,
+        "matches_played": 10,
+        "position": "Fragger",
+        "fantasy_cost": 15.0,
     },
     # ── AS Players ──────────────────────────────────────────────────
     {
@@ -257,11 +314,13 @@ def seed_players(db: Session) -> None:
 
         tournament = tournaments_by_region.get(p_data["region"], fallback_tournament)
 
-        fantasy_cost = calculate_fantasy_cost(
-            avg_kills=p_data["avg_kills"],
-            avg_damage=p_data["avg_damage"],
-            avg_placement=p_data["avg_placement"],
-        )
+        fantasy_cost = p_data.get("fantasy_cost")
+        if fantasy_cost is None:
+            fantasy_cost = calculate_fantasy_cost(
+                avg_kills=p_data["avg_kills"],
+                avg_damage=p_data["avg_damage"],
+                avg_placement=p_data["avg_placement"],
+            )
 
         if existing:
             changed = False

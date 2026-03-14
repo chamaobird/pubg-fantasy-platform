@@ -8,6 +8,8 @@ from fastapi.security import HTTPBearer
 
 from app.routers import auth, players, tournaments, admin
 from app.routers.championships import router as championships_router
+from app.routers.historical import router as historical_router  # ← já existia
+from app.routers import admin_players  # ← NOVO (ou o nome que o Claude usou)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -19,11 +21,21 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Migrations são aplicadas pelo Dockerfile antes de iniciar o uvicorn.
-    # Aqui apenas confirmamos que a aplicação subiu corretamente.
+    # ── Start background scheduler ────────────────────────────────────────
+    from app.services.scheduler import create_scheduler
+    scheduler = create_scheduler()
+    scheduler.start()
+    logger.info(
+        "Scheduler started — auto-import every %s minutes for active tournaments.",
+        15,
+    )
+
     logger.info("Warzone Fantasy API iniciada. Migrations já aplicadas no startup.")
     yield
-    logger.info("Warzone Fantasy API encerrando.")
+
+    # ── Graceful shutdown ─────────────────────────────────────────────────
+    scheduler.shutdown(wait=False)
+    logger.info("Scheduler stopped. Warzone Fantasy API encerrando.")
 
 
 app = FastAPI(
@@ -48,7 +60,8 @@ app.include_router(players.router)
 app.include_router(tournaments.router)
 app.include_router(admin.router)
 app.include_router(championships_router)
-
+app.include_router(historical_router)
+app.include_router(admin_players.router)  # ← NOVO
 
 @app.get("/", tags=["Health"])
 def root():
