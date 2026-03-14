@@ -1030,3 +1030,17 @@ async def fix_all_schema(
             db.rollback()
             results.append({"status": "error", "error": str(e)[:80], "sql": sql.split("ADD COLUMN")[1].strip()[:40]})
     return {"total": len(fixes), "results": results}
+
+@router.post("/fix-match-number", summary="[TEMP] Remove NOT NULL de match_number em matches")
+async def fix_match_number(
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    from sqlalchemy import text
+    try:
+        db.execute(text('ALTER TABLE matches ALTER COLUMN match_number DROP NOT NULL'))
+        db.commit()
+        return {"status": "ok"}
+    except Exception as e:
+        db.rollback()
+        return {"status": "error", "message": str(e)}
