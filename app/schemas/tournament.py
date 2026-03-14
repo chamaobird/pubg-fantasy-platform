@@ -25,7 +25,6 @@ class ScoringRuleOut(ScoringRuleBase):
 class TournamentCreate(BaseModel):
     name: str
     region: str
-    type: str = "official"
     scoring_rules_json: Optional[str] = None
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
@@ -45,7 +44,6 @@ class TournamentOut(BaseModel):
     id: int
     name: str
     region: str
-    type: str
     status: str
     start_date: Optional[datetime]
     end_date: Optional[datetime]

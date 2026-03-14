@@ -8,6 +8,7 @@ class LineupCreate(BaseModel):
     name: str
     player_ids: list[int]
     captain_id: int
+    reserve_player_id: int
 
 
 class LineupPlayerOut(BaseModel):
@@ -23,6 +24,8 @@ class LineupOut(BaseModel):
     name: str
     tournament_id: int
     captain_id: int
+    reserve_player_id: Optional[int] = None
+    total_points: float = 0.0
     created_at: datetime
     players: list[LineupPlayerOut]
     model_config = {"from_attributes": True}

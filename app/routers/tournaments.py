@@ -3,10 +3,12 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func as sql_func
 
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models import Lineup, Player, Team, Tournament, User, lineup_players
+from app.models.match import Match, MatchPlayerStat
 from app.schemas.lineup import LineupCreate
 
 router = APIRouter(prefix="/tournaments", tags=["Tournaments"])
@@ -25,6 +27,7 @@ class TournamentResponse(BaseModel):
     start_date: Optional[str] = None
     end_date: Optional[str] = None
     max_teams: int
+    budget_limit: float
     is_active: bool
 
     class Config:
@@ -76,6 +79,7 @@ def list_tournaments(
             start_date=t.start_date.isoformat() if t.start_date else None,
             end_date=t.end_date.isoformat() if t.end_date else None,
             max_teams=t.max_teams,
+            budget_limit=float(t.budget_limit or 0.0),
             is_active=(t.status == "active"),
         )
         for t in tournaments
@@ -107,6 +111,7 @@ def get_tournament(tournament_id: int, db: Session = Depends(get_db)):
         start_date=tournament.start_date.isoformat() if tournament.start_date else None,
         end_date=tournament.end_date.isoformat() if tournament.end_date else None,
         max_teams=tournament.max_teams,
+        budget_limit=float(tournament.budget_limit or 0.0),
         is_active=(tournament.status == "active"),
     )
 
@@ -118,6 +123,9 @@ class TournamentPlayerResponse(BaseModel):
     nationality: Optional[str] = None
     region: Optional[str] = None
     fantasy_cost: float
+    avg_kills_50: Optional[float] = None
+    avg_damage_50: Optional[float] = None
+    avg_placement_50: Optional[float] = None
 
 
 @router.get(
@@ -163,6 +171,9 @@ def list_tournament_players(
             nationality=p.nationality,
             region=p.region,
             fantasy_cost=float(p.fantasy_cost or 0.0),
+            avg_kills_50=float(p.avg_kills_50) if p.avg_kills_50 is not None else None,
+            avg_damage_50=float(p.avg_damage_50) if p.avg_damage_50 is not None else None,
+            avg_placement_50=float(p.avg_placement_50) if p.avg_placement_50 is not None else None,
         )
         for p, team_name in rows
     ]
@@ -180,6 +191,8 @@ class LineupOut(BaseModel):
     name: str
     tournament_id: int
     captain_id: int
+    reserve_player_id: Optional[int] = None
+    total_points: float = 0.0
     created_at: str
     players: list[LineupPlayerBasicOut]
 
@@ -210,31 +223,51 @@ def create_lineup(
     if body.captain_id not in player_ids:
         raise HTTPException(status_code=400, detail="captain_id must be in player_ids")
 
-    players = (
+    reserve_player_id = body.reserve_player_id
+    if reserve_player_id in player_ids:
+        raise HTTPException(status_code=400, detail="reserve_player_id must not be in player_ids")
+
+    all_ids = list(player_ids) + [reserve_player_id]
+
+    all_players = (
         db.query(Player)
-        .filter(Player.id.in_(player_ids), Player.tournament_id == tournament_id)
+        .filter(Player.id.in_(all_ids), Player.tournament_id == tournament_id)
         .all()
     )
-    if len(players) != len(player_ids):
+    if len(all_players) != len(all_ids):
         raise HTTPException(status_code=400, detail="One or more players not found in this tournament")
 
+    players_by_id = {p.id: p for p in all_players}
+    starters = [players_by_id[pid] for pid in player_ids]
+    reserve_player = players_by_id[reserve_player_id]
+
+    team_ids = [p.team_id for p in starters + [reserve_player] if p.team_id is not None]
+    if len(team_ids) != len(set(team_ids)):
+        raise HTTPException(status_code=400, detail="Only one player per team is allowed")
+
+    starter_costs = [float(p.fantasy_cost or 0.0) for p in starters]
+    min_starter_cost = min(starter_costs) if starter_costs else 0.0
+    reserve_real_cost = float(reserve_player.fantasy_cost or 0.0)
+    if reserve_real_cost > min_starter_cost:
+        raise HTTPException(
+            status_code=400,
+            detail="Reserve player cost cannot exceed the cheapest starter",
+        )
+    total_cost = sum(starter_costs)
+
     budget = float(tournament.budget_limit)
-    total_cost = sum(float(p.fantasy_cost or 0.0) for p in players)
     if total_cost > budget:
         raise HTTPException(
             status_code=400,
-            detail=f"Lineup cost {total_cost:.2f} exceeds budget {budget:.2f}",
+            detail=f"Lineup total cost with reserve {total_cost:.2f} exceeds budget {budget:.2f}",
         )
-
-    team_ids = [p.team_id for p in players if p.team_id is not None]
-    if len(team_ids) != len(set(team_ids)):
-        raise HTTPException(status_code=400, detail="Only one player per team is allowed")
 
     lineup = Lineup(
         user_id=current_user.id,
         tournament_id=tournament_id,
         name=body.name,
         captain_player_id=body.captain_id,
+        reserve_player_id=reserve_player_id,
     )
     db.add(lineup)
     db.flush()
@@ -251,14 +284,15 @@ def create_lineup(
     db.commit()
     db.refresh(lineup)
 
-    players_by_id = {p.id: p for p in players}
-    ordered_players = [players_by_id[pid] for pid in player_ids]
+    ordered_players = starters
 
     return LineupOut(
         id=lineup.id,
         name=lineup.name,
         tournament_id=lineup.tournament_id,
         captain_id=lineup.captain_player_id,
+        reserve_player_id=lineup.reserve_player_id,
+        total_points=float(lineup.total_points or 0.0),
         created_at=lineup.created_at.isoformat() if lineup.created_at else "",
         players=[
             LineupPlayerBasicOut(
@@ -302,6 +336,8 @@ def my_lineups(
                 name=lineup.name,
                 tournament_id=lineup.tournament_id,
                 captain_id=lineup.captain_player_id,
+                reserve_player_id=lineup.reserve_player_id,
+                total_points=float(lineup.total_points or 0.0),
                 created_at=lineup.created_at.isoformat() if lineup.created_at else "",
                 players=[
                     LineupPlayerBasicOut(
@@ -316,3 +352,165 @@ def my_lineups(
         )
 
     return result
+
+
+# ------------------------------------------------------------------
+# GET /tournaments/{tournament_id}/rankings
+# ------------------------------------------------------------------
+
+class RankingEntry(BaseModel):
+    position: int
+    lineup_id: int
+    lineup_name: str
+    user_id: int
+    total_points: float
+    players: list[LineupPlayerBasicOut]
+
+
+@router.get(
+    "/{tournament_id}/rankings",
+    response_model=list[RankingEntry],
+    summary="Rankings do torneio por total_points",
+    description=(
+        "Returns all lineups for the tournament ordered by total_points DESC "
+        "(nulls treated as 0, placed at the bottom), ties broken by created_at ASC. "
+        "Each entry includes a 1-based position field."
+    ),
+)
+def tournament_rankings(
+    tournament_id: int,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
+    db: Session = Depends(get_db),
+):
+    tournament = db.query(Tournament).filter(Tournament.id == tournament_id).first()
+    if not tournament:
+        raise HTTPException(status_code=404, detail="Tournament not found")
+
+    from sqlalchemy import nullslast
+
+    lineups = (
+        db.query(Lineup)
+        .options(joinedload(Lineup.players))
+        .filter(Lineup.tournament_id == tournament_id)
+        .order_by(
+            nullslast(Lineup.total_points.desc()),
+            Lineup.created_at.asc(),
+        )
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+
+    result: list[RankingEntry] = []
+    for position, lineup in enumerate(lineups, start=skip + 1):
+        result.append(
+            RankingEntry(
+                position=position,
+                lineup_id=lineup.id,
+                lineup_name=lineup.name,
+                user_id=lineup.user_id,
+                total_points=float(lineup.total_points or 0.0),
+                players=[
+                    LineupPlayerBasicOut(
+                        id=p.id,
+                        name=p.name,
+                        team_id=p.team_id,
+                        fantasy_cost=float(p.fantasy_cost or 0.0),
+                    )
+                    for p in lineup.players
+                ],
+            )
+        )
+
+    return result
+
+
+# ------------------------------------------------------------------
+# GET /tournaments/{tournament_id}/player-stats
+# ------------------------------------------------------------------
+
+class PlayerStatsSummary(BaseModel):
+    player_id:      int
+    name:           str
+    team:           Optional[str] = None
+    region:         Optional[str] = None
+    fantasy_cost:   float
+    matches_played: int
+    matches_total:  int
+    total_kills:    int
+    total_damage:   float
+    avg_kills:      float
+    avg_damage:     float
+    avg_placement:  float
+
+
+@router.get(
+    "/{tournament_id}/player-stats",
+    response_model=list[PlayerStatsSummary],
+    summary="Stats agregadas dos jogadores no torneio",
+    description=(
+        "Retorna stats acumuladas de todos os jogadores com ao menos 1 partida no torneio. "
+        "Inclui `matches_played` (partidas do jogador) e `matches_total` (total do torneio) "
+        "para indicar participação relativa. Endpoint público — sem autenticação."
+    ),
+)
+def tournament_player_stats(
+    tournament_id: int,
+    team: Optional[str] = Query(None, description="Filtrar por nome do time"),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
+    db: Session = Depends(get_db),
+):
+    tournament = db.query(Tournament).filter(Tournament.id == tournament_id).first()
+    if not tournament:
+        raise HTTPException(status_code=404, detail="Tournament not found")
+
+    matches_total: int = (
+        db.query(sql_func.count(Match.id))
+        .filter(Match.tournament_id == tournament_id)
+        .scalar() or 0
+    )
+
+    rows = (
+        db.query(
+            Player,
+            Team.name.label("team_name"),
+            sql_func.count(MatchPlayerStat.id).label("matches_played"),
+            sql_func.sum(MatchPlayerStat.kills).label("total_kills"),
+            sql_func.sum(MatchPlayerStat.damage_dealt).label("total_damage"),
+            sql_func.avg(MatchPlayerStat.kills).label("avg_kills"),
+            sql_func.avg(MatchPlayerStat.damage_dealt).label("avg_damage"),
+            sql_func.avg(MatchPlayerStat.placement).label("avg_placement"),
+        )
+        .join(MatchPlayerStat, MatchPlayerStat.player_id == Player.id)
+        .join(Match, MatchPlayerStat.match_id == Match.id)
+        .outerjoin(Team, Player.team_id == Team.id)
+        .filter(Match.tournament_id == tournament_id)
+        .group_by(Player.id, Team.name)
+        .order_by(sql_func.avg(MatchPlayerStat.kills).desc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+
+    if team:
+        rows = [r for r in rows if r.team_name and team.lower() in r.team_name.lower()]
+
+    return [
+        PlayerStatsSummary(
+            player_id=r.Player.id,
+            name=r.Player.name,
+            team=r.team_name,
+            region=r.Player.region,
+            fantasy_cost=float(r.Player.fantasy_cost or 0.0),
+            matches_played=r.matches_played,
+            matches_total=matches_total,
+            total_kills=int(r.total_kills or 0),
+            total_damage=float(r.total_damage or 0.0),
+            avg_kills=round(float(r.avg_kills or 0.0), 2),
+            avg_damage=round(float(r.avg_damage or 0.0), 1),
+            avg_placement=round(float(r.avg_placement or 0.0), 1),
+        )
+        for r in rows
+    ]
