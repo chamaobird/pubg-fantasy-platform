@@ -431,28 +431,45 @@ def tournament_rankings(
 # ------------------------------------------------------------------
 
 class PlayerStatsSummary(BaseModel):
-    player_id:      int
-    name:           str
-    team:           Optional[str] = None
-    region:         Optional[str] = None
-    fantasy_cost:   float
-    matches_played: int
-    matches_total:  int
-    total_kills:    int
-    total_damage:   float
-    avg_kills:      float
-    avg_damage:     float
-    avg_placement:  float
+    player_id:          int
+    name:               str
+    team:               Optional[str] = None
+    region:             Optional[str] = None
+    fantasy_cost:       float
+    matches_played:     int
+    matches_total:      int
+    # Kill stats
+    total_kills:        int
+    avg_kills:          float
+    # Assist stats
+    total_assists:      int
+    avg_assists:        float
+    # Damage stats
+    total_damage:       float
+    avg_damage:         float
+    # Placement
+    avg_placement:      float
+    # Headshots
+    total_headshots:    int
+    avg_headshots:      float
+    # Knocks (DBNOs)
+    total_knocks:       int
+    avg_knocks:         float
+    # Survival
+    avg_survival_secs:  float
+    # Fantasy points
+    total_fantasy_points: float
+    pts_per_match:        float
 
 
 @router.get(
     "/{tournament_id}/player-stats",
     response_model=list[PlayerStatsSummary],
-    summary="Stats agregadas dos jogadores no torneio",
+    summary="Stats agregadas dos jogadores no torneio (expandida)",
     description=(
-        "Retorna stats acumuladas de todos os jogadores com ao menos 1 partida no torneio. "
-        "Inclui `matches_played` (partidas do jogador) e `matches_total` (total do torneio) "
-        "para indicar participação relativa. Endpoint público — sem autenticação."
+        "Retorna stats completas de todos os jogadores com ao menos 1 partida. "
+        "Inclui kills, assists, damage, headshots, knocks, survival, fantasy points. "
+        "Endpoint público — sem autenticação."
     ),
 )
 def tournament_player_stats(
@@ -462,55 +479,76 @@ def tournament_player_stats(
     limit: int = Query(100, ge=1, le=500),
     db: Session = Depends(get_db),
 ):
+    from app.models.match import Match, MatchPlayerStat
+ 
     tournament = db.query(Tournament).filter(Tournament.id == tournament_id).first()
     if not tournament:
         raise HTTPException(status_code=404, detail="Tournament not found")
-
+ 
     matches_total: int = (
         db.query(sql_func.count(Match.id))
         .filter(Match.tournament_id == tournament_id)
         .scalar() or 0
     )
-
+ 
     rows = (
         db.query(
             Player,
             Team.name.label("team_name"),
             sql_func.count(MatchPlayerStat.id).label("matches_played"),
             sql_func.sum(MatchPlayerStat.kills).label("total_kills"),
-            sql_func.sum(MatchPlayerStat.damage_dealt).label("total_damage"),
             sql_func.avg(MatchPlayerStat.kills).label("avg_kills"),
+            sql_func.sum(MatchPlayerStat.assists).label("total_assists"),
+            sql_func.avg(MatchPlayerStat.assists).label("avg_assists"),
+            sql_func.sum(MatchPlayerStat.damage_dealt).label("total_damage"),
             sql_func.avg(MatchPlayerStat.damage_dealt).label("avg_damage"),
             sql_func.avg(MatchPlayerStat.placement).label("avg_placement"),
+            sql_func.sum(MatchPlayerStat.headshots).label("total_headshots"),
+            sql_func.avg(MatchPlayerStat.headshots).label("avg_headshots"),
+            sql_func.sum(MatchPlayerStat.knocks).label("total_knocks"),
+            sql_func.avg(MatchPlayerStat.knocks).label("avg_knocks"),
+            sql_func.avg(MatchPlayerStat.survival_secs).label("avg_survival_secs"),
+            sql_func.sum(MatchPlayerStat.fantasy_points).label("total_fantasy_points"),
         )
         .join(MatchPlayerStat, MatchPlayerStat.player_id == Player.id)
         .join(Match, MatchPlayerStat.match_id == Match.id)
         .outerjoin(Team, Player.team_id == Team.id)
         .filter(Match.tournament_id == tournament_id)
         .group_by(Player.id, Team.name)
-        .order_by(sql_func.avg(MatchPlayerStat.kills).desc())
+        .order_by(sql_func.sum(MatchPlayerStat.fantasy_points).desc())
         .offset(skip)
         .limit(limit)
         .all()
     )
-
+ 
     if team:
         rows = [r for r in rows if r.team_name and team.lower() in r.team_name.lower()]
-
-    return [
-        PlayerStatsSummary(
+ 
+    result = []
+    for r in rows:
+        mp = r.matches_played or 1
+        tfp = float(r.total_fantasy_points or 0.0)
+        result.append(PlayerStatsSummary(
             player_id=r.Player.id,
             name=r.Player.name,
             team=r.team_name,
             region=r.Player.region,
-            fantasy_cost=float(r.Player.fantasy_cost or 0.0),
-            matches_played=r.matches_played,
+            fantasy_cost=round(float(r.Player.fantasy_cost or 0.0), 2),
+            matches_played=mp,
             matches_total=matches_total,
             total_kills=int(r.total_kills or 0),
-            total_damage=float(r.total_damage or 0.0),
             avg_kills=round(float(r.avg_kills or 0.0), 2),
+            total_assists=int(r.total_assists or 0),
+            avg_assists=round(float(r.avg_assists or 0.0), 2),
+            total_damage=round(float(r.total_damage or 0.0), 1),
             avg_damage=round(float(r.avg_damage or 0.0), 1),
             avg_placement=round(float(r.avg_placement or 0.0), 1),
-        )
-        for r in rows
-    ]
+            total_headshots=int(r.total_headshots or 0),
+            avg_headshots=round(float(r.avg_headshots or 0.0), 2),
+            total_knocks=int(r.total_knocks or 0),
+            avg_knocks=round(float(r.avg_knocks or 0.0), 2),
+            avg_survival_secs=round(float(r.avg_survival_secs or 0.0), 0),
+            total_fantasy_points=round(tfp, 2),
+            pts_per_match=round(tfp / mp, 2),
+        ))
+    return result
