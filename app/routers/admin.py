@@ -1181,3 +1181,79 @@ async def seed_players_from_matches(
             "novamente para resolver os stats com os players recém-criados."
         ),
     }
+
+@router.post("/reprocess-match-stats/{tournament_id}", summary="Re-processa stats de matches já importados")
+async def reprocess_match_stats(
+    tournament_id: int,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    from app.models.match import Match, MatchPlayerStat
+    from app.models import Player
+    from app.services.pubg_client import PubgClient, PubgApiError
+    from app.services.historical import _compute_fantasy_points, PlayerStatInput
+    from app.core.config import settings
+
+    matches = db.query(Match).filter(Match.tournament_id == tournament_id).all()
+    if not matches:
+        raise HTTPException(status_code=404, detail="Nenhum match encontrado")
+
+    client = PubgClient(api_key=settings.PUBG_API_KEY, shard=settings.PUBG_SHARD)
+
+    # Mapa pubg_id -> player_id
+    players = db.query(Player).filter(Player.tournament_id == tournament_id).all()
+    pubgid_map = {p.pubg_id: p.id for p in players if p.pubg_id}
+    name_map   = {p.name.lower(): p.id for p in players if p.name}
+
+    created = 0
+    skipped = 0
+    errors  = []
+
+    for match in matches:
+        try:
+            raw = client.get_match(match.pubg_match_id)
+        except PubgApiError as e:
+            errors.append(f"{match.pubg_match_id}: {e}")
+            continue
+
+        for rps in raw.player_stats:
+            player_id = pubgid_map.get(rps.pubg_account_id) or name_map.get(rps.pubg_name.lower())
+            if not player_id:
+                skipped += 1
+                continue
+
+            # Verifica se já existe
+            existing = db.query(MatchPlayerStat).filter(
+                MatchPlayerStat.match_id == match.id,
+                MatchPlayerStat.player_id == player_id,
+            ).first()
+            if existing:
+                skipped += 1
+                continue
+
+            stat_input = PlayerStatInput(
+                player_id=player_id,
+                kills=rps.kills,
+                assists=rps.assists,
+                damage_dealt=rps.damage_dealt,
+                placement=rps.placement,
+                survival_secs=rps.survival_secs,
+                headshots=rps.headshots,
+                knocks=rps.knocks,
+            )
+            db.add(MatchPlayerStat(
+                match_id=match.id,
+                player_id=player_id,
+                kills=rps.kills,
+                assists=rps.assists,
+                damage_dealt=rps.damage_dealt,
+                placement=rps.placement,
+                survival_secs=rps.survival_secs,
+                headshots=rps.headshots,
+                knocks=rps.knocks,
+                fantasy_points=_compute_fantasy_points(stat_input),
+            ))
+            created += 1
+
+    db.commit()
+    return {"tournament_id": tournament_id, "stats_created": created, "skipped": skipped, "errors": errors}
