@@ -211,6 +211,15 @@ export default function LineupBuilder({
   const [loginLoading,  setLoginLoading]  = useState(false)
   const [loginError,    setLoginError]    = useState('')
 
+  // ── Auth mode + Register ──────────────────────────────────────────────────
+  const [authMode,          setAuthMode]          = useState('login')
+  const [registerEmail,     setRegisterEmail]     = useState('')
+  const [registerUsername,  setRegisterUsername]  = useState('')
+  const [registerPassword,  setRegisterPassword]  = useState('')
+  const [registerLoading,   setRegisterLoading]   = useState(false)
+  const [registerError,     setRegisterError]     = useState('')
+  const [registerSuccess,   setRegisterSuccess]   = useState('')
+
   const [players,        setPlayers]        = useState([])
   const [playersLoading, setPlayersLoading] = useState(false)
   const [playersError,   setPlayersError]   = useState('')
@@ -313,6 +322,32 @@ export default function LineupBuilder({
     }
   }
 
+  async function doRegister() {
+    setRegisterLoading(true); setRegisterError(''); setRegisterSuccess('')
+    try {
+      if (!registerEmail.trim())    throw new Error('E-mail obrigatório')
+      if (!registerUsername.trim()) throw new Error('Username obrigatório')
+      if (!registerPassword.trim()) throw new Error('Senha obrigatória')
+      const res = await fetch(`${API_BASE_URL}/users/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ email: registerEmail.trim(), username: registerUsername.trim(), password: registerPassword }),
+      })
+      const data = await res.json().catch(() => null)
+      if (!res.ok) {
+        const detail = data?.detail
+        throw new Error(typeof detail === 'string' ? detail : `HTTP ${res.status}`)
+      }
+      setRegisterSuccess('Conta criada! Faça login para continuar.')
+      setRegisterEmail(''); setRegisterUsername(''); setRegisterPassword('')
+      setTimeout(() => setAuthMode('login'), 1500)
+    } catch (e) {
+      setRegisterError(parseErrorMessage(e))
+    } finally {
+      setRegisterLoading(false)
+    }
+  }
+
   function addPlayer(player) {
     setSaveError(''); setSaveSuccess(null)
     if (reservePlayer?.id === player.id)                  { setSaveError('Jogador já é reserva'); return }
@@ -405,17 +440,57 @@ export default function LineupBuilder({
     >
       <div style={{ maxWidth: '1080px', margin: '0 auto' }}>
 
-        {/* ── Login card ─────────────────────────────────────────────────── */}
+        {/* ── Login / Register card ──────────────────────────────────────── */}
         <Card className="mb-4">
-          <SectionTitle label="Login" />
-          <div className="grid gap-3 mb-3" style={{ gridTemplateColumns: '1fr 1fr auto' }}>
-            <input className="dark-input" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} placeholder="E-mail" style={{ fontFamily: "'Rajdhani', sans-serif" }} />
-            <input className="dark-input" type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} placeholder="Senha" style={{ fontFamily: "'Rajdhani', sans-serif" }} />
-            <button className="dark-btn" onClick={doLogin} disabled={loginLoading} style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 600 }}>
-              {loginLoading ? 'Entrando…' : 'Entrar'}
-            </button>
+          {/* Tab toggle */}
+          <div className="flex gap-1 mb-4 p-1 rounded-lg" style={{ background: '#0a0c11', width: 'fit-content' }}>
+            {['login', 'register'].map((mode) => (
+              <button
+                key={mode}
+                onClick={() => { setAuthMode(mode); setLoginError(''); setRegisterError(''); setRegisterSuccess('') }}
+                className="px-4 py-1.5 rounded text-[12px] font-bold tracking-[0.06em] uppercase transition-all duration-150"
+                style={{
+                  fontFamily: "'Rajdhani', sans-serif",
+                  background: authMode === mode ? 'var(--color-xama-surface)' : 'none',
+                  color: authMode === mode ? 'var(--color-xama-orange)' : 'var(--color-xama-muted)',
+                  border: authMode === mode ? '1px solid var(--color-xama-border)' : '1px solid transparent',
+                  cursor: 'pointer',
+                }}
+              >
+                {mode === 'login' ? 'Login' : 'Cadastro'}
+              </button>
+            ))}
           </div>
-          {loginError && <div className="msg-error">{loginError}</div>}
+
+          {/* Login form */}
+          {authMode === 'login' && (
+            <>
+              <div className="grid gap-3 mb-3" style={{ gridTemplateColumns: '1fr 1fr auto' }}>
+                <input className="dark-input" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} placeholder="E-mail" style={{ fontFamily: "'Rajdhani', sans-serif" }} />
+                <input className="dark-input" type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} placeholder="Senha" style={{ fontFamily: "'Rajdhani', sans-serif" }} />
+                <button className="dark-btn" onClick={doLogin} disabled={loginLoading} style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 600 }}>
+                  {loginLoading ? 'Entrando…' : 'Entrar'}
+                </button>
+              </div>
+              {loginError && <div className="msg-error">{loginError}</div>}
+            </>
+          )}
+
+          {/* Register form */}
+          {authMode === 'register' && (
+            <>
+              <div className="grid gap-3 mb-3" style={{ gridTemplateColumns: '1fr 1fr 1fr auto' }}>
+                <input className="dark-input" value={registerEmail} onChange={(e) => setRegisterEmail(e.target.value)} placeholder="E-mail" style={{ fontFamily: "'Rajdhani', sans-serif" }} />
+                <input className="dark-input" value={registerUsername} onChange={(e) => setRegisterUsername(e.target.value)} placeholder="Username" style={{ fontFamily: "'Rajdhani', sans-serif" }} />
+                <input className="dark-input" type="password" value={registerPassword} onChange={(e) => setRegisterPassword(e.target.value)} placeholder="Senha" style={{ fontFamily: "'Rajdhani', sans-serif" }} />
+                <button className="dark-btn" onClick={doRegister} disabled={registerLoading} style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 600 }}>
+                  {registerLoading ? 'Criando…' : 'Criar conta'}
+                </button>
+              </div>
+              {registerError   && <div className="msg-error">{registerError}</div>}
+              {registerSuccess && <div className="msg-success">{registerSuccess}</div>}
+            </>
+          )}
         </Card>
 
         {/* ── Two-column layout ───────────────────────────────────────────── */}
