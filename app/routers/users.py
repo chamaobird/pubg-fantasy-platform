@@ -45,6 +45,9 @@ def me(current_user: User = Depends(get_current_user)):
 class GoogleLoginBody(BaseModel):
     token: str  # ID token gerado pelo frontend via @react-oauth/google
 
+class GoogleLoginBody(BaseModel):
+    token: str  # ID token gerado pelo frontend via @react-oauth/google
+
 @router.post("/google-login", summary="Login via Google OAuth")
 async def google_login(
     body: GoogleLoginBody,
