@@ -10,6 +10,7 @@ from app.routers import auth, players, tournaments, admin
 from app.routers.championships import router as championships_router
 from app.routers.historical import router as historical_router  # ← já existia
 from app.routers import admin_players  # ← NOVO (ou o nome que o Claude usou)
+from app.routers import users
 
 logging.basicConfig(
     level=logging.INFO,
@@ -56,6 +57,7 @@ app.add_middleware(
 )
 
 app.include_router(auth.router)
+app.include_router(users.router)
 app.include_router(players.router)
 app.include_router(tournaments.router)
 app.include_router(admin.router)
