@@ -96,9 +96,7 @@ async def google_login(
         user = User(
             email=google_email,
             username=username,
-            hashed_password=_secrets.token_hex(32),  # senha inutilizável — só Google
-            is_active=True,
-            is_admin=False,
+            hashed_password=_secrets.token_hex(32),
         )
         db.add(user)
         db.commit()
