@@ -441,7 +441,7 @@ export default function LineupBuilder({
       <div style={{ maxWidth: '1080px', margin: '0 auto' }}>
 
         {/* ── Login / Register card ──────────────────────────────────────── */}
-        <Card className="mb-4">
+        {!token && <Card className="mb-4">
           {/* Tab toggle */}
           <div className="flex gap-1 mb-4 p-1 rounded-lg" style={{ background: '#0a0c11', width: 'fit-content' }}>
             {['login', 'register'].map((mode) => (
@@ -491,7 +491,7 @@ export default function LineupBuilder({
               {registerSuccess && <div className="msg-success">{registerSuccess}</div>}
             </>
           )}
-        </Card>
+        </Card>}
 
         {/* ── Two-column layout ───────────────────────────────────────────── */}
         <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 0.7fr', gap: '16px' }}
