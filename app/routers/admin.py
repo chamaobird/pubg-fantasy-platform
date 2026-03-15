@@ -1078,3 +1078,106 @@ async def backfill_player_stats(
     result = db.execute(sql, {"tournament_id": tournament_id})
     db.commit()
     return {"status": "ok", "rows_updated": result.rowcount}
+
+@router.post(
+    "/seed-players-from-matches/{tournament_id}",
+    summary="Cria players automaticamente a partir dos matches importados",
+    description=(
+        "Lê os matches já importados para o torneio, busca cada match na PUBG API, "
+        "extrai pubg_id + name de cada participante e cria/atualiza Player rows. "
+        "Usa pubg_id como chave de upsert — se o player já existe, só atualiza o nome. "
+        "Após rodar, execute import-matches-from-pubg novamente para resolver os stats."
+    ),
+)
+async def seed_players_from_matches(
+    tournament_id: int,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    from app.models.match import Match, MatchPlayerStat
+    from app.models import Player, Team
+    from app.services.pubg_client import PubgClient, PubgApiError
+    from app.core.config import settings
+
+    # ── 1. Busca matches já importados para este torneio ──────────────────
+    matches = db.query(Match).filter(Match.tournament_id == tournament_id).all()
+    if not matches:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Nenhum match encontrado para tournament_id={tournament_id}. "
+                   "Execute import-matches-from-pubg primeiro.",
+        )
+
+    client = PubgClient(api_key=settings.PUBG_API_KEY, shard=settings.PUBG_SHARD)
+
+    created = 0
+    updated = 0
+    errors = []
+    seen_pubg_ids = set()  # evita duplicatas no mesmo run
+
+    for match in matches:
+        try:
+            raw = client.get_match(match.pubg_match_id)
+        except PubgApiError as e:
+            errors.append(f"Match {match.pubg_match_id}: {e}")
+            continue
+
+        for rps in raw.player_stats:
+            if not rps.pubg_account_id or rps.pubg_account_id in seen_pubg_ids:
+                continue
+            seen_pubg_ids.add(rps.pubg_account_id)
+
+            # ── Extrai tag do time do nome (ex: "FE_fana" → "FE") ────────
+            name_parts = rps.pubg_name.split("_", 1)
+            team_tag   = name_parts[0] if len(name_parts) > 1 else None
+            clean_name = rps.pubg_name  # mantém nome completo com prefixo
+
+            # ── Upsert do time ────────────────────────────────────────────
+            team_id = None
+            if team_tag:
+                team = db.query(Team).filter(Team.name == team_tag).first()
+                if not team:
+                    team = Team(name=team_tag)
+                    db.add(team)
+                    db.flush()
+                team_id = team.id
+
+            # ── Upsert do player por pubg_id ──────────────────────────────
+            player = db.query(Player).filter(Player.pubg_id == rps.pubg_account_id).first()
+
+            if player:
+                # Atualiza tournament_id se não estava setado
+                if player.tournament_id is None:
+                    player.tournament_id = tournament_id
+                if team_id and player.team_id is None:
+                    player.team_id = team_id
+                updated += 1
+            else:
+                player = Player(
+                    name=clean_name,
+                    pubg_id=rps.pubg_account_id,
+                    tournament_id=tournament_id,
+                    team_id=team_id,
+                    fantasy_cost=10.0,  # preço base — será recalculado
+                )
+                db.add(player)
+                created += 1
+
+    db.commit()
+
+    logger.info(
+        "seed-players-from-matches: tournament=%s created=%s updated=%s errors=%s",
+        tournament_id, created, updated, len(errors),
+    )
+
+    return {
+        "tournament_id": tournament_id,
+        "matches_processed": len(matches),
+        "players_created": created,
+        "players_updated": updated,
+        "errors": errors,
+        "next_step": (
+            f"Execute POST /historical/import-matches-from-pubg/{tournament_id} "
+            "novamente para resolver os stats com os players recém-criados."
+        ),
+    }
