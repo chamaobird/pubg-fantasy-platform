@@ -10,6 +10,8 @@ from datetime import datetime
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
+from typing import Optional
 
 from app.database import get_db
 from app.dependencies import get_current_user, require_admin
@@ -19,6 +21,7 @@ from app.models.lineup import Lineup
 from app.services.pubg_api import PUBGApiClient, calculate_fantasy_cost
 from app.services.lineup_scoring import score_all_lineups_for_match
 from app.config import settings
+
 
 logger = logging.getLogger(__name__)
 
@@ -851,12 +854,15 @@ async def reprocess_match_stats(
     db.commit()
     return {"tournament_id": tournament_id, "stats_created": created, "skipped": skipped, "errors": errors}
 
+class TournamentUpdate(BaseModel):
+    name:   Optional[str] = None
+    region: Optional[str] = None
+    status: Optional[str] = None
+
 @router.patch("/tournaments/{tournament_id}", summary="Atualiza nome/região/status de um torneio")
 async def update_tournament(
     tournament_id: int,
-    name: str = None,
-    region: str = None,
-    status: str = None,
+    body: TournamentUpdate,
     db: Session = Depends(get_db),
     admin: User = Depends(require_admin),
 ):
@@ -864,8 +870,8 @@ async def update_tournament(
     t = db.query(Tournament).filter(Tournament.id == tournament_id).first()
     if not t:
         raise HTTPException(status_code=404, detail="Tournament not found")
-    if name:    t.name   = name
-    if region:  t.region = region
-    if status:  t.status = status
+    if body.name:   t.name   = body.name
+    if body.region: t.region = body.region
+    if body.status: t.status = body.status
     db.commit()
     return {"id": t.id, "name": t.name, "region": t.region, "status": t.status}
