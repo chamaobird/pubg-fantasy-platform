@@ -314,64 +314,6 @@ async def seed_database(
 
     return {"message": "Seed executado com sucesso!"}
 
-
-@router.post("/backfill-player-tournament-ids", summary="[TEMP] Backfill tournament_id dos players")
-async def backfill_player_tournament_ids(
-    db: Session = Depends(get_db),
-    admin: User = Depends(require_admin),
-):
-    """TEMPORÁRIO: Preenche players.tournament_id baseado em region.
-
-    Regras:
-    - Para cada player com tournament_id NULL, tenta encontrar torneio ativo na mesma region.
-    - Se não houver ativo, usa qualquer torneio da mesma region.
-    - Se não existir torneio para a region, não altera.
-    """
-    from sqlalchemy import func
-
-    tournaments = db.query(Tournament).all()
-    tournaments_by_region: dict[str, Tournament] = {}
-
-    for t in tournaments:
-        if not t.region:
-            continue
-        region = t.region.upper()
-        current = tournaments_by_region.get(region)
-        if not current:
-            tournaments_by_region[region] = t
-            continue
-        if current.status != "active" and t.status == "active":
-            tournaments_by_region[region] = t
-
-    total_players = db.query(func.count(Player.id)).scalar() or 0
-    null_tournament_players = (
-        db.query(Player).filter(Player.tournament_id.is_(None)).all()
-    )
-
-    updated = 0
-    skipped = 0
-
-    for p in null_tournament_players:
-        region = (p.region or "").upper()
-        target = tournaments_by_region.get(region)
-        if not target:
-            skipped += 1
-            continue
-        p.tournament_id = target.id
-        updated += 1
-
-    db.commit()
-
-    return {
-        "message": "Backfill concluído",
-        "total_players": total_players,
-        "players_with_tournament_id_null": len(null_tournament_players),
-        "updated": updated,
-        "skipped": skipped,
-        "tournaments_by_region": {k: v.id for k, v in tournaments_by_region.items()},
-    }
-
-
 @router.post("/promote-to-admin", summary="[TEMP] Promove usuário a admin")
 async def promote_user_to_admin(
     email: str,
@@ -412,245 +354,6 @@ async def list_all_users(
         "total": len(users),
         "users": [{"id": u.id, "email": u.email, "is_admin": u.is_admin} for u in users]
     }
-
-
-@router.post("/fix-database")
-async def fix_database_schema(
-    db: Session = Depends(get_db),
-    admin: User = Depends(require_admin),
-):
-    from sqlalchemy import text
-    db.execute(text("ALTER TABLE players ADD COLUMN IF NOT EXISTS fantasy_cost FLOAT DEFAULT 10.0"))
-    db.commit()
-    return {"message": "Campo fantasy_cost adicionado!"}
-
-
-@router.post("/fix-database-schema")
-async def fix_database_schema_no_auth(
-    db: Session = Depends(get_db),
-    admin: User = Depends(require_admin),
-):
-    """TEMP: Adiciona colunas faltantes na tabela players"""
-    from sqlalchemy import text
-
-    colunas_adicionadas = []
-
-    try:
-        # Lista de todas as colunas que podem estar faltando
-        alteracoes = [
-            "ALTER TABLE players ADD COLUMN IF NOT EXISTS fantasy_cost FLOAT DEFAULT 10.0",
-            "ALTER TABLE players ADD COLUMN IF NOT EXISTS position VARCHAR",
-            """
-            DO $$
-            BEGIN
-              IF NOT EXISTS (
-                SELECT 1
-                FROM information_schema.columns
-                WHERE table_name = 'players'
-                  AND column_name = 'nationality'
-              ) THEN
-                ALTER TABLE players ADD COLUMN nationality VARCHAR(50);
-              END IF;
-            END $$;
-            """,
-
-            """
-            DO $$
-            BEGIN
-              IF NOT EXISTS (
-                SELECT 1
-                FROM information_schema.columns
-                WHERE table_name = 'players'
-                  AND column_name = 'tournament_id'
-              ) THEN
-                ALTER TABLE players ADD COLUMN tournament_id INTEGER;
-              END IF;
-            END $$;
-            """,
-
-            """
-            DO $$
-            BEGIN
-              IF NOT EXISTS (
-                SELECT 1
-                FROM pg_constraint
-                WHERE conname = 'fk_players_tournament_id'
-              ) THEN
-                ALTER TABLE players
-                  ADD CONSTRAINT fk_players_tournament_id
-                  FOREIGN KEY (tournament_id)
-                  REFERENCES tournaments(id)
-                  ON DELETE SET NULL;
-              END IF;
-            END $$;
-            """,
-            "ALTER TABLE players ADD COLUMN IF NOT EXISTS avg_kills FLOAT DEFAULT 0.0",
-            "ALTER TABLE players ADD COLUMN IF NOT EXISTS avg_damage FLOAT DEFAULT 0.0",
-            "ALTER TABLE players ADD COLUMN IF NOT EXISTS avg_placement FLOAT DEFAULT 0.0",
-            "ALTER TABLE players ADD COLUMN IF NOT EXISTS matches_played INTEGER DEFAULT 0",
-            "ALTER TABLE players ADD COLUMN IF NOT EXISTS raw_stats JSON",
-            "ALTER TABLE players ADD COLUMN IF NOT EXISTS last_synced_at TIMESTAMP WITH TIME ZONE",
-            "ALTER TABLE players ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()",
-
-            """
-            DO $$
-            BEGIN
-              IF EXISTS (
-                SELECT 1
-                FROM information_schema.columns
-                WHERE table_name = 'players'
-                  AND column_name = 'price'
-              ) THEN
-                ALTER TABLE players
-                  ALTER COLUMN price SET DEFAULT 10.0;
-
-                UPDATE players
-                  SET price = COALESCE(price, fantasy_cost, 10.0)
-                WHERE price IS NULL;
-              END IF;
-            END $$;
-            """,
-
-            """
-            CREATE TABLE IF NOT EXISTS lineups (
-              id SERIAL PRIMARY KEY,
-              user_id INTEGER NOT NULL,
-              tournament_id INTEGER NOT NULL,
-              name VARCHAR(100) NOT NULL,
-              captain_player_id INTEGER NOT NULL,
-              reserve_player_id INTEGER,
-              created_at TIMESTAMPTZ DEFAULT NOW(),
-              CONSTRAINT fk_lineups_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-              CONSTRAINT fk_lineups_tournament FOREIGN KEY (tournament_id) REFERENCES tournaments(id) ON DELETE CASCADE,
-              CONSTRAINT fk_lineups_captain FOREIGN KEY (captain_player_id) REFERENCES players(id),
-              CONSTRAINT fk_lineups_reserve FOREIGN KEY (reserve_player_id) REFERENCES players(id) ON DELETE SET NULL
-            );
-            """,
-
-            """
-            DO $$
-            BEGIN
-              IF NOT EXISTS (
-                SELECT 1
-                FROM information_schema.columns
-                WHERE table_name = 'lineups'
-                  AND column_name = 'reserve_player_id'
-              ) THEN
-                ALTER TABLE lineups ADD COLUMN reserve_player_id INTEGER;
-              END IF;
-            END $$;
-            """,
-
-            """
-            DO $$
-            BEGIN
-              IF NOT EXISTS (
-                SELECT 1
-                FROM pg_constraint
-                WHERE conname = 'fk_lineups_reserve'
-              ) THEN
-                ALTER TABLE lineups
-                  ADD CONSTRAINT fk_lineups_reserve
-                  FOREIGN KEY (reserve_player_id)
-                  REFERENCES players(id)
-                  ON DELETE SET NULL;
-              END IF;
-            END $$;
-            """,
-
-            """
-            CREATE TABLE IF NOT EXISTS lineup_players (
-              lineup_id INTEGER NOT NULL,
-              player_id INTEGER NOT NULL,
-              slot INTEGER NOT NULL,
-              added_at TIMESTAMPTZ DEFAULT NOW(),
-              PRIMARY KEY (lineup_id, player_id),
-              CONSTRAINT uq_lineup_slot UNIQUE (lineup_id, slot),
-              CONSTRAINT fk_lineup_players_lineup FOREIGN KEY (lineup_id) REFERENCES lineups(id) ON DELETE CASCADE,
-              CONSTRAINT fk_lineup_players_player FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE
-            );
-            """,
-
-            """
-            DO $$
-            BEGIN
-              IF EXISTS (
-                SELECT 1
-                FROM information_schema.columns
-                WHERE table_name = 'players'
-                  AND column_name = 'is_active'
-              ) THEN
-                ALTER TABLE players
-                  ALTER COLUMN is_active SET DEFAULT true;
-
-                UPDATE players
-                  SET is_active = COALESCE(is_active, true)
-                WHERE is_active IS NULL;
-              END IF;
-            END $$;
-            """,
-
-            "ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS pubg_id VARCHAR",
-            "ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS region VARCHAR",
-            "ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS status VARCHAR DEFAULT 'upcoming'",
-            "ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS scoring_rules_json TEXT",
-            "ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS start_date TIMESTAMP WITH TIME ZONE",
-            "ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS end_date TIMESTAMP WITH TIME ZONE",
-            "ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS max_teams INTEGER DEFAULT 16",
-            "ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS budget_limit NUMERIC(8,2) DEFAULT 100.0",
-            "ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS created_by INTEGER",
-            "ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()",
-
-            """
-            DO $$
-            BEGIN
-              IF EXISTS (
-                SELECT 1
-                FROM information_schema.columns
-                WHERE table_name = 'tournaments'
-                  AND column_name = 'status'
-                  AND udt_name = 'tournament_status'
-              ) THEN
-                ALTER TABLE tournaments
-                  ALTER COLUMN status TYPE VARCHAR
-                  USING status::text;
-              END IF;
-            END $$;
-            """,
-        ]
-
-        for sql in alteracoes:
-            db.execute(text(sql))
-            if "ADD COLUMN IF NOT EXISTS" in sql:
-                coluna = sql.split("ADD COLUMN IF NOT EXISTS ")[1].split(" ")[0]
-                colunas_adicionadas.append(coluna)
-            elif "ALTER COLUMN price SET DEFAULT" in sql:
-                colunas_adicionadas.append("players.price_default_and_backfill")
-            elif "ADD COLUMN nationality" in sql:
-                colunas_adicionadas.append("players.nationality")
-            elif "ADD COLUMN tournament_id" in sql:
-                colunas_adicionadas.append("players.tournament_id")
-            elif "fk_players_tournament_id" in sql:
-                colunas_adicionadas.append("players.tournament_id_fk")
-            elif "CREATE TABLE IF NOT EXISTS lineups" in sql:
-                colunas_adicionadas.append("lineups_table_created")
-            elif "CREATE TABLE IF NOT EXISTS lineup_players" in sql:
-                colunas_adicionadas.append("lineup_players_table_created")
-            elif "ALTER COLUMN is_active SET DEFAULT" in sql:
-                colunas_adicionadas.append("players.is_active_default_and_backfill")
-            elif "ALTER COLUMN status TYPE VARCHAR" in sql:
-                colunas_adicionadas.append("tournaments.status_cast_to_varchar")
-
-        db.commit()
-
-        return {
-            "message": "Todas as colunas adicionadas com sucesso!",
-            "colunas_adicionadas": colunas_adicionadas,
-        }
-    except Exception as e:
-        db.rollback()
-        return {"status": "error", "message": str(e)}
-
 
 # ------------------------------------------------------------------
 # POST /admin/matches/{match_id}/score
@@ -883,33 +586,6 @@ async def register_tournament(
         "pubg_id":       tournament.pubg_id,
         "status":        tournament.status,
     }
-@router.post("/fix-tournament-type", summary="[TEMP] Remove NOT NULL da coluna type em tournaments")
-async def fix_tournament_type(
-    db: Session = Depends(get_db),
-    admin: User = Depends(require_admin),
-):
-    from sqlalchemy import text
-    try:
-        db.execute(text('ALTER TABLE tournaments ALTER COLUMN "type" DROP NOT NULL'))
-        db.commit()
-        return {"status": "ok", "message": "type column is now nullable"}
-    except Exception as e:
-        db.rollback()
-        return {"status": "error", "message": str(e)}
-
-@router.post("/fix-teams-region", summary="[TEMP] Remove NOT NULL da coluna region em teams")
-async def fix_teams_region(
-    db: Session = Depends(get_db),
-    admin: User = Depends(require_admin),
-):
-    from sqlalchemy import text
-    try:
-        db.execute(text('ALTER TABLE teams ALTER COLUMN "region" DROP NOT NULL'))
-        db.commit()
-        return {"status": "ok", "message": "teams.region is now nullable"}
-    except Exception as e:
-        db.rollback()
-        return {"status": "error", "message": str(e)}
 
 @router.post("/reset-database", summary="[TEMP] Zera todos os dados de torneios, players e matches")
 async def reset_database(
@@ -933,31 +609,6 @@ async def reset_database(
         db.rollback()
         return {"status": "error", "message": str(e)}
     
-@router.post("/fix-matches-schema", summary="[TEMP] Adiciona colunas faltando na tabela matches")
-async def fix_matches_schema(
-    db: Session = Depends(get_db),
-    admin: User = Depends(require_admin),
-):
-    from sqlalchemy import text
-    fixes = [
-        'ALTER TABLE matches ADD COLUMN IF NOT EXISTS pubg_match_id VARCHAR UNIQUE',
-        'ALTER TABLE matches ADD COLUMN IF NOT EXISTS match_number INTEGER',
-        'ALTER TABLE matches ADD COLUMN IF NOT EXISTS phase VARCHAR(50)',
-        'ALTER TABLE matches ADD COLUMN IF NOT EXISTS day INTEGER',
-        'ALTER TABLE matches ADD COLUMN IF NOT EXISTS duration_secs INTEGER DEFAULT 0',
-        'ALTER TABLE matches ADD COLUMN IF NOT EXISTS results_json TEXT',
-    ]
-    results = []
-    for sql in fixes:
-        try:
-            db.execute(text(sql))
-            db.commit()
-            results.append({"sql": sql, "status": "ok"})
-        except Exception as e:
-            db.rollback()
-            results.append({"sql": sql, "status": "error", "error": str(e)})
-    return {"results": results}
-
 @router.post("/run-migrations", summary="[TEMP] Força alembic upgrade head")
 async def run_migrations(
     admin: User = Depends(require_admin),
@@ -986,64 +637,6 @@ async def db_version(
         return {"alembic_version": [r[0] for r in result]}
     except Exception as e:
         return {"error": str(e)}
-    
-@router.post("/fix-all-schema", summary="[TEMP] Adiciona todas as colunas faltando")
-async def fix_all_schema(
-    db: Session = Depends(get_db),
-    admin: User = Depends(require_admin),
-):
-    from sqlalchemy import text
-    fixes = [
-        # matches
-        'ALTER TABLE matches ADD COLUMN IF NOT EXISTS pubg_match_id VARCHAR UNIQUE',
-        'ALTER TABLE matches ADD COLUMN IF NOT EXISTS map_name VARCHAR',
-        'ALTER TABLE matches ADD COLUMN IF NOT EXISTS match_number INTEGER',
-        'ALTER TABLE matches ADD COLUMN IF NOT EXISTS phase VARCHAR(50)',
-        'ALTER TABLE matches ADD COLUMN IF NOT EXISTS day INTEGER',
-        'ALTER TABLE matches ADD COLUMN IF NOT EXISTS duration_secs INTEGER DEFAULT 0',
-        'ALTER TABLE matches ADD COLUMN IF NOT EXISTS results_json TEXT',
-        'ALTER TABLE matches ADD COLUMN IF NOT EXISTS played_at TIMESTAMP WITH TIME ZONE',
-        'ALTER TABLE matches ADD COLUMN IF NOT EXISTS synced_at TIMESTAMP WITH TIME ZONE DEFAULT now()',
-        # match_player_stats
-        'ALTER TABLE match_player_stats ADD COLUMN IF NOT EXISTS headshots INTEGER DEFAULT 0',
-        'ALTER TABLE match_player_stats ADD COLUMN IF NOT EXISTS knocks INTEGER DEFAULT 0',
-        'ALTER TABLE match_player_stats ADD COLUMN IF NOT EXISTS survival_secs INTEGER DEFAULT 0',
-        'ALTER TABLE match_player_stats ADD COLUMN IF NOT EXISTS damage_dealt FLOAT DEFAULT 0',
-        'ALTER TABLE match_player_stats ADD COLUMN IF NOT EXISTS fantasy_points FLOAT DEFAULT 0',
-        # players
-        'ALTER TABLE players ADD COLUMN IF NOT EXISTS avg_kills_50 FLOAT',
-        'ALTER TABLE players ADD COLUMN IF NOT EXISTS avg_damage_50 FLOAT',
-        'ALTER TABLE players ADD COLUMN IF NOT EXISTS avg_placement_50 FLOAT',
-        'ALTER TABLE players ADD COLUMN IF NOT EXISTS avg_kills_10 FLOAT',
-        'ALTER TABLE players ADD COLUMN IF NOT EXISTS computed_price FLOAT',
-        'ALTER TABLE players ADD COLUMN IF NOT EXISTS price_updated_at TIMESTAMP WITH TIME ZONE',
-        # lineups
-        'ALTER TABLE lineups ADD COLUMN IF NOT EXISTS total_points NUMERIC(10,2) DEFAULT 0',
-    ]
-    results = []
-    for sql in fixes:
-        try:
-            db.execute(text(sql))
-            db.commit()
-            results.append({"status": "ok", "sql": sql.split("ADD COLUMN")[1].strip()[:40]})
-        except Exception as e:
-            db.rollback()
-            results.append({"status": "error", "error": str(e)[:80], "sql": sql.split("ADD COLUMN")[1].strip()[:40]})
-    return {"total": len(fixes), "results": results}
-
-@router.post("/fix-match-number", summary="[TEMP] Remove NOT NULL de match_number em matches")
-async def fix_match_number(
-    db: Session = Depends(get_db),
-    admin: User = Depends(require_admin),
-):
-    from sqlalchemy import text
-    try:
-        db.execute(text('ALTER TABLE matches ALTER COLUMN match_number DROP NOT NULL'))
-        db.commit()
-        return {"status": "ok"}
-    except Exception as e:
-        db.rollback()
-        return {"status": "error", "message": str(e)}
     
 @router.post("/backfill-player-stats/{tournament_id}", summary="[TEMP] Popula avg_kills_50 etc via SQL direto")
 async def backfill_player_stats(
@@ -1257,3 +850,22 @@ async def reprocess_match_stats(
 
     db.commit()
     return {"tournament_id": tournament_id, "stats_created": created, "skipped": skipped, "errors": errors}
+
+@router.patch("/tournaments/{tournament_id}", summary="Atualiza nome/região/status de um torneio")
+async def update_tournament(
+    tournament_id: int,
+    name: str = None,
+    region: str = None,
+    status: str = None,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    from app.models import Tournament
+    t = db.query(Tournament).filter(Tournament.id == tournament_id).first()
+    if not t:
+        raise HTTPException(status_code=404, detail="Tournament not found")
+    if name:    t.name   = name
+    if region:  t.region = region
+    if status:  t.status = status
+    db.commit()
+    return {"id": t.id, "name": t.name, "region": t.region, "status": t.status}
