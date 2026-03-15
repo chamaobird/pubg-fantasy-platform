@@ -8,7 +8,14 @@ import { useAuth } from '../App'
 import { API_BASE_URL } from '../config'
 
 const REGION_FLAGS = {
-  AM: '🌎', AS: '🌏', SEA: '🌏', EU: '🌍', KR: '🇰🇷', CN: '🇨🇳', NA: '🇺🇸', SA: '🇧🇷',
+  AM: '🌎',  // Americas
+  SEA: '🌏', // Sudeste Asiático
+  AS: '🌏',  // Ásia
+  EU: '🌍',  // Europa
+  KR: '🎮',  // Coreia (país)
+  CN: '🀄',  // China (país)
+  NA: '🌎',  // América do Norte
+  SA: '🌎',  // América do Sul
 }
 
 const STATUS_STYLE = {
@@ -126,6 +133,7 @@ export default function TournamentSelect() {
             {sorted.map((t) => {
               const st = STATUS_STYLE[t.status] || STATUS_STYLE.finished
               const flag = REGION_FLAGS[t.region] || '🌐'
+              const regionLabel = { KR: 'Coreia do Sul', CN: 'China', SEA: 'Sudeste Asiático', AS: 'Ásia', AM: 'Américas', EU: 'Europa' }
 
               return (
                 <div
@@ -179,7 +187,7 @@ export default function TournamentSelect() {
 
                   {/* Meta */}
                   <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
-                    <span style={{ fontSize: '12px', color: 'var(--color-xama-muted)' }}>{t.region}</span>
+                    <span style={{ fontSize: '12px', color: 'var(--color-xama-muted)' }}>{regionLabel[t.region] || t.region}</span>
                     {t.pubg_id && (
                       <span style={{ fontSize: '11px', color: '#2a3046', fontFamily: "'JetBrains Mono', monospace" }}>
                         {t.pubg_id}
