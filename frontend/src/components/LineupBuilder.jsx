@@ -206,8 +206,8 @@ export default function LineupBuilder({
   selectedTournamentId = '',
   onTournamentChange,
 }) {
-  const [loginEmail,    setLoginEmail]    = useState('admin@warzone.gg')
-  const [loginPassword, setLoginPassword] = useState('admin123')
+  const [loginEmail,    setLoginEmail]    = useState('')
+  const [loginPassword, setLoginPassword] = useState('')
   const [loginLoading,  setLoginLoading]  = useState(false)
   const [loginError,    setLoginError]    = useState('')
 
