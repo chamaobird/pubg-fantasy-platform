@@ -1044,3 +1044,37 @@ async def fix_match_number(
     except Exception as e:
         db.rollback()
         return {"status": "error", "message": str(e)}
+    
+@router.post("/backfill-player-stats/{tournament_id}", summary="[TEMP] Popula avg_kills_50 etc via SQL direto")
+async def backfill_player_stats(
+    tournament_id: int,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    from sqlalchemy import text
+    sql = text("""
+        UPDATE players p
+        SET
+            avg_kills_50     = sub.avg_kills,
+            avg_damage_50    = sub.avg_damage,
+            avg_placement_50 = sub.avg_placement,
+            avg_kills_10     = sub.avg_kills,
+            computed_price   = p.fantasy_cost,
+            price_updated_at = now()
+        FROM (
+            SELECT
+                mps.player_id,
+                AVG(mps.kills)        AS avg_kills,
+                AVG(mps.damage_dealt) AS avg_damage,
+                AVG(mps.placement)    AS avg_placement
+            FROM match_player_stats mps
+            JOIN matches m ON mps.match_id = m.id
+            WHERE m.tournament_id = :tournament_id
+            GROUP BY mps.player_id
+        ) sub
+        WHERE p.id = sub.player_id
+        AND p.tournament_id = :tournament_id
+    """)
+    result = db.execute(sql, {"tournament_id": tournament_id})
+    db.commit()
+    return {"status": "ok", "rows_updated": result.rowcount}
