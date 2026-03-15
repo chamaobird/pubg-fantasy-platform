@@ -4,6 +4,8 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "postgresql://user:password@localhost/warzone_fantasy"
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
 
     # Auth
     # PONTO CRÍTICO: em produção (Render), você DEVE definir SECRET_KEY via variável de ambiente
