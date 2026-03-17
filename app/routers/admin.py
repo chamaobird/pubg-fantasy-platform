@@ -61,21 +61,6 @@ async def recalculate_costs(
         "updated": updated,
     }
 
-
-@router.post("/seed-data")
-async def seed_database(
-    db: Session = Depends(get_db),
-    admin: User = Depends(require_admin),
-):
-    """Popula banco com dados de teste (3 torneios, 20 jogadores, 1 admin)"""
-    from scripts.seed_data import seed_tournaments, seed_players, seed_admin_user
-
-    seed_tournaments(db)
-    seed_players(db)
-    seed_admin_user(db)
-
-    return {"message": "Seed executado com sucesso!"}
-
 @router.post("/promote-to-admin", summary="[TEMP] Promove usuário a admin")
 async def promote_user_to_admin(
     email: str,
