@@ -42,6 +42,7 @@ function AuthCard({ redirectTo = '/tournaments' }) {
 
   async function doLogin(e) {
     e.preventDefault()
+    void destination  // ← força avaliação sem logar
     setLoginLoading(true); setLoginError('')
     try {
       const res = await fetch(`${API_BASE_URL}/users/login`, {
