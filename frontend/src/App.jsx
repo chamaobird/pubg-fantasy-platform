@@ -15,6 +15,12 @@ function RequireAuth({ children }) {
   return children
 }
 
+function LandingWithRedirect() {
+  const location = useLocation()
+  const redirectTo = location.state?.from?.pathname || '/tournaments'
+  return <LandingPage redirectTo={redirectTo} />
+}
+
 export default function App() {
   const [token, setToken] = useState(() => localStorage.getItem('wf_token') || '')
 
@@ -33,7 +39,7 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={
-            token ? <Navigate to="/tournaments" replace /> : <LandingPage />
+            token ? <Navigate to="/tournaments" replace /> : <LandingWithRedirect />
           } />
           <Route path="/tournaments" element={
             <RequireAuth><TournamentSelect /></RequireAuth>

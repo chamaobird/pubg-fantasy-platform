@@ -22,7 +22,7 @@ function parseError(err) {
   return 'Erro inesperado'
 }
 
-function AuthCard() {
+function AuthCard({ redirectTo = '/tournaments' }) {
   const { setToken } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -54,9 +54,7 @@ function AuthCard() {
       if (!res.ok) throw new Error(data?.detail || `HTTP ${res.status}`)
       if (!data?.access_token) throw new Error('Sem token na resposta')
       setToken(data.access_token)
-      const location = useLocation()
       // ...
-      const destination = location.state?.from?.pathname || '/tournaments'
       navigate(destination, { replace: true })
     } catch (err) {
       setLoginError(parseError(err))
@@ -85,9 +83,7 @@ function AuthCard() {
       const loginData = await loginRes.json().catch(() => null)
       if (loginRes.ok && loginData?.access_token) {
         setToken(loginData.access_token)
-        const location = useLocation()
         // ...
-        const destination = location.state?.from?.pathname || '/tournaments'
         navigate(destination, { replace: true })
       } else {
         setMode('login')
@@ -226,7 +222,7 @@ function AuthCard() {
   )
 }
 
-export default function LandingPage() {
+export default function LandingPage({ redirectTo = '/tournaments' }) {
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
       <div style={{ minHeight: '100vh', background: 'var(--color-xama-black)', fontFamily: "'Rajdhani', sans-serif", display: 'flex', flexDirection: 'column' }}>
@@ -268,7 +264,8 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <AuthCard />
+            <AuthCard redirectTo={redirectTo} />
+            
           </div>
         </main>
 
