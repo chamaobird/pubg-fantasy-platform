@@ -2,7 +2,7 @@
 // XAMA Fantasy — Landing + Auth page com Google OAuth
 
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../App'
 import { API_BASE_URL } from '../config'
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google'
@@ -25,6 +25,8 @@ function parseError(err) {
 function AuthCard() {
   const { setToken } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  const destination = location.state?.from?.pathname || '/tournaments'
 
   const [mode, setMode] = useState('login')
   const [email, setEmail] = useState('')
@@ -52,7 +54,10 @@ function AuthCard() {
       if (!res.ok) throw new Error(data?.detail || `HTTP ${res.status}`)
       if (!data?.access_token) throw new Error('Sem token na resposta')
       setToken(data.access_token)
-      navigate('/tournaments')
+      const location = useLocation()
+      // ...
+      const destination = location.state?.from?.pathname || '/tournaments'
+      navigate(destination, { replace: true })
     } catch (err) {
       setLoginError(parseError(err))
     } finally {
@@ -80,7 +85,10 @@ function AuthCard() {
       const loginData = await loginRes.json().catch(() => null)
       if (loginRes.ok && loginData?.access_token) {
         setToken(loginData.access_token)
-        navigate('/tournaments')
+        const location = useLocation()
+        // ...
+        const destination = location.state?.from?.pathname || '/tournaments'
+        navigate(destination, { replace: true })
       } else {
         setMode('login')
       }
@@ -103,7 +111,7 @@ function AuthCard() {
       if (!res.ok) throw new Error(data?.detail || `HTTP ${res.status}`)
       if (!data?.access_token) throw new Error('Sem token na resposta')
       setToken(data.access_token)
-      navigate('/tournaments')
+      navigate(destination, { replace: true })
     } catch (err) {
       setGoogleError(parseError(err))
     }

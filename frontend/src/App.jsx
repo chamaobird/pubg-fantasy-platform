@@ -1,13 +1,19 @@
 // frontend/src/App.jsx
 import { useState, createContext, useContext } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import LandingPage from './pages/LandingPage'
 import TournamentSelect from './pages/TournamentSelect'
 import TournamentHub from './pages/TournamentHub'
 
-// ── Auth context — shared across all pages ────────────────────────────────────
 export const AuthContext = createContext(null)
 export const useAuth = () => useContext(AuthContext)
+
+function RequireAuth({ children }) {
+  const { token } = useAuth()
+  const location = useLocation()
+  if (!token) return <Navigate to="/" state={{ from: location }} replace />
+  return children
+}
 
 export default function App() {
   const [token, setToken] = useState(() => localStorage.getItem('wf_token') || '')
@@ -26,20 +32,15 @@ export default function App() {
     <AuthContext.Provider value={{ token, setToken: handleSetToken, logout: handleLogout }}>
       <BrowserRouter>
         <Routes>
-          {/* Public */}
           <Route path="/" element={
             token ? <Navigate to="/tournaments" replace /> : <LandingPage />
           } />
-
-          {/* Protected */}
           <Route path="/tournaments" element={
-            token ? <TournamentSelect /> : <Navigate to="/" replace />
+            <RequireAuth><TournamentSelect /></RequireAuth>
           } />
-
           <Route path="/tournament/:id" element={
-            token ? <TournamentHub /> : <Navigate to="/" replace />
+            <RequireAuth><TournamentHub /></RequireAuth>
           } />
-
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
