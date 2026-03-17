@@ -2,7 +2,7 @@
 // XAMA Fantasy — Landing + Auth page com Google OAuth
 
 import { useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../App'
 import { API_BASE_URL } from '../config'
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google'
@@ -25,7 +25,6 @@ function parseError(err) {
 function AuthCard({ redirectTo = '/tournaments' }) {
   const { setToken } = useAuth()
   const navigate = useNavigate()
-  const destination = redirectTo
 
   const [mode, setMode] = useState('login')
   const [email, setEmail] = useState('')
@@ -42,7 +41,7 @@ function AuthCard({ redirectTo = '/tournaments' }) {
 
   async function doLogin(e) {
     e.preventDefault()
-    void destination  // ← força avaliação sem logar
+    const destination = redirectTo
     setLoginLoading(true); setLoginError('')
     try {
       const res = await fetch(`${API_BASE_URL}/users/login`, {
@@ -54,7 +53,6 @@ function AuthCard({ redirectTo = '/tournaments' }) {
       if (!res.ok) throw new Error(data?.detail || `HTTP ${res.status}`)
       if (!data?.access_token) throw new Error('Sem token na resposta')
       setToken(data.access_token, destination)
-      // ...
       navigate(destination, { replace: true })
     } catch (err) {
       setLoginError(parseError(err))
@@ -65,6 +63,7 @@ function AuthCard({ redirectTo = '/tournaments' }) {
 
   async function doRegister(e) {
     e.preventDefault()
+    const destination = redirectTo
     setRegLoading(true); setRegError(''); setRegSuccess('')
     try {
       const res = await fetch(`${API_BASE_URL}/users/register`, {
@@ -82,8 +81,7 @@ function AuthCard({ redirectTo = '/tournaments' }) {
       })
       const loginData = await loginRes.json().catch(() => null)
       if (loginRes.ok && loginData?.access_token) {
-        setToken(data.access_token, destination)
-        // ...
+        setToken(loginData.access_token, destination)
         navigate(destination, { replace: true })
       } else {
         setMode('login')
@@ -96,6 +94,7 @@ function AuthCard({ redirectTo = '/tournaments' }) {
   }
 
   async function handleGoogleSuccess(credentialResponse) {
+    const destination = redirectTo
     setGoogleError('')
     try {
       const res = await fetch(`${API_BASE_URL}/users/google-login`, {
@@ -227,10 +226,8 @@ export default function LandingPage({ redirectTo = '/tournaments' }) {
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
       <div style={{ minHeight: '100vh', background: 'var(--color-xama-black)', fontFamily: "'Rajdhani', sans-serif", display: 'flex', flexDirection: 'column' }}>
 
-        {/* Background glow */}
         <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0, background: 'radial-gradient(ellipse 80% 50% at 20% 40%, rgba(249,115,22,0.06) 0%, transparent 60%), radial-gradient(ellipse 60% 40% at 80% 70%, rgba(59,130,246,0.04) 0%, transparent 60%)' }} />
 
-        {/* Header */}
         <header style={{ position: 'relative', zIndex: 1, padding: '24px 32px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{ width: '40px', height: '40px', fontSize: '20px', background: 'linear-gradient(135deg, rgba(249,115,22,0.3), rgba(249,115,22,0.05))', border: '1px solid rgba(249,115,22,0.4)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🔥</div>
@@ -241,11 +238,8 @@ export default function LandingPage({ redirectTo = '/tournaments' }) {
           </div>
         </header>
 
-        {/* Main */}
         <main style={{ flex: 1, position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 16px' }}>
           <div style={{ width: '100%', maxWidth: '960px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '64px', alignItems: 'center' }}>
-
-            {/* Hero */}
             <div>
               <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.2em', color: 'var(--color-xama-orange)', textTransform: 'uppercase', marginBottom: '16px', fontFamily: "'JetBrains Mono', monospace" }}>PUBG Esports Fantasy</div>
               <h1 style={{ fontSize: 'clamp(36px, 5vw, 56px)', fontWeight: 700, color: 'var(--color-xama-text)', lineHeight: 1.1, letterSpacing: '-0.02em', marginBottom: '20px' }}>
@@ -263,13 +257,10 @@ export default function LandingPage({ redirectTo = '/tournaments' }) {
                 ))}
               </div>
             </div>
-
             <AuthCard redirectTo={redirectTo} />
-            
           </div>
         </main>
 
-        {/* Footer */}
         <footer style={{ position: 'relative', zIndex: 1, padding: '16px 32px', borderTop: '1px solid var(--color-xama-border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <span style={{ fontSize: '11px', color: '#2a3046', fontFamily: "'JetBrains Mono', monospace" }}>🔥 XAMA Fantasy League — dados reais do PUBG Esports</span>
         </footer>
