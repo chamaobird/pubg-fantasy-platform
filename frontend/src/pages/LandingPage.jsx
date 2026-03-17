@@ -25,8 +25,7 @@ function parseError(err) {
 function AuthCard({ redirectTo = '/tournaments' }) {
   const { setToken } = useAuth()
   const navigate = useNavigate()
-  const location = useLocation()
-  const destination = location.state?.from?.pathname || '/tournaments'
+  const destination = redirectTo
 
   const [mode, setMode] = useState('login')
   const [email, setEmail] = useState('')
