@@ -8,12 +8,12 @@ import { useAuth } from '../App'
 import { API_BASE_URL } from '../config'
 
 const REGION_FLAGS = {
-  AM: '🌎',  // Americas
-  SEA: '🌏', // Sudeste Asiático
-  AS: '🌏',  // Ásia
-  EU: '🌍',  // Europa
-  KR: '🎮',  // Coreia (país)
-  CN: '🀄',  // China (país)
+  AM:  '🏆',
+  SEA: '🏆',
+  AS:  '🏆',
+  EU:  '🏆',
+  KR:  '🏆',
+  CN:  '🏆',
 }
 
 const STATUS_STYLE = {
@@ -130,7 +130,8 @@ export default function TournamentSelect() {
           }}>
             {sorted.map((t) => {
               const st = STATUS_STYLE[t.status] || STATUS_STYLE.finished
-              const flag = REGION_FLAGS[t.region] || '🌐'
+              const isGlobal = t.pubg_id && (t.pubg_id.startsWith('as-pgs') || t.pubg_id.startsWith('kr-pgs') || t.pubg_id.startsWith('as-pgc'))
+              const flag = isGlobal ? '🌍🏆' : (REGION_FLAGS[t.region] || '🏆')
               const regionLabel = { KR: 'Coreia do Sul', CN: 'China', SEA: 'Sudeste Asiático', AS: 'Ásia', AM: 'Américas', EU: 'Europa' }
 
               return (
