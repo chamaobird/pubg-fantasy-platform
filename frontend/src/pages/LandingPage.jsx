@@ -42,7 +42,6 @@ function AuthCard({ redirectTo = '/tournaments' }) {
 
   async function doLogin(e) {
     e.preventDefault()
-    console.log('destination:', destination)
     setLoginLoading(true); setLoginError('')
     try {
       const res = await fetch(`${API_BASE_URL}/users/login`, {
