@@ -88,8 +88,10 @@ export default function PlayerStatsPage({
   const sorted = useMemo(() => {
     if (!sortKey) return filtered
     return [...filtered].sort((a, b) => {
-      const av = a[sortKey] ?? (sortDir === 'desc' ? -Infinity : Infinity)
-      const bv = b[sortKey] ?? (sortDir === 'desc' ? -Infinity : Infinity)
+      let av = sortKey === 'name' ? formatPlayerName(a.name) : a[sortKey]
+      let bv = sortKey === 'name' ? formatPlayerName(b.name) : b[sortKey]
+      av = av ?? (sortDir === 'desc' ? -Infinity : Infinity)
+      bv = bv ?? (sortDir === 'desc' ? -Infinity : Infinity)
       if (typeof av === 'string') return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av)
       return sortDir === 'desc' ? bv - av : av - bv
     })
