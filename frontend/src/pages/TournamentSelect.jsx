@@ -14,8 +14,6 @@ const REGION_FLAGS = {
   EU: '🌍',  // Europa
   KR: '🎮',  // Coreia (país)
   CN: '🀄',  // China (país)
-  NA: '🌎',  // América do Norte
-  SA: '🌎',  // América do Sul
 }
 
 const STATUS_STYLE = {
