@@ -24,22 +24,30 @@ function LandingWithRedirect() {
 export default function App() {
   const [token, setToken] = useState(() => localStorage.getItem('wf_token') || '')
 
-  const handleSetToken = (t) => {
+  const handleSetToken = (t, redirectTo) => {
     localStorage.setItem('wf_token', t)
+    if (redirectTo && redirectTo !== '/tournaments') {
+      localStorage.setItem('wf_redirect', redirectTo)
+    }
     setToken(t)
   }
 
   const handleLogout = () => {
     localStorage.removeItem('wf_token')
+    localStorage.removeItem('wf_redirect')
     setToken('')
   }
+
+  const pendingRedirect = localStorage.getItem('wf_redirect')
 
   return (
     <AuthContext.Provider value={{ token, setToken: handleSetToken, logout: handleLogout }}>
       <BrowserRouter>
         <Routes>
           <Route path="/" element={
-            token ? <Navigate to="/tournaments" replace /> : <LandingWithRedirect />
+            token
+              ? <Navigate to={pendingRedirect || '/tournaments'} replace />
+              : <LandingWithRedirect />
           } />
           <Route path="/tournaments" element={
             <RequireAuth><TournamentSelect /></RequireAuth>

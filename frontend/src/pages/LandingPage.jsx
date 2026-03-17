@@ -52,7 +52,7 @@ function AuthCard({ redirectTo = '/tournaments' }) {
       const data = await res.json().catch(() => null)
       if (!res.ok) throw new Error(data?.detail || `HTTP ${res.status}`)
       if (!data?.access_token) throw new Error('Sem token na resposta')
-      setToken(data.access_token)
+      setToken(data.access_token, destination)
       // ...
       navigate(destination, { replace: true })
     } catch (err) {
@@ -81,7 +81,7 @@ function AuthCard({ redirectTo = '/tournaments' }) {
       })
       const loginData = await loginRes.json().catch(() => null)
       if (loginRes.ok && loginData?.access_token) {
-        setToken(loginData.access_token)
+        setToken(data.access_token, destination)
         // ...
         navigate(destination, { replace: true })
       } else {
@@ -105,7 +105,7 @@ function AuthCard({ redirectTo = '/tournaments' }) {
       const data = await res.json().catch(() => null)
       if (!res.ok) throw new Error(data?.detail || `HTTP ${res.status}`)
       if (!data?.access_token) throw new Error('Sem token na resposta')
-      setToken(data.access_token)
+      setToken(data.access_token, destination)
       navigate(destination, { replace: true })
     } catch (err) {
       setGoogleError(parseError(err))
