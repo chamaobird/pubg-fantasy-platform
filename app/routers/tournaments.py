@@ -573,7 +573,7 @@ def tournament_player_stats(
             total_fantasy_points=round(tfp, 2),
             pts_per_match=round(tfp / mp, 2),
         ))
-    return
+    return result
 
 @router.get(
     "/{tournament_id}/matches",
