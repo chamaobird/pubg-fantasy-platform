@@ -584,41 +584,55 @@ def tournament_matches(
     db: Session = Depends(get_db),
 ):
     from app.models.match import Match
-    from collections import defaultdict
- 
+
     tournament = db.query(Tournament).filter(Tournament.id == tournament_id).first()
     if not tournament:
         raise HTTPException(status_code=404, detail="Tournament not found")
- 
+
     matches = (
         db.query(Match)
         .filter(Match.tournament_id == tournament_id)
         .order_by(Match.played_at)
         .all()
     )
- 
-    # Agrupa por data
-    by_date = defaultdict(list)
+
+    # Agrupa por sessão de jogo (partidas com < 4h de diferença = mesmo dia)
+    sessions = []
+    current_session = []
+
     for m in matches:
-        date_key = m.played_at.date().isoformat() if m.played_at else "unknown"
-        by_date[date_key].append({
-            "id": m.id,
-            "map_name": m.map_name,
-            "played_at": m.played_at.isoformat() if m.played_at else None,
-            "duration_secs": m.duration_secs,
-        })
- 
+        if not current_session:
+            current_session.append(m)
+        else:
+            last = current_session[-1]
+            diff = abs((m.played_at - last.played_at).total_seconds())
+            if diff <= 4 * 3600:
+                current_session.append(m)
+            else:
+                sessions.append(current_session)
+                current_session = [m]
+    if current_session:
+        sessions.append(current_session)
+
     result = []
-    for date_key in sorted(by_date.keys()):
-        matches_on_date = by_date[date_key]
-        for i, m in enumerate(matches_on_date):
-            m["match_number_in_day"] = i + 1
+    for i, session in enumerate(sessions):
+        date_key = session[0].played_at.date().isoformat()
+        session_matches = []
+        for j, m in enumerate(session):
+            session_matches.append({
+                "id": m.id,
+                "map_name": m.map_name,
+                "played_at": m.played_at.isoformat() if m.played_at else None,
+                "duration_secs": m.duration_secs,
+                "match_number_in_day": j + 1,
+            })
         result.append({
             "date": date_key,
-            "matches_count": len(matches_on_date),
-            "matches": matches_on_date,
+            "session": i + 1,
+            "matches_count": len(session_matches),
+            "matches": session_matches,
         })
- 
+
     return {
         "tournament_id": tournament_id,
         "total_matches": len(matches),
