@@ -1,6 +1,6 @@
 // frontend/src/components/PlayerStatsPage.jsx
 // XAMA Fantasy — Player Stats Page (expanded)
-// Inspirado na densidade da Twire, fontes maiores, todas as métricas
+// Filtros: torneio, dia, partida, time, jogador
 
 import { useState, useEffect, useMemo } from 'react'
 import { API_BASE_URL as API_BASE } from '../config'
@@ -28,25 +28,26 @@ const placementColorHex = (val) => {
   if (val <= 12)   return '#f0c040'
   return '#f87171'
 }
-const fmt1 = (v) => v != null ? Number(v).toFixed(1) : '—'
-const fmt2 = (v) => v != null ? Number(v).toFixed(2) : '—'
+const fmt1   = (v) => v != null ? Number(v).toFixed(1) : '—'
+const fmt2   = (v) => v != null ? Number(v).toFixed(2) : '—'
 const fmtInt = (v) => v != null ? Math.round(v) : '—'
 
-// ── Column definitions ────────────────────────────────────────────────────────
+const MAP_ICONS = { Erangel: '🌿', Miramar: '🏜️', Taego: '🌾', Rondo: '❄️', Vikendi: '❄️', Deston: '🌊' }
+
 const COLUMNS = [
-  { key: 'matches_played', label: 'M',        title: 'Partidas jogadas',     right: true,  render: (p) => `${p.matches_played}/${p.matches_total}` },
-  { key: 'avg_kills',      label: 'K/G',       title: 'Kills por jogo',       right: true,  render: (p) => fmt1(p.avg_kills) },
-  { key: 'total_kills',    label: 'K Total',   title: 'Total de kills',       right: true,  render: (p) => fmtInt(p.total_kills) },
-  { key: 'avg_assists',    label: 'ASS/G',     title: 'Assists por jogo',     right: true,  render: (p) => fmt2(p.avg_assists) },
-  { key: 'avg_damage',     label: 'DMG/G',     title: 'Dano por jogo',        right: true,  render: (p) => fmtInt(p.avg_damage) },
-  { key: 'total_damage',   label: 'DMG Total', title: 'Dano total',           right: true,  render: (p) => fmtInt(p.total_damage) },
-  { key: 'avg_placement',  label: 'PLACE',     title: 'Colocação média',      right: true,  render: (p) => fmt1(p.avg_placement), color: (p) => placementColorHex(p.avg_placement) },
-  { key: 'avg_headshots',  label: 'HS/G',      title: 'Headshots por jogo',   right: true,  render: (p) => fmt2(p.avg_headshots) },
-  { key: 'avg_knocks',     label: 'KD/G',      title: 'Knockdowns por jogo',  right: true,  render: (p) => fmt2(p.avg_knocks) },
-  { key: 'avg_survival_secs', label: 'SURV',   title: 'Sobrevivência média (s)', right: true, render: (p) => fmtInt(p.avg_survival_secs) },
-  { key: 'pts_per_match',  label: 'PTS/G',     title: 'Pontos fantasy por jogo', right: true, render: (p) => fmt2(p.pts_per_match) },
-  { key: 'total_fantasy_points', label: 'PTS Total', title: 'Pontos fantasy totais', right: true, render: (p) => fmt2(p.total_fantasy_points) },
-  { key: 'fantasy_cost',   label: 'PREÇO',     title: 'Preço fantasy',        right: true,  render: (p) => `${Number(p.fantasy_cost).toFixed(2)} cr` },
+  { key: 'matches_played',       label: 'M',         title: 'Partidas jogadas',        right: true, render: (p) => `${p.matches_played}/${p.matches_total}` },
+  { key: 'avg_kills',            label: 'K/G',        title: 'Kills por jogo',          right: true, render: (p) => fmt1(p.avg_kills) },
+  { key: 'total_kills',          label: 'K Total',    title: 'Total de kills',          right: true, render: (p) => fmtInt(p.total_kills) },
+  { key: 'avg_assists',          label: 'ASS/G',      title: 'Assists por jogo',        right: true, render: (p) => fmt2(p.avg_assists) },
+  { key: 'avg_damage',           label: 'DMG/G',      title: 'Dano por jogo',           right: true, render: (p) => fmtInt(p.avg_damage) },
+  { key: 'total_damage',         label: 'DMG Total',  title: 'Dano total',              right: true, render: (p) => fmtInt(p.total_damage) },
+  { key: 'avg_placement',        label: 'PLACE',      title: 'Colocação média',         right: true, render: (p) => fmt1(p.avg_placement), color: (p) => placementColorHex(p.avg_placement) },
+  { key: 'avg_headshots',        label: 'HS/G',       title: 'Headshots por jogo',      right: true, render: (p) => fmt2(p.avg_headshots) },
+  { key: 'avg_knocks',           label: 'KD/G',       title: 'Knockdowns por jogo',     right: true, render: (p) => fmt2(p.avg_knocks) },
+  { key: 'avg_survival_secs',    label: 'SURV',       title: 'Sobrevivência média (s)', right: true, render: (p) => fmtInt(p.avg_survival_secs) },
+  { key: 'pts_per_match',        label: 'PTS/G',      title: 'Pontos XAMA por jogo',    right: true, render: (p) => fmt2(p.pts_per_match) },
+  { key: 'total_fantasy_points', label: 'PTS Total',  title: 'Pontos XAMA totais',      right: true, render: (p) => fmt2(p.total_fantasy_points) },
+  { key: 'fantasy_cost',         label: 'PREÇO',      title: 'Preço fantasy',           right: true, render: (p) => `${Number(p.fantasy_cost).toFixed(2)} cr` },
 ]
 
 function SortIcon({ active, dir }) {
@@ -54,25 +55,61 @@ function SortIcon({ active, dir }) {
   return <span className="ml-0.5 text-[9px]" style={{ color: 'var(--color-xama-orange)' }}>{dir === 'desc' ? '▼' : '▲'}</span>
 }
 
+const selectStyle = {
+  background: '#0d0f14',
+  border: '1px solid var(--color-xama-border)',
+  borderRadius: '6px',
+  color: 'var(--color-xama-text)',
+  padding: '6px 10px',
+  fontSize: '13px',
+  fontFamily: "'Rajdhani', sans-serif",
+  cursor: 'pointer',
+  outline: 'none',
+}
+
 export default function PlayerStatsPage({
   tournaments, tournamentsLoading, selectedTournamentId, onTournamentChange,
 }) {
-  const [stats, setStats]           = useState([])
-  const [loading, setLoading]       = useState(false)
-  const [error, setError]           = useState(null)
-  const [search, setSearch]         = useState('')
+  const [stats, setStats]         = useState([])
+  const [loading, setLoading]     = useState(false)
+  const [error, setError]         = useState(null)
+  const [search, setSearch]       = useState('')
   const [teamFilter, setTeamFilter] = useState('')
-  const [sortKey, setSortKey]       = useState('pts_per_match')
-  const [sortDir, setSortDir]       = useState('desc')
+  const [sortKey, setSortKey]     = useState('pts_per_match')
+  const [sortDir, setSortDir]     = useState('desc')
 
+  // ── Match/day filters ────────────────────────────────────────────────────
+  const [matchDays, setMatchDays]       = useState([])   // [{date, matches:[{id, map_name, match_number_in_day}]}]
+  const [selectedDate, setSelectedDate] = useState('')   // 'YYYY-MM-DD' or ''
+  const [selectedMatch, setSelectedMatch] = useState('') // match id or ''
+
+  // Load match days when tournament changes
+  useEffect(() => {
+    if (!selectedTournamentId) return
+    setMatchDays([]); setSelectedDate(''); setSelectedMatch('')
+    fetch(`${API_BASE}/tournaments/${selectedTournamentId}/matches`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d?.days) setMatchDays(d.days) })
+      .catch(() => {})
+  }, [selectedTournamentId])
+
+  // Reset match filter when day changes
+  useEffect(() => { setSelectedMatch('') }, [selectedDate])
+
+  // Load stats with active filters
   useEffect(() => {
     if (!selectedTournamentId) return
     setLoading(true); setError(null)
-    fetch(`${API_BASE}/tournaments/${selectedTournamentId}/player-stats?limit=200`)
+
+    let url = `${API_BASE}/tournaments/${selectedTournamentId}/player-stats?limit=200`
+    if (selectedMatch) url += `&match_id=${selectedMatch}`
+    else if (selectedDate) url += `&date=${selectedDate}`
+
+    fetch(url)
       .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() })
       .then((d) => { setStats(d); setLoading(false) })
       .catch((e) => { setError(e.message); setLoading(false) })
-  }, [selectedTournamentId])
+  }, [selectedTournamentId, selectedDate, selectedMatch])
 
   const teamOptions = useMemo(() => {
     const tags = new Set(stats.map((p) => formatTeamTag(p.name, p.team)).filter(Boolean))
@@ -102,8 +139,28 @@ export default function PlayerStatsPage({
     else { setSortKey(key); setSortDir(key === 'avg_placement' ? 'asc' : 'desc') }
   }
 
-  const matchesTotal = stats[0]?.matches_total ?? 0
+  const matchesTotal      = stats[0]?.matches_total ?? 0
   const selectedTournament = tournaments?.find((t) => t.id === Number(selectedTournamentId))
+
+  // Matches available for selected day
+  const matchesForDay = useMemo(() => {
+    if (!selectedDate) return []
+    const day = matchDays.find((d) => d.date === selectedDate)
+    return day?.matches || []
+  }, [selectedDate, matchDays])
+
+  // Filter label
+  const filterLabel = useMemo(() => {
+    if (selectedMatch) {
+      const match = matchesForDay.find((m) => String(m.id) === String(selectedMatch))
+      if (match) return `Partida ${match.match_number_in_day} — ${match.map_name}`
+    }
+    if (selectedDate) {
+      const [, mm, dd] = selectedDate.split('-')
+      return `${dd}/${mm}`
+    }
+    return 'Torneio completo'
+  }, [selectedMatch, selectedDate, matchesForDay])
 
   const thStyle = (col) => ({
     padding: '10px 12px',
@@ -122,41 +179,85 @@ export default function PlayerStatsPage({
 
       {/* ── Header ───────────────────────────────────────────────────────── */}
       <div className="px-6 py-5 border-b" style={{ background: 'var(--color-xama-surface)', borderColor: 'var(--color-xama-border)' }}>
-        <div style={{ maxWidth: '1400px', margin: '0 auto' }} className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-3 mb-1">
-              <span style={{ fontSize: '22px', lineHeight: 1 }}>📊</span>
-              <h1 className="text-[28px] font-bold tracking-tight" style={{ color: 'var(--color-xama-text)', letterSpacing: '-0.01em' }}>
-                PLAYER STATS
-              </h1>
-              {matchesTotal > 0 && (
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold tracking-[0.08em]"
-                  style={{ fontFamily: "'JetBrains Mono', monospace", background: 'rgba(249,115,22,0.12)', border: '1px solid rgba(249,115,22,0.25)', color: 'var(--color-xama-orange)' }}>
-                  {matchesTotal}M
-                </span>
-              )}
+        <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+
+          {/* Title row */}
+          <div className="flex flex-wrap items-end justify-between gap-4 mb-4">
+            <div>
+              <div className="flex items-center gap-3 mb-1">
+                <span style={{ fontSize: '22px', lineHeight: 1 }}>📊</span>
+                <h1 className="text-[28px] font-bold tracking-tight" style={{ color: 'var(--color-xama-text)', letterSpacing: '-0.01em' }}>
+                  PLAYER STATS
+                </h1>
+                {matchesTotal > 0 && (
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold tracking-[0.08em]"
+                    style={{ fontFamily: "'JetBrains Mono', monospace", background: 'rgba(249,115,22,0.12)', border: '1px solid rgba(249,115,22,0.25)', color: 'var(--color-xama-orange)' }}>
+                    {matchesTotal}M
+                  </span>
+                )}
+                {(selectedDate || selectedMatch) && (
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold"
+                    style={{ fontFamily: "'JetBrains Mono', monospace", background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.3)', color: '#60a5fa' }}>
+                    {filterLabel}
+                  </span>
+                )}
+              </div>
+              <p className="text-[12px] tracking-[0.1em] uppercase" style={{ color: 'var(--color-xama-muted)' }}>
+                {selectedTournament?.name ?? 'Selecione um torneio'}
+              </p>
             </div>
-            <p className="text-[12px] tracking-[0.1em] uppercase" style={{ color: 'var(--color-xama-muted)' }}>
-              {selectedTournament?.name ?? 'Selecione um torneio'}
-            </p>
           </div>
 
+          {/* Filters row */}
           <div className="flex flex-wrap items-center gap-3">
-            <select value={selectedTournamentId || ''} onChange={(e) => onTournamentChange(Number(e.target.value))}
-              className="dark-select" style={{ width: 'auto', minWidth: '220px', fontFamily: "'Rajdhani', sans-serif" }}>
+            {/* Tournament */}
+            <select value={selectedTournamentId || ''} onChange={(e) => { onTournamentChange(Number(e.target.value)); setSelectedDate(''); setSelectedMatch('') }}
+              style={{ ...selectStyle, minWidth: '220px' }}>
               <option value="">Selecione torneio</option>
               {(tournaments || []).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
             </select>
 
-            <select value={teamFilter} onChange={(e) => setTeamFilter(e.target.value)}
-              className="dark-select" style={{ width: 'auto', minWidth: '110px', fontFamily: "'Rajdhani', sans-serif" }}>
+            {/* Day filter */}
+            {matchDays.length > 0 && (
+              <select value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} style={{ ...selectStyle, minWidth: '140px' }}>
+                <option value="">Todos os dias</option>
+                {matchDays.map((d) => {
+                  const [, mm, dd] = d.date.split('-')
+                  return <option key={d.date} value={d.date}>{dd}/{mm} ({d.matches_count} partidas)</option>
+                })}
+              </select>
+            )}
+
+            {/* Match filter — only shown when a day is selected */}
+            {selectedDate && matchesForDay.length > 0 && (
+              <select value={selectedMatch} onChange={(e) => setSelectedMatch(e.target.value)} style={{ ...selectStyle, minWidth: '180px' }}>
+                <option value="">Todas as partidas</option>
+                {matchesForDay.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {MAP_ICONS[m.map_name] || '🗺️'} P{m.match_number_in_day} — {m.map_name}
+                  </option>
+                ))}
+              </select>
+            )}
+
+            {/* Team filter */}
+            <select value={teamFilter} onChange={(e) => setTeamFilter(e.target.value)} style={{ ...selectStyle, minWidth: '110px' }}>
               <option value="">Todos os times</option>
               {teamOptions.map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
 
+            {/* Search */}
             <input type="text" placeholder="Buscar jogador..." value={search}
-              onChange={(e) => setSearch(e.target.value)} className="dark-input"
-              style={{ width: '160px', fontFamily: "'Rajdhani', sans-serif" }} />
+              onChange={(e) => setSearch(e.target.value)}
+              style={{ ...selectStyle, width: '160px' }} />
+
+            {/* Reset filters */}
+            {(selectedDate || selectedMatch || teamFilter || search) && (
+              <button onClick={() => { setSelectedDate(''); setSelectedMatch(''); setTeamFilter(''); setSearch('') }}
+                style={{ ...selectStyle, color: '#f87171', borderColor: 'rgba(248,113,113,0.3)', cursor: 'pointer', background: 'rgba(248,113,113,0.05)' }}>
+                ✕ Limpar
+              </button>
+            )}
 
             {sorted.length > 0 && (
               <span className="px-2 py-1 rounded text-[12px]"
@@ -190,7 +291,6 @@ export default function PlayerStatsPage({
               <table className="w-full border-collapse" style={{ fontSize: '14px' }}>
                 <thead>
                   <tr style={{ background: '#0a0c11', borderBottom: '1px solid var(--color-xama-border)' }}>
-                    {/* Fixed columns */}
                     <th style={{ ...thStyle({ right: false }), width: '40px' }}>#</th>
                     <th onClick={() => handleSort('name')} style={thStyle({ key: 'name', right: false })}>
                       Jogador<SortIcon active={sortKey === 'name'} dir={sortDir} />
@@ -198,7 +298,6 @@ export default function PlayerStatsPage({
                     <th onClick={() => handleSort('team')} style={thStyle({ key: 'team', right: false })}>
                       Time<SortIcon active={sortKey === 'team'} dir={sortDir} />
                     </th>
-                    {/* Dynamic columns */}
                     {COLUMNS.map((col) => (
                       <th key={col.key} onClick={() => handleSort(col.key)}
                         title={col.title} style={thStyle(col)}>
@@ -216,28 +315,21 @@ export default function PlayerStatsPage({
                         onMouseEnter={(e) => e.currentTarget.style.background = '#161b27'}
                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                       >
-                        {/* Rank */}
                         <td style={{ padding: '10px 12px' }}>
                           <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '13px', fontWeight: 700, color: idx < 3 ? rankColors[idx] : '#2a3046' }}>
                             {String(idx + 1).padStart(2, '0')}
                           </span>
                         </td>
-
-                        {/* Name */}
                         <td style={{ padding: '10px 12px' }}>
                           <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-xama-text)' }}>
                             {formatPlayerName(p.name)}
                           </span>
                         </td>
-
-                        {/* Team */}
                         <td style={{ padding: '10px 12px' }}>
                           <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.06em', padding: '2px 7px', borderRadius: '4px', background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.18)', color: 'var(--color-xama-orange)' }}>
                             {formatTeamTag(p.name, p.team)}
                           </span>
                         </td>
-
-                        {/* Dynamic columns */}
                         {COLUMNS.map((col) => (
                           <td key={col.key} style={{ padding: '10px 12px', textAlign: col.right ? 'right' : 'left', fontFamily: "'JetBrains Mono', monospace", fontVariantNumeric: 'tabular-nums', color: col.color ? col.color(p) : 'var(--color-xama-text)' }}>
                             {col.render(p)}
@@ -250,13 +342,12 @@ export default function PlayerStatsPage({
               </table>
             </div>
 
-            {/* Footer */}
             <div className="px-5 py-3 flex items-center justify-between" style={{ borderTop: '1px solid var(--color-xama-border)', background: '#0a0c11' }}>
               <span className="text-[11px] font-bold tracking-[0.1em] uppercase" style={{ color: 'var(--color-xama-orange)', fontFamily: "'Rajdhani', sans-serif" }}>
                 🔥 XAMA Fantasy
               </span>
               <span className="text-[11px] tabular-nums" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-muted)' }}>
-                {sorted.length} / {stats.length} jogadores
+                {sorted.length} / {stats.length} jogadores · {filterLabel}
               </span>
             </div>
           </div>
