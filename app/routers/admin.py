@@ -626,31 +626,41 @@ async def recalculate_fantasy_points(
     db: Session = Depends(get_db),
     admin: User = Depends(require_admin),
 ):
-    from sqlalchemy import text
     from app.models.match import Match, MatchPlayerStat
-    from app.services.historical import _compute_fantasy_points, PlayerStatInput
+    from app.services.historical import _compute_fantasy_points, _compute_late_game_bonus, PlayerStatInput
 
-    stats = (
-        db.query(MatchPlayerStat)
-        .join(Match, MatchPlayerStat.match_id == Match.id)
-        .filter(Match.tournament_id == tournament_id)
-        .all()
-    )
+    matches = db.query(Match).filter(Match.tournament_id == tournament_id).all()
+    if not matches:
+        raise HTTPException(status_code=404, detail="Nenhum match encontrado")
 
     updated = 0
-    for stat in stats:
-        new_pts = _compute_fantasy_points(PlayerStatInput(
-            player_id=stat.player_id,
-            kills=stat.kills or 0,
-            assists=stat.assists or 0,
-            damage_dealt=stat.damage_dealt or 0.0,
-            placement=stat.placement or 28,
-            survival_secs=stat.survival_secs or 0,
-            headshots=stat.headshots or 0,
-            knocks=stat.knocks or 0,
-        ))
-        stat.fantasy_points = new_pts
-        updated += 1
+    for match in matches:
+        stats = db.query(MatchPlayerStat).filter(MatchPlayerStat.match_id == match.id).all()
+        if not stats:
+            continue
+
+        # Constrói lista de PlayerStatInput para calcular bônus
+        stat_inputs = [
+            PlayerStatInput(
+                player_id=s.player_id,
+                kills=s.kills or 0,
+                assists=s.assists or 0,
+                damage_dealt=s.damage_dealt or 0.0,
+                placement=s.placement or 28,
+                survival_secs=s.survival_secs or 0,
+                headshots=s.headshots or 0,
+                knocks=s.knocks or 0,
+            )
+            for s in stats
+        ]
+
+        late_game_bonus = _compute_late_game_bonus(stat_inputs)
+
+        for s, si in zip(stats, stat_inputs):
+            base_pts  = _compute_fantasy_points(si)
+            bonus_pts = late_game_bonus.get(s.player_id, 0)
+            s.fantasy_points = base_pts + bonus_pts
+            updated += 1
 
     db.commit()
     return {"tournament_id": tournament_id, "updated": updated}
