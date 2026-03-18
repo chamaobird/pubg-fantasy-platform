@@ -1,20 +1,20 @@
-# app/services/historical.py
+﻿# app/services/historical.py
 """
 Service layer for historical match import and player pricing.
 
 Two import modes
-────────────────
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 body-driven (fetch_from_pubg=False, default):
     Caller passes a list[MatchInput] built from the request body.
     No external HTTP calls. Used by the existing import-matches endpoint.
 
 API-driven  (fetch_from_pubg=True):
     Caller passes a pubg_tournament_id string.
-    This service calls PubgClient, resolves participants → Player rows,
+    This service calls PubgClient, resolves participants ΓåÆ Player rows,
     and then runs the same core persistence logic.
 
 Player resolution strategy
-──────────────────────────
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 Priority 1: Player.pubg_id == participant.pubg_account_id  (exact, reliable)
 Priority 2: Player.name    == participant.pubg_name        (fuzzy fallback)
 
@@ -36,17 +36,17 @@ from app.models import Match, MatchPlayerStat, Player, Tournament, Team, PlayerP
 
 logger = logging.getLogger(__name__)
 
-# ─────────────────────────────────────────────────────────────────────────────
+# ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 # Pricing constants
-# ─────────────────────────────────────────────────────────────────────────────
+# ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 BASE_PRICE   = 10.0
 PRICE_FACTOR = 0.5
 MIN_PRICE    = 5.0
 MAX_PRICE    = 30.0
 
-# ─────────────────────────────────────────────────────────────────────────────
+# ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 # Input DTOs (used by both modes)
-# ─────────────────────────────────────────────────────────────────────────────
+# ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 @dataclass
 class PlayerStatInput:
@@ -71,13 +71,13 @@ class MatchInput:
     phase:         Optional[str]         = None
     day:           Optional[int]         = None
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Section 1 — Player resolution (API mode only)
-# ─────────────────────────────────────────────────────────────────────────────
+# ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+# Section 1 ΓÇö Player resolution (API mode only)
+# ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 def _build_player_lookup(db: Session, tournament_id: int) -> dict[str, int]:
     """
-    Build a lookup dict for resolving PUBG API participants → Player.id.
+    Build a lookup dict for resolving PUBG API participants ΓåÆ Player.id.
 
     Returns a dict keyed by both pubg_id and lowercase name:
         {"account.abc123": 7, "someplayername": 7, ...}
@@ -88,10 +88,10 @@ def _build_player_lookup(db: Session, tournament_id: int) -> dict[str, int]:
                 (logs a warning so you know name-matching is in effect)
 
     Resolution order in _resolve_player_id():
-        1. pubg_account_id  → Player.pubg_id  (exact)
-        2. pubg_name        → Player.name     (case-insensitive fallback)
+        1. pubg_account_id  ΓåÆ Player.pubg_id  (exact)
+        2. pubg_name        ΓåÆ Player.name     (case-insensitive fallback)
     """
-    # Player.tournament_id is the direct FK — no Team join required
+    # Player.tournament_id is the direct FK ΓÇö no Team join required
     players = (
         db.query(Player)
         .filter(Player.tournament_id == tournament_id)
@@ -137,24 +137,24 @@ def _resolve_player_id(
         return lookup[pubg_name.lower()]
     return None
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Section 2 — Core persistence (shared by both modes)
-# ─────────────────────────────────────────────────────────────────────────────
+# ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+# Section 2 ΓÇö Core persistence (shared by both modes)
+# ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 def _compute_fantasy_points(stat: PlayerStatInput) -> float:
     """
-    Fórmula XAMA de pontuação.
+    F├│rmula XAMA de pontua├º├úo.
 
-    kill        × 10
-    assist      × 1
-    knock       × 1
-    damage      × 0.03
-    headshot    → 0 (não pontua)
-    survival    → 0 (não pontua)
-    morte precoce → -15 (se survival < 360s E kills == 0)
+    kill        ├ù 10
+    assist      ├ù 1
+    knock       ├ù 1
+    damage      ├ù 0.03
+    headshot    ΓåÆ 0 (n├úo pontua)
+    survival    ΓåÆ 0 (n├úo pontua)
+    morte precoce ΓåÆ -15 (se survival < 360s E kills == 0)
 
-    Bônus late game calculado separadamente por _compute_late_game_bonus().
-    Capitão aplica multiplicador 1.25x na camada de lineup scoring.
+    B├┤nus late game calculado separadamente por _compute_late_game_bonus().
+    Capit├úo aplica multiplicador 1.25x na camada de lineup scoring.
     """
     kill_pts   = (stat.kills  or 0) * 10
     assist_pts = (stat.assists or 0) * 1
@@ -173,25 +173,25 @@ def _compute_fantasy_points(stat: PlayerStatInput) -> float:
 
 def _compute_late_game_bonus(all_stats: list) -> dict:
     """
-    Calcula o bônus late game por jogador para uma partida.
+    Calcula o b├┤nus late game por jogador para uma partida.
 
     Regra:
       - Time vencedor (placement=1): sobreviventes = jogadores com
-        survival_secs >= duration_secs - 60s (aproximação de "estava vivo")
-      - N = número de sobreviventes do time vencedor
+        survival_secs >= duration_secs - 60s (aproxima├º├úo de "estava vivo")
+      - N = n├║mero de sobreviventes do time vencedor
       - Os sobreviventes ganham +10 cada
-      - Os próximos a morrer (ordenados por survival_secs desc) ganham:
-          N=4: 4 jogadores → [2, 2, 1, 1]
-          N=3: 5 jogadores → [4, 2, 2, 1, 1]
-          N=2: 6 jogadores → [5, 4, 2, 2, 1, 1]
-          N=1: 7 jogadores → [6, 5, 4, 2, 2, 1, 1]
+      - Os pr├│ximos a morrer (ordenados por survival_secs desc) ganham:
+          N=4: 4 jogadores ΓåÆ [2, 2, 1, 1]
+          N=3: 5 jogadores ΓåÆ [4, 2, 2, 1, 1]
+          N=2: 6 jogadores ΓåÆ [5, 4, 2, 2, 1, 1]
+          N=1: 7 jogadores ΓåÆ [6, 5, 4, 2, 2, 1, 1]
 
     Retorna dict {player_id: bonus_pts}
     """
     if not all_stats:
         return {}
 
-    # Duração estimada da partida = maior survival_secs entre os vencedores
+    # Dura├º├úo estimada da partida = maior survival_secs entre os vencedores
     winners = [s for s in all_stats if (s.placement or 99) == 1]
     if not winners:
         return {}
@@ -206,7 +206,7 @@ def _compute_late_game_bonus(all_stats: list) -> dict:
         N = 1
         survivors = sorted(winners, key=lambda s: s.survival_secs or 0, reverse=True)[:1]
 
-    # Tabela de bônus por N
+    # Tabela de b├┤nus por N
     bonus_table = {
         4: [2, 2, 1, 1],
         3: [4, 2, 2, 1, 1],
@@ -221,7 +221,7 @@ def _compute_late_game_bonus(all_stats: list) -> dict:
     for s in survivors:
         bonus[s.player_id] = bonus.get(s.player_id, 0) + 10
 
-    # Jogadores que não são sobreviventes, ordenados por survival_secs desc
+    # Jogadores que n├úo s├úo sobreviventes, ordenados por survival_secs desc
     non_survivors = sorted(
         [s for s in all_stats if s.player_id not in {s2.player_id for s2 in survivors}],
         key=lambda s: s.survival_secs or 0,
@@ -253,7 +253,7 @@ def import_matches(
     errors: list[str] = []
 
     for match_input in matches:
-        # ── Idempotency check ─────────────────────────────────────────────
+        # ΓöÇΓöÇ Idempotency check ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
         if db.query(Match).filter(Match.pubg_match_id == match_input.pubg_match_id).first():
             logger.info("Skipping already-imported match %s", match_input.pubg_match_id)
             skipped += 1
@@ -273,23 +273,17 @@ def import_matches(
             db.add(match)
             db.flush()  # get match.id before committing
 
-            # ── Calcula bônus late game para toda a partida ──────────────
-            late_game_bonus = _compute_late_game_bonus(match_input.player_stats)
-
             for stat_input in match_input.player_stats:
                 player_exists = (
                     db.query(Player.id).filter(Player.id == stat_input.player_id).scalar()
                 )
                 if not player_exists:
                     logger.warning(
-                        "Player %s not found — skipping stat row for match %s",
+                        "Player %s not found ΓÇö skipping stat row for match %s",
                         stat_input.player_id,
                         match_input.pubg_match_id,
                     )
                     continue
-
-                base_pts  = _compute_fantasy_points(stat_input)
-                bonus_pts = late_game_bonus.get(stat_input.player_id, 0)
 
                 db.add(
                     MatchPlayerStat(
@@ -302,7 +296,7 @@ def import_matches(
                         survival_secs=stat_input.survival_secs,
                         headshots=stat_input.headshots,
                         knocks=stat_input.knocks,
-                        fantasy_points=base_pts + bonus_pts,
+                        fantasy_points=_compute_fantasy_points(stat_input),
                     )
                 )
 
@@ -310,7 +304,7 @@ def import_matches(
             created += 1
             logger.info("Imported match %s (id=%s)", match_input.pubg_match_id, match.id)
 
-            # ── Score all lineups for this match ──────────────────────────
+            # ΓöÇΓöÇ Score all lineups for this match ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
             try:
                 from app.services.lineup_scoring import score_all_lineups_for_match
                 scoring_result = score_all_lineups_for_match(match.id, db)
@@ -334,9 +328,9 @@ def import_matches(
 
     return {"created": created, "skipped": skipped, "errors": errors}
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Section 3 — API-driven import (fetch_from_pubg=True path)
-# ─────────────────────────────────────────────────────────────────────────────
+# ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+# Section 3 ΓÇö API-driven import (fetch_from_pubg=True path)
+# ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 def import_matches_from_pubg(
     db: Session,
@@ -347,9 +341,9 @@ def import_matches_from_pubg(
     Fetch all matches for pubg_tournament_id from the PUBG API and import them.
 
     Steps:
-        1. Call PubgClient.list_tournament_matches() → list of match IDs
-        2. For each ID call PubgClient.get_match()   → RawMatch DTO
-        3. Resolve RawPlayerStat.pubg_account_id / pubg_name → Player.id
+        1. Call PubgClient.list_tournament_matches() ΓåÆ list of match IDs
+        2. For each ID call PubgClient.get_match()   ΓåÆ RawMatch DTO
+        3. Resolve RawPlayerStat.pubg_account_id / pubg_name ΓåÆ Player.id
         4. Build MatchInput objects and call import_matches() (same as body mode)
 
     Returns the same {"created", "skipped", "errors"} dict as import_matches().
@@ -359,7 +353,7 @@ def import_matches_from_pubg(
 
     client = PubgClient(api_key=settings.PUBG_API_KEY, shard=settings.PUBG_SHARD)
 
-    # ── 1. Get match ID list ──────────────────────────────────────────────
+    # ΓöÇΓöÇ 1. Get match ID list ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
     try:
         match_ids = client.list_tournament_matches(pubg_tournament_id)
     except PubgApiError as exc:
@@ -370,16 +364,16 @@ def import_matches_from_pubg(
     if not match_ids:
         return {"created": 0, "skipped": 0, "errors": [], "match_ids_found": 0}
 
-    # ── 2. Build player lookup for this tournament ────────────────────────
+    # ΓöÇΓöÇ 2. Build player lookup for this tournament ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
     player_lookup = _build_player_lookup(db, tournament_id)
     if not player_lookup:
         logger.warning(
-            "No players found for tournament %s — stats will all be skipped. "
+            "No players found for tournament %s ΓÇö stats will all be skipped. "
             "Make sure players are seeded before importing matches.",
             tournament_id,
         )
 
-    # ── 3. Fetch each match and convert to MatchInput ─────────────────────
+    # ΓöÇΓöÇ 3. Fetch each match and convert to MatchInput ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
     match_inputs: list[MatchInput] = []
     fetch_errors: list[str] = []
 
@@ -392,7 +386,7 @@ def import_matches_from_pubg(
             fetch_errors.append(msg)
             continue
 
-        # ── Resolve participants → Player.id ──────────────────────────────
+        # ΓöÇΓöÇ Resolve participants ΓåÆ Player.id ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
         resolved_stats: list[PlayerStatInput] = []
         unresolved_names: list[str] = []
 
@@ -437,7 +431,7 @@ def import_matches_from_pubg(
             )
         )
 
-    # ── 4. All fetches failed → surface as error, not silent empty result ─
+    # ΓöÇΓöÇ 4. All fetches failed ΓåÆ surface as error, not silent empty result ΓöÇ
     if not match_inputs and fetch_errors:
         raise ValueError(
             {
@@ -446,7 +440,7 @@ def import_matches_from_pubg(
             }
         )
 
-    # ── 5. Reuse the same persistence core ───────────────────────────────
+    # ΓöÇΓöÇ 5. Reuse the same persistence core ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
     result = import_matches(db, tournament_id, match_inputs)
 
     # Merge any fetch-level errors into the result so the caller sees them
@@ -454,9 +448,9 @@ def import_matches_from_pubg(
     result["match_ids_found"] = len(match_ids)
     return result
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Section 4 — Pricing (unchanged from previous session)
-# ─────────────────────────────────────────────────────────────────────────────
+# ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+# Section 4 ΓÇö Pricing (unchanged from previous session)
+# ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 def _last_n_stats_for_player(
     db: Session,
@@ -548,7 +542,7 @@ def recalculate_prices(
         stats_10 = stats_50[:10]
 
         if not stats_50:
-            logger.warning("Player %s has no stats — skipping", player_id)
+            logger.warning("Player %s has no stats ΓÇö skipping", player_id)
             continue
 
         price_data = _compute_player_price(stats_50, stats_10)
@@ -557,7 +551,7 @@ def recalculate_prices(
         if not dry_run:
             player = db.query(Player).filter(Player.id == player_id).first()
             if player is None:
-                logger.warning("Player %s not found in players table — skipping", player_id)
+                logger.warning("Player %s not found in players table ΓÇö skipping", player_id)
                 continue
 
             player.avg_kills_50     = price_data["avg_kills_50"]
