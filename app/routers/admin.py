@@ -664,3 +664,13 @@ async def recalculate_fantasy_points(
 
     db.commit()
     return {"tournament_id": tournament_id, "updated": updated}
+
+@router.get("/check-matches/{tournament_id}", summary="[TEMP] Verifica campos dos matches")
+async def check_matches(
+    tournament_id: int,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    from app.models.match import Match
+    matches = db.query(Match).filter(Match.tournament_id == tournament_id).all()
+    return [{"id": m.id, "day": m.day, "match_number": m.match_number, "map": m.map_name, "played_at": str(m.played_at)} for m in matches]
