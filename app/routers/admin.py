@@ -619,3 +619,38 @@ async def update_tournament(
     if body.status: t.status = body.status
     db.commit()
     return {"id": t.id, "name": t.name, "region": t.region, "status": t.status}
+
+@router.post("/recalculate-fantasy-points/{tournament_id}", summary="Recalcula fantasy_points com fórmula XAMA")
+async def recalculate_fantasy_points(
+    tournament_id: int,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    from sqlalchemy import text
+    from app.models.match import Match, MatchPlayerStat
+    from app.services.historical import _compute_fantasy_points, PlayerStatInput
+
+    stats = (
+        db.query(MatchPlayerStat)
+        .join(Match, MatchPlayerStat.match_id == Match.id)
+        .filter(Match.tournament_id == tournament_id)
+        .all()
+    )
+
+    updated = 0
+    for stat in stats:
+        new_pts = _compute_fantasy_points(PlayerStatInput(
+            player_id=stat.player_id,
+            kills=stat.kills or 0,
+            assists=stat.assists or 0,
+            damage_dealt=stat.damage_dealt or 0.0,
+            placement=stat.placement or 28,
+            survival_secs=stat.survival_secs or 0,
+            headshots=stat.headshots or 0,
+            knocks=stat.knocks or 0,
+        ))
+        stat.fantasy_points = new_pts
+        updated += 1
+
+    db.commit()
+    return {"tournament_id": tournament_id, "updated": updated}
