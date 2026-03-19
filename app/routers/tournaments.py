@@ -18,6 +18,7 @@ router = APIRouter(prefix="/tournaments", tags=["Tournaments"])
 # SCHEMAS
 # ------------------------------------------------------------------
 
+
 class TournamentResponse(BaseModel):
     id: int
     name: str
@@ -37,6 +38,7 @@ class TournamentResponse(BaseModel):
 # ------------------------------------------------------------------
 # GET /tournaments
 # ------------------------------------------------------------------
+
 
 @router.get(
     "/",
@@ -89,6 +91,7 @@ def list_tournaments(
 # ------------------------------------------------------------------
 # GET /tournaments/{tournament_id}
 # ------------------------------------------------------------------
+
 
 @router.get(
     "/{tournament_id}",
@@ -358,6 +361,7 @@ def my_lineups(
 # GET /tournaments/{tournament_id}/rankings
 # ------------------------------------------------------------------
 
+
 class RankingEntry(BaseModel):
     position: int
     lineup_id: int
@@ -430,6 +434,7 @@ def tournament_rankings(
 # GET /tournaments/{tournament_id}/player-stats
 # ------------------------------------------------------------------
 
+
 class PlayerStatsSummary(BaseModel):
     player_id:          int
     name:               str
@@ -473,46 +478,57 @@ class PlayerStatsSummary(BaseModel):
     ),
 )
 def tournament_player_stats(
-     tournament_id: int,
-     team: Optional[str] = Query(None, description="Filtrar por nome do time"),
-     match_id: Optional[int] = Query(None, description="Filtrar por partida específica"),
-     date: Optional[str] = Query(None, description="Filtrar por data (YYYY-MM-DD)"),
-     skip: int = Query(0, ge=0),
-     limit: int = Query(100, ge=1, le=500),
-     db: Session = Depends(get_db),
- ):
+    tournament_id: int,
+    team: Optional[str] = Query(None, description="Filtrar por nome do time"),
+    match_id: Optional[int] = Query(None, description="Filtrar por partida específica"),
+    date: Optional[str] = Query(None, description="Filtrar por data (YYYY-MM-DD)"),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
+    db: Session = Depends(get_db),
+):
     from app.models.match import Match, MatchPlayerStat
- 
+    from datetime import date as date_type, timedelta
+
     tournament = db.query(Tournament).filter(Tournament.id == tournament_id).first()
     if not tournament:
         raise HTTPException(status_code=404, detail="Tournament not found")
- 
-    from datetime import date as date_type
- 
-    tournament = db.query(Tournament).filter(Tournament.id == tournament_id).first()
-    if not tournament:
-        raise HTTPException(status_code=404, detail="Tournament not found")
- 
-    # ── Build match filter ────────────────────────────────────────────────
-    match_filter = [Match.tournament_id == tournament_id]
+
+    # ── Calcula edição mais recente e matches_total ───────────────────────
+    # Pega todas as partidas do torneio em ordem cronológica
+    all_matches = (
+        db.query(Match)
+        .filter(Match.tournament_id == tournament_id)
+        .order_by(Match.played_at)
+        .all()
+    )
+
+    # Filtra edição mais recente (janela de 180 dias para simplificar)
+    if all_matches:
+        latest = all_matches[-1].played_at
+        cutoff = latest - timedelta(days=180)
+        recent_matches = [m for m in all_matches if m.played_at and m.played_at >= cutoff]
+        recent_match_ids = [m.id for m in recent_matches]
+    else:
+        recent_match_ids = []
+        recent_matches = []
+
+    # Aplica filtro de match_id/date também
     if match_id:
-        match_filter.append(Match.id == match_id)
-    if date:
+        recent_match_ids = [mid for mid in recent_match_ids if mid == match_id]
+    elif date:
         try:
-            from datetime import datetime
-            filter_date = datetime.strptime(date, "%Y-%m-%d").date()
-            match_filter.append(
-                sql_func.date(Match.played_at) == filter_date
-            )
+            from datetime import datetime as dt
+            filter_date = dt.strptime(date, "%Y-%m-%d").date()
+            recent_matches = [
+                m for m in recent_matches
+                if m.played_at and m.played_at.date() == filter_date
+            ]
+            recent_match_ids = [m.id for m in recent_matches]
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
- 
-    matches_total: int = (
-        db.query(sql_func.count(Match.id))
-        .filter(*match_filter)
-        .scalar() or 0
-    )
- 
+
+    matches_total = len(recent_match_ids)
+
     rows = (
         db.query(
             Player,
@@ -535,17 +551,17 @@ def tournament_player_stats(
         .join(MatchPlayerStat, MatchPlayerStat.player_id == Player.id)
         .join(Match, MatchPlayerStat.match_id == Match.id)
         .outerjoin(Team, Player.team_id == Team.id)
-        .filter(*match_filter)
+        .filter(MatchPlayerStat.match_id.in_(recent_match_ids))
         .group_by(Player.id, Team.name)
         .order_by(sql_func.sum(MatchPlayerStat.fantasy_points).desc())
         .offset(skip)
         .limit(limit)
         .all()
     )
- 
+
     if team:
         rows = [r for r in rows if r.team_name and team.lower() in r.team_name.lower()]
- 
+
     result = []
     for r in rows:
         mp = r.matches_played or 1
@@ -574,6 +590,7 @@ def tournament_player_stats(
             pts_per_match=round(tfp / mp, 2),
         ))
     return result
+
 
 @router.get(
     "/{tournament_id}/matches",
