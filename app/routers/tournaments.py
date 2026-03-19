@@ -596,6 +596,9 @@ def tournament_matches(
         .all()
     )
 
+    if not matches:
+        return {"tournament_id": tournament_id, "total_matches": 0, "days": []}
+
     # Agrupa por sessão de jogo (partidas com < 4h de diferença = mesmo dia)
     sessions = []
     current_session = []
@@ -614,8 +617,20 @@ def tournament_matches(
     if current_session:
         sessions.append(current_session)
 
+    # Agrupa sessões em edições (gap > 30 dias = edição diferente)
+    # Mantém apenas a edição mais recente
+    editions = [[sessions[0]]]
+    for i in range(1, len(sessions)):
+        gap = abs((sessions[i][0].played_at - sessions[i-1][-1].played_at).total_seconds())
+        if gap > 30 * 24 * 3600:
+            editions.append([sessions[i]])
+        else:
+            editions[-1].append(sessions[i])
+
+    latest_edition = editions[-1]
+
     result = []
-    for i, session in enumerate(sessions):
+    for i, session in enumerate(latest_edition):
         date_key = session[0].played_at.date().isoformat()
         session_matches = []
         for j, m in enumerate(session):
@@ -633,8 +648,10 @@ def tournament_matches(
             "matches": session_matches,
         })
 
+    latest_matches = [m for session in latest_edition for m in session]
+
     return {
         "tournament_id": tournament_id,
-        "total_matches": len(matches),
+        "total_matches": len(latest_matches),
         "days": result,
     }
