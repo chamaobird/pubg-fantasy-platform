@@ -1,4 +1,4 @@
-from typing import Optional
+﻿from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
@@ -44,7 +44,7 @@ class TournamentResponse(BaseModel):
     "/",
     response_model=list[TournamentResponse],
     summary="Lista torneios com status e detalhes",
-    description="Retorna todos os torneios cadastrados. Suporta filtro por status e região.",
+    description="Retorna todos os torneios cadastrados. Suporta filtro por status e regi├úo.",
 )
 def list_tournaments(
     status_filter: Optional[str] = Query(
@@ -52,7 +52,7 @@ def list_tournaments(
         alias="status",
         description="Filtrar por status: upcoming | active | finished",
     ),
-    region: Optional[str] = Query(None, description="Filtrar por região (ex: NA, EU)"),
+    region: Optional[str] = Query(None, description="Filtrar por regi├úo (ex: NA, EU)"),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     db: Session = Depends(get_db),
@@ -96,7 +96,7 @@ def list_tournaments(
 @router.get(
     "/{tournament_id}",
     response_model=TournamentResponse,
-    summary="Detalhes de um torneio específico",
+    summary="Detalhes de um torneio espec├¡fico",
 )
 def get_tournament(tournament_id: int, db: Session = Depends(get_db)):
     tournament = db.query(Tournament).filter(Tournament.id == tournament_id).first()
@@ -205,7 +205,7 @@ class LineupOut(BaseModel):
     "/{tournament_id}/lineups",
     response_model=LineupOut,
     status_code=status.HTTP_201_CREATED,
-    summary="Cria lineup do usuário no torneio",
+    summary="Cria lineup do usu├írio no torneio",
 )
 def create_lineup(
     tournament_id: int,
@@ -313,7 +313,7 @@ def create_lineup(
 @router.get(
     "/{tournament_id}/lineups/me",
     response_model=list[LineupOut],
-    summary="Lista lineups do usuário no torneio",
+    summary="Lista lineups do usu├írio no torneio",
 )
 def my_lineups(
     tournament_id: int,
@@ -477,13 +477,13 @@ class PlayerStatsSummary(BaseModel):
     description=(
         "Retorna stats completas de todos os jogadores com ao menos 1 partida. "
         "Inclui kills, assists, damage, headshots, knocks, survival, fantasy points. "
-        "Endpoint público — sem autenticação."
+        "Endpoint p├║blico ΓÇö sem autentica├º├úo."
     ),
 )
 def tournament_player_stats(
     tournament_id: int,
     team: Optional[str] = Query(None, description="Filtrar por nome do time"),
-    match_id: Optional[int] = Query(None, description="Filtrar por partida específica"),
+    match_id: Optional[int] = Query(None, description="Filtrar por partida espec├¡fica"),
     date: Optional[str] = Query(None, description="Filtrar por data (YYYY-MM-DD)"),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
@@ -496,8 +496,8 @@ def tournament_player_stats(
     if not tournament:
         raise HTTPException(status_code=404, detail="Tournament not found")
 
-    # ── Calcula edição mais recente e matches_total ───────────────────────
-    # Pega todas as partidas do torneio em ordem cronológica
+    # ΓöÇΓöÇ Calcula edi├º├úo mais recente e matches_total ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    # Pega todas as partidas do torneio em ordem cronol├│gica
     all_matches = (
         db.query(Match)
         .filter(Match.tournament_id == tournament_id)
@@ -505,7 +505,7 @@ def tournament_player_stats(
         .all()
     )
 
-    # Filtra edição mais recente (janela de 180 dias para simplificar)
+    # Filtra edi├º├úo mais recente (janela de 180 dias para simplificar)
     if all_matches:
         latest = all_matches[-1].played_at
         cutoff = latest - timedelta(days=180)
@@ -515,7 +515,7 @@ def tournament_player_stats(
         recent_match_ids = []
         recent_matches = []
 
-    # Aplica filtro de match_id/date também
+    # Aplica filtro de match_id/date tamb├⌐m
     if match_id:
         recent_match_ids = [mid for mid in recent_match_ids if mid == match_id]
     elif date:
@@ -593,8 +593,6 @@ def tournament_player_stats(
             avg_survival_secs=round(float(r.avg_survival_secs or 0.0), 0),
             total_fantasy_points=round(tfp, 2),
             pts_per_match=round(tfp / mp, 2),
-            total_base_points=round(float(r.total_base_points or 0.0), 2),
-            total_late_game_bonus=round(float(r.total_late_game_bonus or 0.0), 2),
         ))
     return result
 
@@ -623,7 +621,7 @@ def tournament_matches(
     if not matches:
         return {"tournament_id": tournament_id, "total_matches": 0, "days": []}
 
-    # Agrupa por sessão de jogo (partidas com < 4h de diferença = mesmo dia)
+    # Agrupa por sess├úo de jogo (partidas com < 4h de diferen├ºa = mesmo dia)
     sessions = []
     current_session = []
 
@@ -641,8 +639,8 @@ def tournament_matches(
     if current_session:
         sessions.append(current_session)
 
-    # Agrupa sessões em edições (gap > 30 dias = edição diferente)
-    # Mantém apenas a edição mais recente
+    # Agrupa sess├╡es em edi├º├╡es (gap > 30 dias = edi├º├úo diferente)
+    # Mant├⌐m apenas a edi├º├úo mais recente
     editions = [[sessions[0]]]
     for i in range(1, len(sessions)):
         gap = abs((sessions[i][0].played_at - sessions[i-1][-1].played_at).total_seconds())
