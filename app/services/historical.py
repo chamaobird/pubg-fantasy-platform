@@ -141,7 +141,7 @@ def _resolve_player_id(
 # Section 2 — Core persistence (shared by both modes)
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _compute_fantasy_points(stat: PlayerStatInput) -> tuple[float, float]:
+def _compute_fantasy_points(stat: PlayerStatInput) -> tuple[float, int]:
     """
     Retorna (base_points, fantasy_points_total).
     base_points = pontos sem bônus late game
@@ -167,14 +167,12 @@ def _compute_fantasy_points(stat: PlayerStatInput) -> tuple[float, float]:
     dmg_pts    = (stat.damage_dealt or 0.0) * 0.03
 
     # Morte precoce: survival < 6 minutos E zero kills
-    early_death = (
-        -15.0
-        if (stat.survival_secs or 0) < 360 and (stat.kills or 0) == 0
-        else 0.0
-    )
-
+    is_early_death = (stat.survival_secs or 0) < 600 and (stat.kills or 0) == 0
+    early_death = -15.0 if is_early_death else 0.0
+    penalty_count = 1 if is_early_death else 0
+    
     base = kill_pts + assist_pts + knock_pts + dmg_pts + early_death
-    return base, base  # late_game_bonus é adicionado pelo _compute_late_game_bonus
+    return base, penalty_count  # late_game_bonus é adicionado pelo _compute_late_game_bonus
 
 
 def _compute_late_game_bonus(all_stats: list) -> dict:
@@ -294,7 +292,7 @@ def import_matches(
                     )
                     continue
 
-                base_pts, _ = _compute_fantasy_points(stat_input)
+                base_pts, pen_count = _compute_fantasy_points(stat_input)
                 bonus_pts = late_game_bonus.get(stat_input.player_id, 0)
 
                 db.add(
@@ -311,6 +309,7 @@ def import_matches(
                         base_points=base_pts,
                         late_game_bonus=bonus_pts,
                         fantasy_points=base_pts + bonus_pts,
+                        penalty_count=pen_count,
                     )
                 )
 
