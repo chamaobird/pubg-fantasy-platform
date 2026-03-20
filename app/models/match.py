@@ -39,6 +39,8 @@ class MatchPlayerStat(Base):
     headshots      = Column(Integer, server_default="0",   nullable=True)
     knocks         = Column(Integer, server_default="0",   nullable=True)
     fantasy_points = Column(Float,   server_default="0.0", nullable=True, index=True)
+    base_points       = Column(Float, server_default="0.0", nullable=False)
+    late_game_bonus   = Column(Float, server_default="0.0", nullable=False)
     created_at     = Column(DateTime(timezone=True), server_default=func.now(), nullable=True)
 
     match  = relationship("Match", back_populates="player_stats")
