@@ -294,7 +294,7 @@ def import_matches(
                     )
                     continue
 
-                base_pts  = _compute_fantasy_points(stat_input)
+                base_pts, _ = _compute_fantasy_points(stat_input)
                 bonus_pts = late_game_bonus.get(stat_input.player_id, 0)
 
                 db.add(
