@@ -2,6 +2,7 @@ from datetime import datetime
 
 from sqlalchemy import DateTime, Float, ForeignKey, Integer, JSON, Numeric, String, Text, func, true
 from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship, synonym
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, JSON, Numeric, String, Text, func, text
 
 from app.database import Base
 
@@ -35,7 +36,7 @@ class Player(Base):
 
     price: Mapped[float] = synonym("fantasy_cost")
     role: Mapped[str | None] = synonym("position")
-    is_active: Mapped[bool] = mapped_column(sa.Boolean, default=True, server_default=sa.text('true'))
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default=text('true'))
 
     team: Mapped["Team | None"] = relationship("Team", back_populates="players")
     tournament: Mapped["Tournament | None"] = relationship("Tournament", back_populates="players")
