@@ -448,6 +448,12 @@ async def seed_players_from_matches(
                    "Execute import-matches-from-pubg primeiro.",
         )
 
+    # Busca o torneio para herdar região
+    from app.models import Tournament
+    tournament = db.query(Tournament).filter(Tournament.id == tournament_id).first()
+    if not tournament:
+        raise HTTPException(status_code=404, detail="Tournament not found")
+
     client = PubgClient(api_key=settings.PUBG_API_KEY, shard=settings.PUBG_SHARD)
 
     created = 0
@@ -482,15 +488,15 @@ async def seed_players_from_matches(
                     db.flush()
                 team_id = team.id
 
-            # ── Upsert do player por pubg_id ──────────────────────────────
+                        # ── Upsert do player por pubg_id ──────────────────────────────
             player = db.query(Player).filter(Player.pubg_id == rps.pubg_account_id).first()
-
             if player:
-                # Atualiza tournament_id se não estava setado
                 if player.tournament_id is None:
                     player.tournament_id = tournament_id
                 if team_id and player.team_id is None:
                     player.team_id = team_id
+                if player.region is None and tournament.region:
+                    player.region = tournament.region
                 updated += 1
             else:
                 player = Player(
@@ -498,7 +504,8 @@ async def seed_players_from_matches(
                     pubg_id=rps.pubg_account_id,
                     tournament_id=tournament_id,
                     team_id=team_id,
-                    fantasy_cost=10.0,  # preço base — será recalculado
+                    fantasy_cost=10.0,
+                    region=tournament.region,
                 )
                 db.add(player)
                 created += 1
