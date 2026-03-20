@@ -151,6 +151,7 @@ def list_tournament_players(
 
     query = db.query(Player, Team.name).outerjoin(Team, Player.team_id == Team.id)
     query = query.filter(Player.tournament_id == tournament_id)
+    query = query.filter(Player.is_active == True)
 
     if name:
         query = query.filter(Player.name.ilike(f"%{name}%"))

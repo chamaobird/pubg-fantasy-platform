@@ -674,3 +674,27 @@ async def check_matches(
     from app.models.match import Match
     matches = db.query(Match).filter(Match.tournament_id == tournament_id).all()
     return [{"id": m.id, "day": m.day, "match_number": m.match_number, "map": m.map_name, "played_at": str(m.played_at)} for m in matches]
+
+@router.patch("/tournaments/{tournament_id}/teams/{team_name}/deactivate", summary="Desativa jogadores de um time eliminado")
+async def deactivate_team(
+    tournament_id: int,
+    team_name: str,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    from app.models import Player, Team
+    players = (
+        db.query(Player)
+        .join(Team, Player.team_id == Team.id)
+        .filter(
+            Player.tournament_id == tournament_id,
+            Team.name == team_name,
+        )
+        .all()
+    )
+    if not players:
+        raise HTTPException(status_code=404, detail=f"Nenhum jogador encontrado para o time {team_name} no torneio {tournament_id}")
+    for p in players:
+        p.is_active = False
+    db.commit()
+    return {"tournament_id": tournament_id, "team": team_name, "deactivated": len(players)}
