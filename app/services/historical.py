@@ -141,7 +141,12 @@ def _resolve_player_id(
 # Section 2 — Core persistence (shared by both modes)
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _compute_fantasy_points(stat: PlayerStatInput) -> float:
+def _compute_fantasy_points(stat: PlayerStatInput) -> tuple[float, float]:
+    """
+    Retorna (base_points, fantasy_points_total).
+    base_points = pontos sem bônus late game
+    fantasy_points = base_points (bônus late game é adicionado separadamente)
+    """
     """
     Fórmula XAMA de pontuação.
 
@@ -168,7 +173,8 @@ def _compute_fantasy_points(stat: PlayerStatInput) -> float:
         else 0.0
     )
 
-    return kill_pts + assist_pts + knock_pts + dmg_pts + early_death
+    base = kill_pts + assist_pts + knock_pts + dmg_pts + early_death
+    return base, base  # late_game_bonus é adicionado pelo _compute_late_game_bonus
 
 
 def _compute_late_game_bonus(all_stats: list) -> dict:
@@ -302,6 +308,8 @@ def import_matches(
                         survival_secs=stat_input.survival_secs,
                         headshots=stat_input.headshots,
                         knocks=stat_input.knocks,
+                        base_points=base_pts,
+                        late_game_bonus=bonus_pts,
                         fantasy_points=base_pts + bonus_pts,
                     )
                 )
