@@ -666,7 +666,9 @@ async def recalculate_fantasy_points(
         for s, si in zip(stats, stat_inputs):
             base_pts  = _compute_fantasy_points(si)
             bonus_pts = late_game_bonus.get(s.player_id, 0)
-            s.fantasy_points = base_pts + bonus_pts
+            s.base_points     = base_pts
+            s.late_game_bonus = bonus_pts
+            s.fantasy_points  = base_pts + bonus_pts
             updated += 1
 
     db.commit()
