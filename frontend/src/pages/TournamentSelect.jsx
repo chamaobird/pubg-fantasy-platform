@@ -199,7 +199,7 @@ export default function TournamentSelect() {
                     <span style={{
                       fontSize: '12px', color: 'var(--color-xama-muted)',
                     }}>
-                      Budget: <span style={{ color: 'var(--color-xama-gold)', fontFamily: "'JetBrains Mono', monospace" }}>{t.budget_limit} cr</span>
+                      Budget: <span style={{ color: 'var(--color-xama-gold)', fontFamily: "'JetBrains Mono', monospace" }}>${t.budget_limit}</span>
                     </span>
                     <span style={{
                       fontSize: '12px', fontWeight: 700, color: 'var(--color-xama-orange)',

@@ -47,7 +47,7 @@ const COLUMNS = [
   { key: 'avg_survival_secs',    label: 'SURV',       title: 'Sobrevivência média (s)', right: true, render: (p) => fmtInt(p.avg_survival_secs) },
   { key: 'pts_per_match',        label: 'PTS/G',      title: 'Pontos XAMA por jogo',    right: true, render: (p) => fmt2(p.pts_per_match) },
   { key: 'total_fantasy_points', label: 'PTS Total',  title: 'Pontos XAMA totais',      right: true, render: (p) => fmt2(p.total_fantasy_points) },
-  { key: 'fantasy_cost',         label: 'PREÇO',      title: 'Preço fantasy',           right: true, render: (p) => `${Number(p.fantasy_cost).toFixed(2)} cr` },
+  { key: 'fantasy_cost',         label: 'PREÇO',      title: 'Preço fantasy',           right: true, render: (p) => `$${Number(p.fantasy_cost).toFixed(2)}` },
 ]
 
 function SortIcon({ active, dir }) {

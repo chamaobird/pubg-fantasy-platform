@@ -178,7 +178,7 @@ function PlayerModal({ player, onClose }) {
           }}
         >
           {Number(player.fantasy_cost || 0).toFixed(2)}
-          <span className="text-[13px] ml-1 font-normal" style={{ color: 'var(--color-xama-muted)' }}>cr</span>
+          <span className="text-[13px] ml-1 font-normal" style={{ color: 'var(--color-xama-muted)' }}>$</span>
         </div>
 
         {/* stats */}
@@ -548,7 +548,7 @@ export default function LineupBuilder({
                         color: reserveEligible ? '#4ade80' : '#f87171',
                       }}
                     >
-                      {reserveCost.toFixed(2)} cr
+                      ${reserveCost.toFixed(2)}
                       {!reserveEligible && <span className="ml-1 text-[9px]">⚠</span>}
                     </span>
                   </div>
@@ -705,7 +705,7 @@ export default function LineupBuilder({
                         className="text-[12px] tabular-nums"
                         style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-gold)' }}
                       >
-                        {Number(p.fantasy_cost || 0).toFixed(2)} cr
+                        ${Number(p.fantasy_cost || 0).toFixed(2)}
                       </span>
                     </div>
                   </div>
@@ -749,7 +749,7 @@ export default function LineupBuilder({
                           color: reserveEligible ? '#4ade80' : '#f87171',
                         }}
                       >
-                        {Number(reservePlayer.fantasy_cost || 0).toFixed(2)} cr
+                        ${Number(reservePlayer.fantasy_cost || 0).toFixed(2)}
                       </span>
                       {!reserveEligible && (
                         <span className="text-[10px]" style={{ color: '#f87171' }}>⚠ mais caro que mínimo</span>
