@@ -35,7 +35,7 @@ class Player(Base):
 
     price: Mapped[float] = synonym("fantasy_cost")
     role: Mapped[str | None] = synonym("position")
-    is_active: Mapped[bool] = column_property(true())
+    is_active: Mapped[bool] = mapped_column(sa.Boolean, default=True, server_default=sa.text('true'))
 
     team: Mapped["Team | None"] = relationship("Team", back_populates="players")
     tournament: Mapped["Tournament | None"] = relationship("Tournament", back_populates="players")
