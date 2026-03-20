@@ -127,7 +127,7 @@ def score_lineup_for_match(
       1. Load Lineup, Match, ScoringRule.
       2. Index all MatchPlayerStat rows for this match by player_id.
       3. Sum pts for the 4 starters; track any absent starters.
-      4. Add captain bonus (captain's pts counted a second time → net 2×).
+      4. Add captain bonus (0.25× of captain's pts → net 1.25×).
       5. If ≥1 starter is absent AND a reserve exists → add reserve's pts.
       6. Upsert LineupScore, then rebuild Lineup.total_points.
 
@@ -173,10 +173,9 @@ def score_lineup_for_match(
             )
 
     # ── Captain bonus ─────────────────────────────────────────────────────────
-    # Captain's pts are already in base_points; we add them once more
-    # so the captain effectively earns 2× their raw score.
+    # Captain earns 1.25× — bonus is 0.25× of captain's raw score
     captain_stat = stats_by_player.get(lineup.captain_player_id)
-    captain_bonus = _compute_player_pts(captain_stat, rule) if captain_stat else 0.0
+    captain_bonus = round(_compute_player_pts(captain_stat, rule) * 0.25, 2) if captain_stat else 0.0
 
     # ── Reserve activation ────────────────────────────────────────────────────
     reserve_activated = False
