@@ -36,13 +36,12 @@ const fmtMin = (secs) => secs != null ? Math.round(Number(secs) / 60) : '—'
 const MAP_ICONS = { Erangel: '🌿', Miramar: '🏜️', Taego: '🌾', Rondo: '❄️', Vikendi: '❄️', Deston: '🌊' }
 
 // Fórmula Twire estimada no frontend
-// kills×10 + assists×4 + damage×0.05 + survival×0.01
+// kills×2 + damage×0.01 
 const calcTwire = (p) => {
-  const kills    = (p.total_kills    || 0) * 10
-  const assists  = (p.total_assists  || 0) * 4
-  const damage   = (p.total_damage   || 0) * 0.05
-  const survival = (p.avg_survival_secs || 0) * (p.matches_played || 1) * 0.01
-  return Math.round((kills + assists + damage + survival) * 100) / 100
+  const kills  = (p.total_kills  || 0) * 2
+  const damage = (p.total_damage || 0) / 100
+  // vitórias e punições não temos count direto ainda
+  return Math.round((kills + damage) * 100) / 100
 }
 
 // Late game: quantas vezes pontuou e total de pts
