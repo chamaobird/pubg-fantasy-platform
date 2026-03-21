@@ -147,7 +147,10 @@ export default function LineupBuilder({
   const isOverBudget    = totalCost > budgetLimit
 
   const playersWithStats = useMemo(() => {
-    return players.map((p) => ({ ...p, _cs: champStats[p.id] || null }))
+    return players.map((p) => ({
+      ...p,
+      _cs: (champStats.byId?.[p.id] || champStats.byName?.[p.name]) ?? null
+    }))
   }, [players, champStats])
 
   const filteredPlayers = useMemo(() => {
@@ -179,7 +182,7 @@ export default function LineupBuilder({
   // ── Effects ────────────────────────────────────────────────────────────
   useEffect(() => {
     let mounted = true
-    if (!selectedTournamentId) { setPlayers([]); setChampStats({}); return }
+    if (!selectedTournamentId) { setPlayers([]); setChampStats({ byId: {}, byName: {} }); return }
     setPlayersLoading(true); setPlayersError('')
 
     const playersPromise = httpJson(
@@ -197,9 +200,13 @@ export default function LineupBuilder({
           `${API_BASE_URL}/championship-phases/${champ.id}/player-stats?limit=500`,
           { method: 'GET' }
         ).then((stats) => {
-          const map = {}
-          stats.forEach((s) => { map[s.player_id] = s })
-          return map
+           const byId = {}
+           const byName = {}
+          stats.forEach((s) => {
+            byId[s.player_id] = s
+            byName[s.name] = s
+          })
+          return { byId, byName }
         })
       })
       .catch(() => ({}))
@@ -469,7 +476,7 @@ export default function LineupBuilder({
             <Card>
               <div className="flex items-center justify-between mb-3">
                 <SectionTitle step="2" label="Jogadores do torneio" />
-                {Object.keys(champStats).length > 0 && (
+                {Object.keys(champStats.byId || {}).length > 0 && (
                   <span className="text-[10px] px-2 py-0.5 rounded font-bold tracking-[0.06em]"
                     style={{ background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.25)', color: '#60a5fa', fontFamily: "'Rajdhani', sans-serif" }}>
                     STATS DO CAMPEONATO
