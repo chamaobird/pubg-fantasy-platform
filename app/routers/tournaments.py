@@ -30,6 +30,7 @@ class TournamentResponse(BaseModel):
     max_teams: int
     budget_limit: float
     is_active: bool
+    lineup_open: bool = False
 
     class Config:
         from_attributes = True
@@ -83,6 +84,7 @@ def list_tournaments(
             max_teams=t.max_teams,
             budget_limit=float(t.budget_limit or 0.0),
             is_active=(t.status == "active"),
+            lineup_open=bool(t.lineup_open),
         )
         for t in tournaments
     ]
