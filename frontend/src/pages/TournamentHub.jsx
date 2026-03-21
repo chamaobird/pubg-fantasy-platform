@@ -170,18 +170,6 @@ export default function TournamentHub() {
             </button>
 
             <button onClick={() => navigate('/profile')}
-              style={{
-                background: 'none', border: '1px solid var(--color-xama-border)',
-                borderRadius: '6px', padding: '5px 12px', fontSize: '11px',
-                fontWeight: 600, letterSpacing: '0.06em',
-                color: 'var(--color-xama-muted)', cursor: 'pointer',
-                fontFamily: "'Rajdhani', sans-serif",
-              }}
-            >
-              👤 Perfil
-            </button>
-
-            <button onClick={() => navigate('/profile')}
               style={{ background: 'none', border: '1px solid var(--color-xama-border)', borderRadius: '6px', padding: '5px 12px', fontSize: '11px', fontWeight: 600, letterSpacing: '0.06em', color: 'var(--color-xama-muted)', cursor: 'pointer', fontFamily: "'Rajdhani', sans-serif" }}
             >
               👤 Perfil
