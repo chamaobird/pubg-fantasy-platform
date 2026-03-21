@@ -1,35 +1,27 @@
 // frontend/src/components/LineupBuilder.jsx
 // XAMA Fantasy — Lineup Builder
 // Tailwind v4 + tema XAMA
-// Lógica 100% idêntica ao original — só visual mudou
 
 import { useEffect, useMemo, useState } from 'react'
 import { API_BASE_URL } from '../config'
 
-// ── Helpers (idênticos ao original) ──────────────────────────────────────────
+// ── Helpers ────────────────────────────────────────────────────────────────
 function formatPlayerName(name) {
   if (!name) return ''
   const idx = name.indexOf('_')
   return idx !== -1 ? name.slice(idx + 1) : name
 }
-
 function formatTeamTag(name, team) {
   if (team) return team
   if (!name) return ''
   const idx = name.indexOf('_')
   return idx !== -1 ? name.slice(0, idx) : ''
 }
-
-function apiPlayerToCard(p) {
-  return { ...p, price: p.fantasy_cost, avg_kills: p.avg_kills_50, avg_damage: p.avg_damage_50, avg_placement: p.avg_placement_50 }
-}
-
 function parseErrorMessage(err) {
   if (typeof err === 'string') return err
   if (err && typeof err === 'object' && 'message' in err) return String(err.message)
   return 'Erro inesperado'
 }
-
 async function httpJson(url, options) {
   const res = await fetch(url, {
     ...options,
@@ -47,156 +39,43 @@ async function httpJson(url, options) {
   }
   return data
 }
-
 const placementColorHex = (val) => {
   if (val == null) return '#6b7280'
   if (val <= 5)    return '#4ade80'
   if (val <= 12)   return '#facc15'
   return '#f87171'
 }
+const fmtMin = (secs) => secs != null ? Math.round(Number(secs) / 60) : '—'
 
-// ── Section title ─────────────────────────────────────────────────────────────
+// ── Section title ──────────────────────────────────────────────────────────
 function SectionTitle({ step, label }) {
   return (
     <div className="flex items-center gap-2 mb-4">
       {step && (
-        <span
-          className="flex items-center justify-center rounded text-[10px] font-bold w-5 h-5"
-          style={{
-            background: 'rgba(249,115,22,0.15)',
-            border: '1px solid rgba(249,115,22,0.3)',
-            color: 'var(--color-xama-orange)',
-            fontFamily: "'JetBrains Mono', monospace",
-          }}
-        >
+        <span className="flex items-center justify-center rounded text-[10px] font-bold w-5 h-5"
+          style={{ background: 'rgba(249,115,22,0.15)', border: '1px solid rgba(249,115,22,0.3)', color: 'var(--color-xama-orange)', fontFamily: "'JetBrains Mono', monospace" }}>
           {step}
         </span>
       )}
-      <span
-        className="text-[10px] font-bold tracking-[0.1em] uppercase"
-        style={{ color: 'var(--color-xama-muted)', fontFamily: "'Rajdhani', sans-serif" }}
-      >
+      <span className="text-[10px] font-bold tracking-[0.1em] uppercase"
+        style={{ color: 'var(--color-xama-muted)', fontFamily: "'Rajdhani', sans-serif" }}>
         {label}
       </span>
     </div>
   )
 }
 
-// ── Card wrapper ──────────────────────────────────────────────────────────────
+// ── Card wrapper ───────────────────────────────────────────────────────────
 function Card({ children, className = '' }) {
   return (
-    <div
-      className={`rounded-xl p-5 mb-4 last:mb-0 ${className}`}
-      style={{ background: 'var(--color-xama-surface)', border: '1px solid var(--color-xama-border)' }}
-    >
+    <div className={`rounded-xl p-5 mb-4 last:mb-0 ${className}`}
+      style={{ background: 'var(--color-xama-surface)', border: '1px solid var(--color-xama-border)' }}>
       {children}
     </div>
   )
 }
 
-// ── Player Modal ──────────────────────────────────────────────────────────────
-function PlayerModal({ player, onClose }) {
-  if (!player) return null
-  const teamTag  = formatTeamTag(player.name, player.team)
-  const cleanName = formatPlayerName(player.name)
-
-  const StatBox = ({ label, value, color = 'var(--color-xama-text)' }) => (
-    <div
-      className="flex-1 rounded-lg text-center py-3 px-2"
-      style={{ background: '#0a0c11', border: '1px solid var(--color-xama-border)' }}
-    >
-      <div className="text-[10px] tracking-[0.08em] uppercase mb-1" style={{ color: 'var(--color-xama-muted)', fontFamily: "'Rajdhani', sans-serif" }}>
-        {label}
-      </div>
-      <div
-        className="text-[20px] font-bold tabular-nums"
-        style={{ color, fontFamily: "'JetBrains Mono', monospace" }}
-      >
-        {value ?? '—'}
-      </div>
-    </div>
-  )
-
-  return (
-    <div
-      className="fixed inset-0 flex items-center justify-center"
-      style={{ background: 'rgba(0,0,0,0.8)', zIndex: 1000 }}
-      onClick={onClose}
-    >
-      <div
-        className="rounded-xl p-6 relative"
-        style={{
-          background: 'var(--color-xama-surface)',
-          border: '1px solid var(--color-xama-border)',
-          width: '90vw',
-          maxWidth: '360px',
-          fontFamily: "'Rajdhani', sans-serif",
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* accent line */}
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', borderRadius: '12px 12px 0 0', background: 'linear-gradient(90deg, var(--color-xama-orange), transparent 60%)' }} />
-
-        {/* close */}
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-4 text-[20px] leading-none cursor-pointer"
-          style={{ background: 'none', border: 'none', color: 'var(--color-xama-muted)' }}
-          aria-label="Fechar"
-        >
-          ×
-        </button>
-
-        {/* header */}
-        <div className="mb-4 mt-1">
-          <div className="text-[20px] font-bold mb-2" style={{ color: 'var(--color-xama-text)' }}>
-            {cleanName}
-          </div>
-          <div className="flex items-center gap-2">
-            {teamTag && (
-              <span
-                className="text-[10px] font-bold tracking-[0.06em] px-2 py-0.5 rounded"
-                style={{ background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.2)', color: 'var(--color-xama-orange)' }}
-              >
-                {teamTag}
-              </span>
-            )}
-            {player.region && (
-              <span className="text-[11px]" style={{ color: 'var(--color-xama-muted)' }}>{player.region}</span>
-            )}
-          </div>
-        </div>
-
-        {/* price */}
-        <div
-          className="inline-block rounded-lg px-4 py-2 mb-4 font-bold text-[22px] tabular-nums"
-          style={{
-            background: 'rgba(240,192,64,0.1)',
-            border: '1px solid rgba(240,192,64,0.25)',
-            color: 'var(--color-xama-gold)',
-            fontFamily: "'JetBrains Mono', monospace",
-          }}
-        >
-          {Number(player.fantasy_cost || 0).toFixed(2)}
-          <span className="text-[13px] ml-1 font-normal" style={{ color: 'var(--color-xama-muted)' }}>$</span>
-        </div>
-
-        {/* stats */}
-        <div className="flex gap-2">
-          <StatBox label="K/G"   value={player.avg_kills_50    != null ? Number(player.avg_kills_50).toFixed(1)    : null} />
-          <StatBox label="DMG"   value={player.avg_damage_50   != null ? Math.round(player.avg_damage_50)          : null} />
-          <StatBox
-            label="PLACE"
-            value={player.avg_placement_50 != null ? Number(player.avg_placement_50).toFixed(1) : null}
-            color={placementColorHex(player.avg_placement_50)}
-          />
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ── Main component ────────────────────────────────────────────────────────────
+// ── Main component ─────────────────────────────────────────────────────────
 export default function LineupBuilder({
   token = '',
   setToken,
@@ -211,19 +90,21 @@ export default function LineupBuilder({
   const [loginLoading,  setLoginLoading]  = useState(false)
   const [loginError,    setLoginError]    = useState('')
 
-  // ── Auth mode + Register ──────────────────────────────────────────────────
-  const [authMode,          setAuthMode]          = useState('login')
-  const [registerEmail,     setRegisterEmail]     = useState('')
-  const [registerUsername,  setRegisterUsername]  = useState('')
-  const [registerPassword,  setRegisterPassword]  = useState('')
-  const [registerLoading,   setRegisterLoading]   = useState(false)
-  const [registerError,     setRegisterError]     = useState('')
-  const [registerSuccess,   setRegisterSuccess]   = useState('')
+  const [authMode,         setAuthMode]         = useState('login')
+  const [registerEmail,    setRegisterEmail]    = useState('')
+  const [registerUsername, setRegisterUsername] = useState('')
+  const [registerPassword, setRegisterPassword] = useState('')
+  const [registerLoading,  setRegisterLoading]  = useState(false)
+  const [registerError,    setRegisterError]    = useState('')
+  const [registerSuccess,  setRegisterSuccess]  = useState('')
 
   const [players,        setPlayers]        = useState([])
   const [playersLoading, setPlayersLoading] = useState(false)
   const [playersError,   setPlayersError]   = useState('')
   const [searchName,     setSearchName]     = useState('')
+
+  // championship stats mergeados
+  const [champStats, setChampStats] = useState({}) // player_id → stats
 
   const [selectedPlayers, setSelectedPlayers] = useState([])
   const [reservePlayer,   setReservePlayer]   = useState(null)
@@ -235,9 +116,8 @@ export default function LineupBuilder({
 
   const [sortKey, setSortKey] = useState('fantasy_cost')
   const [sortDir, setSortDir] = useState('desc')
-  const [modalPlayer, setModalPlayer] = useState(null)
 
-  // ── Derived ───────────────────────────────────────────────────────────────
+  // ── Derived ────────────────────────────────────────────────────────────
   const selectedTournament = useMemo(() => {
     const idNum = Number(selectedTournamentId)
     return tournaments.find((t) => t.id === idNum) || null
@@ -253,7 +133,6 @@ export default function LineupBuilder({
     () => selectedPlayers.reduce((acc, p) => acc + (Number(p.fantasy_cost) || 0), 0),
     [selectedPlayers],
   )
-
   const minStarterCost = useMemo(() => {
     if (selectedPlayers.length === 0) return Infinity
     return Math.min(...selectedPlayers.map((p) => Number(p.fantasy_cost) || 0))
@@ -263,18 +142,29 @@ export default function LineupBuilder({
   const reserveEligible = reservePlayer == null || reserveCost <= minStarterCost
   const isOverBudget    = totalCost > budgetLimit
 
+  // players mergeados com championship stats
+  const playersWithStats = useMemo(() => {
+    return players.map((p) => ({ ...p, _cs: champStats[p.id] || null }))
+  }, [players, champStats])
+
   const filteredPlayers = useMemo(() => {
     const q = searchName.trim().toLowerCase()
-    if (!q) return players
-    return players.filter((p) => String(p.name || '').toLowerCase().includes(q))
-  }, [players, searchName])
+    if (!q) return playersWithStats
+    return playersWithStats.filter((p) => String(p.name || '').toLowerCase().includes(q))
+  }, [playersWithStats, searchName])
 
   const sortedPlayers = useMemo(() => {
     return [...filteredPlayers].sort((a, b) => {
-      const aVal = sortKey === 'name' ? formatPlayerName(a.name) :
-                   sortKey === 'team' ? formatTeamTag(a.name, a.team) : a[sortKey]
-      const bVal = sortKey === 'name' ? formatPlayerName(b.name) :
-                   sortKey === 'team' ? formatTeamTag(b.name, b.team) : b[sortKey]
+      let aVal, bVal
+      if (sortKey === 'name')  { aVal = formatPlayerName(a.name);       bVal = formatPlayerName(b.name) }
+      else if (sortKey === 'team') { aVal = formatTeamTag(a.name, a.team); bVal = formatTeamTag(b.name, b.team) }
+      else if (sortKey === 'total_fantasy_points') { aVal = a._cs?.total_fantasy_points; bVal = b._cs?.total_fantasy_points }
+      else if (sortKey === 'total_kills')           { aVal = a._cs?.total_kills;           bVal = b._cs?.total_kills }
+      else if (sortKey === 'total_assists')         { aVal = a._cs?.total_assists;         bVal = b._cs?.total_assists }
+      else if (sortKey === 'surv_total_secs')       { aVal = a._cs?.surv_total_secs;       bVal = b._cs?.surv_total_secs }
+      else if (sortKey === 'total_late_game_bonus') { aVal = a._cs?.total_late_game_bonus; bVal = b._cs?.total_late_game_bonus }
+      else if (sortKey === 'total_penalty_count')   { aVal = a._cs?.total_penalty_count;   bVal = b._cs?.total_penalty_count }
+      else { aVal = a[sortKey]; bVal = b[sortKey] }
       if (aVal == null && bVal == null) return 0
       if (aVal == null) return 1
       if (bVal == null) return -1
@@ -283,21 +173,51 @@ export default function LineupBuilder({
     })
   }, [filteredPlayers, sortKey, sortDir])
 
-  // ── Effects ───────────────────────────────────────────────────────────────
+  // ── Effects ────────────────────────────────────────────────────────────
   useEffect(() => {
     let mounted = true
-    if (!selectedTournamentId) { setPlayers([]); return }
+    if (!selectedTournamentId) { setPlayers([]); setChampStats({}); return }
     setPlayersLoading(true); setPlayersError('')
-    httpJson(`${API_BASE_URL}/tournaments/${selectedTournamentId}/players?skip=0&limit=200`, { method: 'GET' })
-      .then((data) => { if (mounted) setPlayers(Array.isArray(data) ? data : []) })
-      .catch((e)   => { if (mounted) { setPlayersError(parseErrorMessage(e)); setPlayers([]) } })
-      .finally(()  => { if (mounted) setPlayersLoading(false) })
+
+    // Busca players do torneio atual
+    const playersPromise = httpJson(
+      `${API_BASE_URL}/tournaments/${selectedTournamentId}/players?skip=0&limit=200`,
+      { method: 'GET' }
+    )
+
+    // Busca championship que contém este torneio (para stats acumuladas)
+    const champPromise = httpJson(`${API_BASE_URL}/championship-phases/`, { method: 'GET' })
+      .then((champs) => {
+        const champ = champs.find((c) =>
+          c.phases.some((ph) => ph.tournament_id === Number(selectedTournamentId))
+        )
+        if (!champ) return {}
+        return httpJson(
+          `${API_BASE_URL}/championship-phases/${champ.id}/player-stats?limit=500`,
+          { method: 'GET' }
+        ).then((stats) => {
+          const map = {}
+          stats.forEach((s) => { map[s.player_id] = s })
+          return map
+        })
+      })
+      .catch(() => ({}))
+
+    Promise.all([playersPromise, champPromise])
+      .then(([pData, csMap]) => {
+        if (!mounted) return
+        setPlayers(Array.isArray(pData) ? pData : [])
+        setChampStats(csMap)
+      })
+      .catch((e) => { if (mounted) { setPlayersError(parseErrorMessage(e)); setPlayers([]) } })
+      .finally(() => { if (mounted) setPlayersLoading(false) })
+
     setSelectedPlayers([]); setReservePlayer(null); setCaptainId(null)
     setSaveError(''); setSaveSuccess(null)
     return () => { mounted = false }
   }, [selectedTournamentId])
 
-  // ── Actions ───────────────────────────────────────────────────────────────
+  // ── Actions ────────────────────────────────────────────────────────────
   async function doLogin() {
     setLoginLoading(true); setLoginError('')
     try {
@@ -308,10 +228,7 @@ export default function LineupBuilder({
         body,
       })
       const data = await res.json().catch(() => null)
-      if (!res.ok) {
-        const detail = data?.detail
-        throw new Error(typeof detail === 'string' ? detail : `HTTP ${res.status}`)
-      }
+      if (!res.ok) throw new Error(typeof data?.detail === 'string' ? data.detail : `HTTP ${res.status}`)
       const t = data?.access_token
       if (!t) throw new Error('Resposta sem access_token')
       setToken?.(t)
@@ -334,10 +251,7 @@ export default function LineupBuilder({
         body: JSON.stringify({ email: registerEmail.trim(), username: registerUsername.trim(), password: registerPassword }),
       })
       const data = await res.json().catch(() => null)
-      if (!res.ok) {
-        const detail = data?.detail
-        throw new Error(typeof detail === 'string' ? detail : `HTTP ${res.status}`)
-      }
+      if (!res.ok) throw new Error(typeof data?.detail === 'string' ? data.detail : `HTTP ${res.status}`)
       setRegisterSuccess('Conta criada! Faça login para continuar.')
       setRegisterEmail(''); setRegisterUsername(''); setRegisterPassword('')
       setTimeout(() => setAuthMode('login'), 1500)
@@ -350,9 +264,9 @@ export default function LineupBuilder({
 
   function addPlayer(player) {
     setSaveError(''); setSaveSuccess(null)
-    if (reservePlayer?.id === player.id)                  { setSaveError('Jogador já é reserva'); return }
-    if (selectedPlayers.some((p) => p.id === player.id))  { setSaveError('Jogador já no lineup'); return }
-    if (selectedPlayers.length >= 4)                      { setSaveError('Lineup já tem 4 jogadores'); return }
+    if (reservePlayer?.id === player.id)                 { setSaveError('Jogador já é reserva'); return }
+    if (selectedPlayers.some((p) => p.id === player.id)) { setSaveError('Jogador já no lineup'); return }
+    if (selectedPlayers.length >= 4)                     { setSaveError('Lineup já tem 4 jogadores'); return }
     const next = [...selectedPlayers, player]
     if (next.reduce((a, p) => a + (Number(p.fantasy_cost) || 0), 0) > budgetLimit) {
       setSaveError('Adicionar este jogador estoura o budget'); return
@@ -413,7 +327,7 @@ export default function LineupBuilder({
 
   function handleSort(key) {
     if (sortKey === key) setSortDir((d) => d === 'asc' ? 'desc' : 'asc')
-    else { setSortKey(key); setSortDir(key === 'avg_placement_50' ? 'asc' : 'desc') }
+    else { setSortKey(key); setSortDir('desc') }
   }
 
   const SortIcon = ({ col }) => {
@@ -422,134 +336,120 @@ export default function LineupBuilder({
   }
 
   const thStyle = (col) => ({
-    cursor: 'pointer',
-    userSelect: 'none',
+    cursor: 'pointer', userSelect: 'none',
     color: sortKey === col ? 'var(--color-xama-orange)' : 'var(--color-xama-muted)',
     fontFamily: "'Rajdhani', sans-serif",
     transition: 'color 0.15s',
   })
 
-  // ── Budget bar colors ─────────────────────────────────────────────────────
   const budgetUsedPct  = Math.min((totalCost / budgetLimit) * 100, 100)
-  const budgetBarColor = isOverBudget ? 'var(--color-xama-red)' : totalCost / budgetLimit > 0.85 ? 'var(--color-xama-gold)' : 'var(--color-xama-orange)'
+  const budgetBarColor = isOverBudget ? '#f87171' : totalCost / budgetLimit > 0.85 ? 'var(--color-xama-gold)' : 'var(--color-xama-orange)'
+
+  // colunas da tabela de jogadores
+  const COLS = [
+    { key: 'team',                 label: 'Time',      right: false },
+    { key: 'name',                 label: 'Jogador',   right: false },
+    { key: 'fantasy_cost',         label: 'Preço',     right: true  },
+    { key: 'total_fantasy_points', label: 'PTS XAMA',  right: true  },
+    { key: 'total_kills',          label: 'K Total',   right: true  },
+    { key: 'total_assists',        label: 'ASS Total', right: true  },
+    { key: 'surv_total_secs',      label: 'Surv(min)', right: true  },
+    { key: 'total_late_game_bonus',label: 'Late Game', right: true  },
+    { key: 'total_penalty_count',  label: 'Punição',   right: true  },
+  ]
 
   return (
-    <div
-      className="min-h-screen py-6 px-4"
-      style={{ background: 'var(--color-xama-black)', fontFamily: "'Rajdhani', sans-serif" }}
-    >
-      <div style={{ maxWidth: '1080px', margin: '0 auto' }}>
+    <div className="min-h-screen py-6 px-4"
+      style={{ background: 'var(--color-xama-black)', fontFamily: "'Rajdhani', sans-serif" }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
 
-        {/* ── Login / Register card ──────────────────────────────────────── */}
-        {!token && <Card className="mb-4">
-          {/* Tab toggle */}
-          <div className="flex gap-1 mb-4 p-1 rounded-lg" style={{ background: '#0a0c11', width: 'fit-content' }}>
-            {['login', 'register'].map((mode) => (
-              <button
-                key={mode}
-                onClick={() => { setAuthMode(mode); setLoginError(''); setRegisterError(''); setRegisterSuccess('') }}
-                className="px-4 py-1.5 rounded text-[12px] font-bold tracking-[0.06em] uppercase transition-all duration-150"
-                style={{
-                  fontFamily: "'Rajdhani', sans-serif",
-                  background: authMode === mode ? 'var(--color-xama-surface)' : 'none',
-                  color: authMode === mode ? 'var(--color-xama-orange)' : 'var(--color-xama-muted)',
-                  border: authMode === mode ? '1px solid var(--color-xama-border)' : '1px solid transparent',
-                  cursor: 'pointer',
-                }}
-              >
-                {mode === 'login' ? 'Login' : 'Cadastro'}
-              </button>
-            ))}
-          </div>
-
-          {/* Login form */}
-          {authMode === 'login' && (
-            <>
-              <div className="grid gap-3 mb-3" style={{ gridTemplateColumns: '1fr 1fr auto' }}>
-                <input className="dark-input" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} placeholder="E-mail" style={{ fontFamily: "'Rajdhani', sans-serif" }} />
-                <input className="dark-input" type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} placeholder="Senha" style={{ fontFamily: "'Rajdhani', sans-serif" }} />
-                <button className="dark-btn" onClick={doLogin} disabled={loginLoading} style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 600 }}>
-                  {loginLoading ? 'Entrando…' : 'Entrar'}
+        {/* Login / Register */}
+        {!token && (
+          <Card className="mb-4">
+            <div className="flex gap-1 mb-4 p-1 rounded-lg" style={{ background: '#0a0c11', width: 'fit-content' }}>
+              {['login', 'register'].map((mode) => (
+                <button key={mode}
+                  onClick={() => { setAuthMode(mode); setLoginError(''); setRegisterError(''); setRegisterSuccess('') }}
+                  className="px-4 py-1.5 rounded text-[12px] font-bold tracking-[0.06em] uppercase transition-all duration-150"
+                  style={{
+                    fontFamily: "'Rajdhani', sans-serif",
+                    background: authMode === mode ? 'var(--color-xama-surface)' : 'none',
+                    color: authMode === mode ? 'var(--color-xama-orange)' : 'var(--color-xama-muted)',
+                    border: authMode === mode ? '1px solid var(--color-xama-border)' : '1px solid transparent',
+                    cursor: 'pointer',
+                  }}>
+                  {mode === 'login' ? 'Login' : 'Cadastro'}
                 </button>
-              </div>
-              {loginError && <div className="msg-error">{loginError}</div>}
-            </>
-          )}
+              ))}
+            </div>
+            {authMode === 'login' && (
+              <>
+                <div className="grid gap-3 mb-3" style={{ gridTemplateColumns: '1fr 1fr auto' }}>
+                  <input className="dark-input" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} placeholder="E-mail" style={{ fontFamily: "'Rajdhani', sans-serif" }} />
+                  <input className="dark-input" type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} placeholder="Senha" style={{ fontFamily: "'Rajdhani', sans-serif" }} />
+                  <button className="dark-btn" onClick={doLogin} disabled={loginLoading} style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 600 }}>
+                    {loginLoading ? 'Entrando…' : 'Entrar'}
+                  </button>
+                </div>
+                {loginError && <div className="msg-error">{loginError}</div>}
+              </>
+            )}
+            {authMode === 'register' && (
+              <>
+                <div className="grid gap-3 mb-3" style={{ gridTemplateColumns: '1fr 1fr 1fr auto' }}>
+                  <input className="dark-input" value={registerEmail} onChange={(e) => setRegisterEmail(e.target.value)} placeholder="E-mail" style={{ fontFamily: "'Rajdhani', sans-serif" }} />
+                  <input className="dark-input" value={registerUsername} onChange={(e) => setRegisterUsername(e.target.value)} placeholder="Username" style={{ fontFamily: "'Rajdhani', sans-serif" }} />
+                  <input className="dark-input" type="password" value={registerPassword} onChange={(e) => setRegisterPassword(e.target.value)} placeholder="Senha" style={{ fontFamily: "'Rajdhani', sans-serif" }} />
+                  <button className="dark-btn" onClick={doRegister} disabled={registerLoading} style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 600 }}>
+                    {registerLoading ? 'Criando…' : 'Criar conta'}
+                  </button>
+                </div>
+                {registerError   && <div className="msg-error">{registerError}</div>}
+                {registerSuccess && <div className="msg-success">{registerSuccess}</div>}
+              </>
+            )}
+          </Card>
+        )}
 
-          {/* Register form */}
-          {authMode === 'register' && (
-            <>
-              <div className="grid gap-3 mb-3" style={{ gridTemplateColumns: '1fr 1fr 1fr auto' }}>
-                <input className="dark-input" value={registerEmail} onChange={(e) => setRegisterEmail(e.target.value)} placeholder="E-mail" style={{ fontFamily: "'Rajdhani', sans-serif" }} />
-                <input className="dark-input" value={registerUsername} onChange={(e) => setRegisterUsername(e.target.value)} placeholder="Username" style={{ fontFamily: "'Rajdhani', sans-serif" }} />
-                <input className="dark-input" type="password" value={registerPassword} onChange={(e) => setRegisterPassword(e.target.value)} placeholder="Senha" style={{ fontFamily: "'Rajdhani', sans-serif" }} />
-                <button className="dark-btn" onClick={doRegister} disabled={registerLoading} style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 600 }}>
-                  {registerLoading ? 'Criando…' : 'Criar conta'}
-                </button>
-              </div>
-              {registerError   && <div className="msg-error">{registerError}</div>}
-              {registerSuccess && <div className="msg-success">{registerSuccess}</div>}
-            </>
-          )}
-        </Card>}
-
-        {/* ── Two-column layout ───────────────────────────────────────────── */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 0.7fr', gap: '16px' }}
+        {/* Two-column layout */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 0.4fr', gap: '16px' }}
              className="max-md:block">
 
-          {/* ── Left column ──────────────────────────────────────────────── */}
+          {/* Left column */}
           <div>
             {/* Tournament + budget */}
             <Card>
               <SectionTitle step="1" label="Torneio" />
-
               {tournamentsLoading && <span className="text-[13px]" style={{ color: 'var(--color-xama-muted)' }}>Carregando…</span>}
               {tournamentsError   && <div className="msg-error">{tournamentsError}</div>}
-
               {!tournamentsLoading && !tournamentsError && (
-                <select className="dark-select mb-4" value={selectedTournamentId} onChange={(e) => onTournamentChange?.(e.target.value)} style={{ fontFamily: "'Rajdhani', sans-serif" }}>
+                <select className="dark-select mb-4" value={selectedTournamentId}
+                  onChange={(e) => onTournamentChange?.(e.target.value)}
+                  style={{ fontFamily: "'Rajdhani', sans-serif" }}>
                   {tournaments.map((t) => (
                     <option key={t.id} value={String(t.id)}>{t.name}{t.region ? ` (${t.region})` : ''}</option>
                   ))}
                 </select>
               )}
-
               {/* Budget bar */}
-              <div
-                className="rounded-lg p-3"
-                style={{ background: '#0a0c11', border: '1px solid var(--color-xama-border)' }}
-              >
+              <div className="rounded-lg p-3" style={{ background: '#0a0c11', border: '1px solid var(--color-xama-border)' }}>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-[11px] font-bold tracking-[0.06em] uppercase" style={{ color: 'var(--color-xama-muted)', fontFamily: "'Rajdhani', sans-serif" }}>Budget</span>
-                  <span
-                    className="text-[13px] font-bold tabular-nums"
-                    style={{ fontFamily: "'JetBrains Mono', monospace", color: isOverBudget ? 'var(--color-xama-red)' : 'var(--color-xama-text)' }}
-                  >
+                  <span className="text-[13px] font-bold tabular-nums"
+                    style={{ fontFamily: "'JetBrains Mono', monospace", color: isOverBudget ? '#f87171' : 'var(--color-xama-text)' }}>
                     {totalCost.toFixed(2)} <span style={{ color: 'var(--color-xama-muted)' }}>/ {budgetLimit}</span>
                   </span>
                 </div>
-
-                {/* progress bar */}
                 <div className="rounded-full overflow-hidden" style={{ height: '4px', background: '#1e2330' }}>
-                  <div
-                    className="h-full rounded-full transition-all duration-300"
-                    style={{ width: `${budgetUsedPct}%`, background: budgetBarColor }}
-                  />
+                  <div className="h-full rounded-full transition-all duration-300"
+                    style={{ width: `${budgetUsedPct}%`, background: budgetBarColor }} />
                 </div>
-
-                {/* reserve row */}
                 {reservePlayer && (
                   <div className="flex items-center justify-between mt-2">
                     <span className="text-[11px]" style={{ color: 'var(--color-xama-muted)' }}>Reserva</span>
-                    <span
-                      className="text-[11px] font-bold tabular-nums"
-                      style={{
-                        fontFamily: "'JetBrains Mono', monospace",
-                        color: reserveEligible ? '#4ade80' : '#f87171',
-                      }}
-                    >
-                      ${reserveCost.toFixed(2)}
-                      {!reserveEligible && <span className="ml-1 text-[9px]">⚠</span>}
+                    <span className="text-[11px] font-bold tabular-nums"
+                      style={{ fontFamily: "'JetBrains Mono', monospace", color: reserveEligible ? '#4ade80' : '#f87171' }}>
+                      ${reserveCost.toFixed(2)}{!reserveEligible && <span className="ml-1 text-[9px]">⚠</span>}
                     </span>
                   </div>
                 )}
@@ -558,14 +458,21 @@ export default function LineupBuilder({
 
             {/* Player pool */}
             <Card>
-              <SectionTitle step="2" label="Jogadores do torneio" />
+              <div className="flex items-center justify-between mb-3">
+                <SectionTitle step="2" label="Jogadores do torneio" />
+                {Object.keys(champStats).length > 0 && (
+                  <span className="text-[10px] px-2 py-0.5 rounded font-bold tracking-[0.06em]"
+                    style={{ background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.25)', color: '#60a5fa', fontFamily: "'Rajdhani', sans-serif" }}>
+                    STATS DO CAMPEONATO
+                  </span>
+                )}
+              </div>
 
               <div className="flex items-center gap-3 mb-3">
-                <input className="dark-input" value={searchName} onChange={(e) => setSearchName(e.target.value)} placeholder="Buscar por nome…" style={{ fontFamily: "'Rajdhani', sans-serif" }} />
-                <span
-                  className="text-[11px] tabular-nums whitespace-nowrap"
-                  style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-muted)' }}
-                >
+                <input className="dark-input" value={searchName} onChange={(e) => setSearchName(e.target.value)}
+                  placeholder="Buscar por nome…" style={{ fontFamily: "'Rajdhani', sans-serif" }} />
+                <span className="text-[11px] tabular-nums whitespace-nowrap"
+                  style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-muted)' }}>
                   {filteredPlayers.length}/{players.length}
                 </span>
               </div>
@@ -575,23 +482,14 @@ export default function LineupBuilder({
 
               {!playersLoading && !playersError && (
                 <div className="overflow-x-auto">
-                  <table className="w-full border-collapse text-[14px]">
+                  <table className="w-full border-collapse text-[13px]">
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--color-xama-border)', background: '#0a0c11' }}>
-                        {[
-                          { key: 'name',          label: 'Nome',  right: false },
-                          { key: 'team',          label: 'Time',  right: false },
-                          { key: 'avg_kills_50',   label: 'K/G',   right: true  },
-                          { key: 'avg_damage_50',  label: 'Dmg',   right: true  },
-                          { key: 'avg_placement_50', label: 'Place', right: true },
-                          { key: 'fantasy_cost',  label: 'Custo', right: true  },
-                        ].map(({ key, label, right }) => (
-                          <th
-                            key={key}
-                            className="px-3 py-2 text-[11px] font-bold tracking-[0.08em] uppercase"
+                        {COLS.map(({ key, label, right }) => (
+                          <th key={key}
+                            className="px-3 py-2 text-[10px] font-bold tracking-[0.08em] uppercase whitespace-nowrap"
                             style={{ ...thStyle(key), textAlign: right ? 'right' : 'left' }}
-                            onClick={() => handleSort(key)}
-                          >
+                            onClick={() => handleSort(key)}>
                             {label}<SortIcon col={key} />
                           </th>
                         ))}
@@ -599,59 +497,93 @@ export default function LineupBuilder({
                       </tr>
                     </thead>
                     <tbody>
-                      {sortedPlayers.map((p) => (
-                        <tr
-                          key={p.id}
-                          onClick={() => setModalPlayer(apiPlayerToCard(p))}
-                          style={{ borderBottom: '1px solid #13161f', cursor: 'pointer' }}
-                          onMouseEnter={(e) => e.currentTarget.style.background = '#161b27'}
-                          onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                        >
-                          <td className="px-3 py-2 font-semibold" style={{ color: 'var(--color-xama-text)' }}>
-                            {formatPlayerName(p.name)}
-                          </td>
-                          <td className="px-3 py-2">
-                            {formatTeamTag(p.name, p.team) ? (
-                              <span
-                                className="text-[10px] font-bold tracking-[0.06em] px-1.5 py-0.5 rounded"
-                                style={{ background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.18)', color: 'var(--color-xama-orange)' }}
-                              >
-                                {formatTeamTag(p.name, p.team)}
-                              </span>
-                            ) : '—'}
-                          </td>
-                          <td className="px-3 py-2 text-right tabular-nums" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-text)' }}>
-                            {p.avg_kills_50 != null ? Number(p.avg_kills_50).toFixed(1) : '—'}
-                          </td>
-                          <td className="px-3 py-2 text-right tabular-nums" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-text)' }}>
-                            {p.avg_damage_50 != null ? Math.round(p.avg_damage_50) : '—'}
-                          </td>
-                          <td className="px-3 py-2 text-right tabular-nums" style={{ fontFamily: "'JetBrains Mono', monospace", color: placementColorHex(p.avg_placement_50) }}>
-                            {p.avg_placement_50 != null ? Number(p.avg_placement_50).toFixed(1) : '—'}
-                          </td>
-                          <td className="px-3 py-2 text-right tabular-nums font-bold" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-gold)' }}>
-                            {Number(p.fantasy_cost || 0).toFixed(2)}
-                          </td>
-                          <td className="px-3 py-2">
-                            <div className="flex gap-1 justify-end">
-                              <button
-                                className="dark-btn-sm"
-                                style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 600 }}
-                                onClick={(e) => { e.stopPropagation(); addPlayer(p) }}
-                              >
-                                Titular
-                              </button>
-                              <button
-                                className="dark-btn-sm"
-                                style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 600 }}
-                                onClick={(e) => { e.stopPropagation(); setAsReserve(p) }}
-                              >
-                                Reserva
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
+                      {sortedPlayers.map((p) => {
+                        const cs = p._cs
+                        return (
+                          <tr key={p.id}
+                            style={{ borderBottom: '1px solid #13161f' }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = '#161b27'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
+
+                            {/* Time */}
+                            <td className="px-3 py-2">
+                              {formatTeamTag(p.name, p.team) ? (
+                                <span className="text-[10px] font-bold tracking-[0.06em] px-1.5 py-0.5 rounded"
+                                  style={{ background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.18)', color: 'var(--color-xama-orange)' }}>
+                                  {formatTeamTag(p.name, p.team)}
+                                </span>
+                              ) : '—'}
+                            </td>
+
+                            {/* Jogador */}
+                            <td className="px-3 py-2 font-semibold whitespace-nowrap" style={{ color: 'var(--color-xama-text)' }}>
+                              {formatPlayerName(p.name)}
+                            </td>
+
+                            {/* Preço */}
+                            <td className="px-3 py-2 text-right tabular-nums font-bold"
+                              style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-gold)' }}>
+                              ${Number(p.fantasy_cost || 0).toFixed(2)}
+                            </td>
+
+                            {/* PTS XAMA */}
+                            <td className="px-3 py-2 text-right tabular-nums"
+                              style={{ fontFamily: "'JetBrains Mono', monospace", color: cs ? 'var(--color-xama-orange)' : 'var(--color-xama-muted)' }}>
+                              {cs ? Number(cs.total_fantasy_points).toFixed(1) : '—'}
+                            </td>
+
+                            {/* K Total */}
+                            <td className="px-3 py-2 text-right tabular-nums"
+                              style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-text)' }}>
+                              {cs ? cs.total_kills : '—'}
+                            </td>
+
+                            {/* ASS Total */}
+                            <td className="px-3 py-2 text-right tabular-nums"
+                              style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-text)' }}>
+                              {cs ? cs.total_assists : '—'}
+                            </td>
+
+                            {/* Surv(min) */}
+                            <td className="px-3 py-2 text-right tabular-nums"
+                              style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-text)' }}>
+                              {cs ? fmtMin(cs.surv_total_secs) : '—'}
+                            </td>
+
+                            {/* Late Game */}
+                            <td className="px-3 py-2 text-right tabular-nums"
+                              style={{ fontFamily: "'JetBrains Mono', monospace", color: cs?.total_late_game_bonus > 0 ? '#4ade80' : 'var(--color-xama-muted)' }}>
+                              {cs ? (cs.total_late_game_bonus > 0 ? cs.total_late_game_bonus.toFixed(0) : '0') : '—'}
+                            </td>
+
+                            {/* Punição */}
+                            <td className="px-3 py-2 text-right tabular-nums"
+                              style={{ fontFamily: "'JetBrains Mono', monospace", color: cs?.total_penalty_count > 0 ? '#f87171' : 'var(--color-xama-muted)' }}>
+                              {cs
+                                ? cs.total_penalty_count > 0
+                                  ? `${cs.total_penalty_count}(${cs.total_penalty_count * -15})`
+                                  : '0'
+                                : '—'}
+                            </td>
+
+                            {/* Actions */}
+                            <td className="px-3 py-2">
+                              <div className="flex gap-1 justify-end">
+                                <button className="dark-btn-sm"
+                                  style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 600 }}
+                                  onClick={() => addPlayer(p)}>
+                                  Titular
+                                </button>
+                                <button className="dark-btn-sm"
+                                  style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 600 }}
+                                  onClick={() => setAsReserve(p)}>
+                                  Reserva
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        )
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -659,41 +591,30 @@ export default function LineupBuilder({
             </Card>
           </div>
 
-          {/* ── Right column ─────────────────────────────────────────────── */}
+          {/* Right column */}
           <div>
             {/* Starters */}
             <Card>
               <SectionTitle step="3" label={`Titulares (${selectedPlayers.length}/4)`} />
-
               {selectedPlayers.length === 0 && (
                 <p className="text-[14px] py-2" style={{ color: '#374151' }}>Nenhum jogador adicionado.</p>
               )}
-
               {selectedPlayers.map((p, idx) => (
-                <div
-                  key={p.id}
-                  className="flex items-center gap-3 py-3"
-                  style={{ borderBottom: idx < selectedPlayers.length - 1 ? '1px solid #13161f' : 'none' }}
-                >
-                  {/* number */}
-                  <span
-                    className="text-[11px] font-bold tabular-nums flex-shrink-0"
-                    style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-muted)', width: '16px' }}
-                  >
+                <div key={p.id} className="flex items-center gap-3 py-3"
+                  style={{ borderBottom: idx < selectedPlayers.length - 1 ? '1px solid #13161f' : 'none' }}>
+                  <span className="text-[11px] font-bold tabular-nums flex-shrink-0"
+                    style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-muted)', width: '16px' }}>
                     {idx + 1}
                   </span>
-
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-[15px] truncate" style={{ color: 'var(--color-xama-text)' }}>
                         {formatPlayerName(p.name)}
                       </span>
                       {captainId === p.id && (
-                        <span
-                          className="text-[9px] font-bold tracking-[0.06em] px-1.5 py-0.5 rounded flex-shrink-0"
-                          style={{ background: 'rgba(240,192,64,0.15)', border: '1px solid rgba(240,192,64,0.3)', color: 'var(--color-xama-gold)' }}
-                        >
-                          CAP
+                        <span className="text-[9px] font-bold tracking-[0.06em] px-1.5 py-0.5 rounded flex-shrink-0"
+                          style={{ background: 'rgba(240,192,64,0.15)', border: '1px solid rgba(240,192,64,0.3)', color: 'var(--color-xama-gold)' }}>
+                          CAP 1.25×
                         </span>
                       )}
                     </div>
@@ -701,24 +622,17 @@ export default function LineupBuilder({
                       <span className="text-[11px]" style={{ color: 'var(--color-xama-muted)' }}>
                         {formatTeamTag(p.name, p.team)}
                       </span>
-                      <span
-                        className="text-[12px] tabular-nums"
-                        style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-gold)' }}
-                      >
+                      <span className="text-[12px] tabular-nums"
+                        style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-gold)' }}>
                         ${Number(p.fantasy_cost || 0).toFixed(2)}
                       </span>
                     </div>
                   </div>
-
-                  {/* captain radio */}
-                  <label
-                    className="flex items-center gap-1 text-[11px] font-bold tracking-[0.06em] cursor-pointer flex-shrink-0"
-                    style={{ color: captainId === p.id ? 'var(--color-xama-gold)' : 'var(--color-xama-muted)' }}
-                  >
+                  <label className="flex items-center gap-1 text-[11px] font-bold tracking-[0.06em] cursor-pointer flex-shrink-0"
+                    style={{ color: captainId === p.id ? 'var(--color-xama-gold)' : 'var(--color-xama-muted)' }}>
                     <input type="radio" name="captain" checked={captainId === p.id} onChange={() => setCaptainId(p.id)} style={{ accentColor: '#f0c040' }} />
                     Cap
                   </label>
-
                   <button className="dark-btn-danger flex-shrink-0" onClick={() => removePlayer(p.id)}>✕</button>
                 </div>
               ))}
@@ -727,11 +641,9 @@ export default function LineupBuilder({
             {/* Reserve */}
             <Card>
               <SectionTitle label="Reserva (obrigatório)" />
-
               {!reservePlayer && (
                 <p className="text-[14px] py-2" style={{ color: '#374151' }}>Nenhum reserva selecionado.</p>
               )}
-
               {reservePlayer && (
                 <div className="flex items-center gap-3">
                   <div className="flex-1 min-w-0">
@@ -742,18 +654,11 @@ export default function LineupBuilder({
                       <span className="text-[11px]" style={{ color: 'var(--color-xama-muted)' }}>
                         {formatTeamTag(reservePlayer.name, reservePlayer.team)}
                       </span>
-                      <span
-                        className="text-[12px] tabular-nums"
-                        style={{
-                          fontFamily: "'JetBrains Mono', monospace",
-                          color: reserveEligible ? '#4ade80' : '#f87171',
-                        }}
-                      >
+                      <span className="text-[12px] tabular-nums"
+                        style={{ fontFamily: "'JetBrains Mono', monospace", color: reserveEligible ? '#4ade80' : '#f87171' }}>
                         ${Number(reservePlayer.fantasy_cost || 0).toFixed(2)}
                       </span>
-                      {!reserveEligible && (
-                        <span className="text-[10px]" style={{ color: '#f87171' }}>⚠ mais caro que mínimo</span>
-                      )}
+                      {!reserveEligible && <span className="text-[10px]" style={{ color: '#f87171' }}>⚠ mais caro que mínimo</span>}
                     </div>
                   </div>
                   <button className="dark-btn-danger flex-shrink-0" onClick={removeReserve}>✕</button>
@@ -764,10 +669,7 @@ export default function LineupBuilder({
             {/* Save */}
             <Card>
               <SectionTitle step="4" label="Salvar lineup" />
-
-              <button
-                onClick={saveLineup}
-                disabled={!canSave || saveLoading}
+              <button onClick={saveLineup} disabled={!canSave || saveLoading}
                 className="w-full py-3 rounded-lg text-[15px] font-bold tracking-[0.04em] uppercase transition-all duration-150"
                 style={{
                   fontFamily: "'Rajdhani', sans-serif",
@@ -775,27 +677,18 @@ export default function LineupBuilder({
                   color: canSave && !saveLoading ? '#0d0f14' : '#374151',
                   border: canSave && !saveLoading ? 'none' : '1px solid #2a3046',
                   cursor: canSave && !saveLoading ? 'pointer' : 'default',
-                }}
-              >
+                }}>
                 {saveLoading ? 'Salvando…' : 'Salvar lineup'}
               </button>
-
               <p className="text-[12px] mt-3 leading-relaxed" style={{ color: '#374151' }}>
                 Necessário: 4 titulares · 1 reserva · capitão · login · total ≤ budget
               </p>
-
               {saveError   && <div className="msg-error mt-3">{saveError}</div>}
-              {saveSuccess && (
-                <div className="msg-success mt-3">
-                  Lineup criado! ID: <b>{saveSuccess.id}</b>
-                </div>
-              )}
+              {saveSuccess && <div className="msg-success mt-3">Lineup criado! ID: <b>{saveSuccess.id}</b></div>}
             </Card>
           </div>
         </div>
       </div>
-
-      <PlayerModal player={modalPlayer} onClose={() => setModalPlayer(null)} />
     </div>
   )
 }
