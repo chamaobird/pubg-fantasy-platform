@@ -11,6 +11,8 @@ from app.routers.championships import router as championships_router
 from app.routers.historical import router as historical_router  # ← já existia
 from app.routers import admin_players  # ← NOVO (ou o nome que o Claude usou)
 from app.routers import users
+from app.routers.championship_phases import router as championship_phases_router
+
 
 logging.basicConfig(
     level=logging.INFO,
@@ -63,6 +65,7 @@ app.include_router(tournaments.router)
 app.include_router(admin.router)
 app.include_router(championships_router)
 app.include_router(historical_router)
+app.include_router(championship_phases_router)
 app.include_router(admin_players.router)  # ← NOVO
 
 @app.get("/", tags=["Health"])
