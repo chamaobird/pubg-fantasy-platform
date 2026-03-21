@@ -13,6 +13,9 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     display_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    twitch_username: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    krafton_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    discord_username: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
 

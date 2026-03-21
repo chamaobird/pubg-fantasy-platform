@@ -11,6 +11,9 @@ class UserCreate(BaseModel):
 
 class UserUpdate(BaseModel):
     display_name: Optional[str] = None
+    twitch_username: Optional[str] = None
+    krafton_id: Optional[str] = None
+    discord_username: Optional[str] = None
 
 
 class UserOut(BaseModel):
@@ -18,6 +21,9 @@ class UserOut(BaseModel):
     username: str
     email: EmailStr
     display_name: Optional[str] = None
+    twitch_username: Optional[str] = None
+    krafton_id: Optional[str] = None
+    discord_username: Optional[str] = None
     created_at: datetime
     is_admin: bool
 

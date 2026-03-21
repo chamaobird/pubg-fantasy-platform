@@ -49,73 +49,64 @@ def update_me(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Atualiza o perfil do usuário logado. Atualmente suporta display_name."""
-    if payload.display_name is not None:
-        # Strip para evitar espaços soltos; None/vazio limpa o campo
-        cleaned = payload.display_name.strip()
-        current_user.display_name = cleaned if cleaned else None
+    for field in ("display_name", "twitch_username", "krafton_id", "discord_username"):
+        value = getattr(payload, field)
+        if value is not None:
+            cleaned = value.strip()
+            setattr(current_user, field, cleaned if cleaned else None)
     db.commit()
     db.refresh(current_user)
     return current_user
 
 
 class GoogleLoginBody(BaseModel):
-    token: str  # ID token gerado pelo frontend via @react-oauth/google
+    token: str
 
+class GoogleLoginResponse(BaseModel):
+    access_token: str = ""
+    token_type: str = "bearer"
+    requires_username: bool = False
+    temp_email: str = ""
 
-@router.post("/google-login", summary="Login via Google OAuth")
-async def google_login(
-    body: GoogleLoginBody,
-    db: Session = Depends(get_db),
-):
-    """
-    Valida o ID token do Google, cria o usuário se não existir,
-    e retorna um JWT XAMA idêntico ao do login normal.
-    """
+@router.post("/google-login", response_model=GoogleLoginResponse)
+async def google_login(body: GoogleLoginBody, db: Session = Depends(get_db)):
     from google.oauth2 import id_token
     from google.auth.transport import requests as google_requests
-    import secrets as _secrets
-    from app.core.security import create_access_token
-
-    # ── 1. Valida token com a Google ─────────────────────────────────────
     try:
-        idinfo = id_token.verify_oauth2_token(
-            body.token,
-            google_requests.Request(),
-            settings.GOOGLE_CLIENT_ID,
-        )
+        idinfo = id_token.verify_oauth2_token(body.token, google_requests.Request(), settings.GOOGLE_CLIENT_ID)
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Token Google inválido: {e}",
-        )
-
+        raise HTTPException(status_code=401, detail=f"Token Google inválido: {e}")
     google_email = idinfo.get("email")
-    google_name = idinfo.get("name", "")
     if not google_email:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email não retornado pelo Google",
-        )
-
-    # ── 2. Busca ou cria usuário ──────────────────────────────────────────
+        raise HTTPException(status_code=400, detail="Email não retornado pelo Google")
     user = db.query(User).filter(User.email == google_email).first()
-    if not user:
-        base = (google_name.replace(" ", "_").lower() or google_email.split("@")[0])[:30]
-        username = base
-        counter = 1
-        while db.query(User).filter(User.username == username).first():
-            username = f"{base}_{counter}"
-            counter += 1
-        user = User(
-            email=google_email,
-            username=username,
-            hashed_password=_secrets.token_hex(32),
-        )
-        db.add(user)
-        db.commit()
-        db.refresh(user)
+    if user:
+        return GoogleLoginResponse(access_token=create_access_token(subject=str(user.id)))
+    return GoogleLoginResponse(requires_username=True, temp_email=google_email)
 
-    # ── 3. Retorna JWT XAMA ───────────────────────────────────────────────
-    access_token = create_access_token(subject=str(user.id))
-    return {"access_token": access_token, "token_type": "bearer"}
+class CompleteGoogleSignup(BaseModel):
+    temp_email: str
+    username: str
+
+@router.post("/complete-google-signup", response_model=Token)
+def complete_google_signup(payload: CompleteGoogleSignup, db: Session = Depends(get_db)):
+    import re, secrets as _secrets
+    username = payload.username.strip()
+    if len(username) < 3:
+        raise HTTPException(status_code=400, detail="Username muito curto (mínimo 3 caracteres)")
+    if len(username) > 50:
+        raise HTTPException(status_code=400, detail="Username muito longo (máximo 50 caracteres)")
+    if not re.match(r'^[a-zA-Z0-9_\-]+$', username):
+        raise HTTPException(status_code=400, detail="Username só pode conter letras, números, _ e -")
+    if db.query(User).filter(User.email == payload.temp_email).first():
+        raise HTTPException(status_code=400, detail="Email já cadastrado")
+    if db.query(User).filter(User.username == username).first():
+        raise HTTPException(status_code=400, detail="Username já em uso, escolha outro")
+    user = User(email=payload.temp_email, username=username, hashed_password=_secrets.token_hex(32))
+    db.add(user); db.commit(); db.refresh(user)
+    return {"access_token": create_access_token(subject=str(user.id)), "token_type": "bearer"}
+
+@router.get("/check-username/{username}")
+def check_username(username: str, db: Session = Depends(get_db)):
+    taken = db.query(User).filter(User.username == username).first() is not None
+    return {"available": not taken}
