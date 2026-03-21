@@ -80,7 +80,7 @@ function SectionTitle({ step, label }) {
   )
 }
 
-export function LineupBuilder() {
+export default function LineupBuilder({
   const [tournaments, setTournaments] = useState([])
   const [tournamentsLoading, setTournamentsLoading] = useState(false)
   const [tournamentsError, setTournamentsError] = useState(null)
@@ -345,26 +345,7 @@ export function LineupBuilder() {
                 <div className="col-span-1 text-right cursor-pointer" onClick={() => handleSort('avg_kills_50')}>
                   K
                 </div>
-                <div className="col-span-1 text-right cursor-pointer" onClick={() => handleSort('avg_damage_50')}>
-                  Dmg
-                </div>
-                <div className="col-span-1 text-right cursor-pointer" onClick={() => handleSort('avg_placement_50')}>
-                  Place
-                </div>
-                <div className="col-span-1 text-right cursor-pointer" onClick={() => handleSort('avg_survival_50')}>
-                  Surv
-                </div>
-                <div className="col-span-1 text-right cursor-pointer" onClick={() => handleSort('pts_per_game')}>
-                  PTS/G
-                </div>
-                <div className="col-span-1 text-right">Sel.</div>
-                <div className="col-span-2 text-right">Reserva</div>
-              </div>
-
-              <div className="divide-y" style={{ borderColor: 'var(--color-xama-border-subtle)' }}>
-                {sortedPlayers.map((p) => {
-                  const isStarter = selectedPlayers.some((sp) => sp.id === p.id)
-                  const isReserve = reservePlayer && reservePlayer.id === p.id
+                <di                  const isReserve = reservePlayer && reservePlayer.id === p.id
                   const isSelected = isStarter || isReserve
                   const disabled = isSelected
                     ? false
@@ -440,36 +421,7 @@ export function LineupBuilder() {
                           className="px-2 py-1 text-[11px] rounded border"
                           style={{
                             borderColor: isReserve
-                              ? 'var(--color-xama-accent)'
-                              : 'var(--color-xama-border-subtle)',
-                            color: isReserve
-                              ? 'var(--color-xama-accent)'
-                              : 'var(--color-xama-foreground)',
-                            backgroundColor: 'transparent',
-                          }}
-                        >
-                          {isReserve ? 'Tirar reserva' : 'Reserva'}
-                        </button>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Right column */}
-        <div className="w-full lg:w-80 lg:pl-4">
-          <SectionTitle step={3} label="Resumo do lineup" />
-
-          <div
-            className="border rounded p-3 mb-4"
-            style={{ borderColor: 'var(--color-xama-border-subtle)' }}
-          >
-            <div className="flex items-center justify-between mb-2 text-[13px]">
-              <span style={{ color: 'var(--color-xama-muted)' }}>Budget disponível</span>
-              <span
+                              ? 'var(--color-xama-              <span
                 className="font-semibold"
                 style={{
                   color:
