@@ -1,5 +1,5 @@
 from datetime import datetime
-
+from typing import Optional
 from pydantic import BaseModel, EmailStr
 
 
@@ -9,10 +9,15 @@ class UserCreate(BaseModel):
     password: str
 
 
+class UserUpdate(BaseModel):
+    display_name: Optional[str] = None
+
+
 class UserOut(BaseModel):
     id: int
     username: str
     email: EmailStr
+    display_name: Optional[str] = None
     created_at: datetime
     is_admin: bool
 

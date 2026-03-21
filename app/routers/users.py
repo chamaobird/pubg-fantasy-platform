@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.core.security import create_access_token, hash_password, verify_password
 from app.database import get_db
 from app.models.user import User
-from app.schemas.user import LoginRequest, Token, UserCreate, UserOut
+from app.schemas.user import LoginRequest, Token, UserCreate, UserOut, UserUpdate
 from app.services.auth import get_current_user
 from pydantic import BaseModel
 from app.core.config import settings
@@ -42,8 +42,26 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
 def me(current_user: User = Depends(get_current_user)):
     return current_user
 
+
+@router.patch("/me", response_model=UserOut)
+def update_me(
+    payload: UserUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Atualiza o perfil do usuário logado. Atualmente suporta display_name."""
+    if payload.display_name is not None:
+        # Strip para evitar espaços soltos; None/vazio limpa o campo
+        cleaned = payload.display_name.strip()
+        current_user.display_name = cleaned if cleaned else None
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+
 class GoogleLoginBody(BaseModel):
     token: str  # ID token gerado pelo frontend via @react-oauth/google
+
 
 @router.post("/google-login", summary="Login via Google OAuth")
 async def google_login(
@@ -59,7 +77,7 @@ async def google_login(
     import secrets as _secrets
     from app.core.security import create_access_token
 
-    # ── 1. Valida token com a Google ──────────────────────────────────────
+    # ── 1. Valida token com a Google ─────────────────────────────────────
     try:
         idinfo = id_token.verify_oauth2_token(
             body.token,
@@ -73,8 +91,7 @@ async def google_login(
         )
 
     google_email = idinfo.get("email")
-    google_name  = idinfo.get("name", "")
-
+    google_name = idinfo.get("name", "")
     if not google_email:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -83,16 +100,13 @@ async def google_login(
 
     # ── 2. Busca ou cria usuário ──────────────────────────────────────────
     user = db.query(User).filter(User.email == google_email).first()
-
     if not user:
-        # Username baseado no nome Google, garantindo unicidade
         base = (google_name.replace(" ", "_").lower() or google_email.split("@")[0])[:30]
         username = base
-        counter  = 1
+        counter = 1
         while db.query(User).filter(User.username == username).first():
             username = f"{base}_{counter}"
             counter += 1
-
         user = User(
             email=google_email,
             username=username,

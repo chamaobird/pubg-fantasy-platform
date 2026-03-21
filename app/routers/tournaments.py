@@ -1,10 +1,8 @@
 from typing import Optional
-
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func as sql_func
-
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models import Lineup, Player, Team, Tournament, User, lineup_players
@@ -13,12 +11,9 @@ from app.schemas.lineup import LineupCreate
 
 router = APIRouter(prefix="/tournaments", tags=["Tournaments"])
 
-
 # ------------------------------------------------------------------
 # SCHEMAS
 # ------------------------------------------------------------------
-
-
 class TournamentResponse(BaseModel):
     id: int
     name: str
@@ -39,8 +34,6 @@ class TournamentResponse(BaseModel):
 # ------------------------------------------------------------------
 # GET /tournaments
 # ------------------------------------------------------------------
-
-
 @router.get(
     "/",
     response_model=list[TournamentResponse],
@@ -59,19 +52,16 @@ def list_tournaments(
     db: Session = Depends(get_db),
 ):
     query = db.query(Tournament)
-
     if status_filter:
         query = query.filter(Tournament.status == status_filter)
     if region:
         query = query.filter(Tournament.region == region.upper())
-
     tournaments = (
         query.order_by(Tournament.start_date.desc())
         .offset(skip)
         .limit(limit)
         .all()
     )
-
     return [
         TournamentResponse(
             id=t.id,
@@ -93,8 +83,6 @@ def list_tournaments(
 # ------------------------------------------------------------------
 # GET /tournaments/{tournament_id}
 # ------------------------------------------------------------------
-
-
 @router.get(
     "/{tournament_id}",
     response_model=TournamentResponse,
@@ -150,25 +138,21 @@ def list_tournament_players(
     tournament = db.query(Tournament).filter(Tournament.id == tournament_id).first()
     if not tournament:
         raise HTTPException(status_code=404, detail="Tournament not found")
-
     query = db.query(Player, Team.name).outerjoin(Team, Player.team_id == Team.id)
     query = query.filter(Player.tournament_id == tournament_id)
     query = query.filter(Player.is_active == True)
-
     if name:
         query = query.filter(Player.name.ilike(f"%{name}%"))
     if team:
         query = query.filter(Team.name.ilike(f"%{team}%"))
     if nationality:
         query = query.filter(Player.nationality.ilike(f"%{nationality}%"))
-
     rows = (
         query.order_by(Player.fantasy_cost.desc())
         .offset(skip)
         .limit(limit)
         .all()
     )
-
     return [
         TournamentPlayerResponse(
             id=p.id,
@@ -218,23 +202,17 @@ def create_lineup(
     tournament = db.query(Tournament).filter(Tournament.id == tournament_id).first()
     if not tournament:
         raise HTTPException(status_code=404, detail="Tournament not found")
-
     player_ids = body.player_ids
     if len(player_ids) != 4:
         raise HTTPException(status_code=400, detail="Lineup must have exactly 4 players")
-
     if len(set(player_ids)) != len(player_ids):
         raise HTTPException(status_code=400, detail="Duplicate players are not allowed")
-
     if body.captain_id not in player_ids:
         raise HTTPException(status_code=400, detail="captain_id must be in player_ids")
-
     reserve_player_id = body.reserve_player_id
     if reserve_player_id in player_ids:
         raise HTTPException(status_code=400, detail="reserve_player_id must not be in player_ids")
-
     all_ids = list(player_ids) + [reserve_player_id]
-
     all_players = (
         db.query(Player)
         .filter(Player.id.in_(all_ids), Player.tournament_id == tournament_id)
@@ -242,15 +220,12 @@ def create_lineup(
     )
     if len(all_players) != len(all_ids):
         raise HTTPException(status_code=400, detail="One or more players not found in this tournament")
-
     players_by_id = {p.id: p for p in all_players}
     starters = [players_by_id[pid] for pid in player_ids]
     reserve_player = players_by_id[reserve_player_id]
-
     team_ids = [p.team_id for p in starters + [reserve_player] if p.team_id is not None]
     if len(team_ids) != len(set(team_ids)):
         raise HTTPException(status_code=400, detail="Only one player per team is allowed")
-
     starter_costs = [float(p.fantasy_cost or 0.0) for p in starters]
     min_starter_cost = min(starter_costs) if starter_costs else 0.0
     reserve_real_cost = float(reserve_player.fantasy_cost or 0.0)
@@ -260,14 +235,12 @@ def create_lineup(
             detail="Reserve player cost cannot exceed the cheapest starter",
         )
     total_cost = sum(starter_costs)
-
     budget = float(tournament.budget_limit)
     if total_cost > budget:
         raise HTTPException(
             status_code=400,
             detail=f"Lineup total cost with reserve {total_cost:.2f} exceeds budget {budget:.2f}",
         )
-
     lineup = Lineup(
         user_id=current_user.id,
         tournament_id=tournament_id,
@@ -277,7 +250,6 @@ def create_lineup(
     )
     db.add(lineup)
     db.flush()
-
     for idx, pid in enumerate(player_ids, start=1):
         db.execute(
             lineup_players.insert().values(
@@ -286,12 +258,9 @@ def create_lineup(
                 slot=idx,
             )
         )
-
     db.commit()
     db.refresh(lineup)
-
     ordered_players = starters
-
     return LineupOut(
         id=lineup.id,
         name=lineup.name,
@@ -325,7 +294,6 @@ def my_lineups(
     tournament = db.query(Tournament).filter(Tournament.id == tournament_id).first()
     if not tournament:
         raise HTTPException(status_code=404, detail="Tournament not found")
-
     lineups = (
         db.query(Lineup)
         .options(joinedload(Lineup.players))
@@ -333,7 +301,6 @@ def my_lineups(
         .order_by(Lineup.created_at.desc())
         .all()
     )
-
     result: list[LineupOut] = []
     for lineup in lineups:
         result.append(
@@ -356,20 +323,20 @@ def my_lineups(
                 ],
             )
         )
-
     return result
 
 
 # ------------------------------------------------------------------
 # GET /tournaments/{tournament_id}/rankings
+# ── v2: inclui username e display_name de cada dono de lineup ──────
 # ------------------------------------------------------------------
-
-
 class RankingEntry(BaseModel):
     position: int
     lineup_id: int
     lineup_name: str
     user_id: int
+    username: str                      # sempre preenchido (fallback = "user_{id}")
+    display_name: Optional[str] = None # preenchido se o user definiu em /profile
     total_points: float
     players: list[LineupPlayerBasicOut]
 
@@ -381,7 +348,7 @@ class RankingEntry(BaseModel):
     description=(
         "Returns all lineups for the tournament ordered by total_points DESC "
         "(nulls treated as 0, placed at the bottom), ties broken by created_at ASC. "
-        "Each entry includes a 1-based position field."
+        "Each entry includes a 1-based position field, username and display_name."
     ),
 )
 def tournament_rankings(
@@ -409,14 +376,24 @@ def tournament_rankings(
         .all()
     )
 
+    # Carrega todos os users de uma vez (evita N+1 queries)
+    user_ids = list({lineup.user_id for lineup in lineups})
+    users_by_id = {
+        u.id: u
+        for u in db.query(User).filter(User.id.in_(user_ids)).all()
+    }
+
     result: list[RankingEntry] = []
     for position, lineup in enumerate(lineups, start=skip + 1):
+        user = users_by_id.get(lineup.user_id)
         result.append(
             RankingEntry(
                 position=position,
                 lineup_id=lineup.id,
                 lineup_name=lineup.name,
                 user_id=lineup.user_id,
+                username=user.username if user else f"user_{lineup.user_id}",
+                display_name=user.display_name if user else None,
                 total_points=float(lineup.total_points or 0.0),
                 players=[
                     LineupPlayerBasicOut(
@@ -429,46 +406,43 @@ def tournament_rankings(
                 ],
             )
         )
-
     return result
 
 
 # ------------------------------------------------------------------
 # GET /tournaments/{tournament_id}/player-stats
 # ------------------------------------------------------------------
-
-
 class PlayerStatsSummary(BaseModel):
-    player_id:          int
-    name:               str
-    team:               Optional[str] = None
-    region:             Optional[str] = None
-    fantasy_cost:       float
-    matches_played:     int
-    matches_total:      int
+    player_id: int
+    name: str
+    team: Optional[str] = None
+    region: Optional[str] = None
+    fantasy_cost: float
+    matches_played: int
+    matches_total: int
     # Kill stats
-    total_kills:        int
-    avg_kills:          float
+    total_kills: int
+    avg_kills: float
     # Assist stats
-    total_assists:      int
-    avg_assists:        float
+    total_assists: int
+    avg_assists: float
     # Damage stats
-    total_damage:       float
-    avg_damage:         float
+    total_damage: float
+    avg_damage: float
     # Placement
-    avg_placement:      float
+    avg_placement: float
     # Headshots
-    total_headshots:    int
-    avg_headshots:      float
+    total_headshots: int
+    avg_headshots: float
     # Knocks (DBNOs)
-    total_knocks:       int
-    avg_knocks:         float
+    total_knocks: int
+    avg_knocks: float
     # Survival
-    avg_survival_secs:  float
+    avg_survival_secs: float
     # Fantasy points
     total_fantasy_points: float
-    pts_per_match:        float
-    total_base_points:    float
+    pts_per_match: float
+    total_base_points: float
     total_late_game_bonus: float
     total_penalty_count: int
 
@@ -500,7 +474,6 @@ def tournament_player_stats(
         raise HTTPException(status_code=404, detail="Tournament not found")
 
     # ── Calcula edição mais recente e matches_total ───────────────────────
-    # Pega todas as partidas do torneio em ordem cronológica
     all_matches = (
         db.query(Match)
         .filter(Match.tournament_id == tournament_id)
@@ -508,7 +481,6 @@ def tournament_player_stats(
         .all()
     )
 
-    # Filtra edição mais recente (janela de 180 dias para simplificar)
     if all_matches:
         latest = all_matches[-1].played_at
         cutoff = latest - timedelta(days=180)
@@ -518,7 +490,6 @@ def tournament_player_stats(
         recent_match_ids = []
         recent_matches = []
 
-    # Aplica filtro de match_id/date também
     if match_id:
         recent_match_ids = [mid for mid in recent_match_ids if mid == match_id]
     elif date:
@@ -628,10 +599,8 @@ def tournament_matches(
     if not matches:
         return {"tournament_id": tournament_id, "total_matches": 0, "days": []}
 
-    # Agrupa por sessão de jogo (partidas com < 4h de diferença = mesmo dia)
     sessions = []
     current_session = []
-
     for m in matches:
         if not current_session:
             current_session.append(m)
@@ -646,8 +615,6 @@ def tournament_matches(
     if current_session:
         sessions.append(current_session)
 
-    # Agrupa sessões em edições (gap > 30 dias = edição diferente)
-    # Mantém apenas a edição mais recente
     editions = [[sessions[0]]]
     for i in range(1, len(sessions)):
         gap = abs((sessions[i][0].played_at - sessions[i-1][-1].played_at).total_seconds())
@@ -657,7 +624,6 @@ def tournament_matches(
             editions[-1].append(sessions[i])
 
     latest_edition = editions[-1]
-
     result = []
     for i, session in enumerate(latest_edition):
         date_key = session[0].played_at.date().isoformat()
@@ -678,7 +644,6 @@ def tournament_matches(
         })
 
     latest_matches = [m for session in latest_edition for m in session]
-
     return {
         "tournament_id": tournament_id,
         "total_matches": len(latest_matches),
