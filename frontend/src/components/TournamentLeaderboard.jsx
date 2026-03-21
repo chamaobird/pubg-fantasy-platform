@@ -1,21 +1,26 @@
 // frontend/src/components/TournamentLeaderboard.jsx
 // XAMA Fantasy — Leaderboard
 // Tailwind v4 + tema XAMA
-// Lógica 100% idêntica ao original — só visual mudou
+// v2: exibe display_name (ou username como fallback) na coluna Manager
 
 import { useEffect, useState } from 'react'
 import { API_BASE_URL } from '../config'
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
 const formatPlayerName = (name) => {
   if (!name) return '—'
   const parts = name.split('_')
   return parts.length > 1 ? parts.slice(1).join('_') : name
 }
 
-const RANK_COLORS  = { 1: '#f0c040', 2: '#b4bcc8', 3: '#cd7f50' }
-const RANK_LABELS  = { 1: '01', 2: '02', 3: '03' }
-const RANK_BG      = {
+/** Retorna o nome de exibição preferido do dono da lineup */
+const ownerLabel = (entry) =>
+  entry.display_name || entry.username || `#${entry.user_id}`
+
+const RANK_COLORS = { 1: '#f0c040', 2: '#b4bcc8', 3: '#cd7f50' }
+const RANK_LABELS = { 1: '01', 2: '02', 3: '03' }
+const RANK_BG = {
   1: 'rgba(240,192,64,0.04)',
   2: 'rgba(180,188,200,0.03)',
   3: 'rgba(176,120,80,0.03)',
@@ -28,10 +33,10 @@ export default function TournamentLeaderboard({
   selectedTournamentId = '',
   onTournamentChange,
 }) {
-  const [rankings, setRankings]       = useState([])
-  const [loading, setLoading]         = useState(false)
-  const [error, setError]             = useState(null)
-  const [expanded, setExpanded]       = useState({})
+  const [rankings, setRankings] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+  const [expanded, setExpanded] = useState({})
   const [myLineupIds, setMyLineupIds] = useState(new Set())
 
   const tournamentId = selectedTournamentId
@@ -67,7 +72,7 @@ export default function TournamentLeaderboard({
       .catch(() => setMyLineupIds(new Set()))
   }, [token, tournamentId])
 
-  const toggle   = (id) => setExpanded((prev) => ({ ...prev, [id]: !prev[id] }))
+  const toggle = (id) => setExpanded((prev) => ({ ...prev, [id]: !prev[id] }))
   const anyPoints = rankings.some((r) => r.total_points > 0)
   const selectedTournament = tournaments.find((t) => String(t.id) === String(tournamentId))
 
@@ -76,13 +81,12 @@ export default function TournamentLeaderboard({
       className="min-h-screen"
       style={{ background: 'var(--color-xama-black)', fontFamily: "'Rajdhani', sans-serif" }}
     >
-      {/* ── Page header ──────────────────────────────────────────────────── */}
+      {/* ── Page header ────────────────────────────────────────────────────── */}
       <div
         className="px-6 py-5 border-b"
         style={{ background: 'var(--color-xama-surface)', borderColor: 'var(--color-xama-border)' }}
       >
         <div className="max-w-3xl mx-auto flex flex-wrap items-end justify-between gap-4">
-
           {/* Title */}
           <div>
             <div className="flex items-center gap-3 mb-1">
@@ -120,7 +124,6 @@ export default function TournamentLeaderboard({
                 ))}
               </select>
             )}
-
             <button
               className="dark-btn flex items-center gap-2"
               onClick={fetchRankings}
@@ -134,9 +137,8 @@ export default function TournamentLeaderboard({
         </div>
       </div>
 
-      {/* ── Content ──────────────────────────────────────────────────────── */}
+      {/* ── Content ────────────────────────────────────────────────────────── */}
       <div className="max-w-3xl mx-auto px-4 py-6">
-
         {/* States */}
         {loading && (
           <p className="text-center py-20 text-[13px]" style={{ color: 'var(--color-xama-muted)' }}>
@@ -167,23 +169,31 @@ export default function TournamentLeaderboard({
         {!loading && !error && rankings.length > 0 && (
           <div
             className="rounded-xl overflow-hidden"
-            style={{ border: '1px solid var(--color-xama-border)', background: 'var(--color-xama-surface)' }}
+            style={{
+              border: '1px solid var(--color-xama-border)',
+              background: 'var(--color-xama-surface)',
+            }}
           >
             {/* accent line */}
-            <div style={{ height: '2px', background: 'linear-gradient(90deg, var(--color-xama-gold) 0%, transparent 50%)' }} />
-
+            <div
+              style={{
+                height: '2px',
+                background: 'linear-gradient(90deg, var(--color-xama-gold) 0%, transparent 50%)',
+              }}
+            />
             <table className="w-full border-collapse">
               <thead>
                 <tr style={{ background: '#0a0c11', borderBottom: '1px solid var(--color-xama-border)' }}>
-                  {['#', 'Lineup', 'Pontos', ''].map((h, i) => (
+                  {/* ── MUDANÇA: adicionada coluna Manager ── */}
+                  {['#', 'Lineup', 'Manager', 'Pontos', ''].map((h, i) => (
                     <th
                       key={i}
                       className="px-4 py-3 text-[10px] font-bold tracking-[0.1em] uppercase"
                       style={{
                         color: 'var(--color-xama-muted)',
-                        textAlign: i >= 2 ? 'right' : 'left',
+                        textAlign: i >= 3 ? 'right' : 'left',
                         fontFamily: "'Rajdhani', sans-serif",
-                        width: i === 0 ? '52px' : i === 3 ? '120px' : undefined,
+                        width: i === 0 ? '52px' : i === 4 ? '120px' : undefined,
                       }}
                     >
                       {h}
@@ -194,8 +204,8 @@ export default function TournamentLeaderboard({
               <tbody>
                 {rankings.map((entry) => {
                   const isOpen = !!expanded[entry.lineup_id]
-                  const isMe   = myLineupIds.has(entry.lineup_id)
-                  const pos    = entry.position
+                  const isMe = myLineupIds.has(entry.lineup_id)
+                  const pos = entry.position
                   const isTop3 = pos <= 3
 
                   return (
@@ -257,15 +267,29 @@ export default function TournamentLeaderboard({
                           )}
                         </td>
 
+                        {/* ── NOVO: Manager (display_name ou username) ── */}
+                        <td className="px-4 py-[13px]">
+                          <span
+                            className="text-[12px]"
+                            style={{
+                              fontFamily: "'JetBrains Mono', monospace",
+                              color: 'var(--color-xama-muted)',
+                            }}
+                          >
+                            {ownerLabel(entry)}
+                          </span>
+                        </td>
+
                         {/* Points */}
                         <td className="px-4 py-[13px] text-right">
                           <span
                             className="text-[15px] font-bold tabular-nums"
                             style={{
                               fontFamily: "'JetBrains Mono', monospace",
-                              color: anyPoints && entry.total_points > 0
-                                ? 'var(--color-xama-gold)'
-                                : '#374151',
+                              color:
+                                anyPoints && entry.total_points > 0
+                                  ? 'var(--color-xama-gold)'
+                                  : '#374151',
                             }}
                           >
                             {entry.total_points.toFixed(2)}
@@ -302,7 +326,7 @@ export default function TournamentLeaderboard({
                       {isOpen && (
                         <tr key={`${entry.lineup_id}-players`}>
                           <td
-                            colSpan={4}
+                            colSpan={5}
                             style={{
                               padding: 0,
                               background: '#0a0c11',
@@ -357,7 +381,10 @@ export default function TournamentLeaderboard({
               </span>
               <span
                 className="text-[11px] tabular-nums"
-                style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-muted)' }}
+                style={{
+                  fontFamily: "'JetBrains Mono', monospace",
+                  color: 'var(--color-xama-muted)',
+                }}
               >
                 {rankings.length} lineups
               </span>

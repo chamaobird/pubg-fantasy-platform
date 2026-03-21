@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import LandingPage from './pages/LandingPage'
 import TournamentSelect from './pages/TournamentSelect'
 import TournamentHub from './pages/TournamentHub'
+import Profile from './pages/Profile'
 
 export const AuthContext = createContext(null)
 export const useAuth = () => useContext(AuthContext)
@@ -44,17 +45,27 @@ export default function App() {
     <AuthContext.Provider value={{ token, setToken: handleSetToken, logout: handleLogout }}>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={
-            token
-              ? <Navigate to={pendingRedirect || '/tournaments'} replace />
-              : <LandingWithRedirect />
-          } />
-          <Route path="/tournaments" element={
-            <RequireAuth><TournamentSelect /></RequireAuth>
-          } />
-          <Route path="/tournament/:id" element={
-            <RequireAuth><TournamentHub /></RequireAuth>
-          } />
+          <Route
+            path="/"
+            element={
+              token
+                ? <Navigate to={pendingRedirect || '/tournaments'} replace />
+                : <LandingWithRedirect />
+            }
+          />
+          <Route
+            path="/tournaments"
+            element={<RequireAuth><TournamentSelect /></RequireAuth>}
+          />
+          <Route
+            path="/tournament/:id"
+            element={<RequireAuth><TournamentHub /></RequireAuth>}
+          />
+          {/* ── NOVO: página de perfil ── */}
+          <Route
+            path="/profile"
+            element={<RequireAuth><Profile /></RequireAuth>}
+          />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
