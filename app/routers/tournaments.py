@@ -448,6 +448,8 @@ class PlayerStatsSummary(BaseModel):
     avg_knocks: float
     # Survival
     avg_survival_secs: float
+    # Wins (1st place finishes)
+    total_wins: int
     # Fantasy points
     total_fantasy_points: float
     pts_per_match: float
@@ -536,6 +538,7 @@ def tournament_player_stats(
             sql_func.sum(MatchPlayerStat.base_points).label("total_base_points"),
             sql_func.sum(MatchPlayerStat.late_game_bonus).label("total_late_game_bonus"),
             sql_func.sum(MatchPlayerStat.penalty_count).label("total_penalty_count"),
+            sql_func.sum(MatchPlayerStat.wins_count).label("total_wins"),
         )
         .join(MatchPlayerStat, MatchPlayerStat.player_id == Player.id)
         .join(Match, MatchPlayerStat.match_id == Match.id)
@@ -575,6 +578,7 @@ def tournament_player_stats(
             total_knocks=int(r.total_knocks or 0),
             avg_knocks=round(float(r.avg_knocks or 0.0), 2),
             avg_survival_secs=round(float(r.avg_survival_secs or 0.0), 0),
+            total_wins=int(r.total_wins or 0),
             total_fantasy_points=round(tfp, 2),
             pts_per_match=round(tfp / mp, 2),
             total_base_points=round(float(r.total_base_points or 0.0), 2),

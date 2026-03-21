@@ -265,6 +265,7 @@ def import_matches(
                         late_game_bonus=bonus_pts,
                         fantasy_points=base_pts + bonus_pts,
                         penalty_count=pen_count,
+                        wins_count=1 if (stat_input.placement or 0) == 1 else 0,
                     )
                 )
             db.commit()

@@ -62,6 +62,18 @@ const calcPenalty = (p) => {
 
 const COLUMNS = [
   { key: 'matches_played',       label: 'M',          title: 'Partidas jogadas',         right: true,  render: (p) => `${p.matches_played}/${p.matches_total}` },
+  {
+    key: 'total_wins',
+    label: 'W',
+    title: 'Vitórias (1º lugar)',
+    right: true,
+    render: (p) => (
+      <span style={{ color: (p.total_wins || 0) > 0 ? '#4ade80' : 'var(--color-xama-muted)' }}>
+        {fmtInt(p.total_wins)}
+      </span>
+    ),
+    sortVal: (p) => p.total_wins || 0,
+  },
   { key: 'total_fantasy_points', label: 'PTS XAMA',   title: 'Pontos XAMA totais',       right: true,  render: (p) => fmt2(p.total_fantasy_points),
     color: () => 'var(--color-xama-orange)' },
   { key: 'twire_pts',            label: 'PTS TWIRE',  title: 'Estimativa Twire',         right: true,  render: (p) => fmt2(calcTwire(p)),
