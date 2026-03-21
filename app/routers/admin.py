@@ -4,6 +4,7 @@ Endpoints administrativos para sincronização com a PUBG API.
 Todos os endpoints requerem autenticação JWT + is_admin=True.
 """
 
+
 import logging
 from datetime import datetime
 
@@ -22,7 +23,6 @@ from app.services.pubg_api import PUBGApiClient, calculate_fantasy_cost
 from app.services.lineup_scoring import score_all_lineups_for_match
 from app.config import settings
 
-
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
@@ -30,6 +30,7 @@ router = APIRouter(prefix="/admin", tags=["Admin"])
 # ------------------------------------------------------------------
 # POST /admin/recalculate-costs
 # ------------------------------------------------------------------
+
 
 @router.post(
     "/recalculate-costs",
@@ -60,6 +61,7 @@ async def recalculate_costs(
         "message": f"fantasy_cost recalculado para {updated} jogadores.",
         "updated": updated,
     }
+
 
 @router.post("/promote-to-admin", summary="[TEMP] Promove usuário a admin")
 async def promote_user_to_admin(
@@ -102,9 +104,11 @@ async def list_all_users(
         "users": [{"id": u.id, "email": u.email, "is_admin": u.is_admin} for u in users]
     }
 
+
 # ------------------------------------------------------------------
 # POST /admin/matches/{match_id}/score
 # ------------------------------------------------------------------
+
 
 @router.post(
     "/matches/{match_id}/score",
@@ -144,6 +148,7 @@ async def score_match_lineups(
 # ------------------------------------------------------------------
 # POST /admin/seed-test-match
 # ------------------------------------------------------------------
+
 
 # Hardcoded per-slot stats — deterministic so results are predictable
 _TEST_STATS = [
@@ -270,6 +275,8 @@ async def seed_test_match(
             f"Now call POST /admin/matches/{match.id}/score to compute LineupScores."
         ),
     }
+
+
 from pydantic import BaseModel as _BaseModel  # local alias to avoid collision if BaseModel already imported
 from typing import Optional as _Optional
 from datetime import datetime as _datetime
@@ -334,6 +341,7 @@ async def register_tournament(
         "status":        tournament.status,
     }
 
+
 @router.post("/reset-database", summary="[TEMP] Zera todos os dados de torneios, players e matches")
 async def reset_database(
     db: Session = Depends(get_db),
@@ -356,6 +364,7 @@ async def reset_database(
         db.rollback()
         return {"status": "error", "message": str(e)}
     
+
 @router.post("/run-migrations", summary="[TEMP] Força alembic upgrade head")
 async def run_migrations(
     admin: User = Depends(require_admin),
@@ -373,6 +382,7 @@ async def run_migrations(
         "stderr": result.stderr,
     }
 
+
 @router.get("/db-version", summary="[TEMP] Verifica versão atual do Alembic no banco")
 async def db_version(
     db: Session = Depends(get_db),
@@ -385,6 +395,7 @@ async def db_version(
     except Exception as e:
         return {"error": str(e)}
     
+
 @router.post("/backfill-player-stats/{tournament_id}", summary="[TEMP] Popula avg_kills_50 etc via SQL direto")
 async def backfill_player_stats(
     tournament_id: int,
@@ -419,6 +430,7 @@ async def backfill_player_stats(
     db.commit()
     return {"status": "ok", "rows_updated": result.rowcount}
 
+
 @router.post(
     "/seed-players-from-matches/{tournament_id}",
     summary="Cria players automaticamente a partir dos matches importados",
@@ -434,8 +446,8 @@ async def seed_players_from_matches(
     db: Session = Depends(get_db),
     admin: User = Depends(require_admin),
 ):
-    from app.models.match import Match, MatchPlayerStat
-    from app.models import Player, Team
+    from app.models.match import Match
+    from app.models import Player, Team, Tournament
     from app.services.pubg_client import PubgClient, PubgApiError
     from app.core.config import settings
 
@@ -449,7 +461,6 @@ async def seed_players_from_matches(
         )
 
     # Busca o torneio para herdar região
-    from app.models import Tournament
     tournament = db.query(Tournament).filter(Tournament.id == tournament_id).first()
     if not tournament:
         raise HTTPException(status_code=404, detail="Tournament not found")
@@ -488,7 +499,7 @@ async def seed_players_from_matches(
                     db.flush()
                 team_id = team.id
 
-                        # ── Upsert do player por pubg_id ──────────────────────────────
+            # ── Upsert do player por pubg_id ──────────────────────────────
             player = db.query(Player).filter(Player.pubg_id == rps.pubg_account_id).first()
             if player:
                 if player.tournament_id is None:
@@ -528,6 +539,7 @@ async def seed_players_from_matches(
             "novamente para resolver os stats com os players recém-criados."
         ),
     }
+
 
 @router.post("/reprocess-match-stats/{tournament_id}", summary="Re-processa stats de matches já importados")
 async def reprocess_match_stats(
@@ -605,10 +617,13 @@ async def reprocess_match_stats(
     db.commit()
     return {"tournament_id": tournament_id, "stats_created": created, "skipped": skipped, "errors": errors}
 
+
 class TournamentUpdate(BaseModel):
-    name:   Optional[str] = None
-    region: Optional[str] = None
-    status: Optional[str] = None
+    name:        Optional[str] = None
+    region:      Optional[str] = None
+    status:      Optional[str] = None
+    lineup_open: Optional[bool] = None
+
 
 @router.patch("/tournaments/{tournament_id}", summary="Atualiza nome/região/status de um torneio")
 async def update_tournament(
@@ -621,11 +636,23 @@ async def update_tournament(
     t = db.query(Tournament).filter(Tournament.id == tournament_id).first()
     if not t:
         raise HTTPException(status_code=404, detail="Tournament not found")
-    if body.name:   t.name   = body.name
-    if body.region: t.region = body.region
-    if body.status: t.status = body.status
+    if body.name is not None:
+        t.name = body.name
+    if body.region is not None:
+        t.region = body.region
+    if body.status is not None:
+        t.status = body.status
+    if body.lineup_open is not None:
+        t.lineup_open = body.lineup_open
     db.commit()
-    return {"id": t.id, "name": t.name, "region": t.region, "status": t.status}
+    return {
+        "id": t.id,
+        "name": t.name,
+        "region": t.region,
+        "status": t.status,
+        "lineup_open": t.lineup_open,
+    }
+
 
 @router.post("/recalculate-fantasy-points/{tournament_id}", summary="Recalcula fantasy_points com fórmula XAMA")
 async def recalculate_fantasy_points(
@@ -675,6 +702,7 @@ async def recalculate_fantasy_points(
     db.commit()
     return {"tournament_id": tournament_id, "updated": updated}
 
+
 @router.get("/check-matches/{tournament_id}", summary="[TEMP] Verifica campos dos matches")
 async def check_matches(
     tournament_id: int,
@@ -684,6 +712,7 @@ async def check_matches(
     from app.models.match import Match
     matches = db.query(Match).filter(Match.tournament_id == tournament_id).all()
     return [{"id": m.id, "day": m.day, "match_number": m.match_number, "map": m.map_name, "played_at": str(m.played_at)} for m in matches]
+
 
 @router.patch("/tournaments/{tournament_id}/teams/{team_name}/deactivate", summary="Desativa jogadores de um time eliminado")
 async def deactivate_team(

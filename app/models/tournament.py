@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String, Text, func, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -21,6 +21,12 @@ class Tournament(Base):
     end_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     max_teams: Mapped[int] = mapped_column(Integer, default=16)
     budget_limit: Mapped[float] = mapped_column(Numeric(8, 2), default=100.0)
+    lineup_open: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default="false",
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -47,7 +53,6 @@ class ScoringRule(Base):
     damage_per_100: Mapped[float] = mapped_column(Numeric(5, 2), default=5.0)
     survival_points: Mapped[float] = mapped_column(Numeric(5, 2), default=1.0)
     early_death_penalty: Mapped[float] = mapped_column(Numeric(5, 2), default=-5.0)
-    # JSON: {"1": 1.5, "2": 1.3, "3": 1.1, "4-10": 1.0, "11+": 0.8}
     placement_multiplier_json: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     tournament: Mapped["Tournament"] = relationship("Tournament", back_populates="scoring_rule")
