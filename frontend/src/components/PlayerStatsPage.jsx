@@ -55,13 +55,9 @@ const calcLateGame = (p) => {
 
 // Penalidade: quantas vezes tomou -15 e total
 const calcPenalty = (p) => {
-  const base  = p.total_base_points      || 0
-  const total = p.total_fantasy_points   || 0
-  const bonus = p.total_late_game_bonus  || 0
-  const penalty = total - bonus - base
-  if (penalty >= 0) return '0'
-  const count = Math.round(Math.abs(penalty) / 15)
-  return `${count}(${Math.round(penalty)})`
+  const count = p.total_penalty_count || 0
+  if (count === 0) return '0'
+  return `${count}(${count * -15})`
 }
 
 const COLUMNS = [
