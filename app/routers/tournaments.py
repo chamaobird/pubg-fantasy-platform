@@ -468,6 +468,7 @@ class PlayerStatsSummary(BaseModel):
     pts_per_match:        float
     total_base_points:    float
     total_late_game_bonus: float
+    total_penalty_count: int
 
 
 @router.get(
@@ -552,6 +553,7 @@ def tournament_player_stats(
             sql_func.sum(MatchPlayerStat.fantasy_points).label("total_fantasy_points"),
             sql_func.sum(MatchPlayerStat.base_points).label("total_base_points"),
             sql_func.sum(MatchPlayerStat.late_game_bonus).label("total_late_game_bonus"),
+            sql_func.sum(MatchPlayerStat.penalty_count).label("total_penalty_count"),
         )
         .join(MatchPlayerStat, MatchPlayerStat.player_id == Player.id)
         .join(Match, MatchPlayerStat.match_id == Match.id)
@@ -595,6 +597,7 @@ def tournament_player_stats(
             pts_per_match=round(tfp / mp, 2),
             total_base_points=round(float(r.total_base_points or 0.0), 2),
             total_late_game_bonus=round(float(r.total_late_game_bonus or 0.0), 2),
+            total_penalty_count=int(r.total_penalty_count or 0),
         ))
     return result
 
