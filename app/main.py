@@ -1,18 +1,15 @@
 # app/main.py
 import logging
 from contextlib import asynccontextmanager
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer
-
-from app.routers import auth, players, tournaments, admin
+from app.routers import players, tournaments, admin
 from app.routers.championships import router as championships_router
-from app.routers.historical import router as historical_router  # ← já existia
-from app.routers import admin_players  # ← NOVO (ou o nome que o Claude usou)
+from app.routers.historical import router as historical_router
+from app.routers import admin_players
 from app.routers import users
 from app.routers.championship_phases import router as championship_phases_router
-
 
 logging.basicConfig(
     level=logging.INFO,
@@ -24,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # ── Start background scheduler ────────────────────────────────────────
+    # ── Start background scheduler ──────────────────────────────────────
     from app.services.scheduler import create_scheduler
     scheduler = create_scheduler()
     scheduler.start()
@@ -32,11 +29,9 @@ async def lifespan(app: FastAPI):
         "Scheduler started — auto-import every %s minutes for active tournaments.",
         15,
     )
-
     logger.info("Warzone Fantasy API iniciada. Migrations já aplicadas no startup.")
     yield
-
-    # ── Graceful shutdown ─────────────────────────────────────────────────
+    # ── Graceful shutdown ───────────────────────────────────────────────
     scheduler.shutdown(wait=False)
     logger.info("Scheduler stopped. Warzone Fantasy API encerrando.")
 
@@ -58,7 +53,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(auth.router)
+# ── Routers ─────────────────────────────────────────────────────────────────
+# ATENÇÃO: auth.router foi removido — estava em conflito com users.router.
+# Ambos tinham prefixo /users e endpoints /login e /register duplicados.
+# users.router é a versão correta (aceita JSON, tem PATCH /me, Google OAuth).
 app.include_router(users.router)
 app.include_router(players.router)
 app.include_router(tournaments.router)
@@ -66,7 +64,8 @@ app.include_router(admin.router)
 app.include_router(championships_router)
 app.include_router(historical_router)
 app.include_router(championship_phases_router)
-app.include_router(admin_players.router)  # ← NOVO
+app.include_router(admin_players.router)
+
 
 @app.get("/", tags=["Health"])
 def root():
