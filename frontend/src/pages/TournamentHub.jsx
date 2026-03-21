@@ -157,17 +157,34 @@ export default function TournamentHub() {
 
           {/* Right: back + logout */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <button
-              onClick={() => navigate('/tournaments')}
+            <button onClick={() => navigate('/tournaments')}
               style={{
                 background: 'none', border: '1px solid var(--color-xama-border)',
-                borderRadius: '6px', padding: '5px 12px',
-                fontSize: '11px', fontWeight: 600, letterSpacing: '0.06em',
+                borderRadius: '6px', padding: '5px 12px', fontSize: '11px',
+                fontWeight: 600, letterSpacing: '0.06em',
                 color: 'var(--color-xama-muted)', cursor: 'pointer',
                 fontFamily: "'Rajdhani', sans-serif",
               }}
             >
               ← Torneios
+            </button>
+
+            <button onClick={() => navigate('/profile')}
+              style={{
+                background: 'none', border: '1px solid var(--color-xama-border)',
+                borderRadius: '6px', padding: '5px 12px', fontSize: '11px',
+                fontWeight: 600, letterSpacing: '0.06em',
+                color: 'var(--color-xama-muted)', cursor: 'pointer',
+                fontFamily: "'Rajdhani', sans-serif",
+              }}
+            >
+              👤 Perfil
+            </button>
+
+            <button onClick={() => navigate('/profile')}
+              style={{ background: 'none', border: '1px solid var(--color-xama-border)', borderRadius: '6px', padding: '5px 12px', fontSize: '11px', fontWeight: 600, letterSpacing: '0.06em', color: 'var(--color-xama-muted)', cursor: 'pointer', fontFamily: "'Rajdhani', sans-serif" }}
+            >
+              👤 Perfil
             </button>
 
             {token && (
@@ -183,12 +200,11 @@ export default function TournamentHub() {
               </span>
             )}
 
-            <button
-              onClick={logout}
+            <button onClick={logout}
               style={{
                 background: 'none', border: '1px solid var(--color-xama-border)',
-                borderRadius: '6px', padding: '5px 12px',
-                fontSize: '11px', fontWeight: 600, letterSpacing: '0.06em',
+                borderRadius: '6px', padding: '5px 12px', fontSize: '11px',
+                fontWeight: 600, letterSpacing: '0.06em',
                 color: 'var(--color-xama-muted)', cursor: 'pointer',
                 fontFamily: "'Rajdhani', sans-serif",
               }}
