@@ -117,6 +117,8 @@ export default function LineupBuilder({
   const [sortDir, setSortDir] = useState('desc')
 
   // ── Derived ────────────────────────────────────────────────────────────
+  // Mostra todos os torneios no dropdown (não só os abertos),
+  // o estado LOCKED é exibido via banner quando lineup_open=false
   const openTournaments = useMemo(
     () => tournaments.filter((t) => t.lineup_open),
     [tournaments]
@@ -126,6 +128,9 @@ export default function LineupBuilder({
     const idNum = Number(selectedTournamentId)
     return tournaments.find((t) => t.id === idNum) || null
   }, [selectedTournamentId, tournaments])
+
+  // true quando o torneio selecionado tem lineup_open=false
+  const isLocked = selectedTournament ? !selectedTournament.lineup_open : false
 
   const budgetLimit = useMemo(() => {
     const val = selectedTournament?.budget_limit
@@ -306,6 +311,7 @@ export default function LineupBuilder({
     setSaveLoading(true); setSaveError(''); setSaveSuccess(null)
     try {
       if (!selectedTournamentId)        throw new Error('Selecione um torneio')
+      if (isLocked)                     throw new Error('Lineup fechado para este torneio')
       if (selectedPlayers.length !== 4) throw new Error('Selecione exatamente 4 jogadores')
       if (!reservePlayer)               throw new Error('Selecione o reserva')
       if (!captainId)                   throw new Error('Selecione o capitao')
@@ -330,7 +336,8 @@ export default function LineupBuilder({
     }
   }
 
-  const canSave = selectedTournamentId && selectedPlayers.length === 4 &&
+  // isLocked bloqueia o save mesmo que todos os outros campos estejam preenchidos
+  const canSave = !isLocked && selectedTournamentId && selectedPlayers.length === 4 &&
     reservePlayer && captainId && token.trim() && totalCost <= budgetLimit && reserveEligible
 
   function handleSort(key) {
@@ -431,19 +438,49 @@ export default function LineupBuilder({
               {tournamentsError   && <div className="msg-error">{tournamentsError}</div>}
               {!tournamentsLoading && !tournamentsError && (
                 <>
-                  {openTournaments.length === 0 ? (
+                  {tournaments.length === 0 ? (
                     <div className="py-4 px-3 rounded-lg text-[13px]"
                       style={{ background: '#0a0c11', border: '1px solid var(--color-xama-border)', color: 'var(--color-xama-muted)' }}>
-                      Nenhum torneio aberto para lineup no momento.
+                      Nenhum torneio disponível no momento.
                     </div>
                   ) : (
-                    <select className="dark-select mb-4" value={selectedTournamentId}
+                    <select className="dark-select mb-3" value={selectedTournamentId}
                       onChange={(e) => onTournamentChange?.(e.target.value)}
                       style={{ fontFamily: "'Rajdhani', sans-serif" }}>
-                      {openTournaments.map((t) => (
-                        <option key={t.id} value={String(t.id)}>{t.name}{t.region ? ` (${t.region})` : ''}</option>
+                      {tournaments.map((t) => (
+                        <option key={t.id} value={String(t.id)}>
+                          {t.name}{t.region ? ` (${t.region})` : ''}{!t.lineup_open ? ' 🔒' : ''}
+                        </option>
                       ))}
                     </select>
+                  )}
+
+                  {/* Banner LOCKED: aparece quando o torneio selecionado está fechado */}
+                  {isLocked && (
+                    <div className="flex items-center gap-3 mb-3 px-4 py-3 rounded-lg"
+                      style={{
+                        background: 'rgba(239,68,68,0.07)',
+                        border: '1px solid rgba(239,68,68,0.25)',
+                      }}>
+                      <span style={{ fontSize: 20, lineHeight: 1 }}>🔒</span>
+                      <div>
+                        <p className="text-[13px] font-bold tracking-[0.04em] uppercase"
+                          style={{ color: '#f87171', fontFamily: "'Rajdhani', sans-serif", marginBottom: 2 }}>
+                          Lineup Fechado
+                        </p>
+                        <p className="text-[11px]" style={{ color: 'var(--color-xama-muted)' }}>
+                          As submissões encerraram quando o primeiro match foi importado.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Hint quando há torneios abertos mas nenhum está selecionado */}
+                  {openTournaments.length === 0 && !isLocked && (
+                    <div className="py-3 px-3 rounded-lg text-[12px] mb-3"
+                      style={{ background: '#0a0c11', border: '1px solid var(--color-xama-border)', color: 'var(--color-xama-muted)' }}>
+                      Nenhum torneio com lineup aberto no momento.
+                    </div>
                   )}
                 </>
               )}
@@ -574,15 +611,28 @@ export default function LineupBuilder({
                             </td>
 
                             <td className="px-3 py-2">
+                              {/* Botões desabilitados quando lineup está locked */}
                               <div className="flex gap-1 justify-end">
                                 <button className="dark-btn-sm"
-                                  style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 600 }}
-                                  onClick={() => addPlayer(p)}>
+                                  disabled={isLocked}
+                                  style={{
+                                    fontFamily: "'Rajdhani', sans-serif",
+                                    fontWeight: 600,
+                                    opacity: isLocked ? 0.35 : 1,
+                                    cursor: isLocked ? 'not-allowed' : 'pointer',
+                                  }}
+                                  onClick={() => !isLocked && addPlayer(p)}>
                                   Titular
                                 </button>
                                 <button className="dark-btn-sm"
-                                  style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 600 }}
-                                  onClick={() => setAsReserve(p)}>
+                                  disabled={isLocked}
+                                  style={{
+                                    fontFamily: "'Rajdhani', sans-serif",
+                                    fontWeight: 600,
+                                    opacity: isLocked ? 0.35 : 1,
+                                    cursor: isLocked ? 'not-allowed' : 'pointer',
+                                  }}
+                                  onClick={() => !isLocked && setAsReserve(p)}>
                                   Reserva
                                 </button>
                               </div>
@@ -672,20 +722,41 @@ export default function LineupBuilder({
 
             <Card>
               <SectionTitle step="4" label="Salvar lineup" />
-              <button onClick={saveLineup} disabled={!canSave || saveLoading}
-                className="w-full py-3 rounded-lg text-[15px] font-bold tracking-[0.04em] uppercase transition-all duration-150"
-                style={{
-                  fontFamily: "'Rajdhani', sans-serif",
-                  background: canSave && !saveLoading ? 'var(--color-xama-orange)' : '#1a1f2e',
-                  color: canSave && !saveLoading ? '#0d0f14' : '#374151',
-                  border: canSave && !saveLoading ? 'none' : '1px solid #2a3046',
-                  cursor: canSave && !saveLoading ? 'pointer' : 'default',
-                }}>
-                {saveLoading ? 'Salvando...' : 'Salvar lineup'}
-              </button>
-              <p className="text-[12px] mt-3 leading-relaxed" style={{ color: '#374151' }}>
-                Necessario: 4 titulares · 1 reserva · capitao · login · total &le; budget
-              </p>
+
+              {/* Banner LOCKED no painel de save */}
+              {isLocked ? (
+                <div className="w-full py-3 px-4 rounded-lg text-center"
+                  style={{
+                    background: 'rgba(239,68,68,0.07)',
+                    border: '1px solid rgba(239,68,68,0.25)',
+                  }}>
+                  <p className="text-[14px] font-bold tracking-[0.06em] uppercase"
+                    style={{ color: '#f87171', fontFamily: "'Rajdhani', sans-serif" }}>
+                    🔒 Lineup Fechado
+                  </p>
+                  <p className="text-[11px] mt-1" style={{ color: 'var(--color-xama-muted)' }}>
+                    Submissões encerradas para este torneio
+                  </p>
+                </div>
+              ) : (
+                <button onClick={saveLineup} disabled={!canSave || saveLoading}
+                  className="w-full py-3 rounded-lg text-[15px] font-bold tracking-[0.04em] uppercase transition-all duration-150"
+                  style={{
+                    fontFamily: "'Rajdhani', sans-serif",
+                    background: canSave && !saveLoading ? 'var(--color-xama-orange)' : '#1a1f2e',
+                    color: canSave && !saveLoading ? '#0d0f14' : '#374151',
+                    border: canSave && !saveLoading ? 'none' : '1px solid #2a3046',
+                    cursor: canSave && !saveLoading ? 'pointer' : 'default',
+                  }}>
+                  {saveLoading ? 'Salvando...' : 'Salvar lineup'}
+                </button>
+              )}
+
+              {!isLocked && (
+                <p className="text-[12px] mt-3 leading-relaxed" style={{ color: '#374151' }}>
+                  Necessario: 4 titulares · 1 reserva · capitao · login · total &le; budget
+                </p>
+              )}
               {saveError   && <div className="msg-error mt-3">{saveError}</div>}
               {saveSuccess && <div className="msg-success mt-3">Lineup criado! ID: <b>{saveSuccess.id}</b></div>}
             </Card>

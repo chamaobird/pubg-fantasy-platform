@@ -106,6 +106,7 @@ def get_tournament(tournament_id: int, db: Session = Depends(get_db)):
         max_teams=tournament.max_teams,
         budget_limit=float(tournament.budget_limit or 0.0),
         is_active=(tournament.status == "active"),
+        lineup_open=bool(tournament.lineup_open),  # FIX: era missing aqui
     )
 
 
@@ -202,6 +203,14 @@ def create_lineup(
     tournament = db.query(Tournament).filter(Tournament.id == tournament_id).first()
     if not tournament:
         raise HTTPException(status_code=404, detail="Tournament not found")
+
+    # --- Lineup Lock: rejeita submissões quando fechado ---
+    if not tournament.lineup_open:
+        raise HTTPException(
+            status_code=403,
+            detail="Lineup submissions are closed for this tournament",
+        )
+
     player_ids = body.player_ids
     if len(player_ids) != 4:
         raise HTTPException(status_code=400, detail="Lineup must have exactly 4 players")
