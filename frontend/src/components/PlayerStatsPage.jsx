@@ -1,9 +1,10 @@
-// frontend/src/components/PlayerStatsPage.jsx
+﻿// frontend/src/components/PlayerStatsPage.jsx
 // XAMA Fantasy — Player Stats Page (expanded)
 // Filtros: torneio, dia, partida, time, jogador
 
 import { useState, useEffect, useMemo } from 'react'
 import { API_BASE_URL as API_BASE } from '../config'
+import TeamLogo from './TeamLogo'
 
 if (!document.getElementById('xama-fonts')) {
   const link = document.createElement('link')
@@ -35,25 +36,11 @@ const fmtMin = (secs) => secs != null ? Math.round(Number(secs) / 60) : '—'
 
 const MAP_ICONS = { Erangel: '🌿', Miramar: '🏜️', Taego: '🌾', Rondo: '❄️', Vikendi: '❄️', Deston: '🌊' }
 
-// Fórmula Twire estimada no frontend
-// kills×2 + damage×0.01 
 const calcTwire = (p) => {
   const kills  = (p.total_kills  || 0) * 2
   const damage = (p.total_damage || 0) / 100
-  // vitórias e punições não temos count direto ainda
   return Math.round((kills + damage) * 100) / 100
 }
-
-// Late game: quantas vezes pontuou e total de pts
-const calcLateGame = (p) => {
-  const bonus = p.total_late_game_bonus || 0
-  if (bonus === 0) return '0'
-  // Estimativa: cada bônus mínimo é 1pt, cada ocorrência = 1 evento
-  // Não temos o count direto, mas podemos usar total_late_game_bonus
-  return `${fmt2(bonus)}`
-}
-
-// Penalidade: quantas vezes tomou -15 e total
 const calcPenalty = (p) => {
   const count = p.total_penalty_count || 0
   if (count === 0) return '0'
@@ -363,6 +350,7 @@ export default function PlayerStatsPage({
                 <tbody>
                   {sorted.map((p, idx) => {
                     const rankColors = ['#f0c040', '#b4bcc8', '#cd7f50']
+                    const teamTag = formatTeamTag(p.name, p.team)
                     return (
                       <tr key={p.player_id}
                         style={{ borderBottom: '1px solid #13161f' }}
@@ -375,9 +363,13 @@ export default function PlayerStatsPage({
                           </span>
                         </td>
                         <td style={{ padding: '10px 12px' }}>
-                          <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.06em', padding: '2px 7px', borderRadius: '4px', background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.18)', color: 'var(--color-xama-orange)' }}>
-                            {formatTeamTag(p.name, p.team)}
-                          </span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <TeamLogo teamName={teamTag} size={28} />
+                            <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.06em',
+                              color: 'var(--color-xama-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
+                              {teamTag}
+                            </span>
+                          </div>
                         </td>
                         <td style={{ padding: '10px 12px' }}>
                           <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-xama-text)' }}>
