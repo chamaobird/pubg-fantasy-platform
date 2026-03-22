@@ -507,10 +507,13 @@ def tournament_player_stats(
         try:
             from datetime import datetime as dt
             filter_date = dt.strptime(date, "%Y-%m-%d").date()
+            from datetime import timezone, timedelta
+            BRT = timezone(timedelta(hours=-3))
             recent_matches = [
                 m for m in recent_matches
-                if m.played_at and m.played_at.date() == filter_date
+                if m.played_at and m.played_at.astimezone(BRT).date() == filter_date
             ]
+
             recent_match_ids = [m.id for m in recent_matches]
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
@@ -639,7 +642,9 @@ def tournament_matches(
     latest_edition = editions[-1]
     result = []
     for i, session in enumerate(latest_edition):
-        date_key = session[0].played_at.date().isoformat()
+        from datetime import timezone, timedelta
+        BRT = timezone(timedelta(hours=-3))
+        date_key = session[0].played_at.astimezone(BRT).date().isoformat()
         session_matches = []
         for j, m in enumerate(session):
             session_matches.append({
