@@ -253,42 +253,87 @@ export default function TournamentSelect() {
         background: 'radial-gradient(ellipse 70% 40% at 50% 0%, rgba(249,115,22,0.05) 0%, transparent 60%)',
       }} />
 
-      {/* ── Navbar ──────────────────────────────────────────────────────── */}
-      <header style={{ position: 'relative', zIndex: 1, background: 'var(--color-xama-surface)', borderBottom: '1px solid var(--color-xama-border)' }}>
-        <div style={{ height: '2px', background: 'linear-gradient(90deg, var(--color-xama-orange), transparent 50%)' }} />
-        <div style={{
-          maxWidth: '1200px', margin: '0 auto', padding: '0 24px',
-          display: 'flex', alignItems: 'center', gap: '16px', height: '60px',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }} onClick={() => navigate('/tournaments')}>
-            <div style={{
-              width: '32px', height: '32px', fontSize: '16px',
-              background: 'linear-gradient(135deg, rgba(249,115,22,0.25), rgba(249,115,22,0.05))',
-              border: '1px solid rgba(249,115,22,0.3)', borderRadius: '8px',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>🔥</div>
-            <div>
-              <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-xama-text)', letterSpacing: '0.06em', lineHeight: 1 }}>XAMA</div>
-              <div style={{ fontSize: '8px', color: 'var(--color-xama-orange)', letterSpacing: '0.16em', textTransform: 'uppercase', lineHeight: 1 }}>Fantasy</div>
-            </div>
-          </div>
+      {/* ── Navbar ── */}
+<header style={{ position: 'relative', zIndex: 1, background: 'var(--color-xama-surface)', borderBottom: '1px solid var(--color-xama-border)' }}>
+  <div style={{ height: '2px', background: 'linear-gradient(90deg, var(--color-xama-orange), transparent 50%)' }} />
+  <div style={{
+    maxWidth: '1200px', margin: '0 auto', padding: '0 24px',
+    display: 'flex', alignItems: 'center', gap: '16px', height: '60px',
+  }}>
+    {/* Logo */}
+    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }} onClick={() => navigate('/dashboard')}>
+      <div style={{
+        width: '32px', height: '32px', fontSize: '16px',
+        background: 'linear-gradient(135deg, rgba(249,115,22,0.25), rgba(249,115,22,0.05))',
+        border: '1px solid rgba(249,115,22,0.3)', borderRadius: '8px',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>🔥</div>
+      <div>
+        <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-xama-text)', letterSpacing: '0.06em', lineHeight: 1 }}>XAMA</div>
+        <div style={{ fontSize: '8px', color: 'var(--color-xama-orange)', letterSpacing: '0.16em', textTransform: 'uppercase', lineHeight: 1 }}>Fantasy</div>
+      </div>
+    </div>
 
-          <div style={{ flex: 1 }} />
+    <div style={{ flex: 1 }} />
 
-          <button
-            onClick={logout}
-            style={{
-              background: 'none', border: '1px solid var(--color-xama-border)',
-              borderRadius: '6px', padding: '6px 14px',
-              fontSize: '12px', fontWeight: 600, letterSpacing: '0.06em',
-              color: 'var(--color-xama-muted)', cursor: 'pointer',
-              fontFamily: "'Rajdhani', sans-serif",
-            }}
-          >
-            Sair
-          </button>
-        </div>
-      </header>
+    {/* Nav links */}
+    <nav style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <button
+        onClick={() => navigate('/dashboard')}
+        style={{
+          background: 'none', border: 'none', padding: '6px 12px',
+          fontSize: '13px', fontWeight: 600, letterSpacing: '0.04em',
+          color: 'var(--color-xama-muted)', cursor: 'pointer',
+          fontFamily: "'Rajdhani', sans-serif",
+          transition: 'color 0.15s',
+        }}
+        onMouseEnter={e => e.currentTarget.style.color = 'var(--color-xama-text)'}
+        onMouseLeave={e => e.currentTarget.style.color = 'var(--color-xama-muted)'}
+      >
+        Dashboard
+      </button>
+      <button
+        onClick={() => navigate('/tournaments')}
+        style={{
+          background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.3)',
+          borderRadius: '6px', padding: '6px 12px',
+          fontSize: '13px', fontWeight: 700, letterSpacing: '0.04em',
+          color: 'var(--color-xama-orange)', cursor: 'pointer',
+          fontFamily: "'Rajdhani', sans-serif",
+        }}
+      >
+        Torneios
+      </button>
+      <button
+        onClick={() => navigate('/profile')}
+        style={{
+          background: 'none', border: '1px solid var(--color-xama-border)',
+          borderRadius: '6px', padding: '6px 12px',
+          fontSize: '13px', fontWeight: 600, letterSpacing: '0.04em',
+          color: 'var(--color-xama-muted)', cursor: 'pointer',
+          fontFamily: "'Rajdhani', sans-serif",
+          transition: 'color 0.15s, border-color 0.15s',
+        }}
+        onMouseEnter={e => { e.currentTarget.style.color = 'var(--color-xama-text)'; e.currentTarget.style.borderColor = 'var(--color-xama-muted)' }}
+        onMouseLeave={e => { e.currentTarget.style.color = 'var(--color-xama-muted)'; e.currentTarget.style.borderColor = 'var(--color-xama-border)' }}
+      >
+        👤 Perfil
+      </button>
+      <button
+        onClick={logout}
+        style={{
+          background: 'none', border: '1px solid var(--color-xama-border)',
+          borderRadius: '6px', padding: '6px 14px',
+          fontSize: '12px', fontWeight: 600, letterSpacing: '0.06em',
+          color: 'var(--color-xama-muted)', cursor: 'pointer',
+          fontFamily: "'Rajdhani', sans-serif",
+        }}
+      >
+        Sair
+      </button>
+    </nav>
+  </div>
+</header>
 
       {/* ── Content ─────────────────────────────────────────────────────── */}
       <main style={{ position: 'relative', zIndex: 1, maxWidth: '1200px', margin: '0 auto', padding: '48px 24px' }}>
