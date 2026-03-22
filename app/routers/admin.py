@@ -600,17 +600,21 @@ async def reprocess_match_stats(
                 headshots=rps.headshots,
                 knocks=rps.knocks,
             )
+            base_pts, pen_count = _compute_fantasy_points(stat_input)
             db.add(MatchPlayerStat(
                 match_id=match.id,
                 player_id=player_id,
                 kills=rps.kills,
-                assists=rps.assists,
-                damage_dealt=rps.damage_dealt,
-                placement=rps.placement,
-                survival_secs=rps.survival_secs,
-                headshots=rps.headshots,
-                knocks=rps.knocks,
-                fantasy_points=_compute_fantasy_points(stat_input),
+                    assists=rps.assists,
+                    damage_dealt=rps.damage_dealt,
+                    placement=rps.placement,
+                    survival_secs=rps.survival_secs,
+                    headshots=rps.headshots,
+                    knocks=rps.knocks,
+                    fantasy_points=base_pts,
+                    base_points=base_pts,
+                    penalty_count=pen_count,
+                    wins_count=1 if (rps.placement or 0) == 1 else 0,
             ))
             created += 1
 
