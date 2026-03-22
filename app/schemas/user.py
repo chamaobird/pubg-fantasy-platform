@@ -10,24 +10,31 @@ class UserCreate(BaseModel):
 
 
 class UserUpdate(BaseModel):
-    display_name: Optional[str] = None
-    twitch_username: Optional[str] = None
-    krafton_id: Optional[str] = None
-    discord_username: Optional[str] = None
+    username: str
 
 
 class UserOut(BaseModel):
     id: int
     username: str
     email: EmailStr
-    display_name: Optional[str] = None
-    twitch_username: Optional[str] = None
-    krafton_id: Optional[str] = None
-    discord_username: Optional[str] = None
-    created_at: datetime
     is_admin: bool
+    created_at: datetime
+    has_password: bool = False  # True = conta email, False = conta Google
 
     model_config = {"from_attributes": True}
+
+    @classmethod
+    def from_orm_with_flags(cls, user):
+        # Conta Google tem hashed_password como token hex de 64 chars sem $
+        has_pwd = bool(user.hashed_password and '$' in user.hashed_password)
+        return cls(
+            id=user.id,
+            username=user.username,
+            email=user.email,
+            is_admin=user.is_admin,
+            created_at=user.created_at,
+            has_password=has_pwd,
+        )
 
 
 class Token(BaseModel):

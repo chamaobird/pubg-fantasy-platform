@@ -40,8 +40,7 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
 
 @router.get("/me", response_model=UserOut)
 def me(current_user: User = Depends(get_current_user)):
-    return current_user
-
+    return UserOut.from_orm_with_flags(current_user)
 
 @router.patch("/me", response_model=UserOut)
 def update_me(
@@ -49,15 +48,42 @@ def update_me(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    for field in ("display_name", "twitch_username", "krafton_id", "discord_username"):
-        value = getattr(payload, field)
-        if value is not None:
-            cleaned = value.strip()
-            setattr(current_user, field, cleaned if cleaned else None)
+    import re
+    username = payload.username.strip()
+    if len(username) < 3:
+        raise HTTPException(status_code=400, detail="Username muito curto (mínimo 3 caracteres)")
+    if len(username) > 50:
+        raise HTTPException(status_code=400, detail="Username muito longo (máximo 50 caracteres)")
+    if not re.match(r'^[a-zA-Z0-9_\-]+$', username):
+        raise HTTPException(status_code=400, detail="Username só pode conter letras, números, _ e -")
+    conflict = db.query(User).filter(User.username == username, User.id != current_user.id).first()
+    if conflict:
+        raise HTTPException(status_code=400, detail="Username já em uso")
+    current_user.username = username
     db.commit()
     db.refresh(current_user)
-    return current_user
+    return UserOut.from_orm_with_flags(current_user)
 
+class ChangePasswordBody(BaseModel):
+    current_password: str
+    new_password: str
+
+@router.post("/me/change-password")
+def change_password(
+    payload: ChangePasswordBody,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    has_pwd = bool(current_user.hashed_password and '$' in current_user.hashed_password)
+    if not has_pwd:
+        raise HTTPException(status_code=400, detail="Conta Google não possui senha para alterar")
+    if not verify_password(payload.current_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Senha atual incorreta")
+    if len(payload.new_password) < 6:
+        raise HTTPException(status_code=400, detail="Nova senha deve ter ao menos 6 caracteres")
+    current_user.hashed_password = hash_password(payload.new_password)
+    db.commit()
+    return {"detail": "Senha alterada com sucesso"}
 
 class GoogleLoginBody(BaseModel):
     token: str

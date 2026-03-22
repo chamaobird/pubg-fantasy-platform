@@ -1,229 +1,281 @@
 // frontend/src/pages/Profile.jsx
-// XAMA Fantasy — Perfil do usuário
-// v2: display_name + Twitch + Krafton ID + Discord
-
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../App'
-import { API_BASE_URL } from '../config'
+import { API_BASE_URL as API_BASE } from '../config'
 
-const S = {
-  label: {
-    display: 'block', fontSize: '11px', fontWeight: 700,
-    letterSpacing: '0.1em', textTransform: 'uppercase',
-    color: 'var(--color-xama-muted)', marginBottom: '6px',
-  },
-  hint: { fontSize: '11px', color: 'var(--color-xama-muted)', marginTop: '4px' },
-  input: {
-    width: '100%', background: '#0a0c11',
-    border: '1px solid var(--color-xama-border)', borderRadius: '8px',
-    padding: '10px 14px', fontSize: '14px', fontWeight: 600,
-    color: 'var(--color-xama-text)', fontFamily: "'Rajdhani', sans-serif",
-    outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.15s',
-  },
+if (!document.getElementById('xama-fonts')) {
+  const link = document.createElement('link')
+  link.id = 'xama-fonts'; link.rel = 'stylesheet'
+  link.href = 'https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@400;600&display=swap'
+  document.head.appendChild(link)
 }
 
-function Field({ label, value, onChange, placeholder, hint, prefix }) {
-  return (
-    <div>
-      <label style={S.label}>{label}</label>
-      <div style={{ position: 'relative' }}>
-        {prefix && (
-          <span style={{
-            position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)',
-            fontSize: '13px', color: 'var(--color-xama-muted)', fontFamily: "'JetBrains Mono', monospace",
-            pointerEvents: 'none',
-          }}>{prefix}</span>
-        )}
-        <input
-          style={{ ...S.input, paddingLeft: prefix ? '28px' : '14px' }}
-          value={value}
-          onChange={e => onChange(e.target.value)}
-          placeholder={placeholder}
-          maxLength={100}
-          onFocus={e => { e.target.style.borderColor = 'var(--color-xama-orange)' }}
-          onBlur={e => { e.target.style.borderColor = 'var(--color-xama-border)' }}
-        />
-      </div>
-      {hint && <p style={S.hint}>{hint}</p>}
-    </div>
-  )
+const labelStyle = {
+  fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em',
+  textTransform: 'uppercase', color: 'var(--color-xama-muted)',
+  display: 'block', marginBottom: '6px',
 }
-
-function InfoRow({ label, value, mono }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px' }}>
-      <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--color-xama-muted)', minWidth: '90px' }}>{label}</span>
-      <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-xama-text)', fontFamily: mono ? "'JetBrains Mono', monospace" : "'Rajdhani', sans-serif" }}>{value || '—'}</span>
-    </div>
-  )
+const inputStyle = {
+  width: '100%', padding: '10px 14px', borderRadius: '7px',
+  background: '#0a0c11', border: '1px solid var(--color-xama-border, #1e2330)',
+  color: 'var(--color-xama-text, #dce1ea)', fontSize: '15px',
+  fontFamily: "'Rajdhani', sans-serif", outline: 'none', boxSizing: 'border-box',
+}
+const inputReadonly = { ...inputStyle, color: 'var(--color-xama-muted)', cursor: 'default' }
+const btnPrimary = (disabled) => ({
+  padding: '10px 24px', borderRadius: '7px', border: 'none',
+  background: disabled ? '#1a1f2e' : 'var(--color-xama-orange, #f97316)',
+  color: disabled ? 'var(--color-xama-muted)' : '#fff',
+  fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
+  fontSize: '13px', letterSpacing: '0.06em', textTransform: 'uppercase',
+  cursor: disabled ? 'default' : 'pointer', transition: 'all 0.15s',
+})
+const card = {
+  background: '#13161d',
+  border: '1px solid var(--color-xama-border, #1e2330)',
+  borderRadius: '12px', padding: '24px', marginBottom: '16px',
+}
+const sectionTitle = {
+  fontSize: '11px', fontWeight: 700, letterSpacing: '0.12em',
+  textTransform: 'uppercase', color: 'var(--color-xama-muted)',
+  marginBottom: '18px',
 }
 
 export default function Profile() {
   const { token, logout } = useAuth()
   const navigate = useNavigate()
+  const H = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
 
   const [user, setUser] = useState(null)
-  const [fields, setFields] = useState({ display_name: '', twitch_username: '', krafton_id: '', discord_username: '' })
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [success, setSuccess] = useState(false)
-  const [error, setError] = useState('')
+
+  // Username
+  const [username, setUsername]     = useState('')
+  const [usernameMsg, setUsernameMsg] = useState(null) // { type: 'ok'|'err', text }
+  const [checkingUser, setChecking] = useState(false)
+  const [savingUser, setSavingUser] = useState(false)
+
+  // Senha
+  const [isGoogleAccount, setIsGoogle] = useState(false)
+  const [currPwd, setCurrPwd]   = useState('')
+  const [newPwd, setNewPwd]     = useState('')
+  const [pwdMsg, setPwdMsg]     = useState(null)
+  const [savingPwd, setSavingPwd] = useState(false)
 
   useEffect(() => {
-    if (!token) { navigate('/'); return }
-    fetch(`${API_BASE_URL}/users/me`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => { if (r.status === 401) { logout(); navigate('/'); return null } return r.json() })
-      .then(data => {
-        if (!data) return
-        setUser(data)
-        setFields({
-          display_name: data.display_name || '',
-          twitch_username: data.twitch_username || '',
-          krafton_id: data.krafton_id || '',
-          discord_username: data.discord_username || '',
-        })
-        setLoading(false)
+    fetch(`${API_BASE}/users/me`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (!d) return
+        setUser(d)
+        setUsername(d.username || '')
+        // Conta Google: hashed_password tem 64 chars (secrets.token_hex(32))
+        setIsGoogle(!d.has_password)
       })
-      .catch(e => { setError('Erro ao carregar perfil: ' + e.message); setLoading(false) })
-  }, [token]) // eslint-disable-line
+      .catch(() => {})
+  }, [token])
 
-  const set = field => val => setFields(f => ({ ...f, [field]: val }))
+  // Verifica disponibilidade do username com debounce
+  useEffect(() => {
+    if (!user || username === user.username) { setUsernameMsg(null); return }
+    if (username.length < 3) { setUsernameMsg({ type: 'err', text: 'Mínimo 3 caracteres' }); return }
+    setChecking(true)
+    const t = setTimeout(async () => {
+      try {
+        const r = await fetch(`${API_BASE}/users/check-username/${encodeURIComponent(username)}`)
+        const d = await r.json()
+        setUsernameMsg(d.available
+          ? { type: 'ok', text: '✓ Disponível' }
+          : { type: 'err', text: '✗ Já em uso' }
+        )
+      } catch { setUsernameMsg(null) }
+      finally { setChecking(false) }
+    }, 500)
+    return () => clearTimeout(t)
+  }, [username, user])
 
-  const handleSave = async () => {
-    setSaving(true); setError(''); setSuccess(false)
+  async function saveUsername(e) {
+    e.preventDefault()
+    setSavingUser(true); setUsernameMsg(null)
     try {
-      const r = await fetch(`${API_BASE_URL}/users/me`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify(fields),
+      const r = await fetch(`${API_BASE}/users/me`, {
+        method: 'PATCH', headers: H,
+        body: JSON.stringify({ username }),
       })
-      if (!r.ok) { const b = await r.json().catch(() => ({})); throw new Error(b.detail || `HTTP ${r.status}`) }
-      const updated = await r.json()
-      setUser(updated)
-      setFields({
-        display_name: updated.display_name || '',
-        twitch_username: updated.twitch_username || '',
-        krafton_id: updated.krafton_id || '',
-        discord_username: updated.discord_username || '',
-      })
-      setSuccess(true)
-      setTimeout(() => setSuccess(false), 3000)
-    } catch (e) { setError('Erro ao salvar: ' + e.message) }
-    finally { setSaving(false) }
+      const d = await r.json()
+      if (!r.ok) throw new Error(d?.detail || `HTTP ${r.status}`)
+      setUser(d)
+      setUsernameMsg({ type: 'ok', text: '✓ Username atualizado!' })
+    } catch (err) {
+      setUsernameMsg({ type: 'err', text: err.message })
+    } finally { setSavingUser(false) }
   }
 
-  if (loading) return (
-    <div style={{ minHeight: '100vh', background: 'var(--color-xama-black)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Rajdhani', sans-serif", color: 'var(--color-xama-muted)', fontSize: '14px' }}>
-      Carregando perfil…
-    </div>
-  )
+  async function savePassword(e) {
+    e.preventDefault()
+    setSavingPwd(true); setPwdMsg(null)
+    try {
+      const r = await fetch(`${API_BASE}/users/me/change-password`, {
+        method: 'POST', headers: H,
+        body: JSON.stringify({ current_password: currPwd, new_password: newPwd }),
+      })
+      const d = await r.json()
+      if (!r.ok) throw new Error(d?.detail || `HTTP ${r.status}`)
+      setPwdMsg({ type: 'ok', text: '✓ Senha alterada com sucesso!' })
+      setCurrPwd(''); setNewPwd('')
+    } catch (err) {
+      setPwdMsg({ type: 'err', text: err.message })
+    } finally { setSavingPwd(false) }
+  }
+
+  const usernameChanged = user && username !== user.username
+  const usernameOk = usernameChanged && usernameMsg?.type === 'ok' && username.length >= 3
+
+  const S = {
+    page: {
+      minHeight: '100vh', background: 'var(--color-xama-bg, #0d0f14)',
+      color: 'var(--color-xama-text, #dce1ea)', fontFamily: "'Rajdhani', sans-serif",
+      padding: '40px 24px',
+    },
+    inner: { maxWidth: '560px', margin: '0 auto' },
+    header: { display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' },
+    title: { fontSize: '24px', fontWeight: 700, color: '#fff', letterSpacing: '0.04em' },
+    sub: { fontSize: '13px', color: 'var(--color-xama-muted)', marginTop: '2px' },
+    backBtn: {
+      padding: '7px 14px', borderRadius: '7px', border: '1px solid var(--color-xama-border)',
+      background: 'transparent', color: 'var(--color-xama-muted)',
+      fontFamily: "'Rajdhani', sans-serif", fontWeight: 600, fontSize: '13px',
+      cursor: 'pointer', marginBottom: '24px',
+    },
+    msg: (type) => ({
+      fontSize: '12px', marginTop: '6px',
+      color: type === 'ok' ? '#4ade80' : '#f87171',
+    }),
+    vinculadoTag: {
+      display: 'inline-flex', alignItems: 'center', gap: '6px',
+      fontSize: '12px', padding: '4px 10px', borderRadius: '20px',
+      background: '#14532d', color: '#4ade80', fontWeight: 600,
+    },
+    futureTag: {
+      display: 'inline-flex', alignItems: 'center', gap: '6px',
+      fontSize: '12px', padding: '4px 10px', borderRadius: '20px',
+      background: '#1a1f2e', color: 'var(--color-xama-muted)', fontWeight: 600,
+    },
+    linkedRow: {
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      padding: '12px 0', borderBottom: '1px solid var(--color-xama-border)',
+    },
+    linkedLabel: { fontSize: '14px', fontWeight: 600, color: 'var(--color-xama-text)' },
+  }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--color-xama-black)', fontFamily: "'Rajdhani', sans-serif", display: 'flex', flexDirection: 'column' }}>
+    <div style={S.page}>
+      <div style={S.inner}>
 
-      {/* Navbar */}
-      <header style={{ background: 'var(--color-xama-surface)', borderBottom: '1px solid var(--color-xama-border)', flexShrink: 0 }}>
-        <div style={{ height: '2px', background: 'linear-gradient(90deg, var(--color-xama-orange), transparent 50%)' }} />
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px', display: 'flex', alignItems: 'center', height: '56px', gap: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }} onClick={() => navigate('/tournaments')}>
-            <div style={{ width: '30px', height: '30px', fontSize: '15px', background: 'linear-gradient(135deg, rgba(249,115,22,0.25), rgba(249,115,22,0.05))', border: '1px solid rgba(249,115,22,0.3)', borderRadius: '7px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🔥</div>
-            <div>
-              <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-xama-text)', letterSpacing: '0.06em', lineHeight: 1 }}>XAMA</div>
-              <div style={{ fontSize: '8px', color: 'var(--color-xama-orange)', letterSpacing: '0.14em', textTransform: 'uppercase', lineHeight: 1 }}>Fantasy</div>
-            </div>
-          </div>
-          <div style={{ flex: 1 }} />
-          <button onClick={() => navigate(-1)} style={{ background: 'none', border: '1px solid var(--color-xama-border)', borderRadius: '6px', padding: '5px 12px', fontSize: '11px', fontWeight: 600, color: 'var(--color-xama-muted)', cursor: 'pointer', fontFamily: "'Rajdhani', sans-serif" }}>← Voltar</button>
-          <button onClick={logout} style={{ background: 'none', border: '1px solid var(--color-xama-border)', borderRadius: '6px', padding: '5px 12px', fontSize: '11px', fontWeight: 600, color: 'var(--color-xama-muted)', cursor: 'pointer', fontFamily: "'Rajdhani', sans-serif" }}>Sair</button>
-        </div>
-      </header>
+        {/* Voltar */}
+        <button style={S.backBtn} onClick={() => navigate('/dashboard')}>
+          ← Voltar ao Dashboard
+        </button>
 
-      {/* Conteúdo */}
-      <div style={{ flex: 1, display: 'flex', justifyContent: 'center', padding: '48px 24px' }}>
-        <div style={{ width: '100%', maxWidth: '520px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-
-          {/* Título */}
+        {/* Título */}
+        <div style={S.header}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-              <span style={{ fontSize: '24px' }}>👤</span>
-              <h1 style={{ fontSize: '26px', fontWeight: 800, letterSpacing: '0.04em', color: 'var(--color-xama-text)', textTransform: 'uppercase', margin: 0 }}>Meu Perfil</h1>
-            </div>
-            <p style={{ fontSize: '12px', color: 'var(--color-xama-muted)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Personalize como você aparece na plataforma</p>
+            <div style={S.title}>👤 Meu Perfil</div>
+            <div style={S.sub}>Gerencie suas informações de conta</div>
           </div>
+        </div>
 
-          {/* Card — Info fixa */}
-          <div style={{ background: 'var(--color-xama-surface)', border: '1px solid var(--color-xama-border)', borderRadius: '12px', overflow: 'hidden' }}>
-            <div style={{ height: '2px', background: 'linear-gradient(90deg, var(--color-xama-orange), transparent 60%)' }} />
-            <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--color-xama-muted)', margin: 0 }}>Conta</p>
-              <InfoRow label="Username" value={`@${user?.username}`} mono />
-              <InfoRow label="Email" value={user?.email} />
+        {/* ── Identidade ── */}
+        <div style={card}>
+          <div style={sectionTitle}>Identidade</div>
+          <form onSubmit={saveUsername} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div>
+              <label style={labelStyle}>Username</label>
+              <input
+                style={inputStyle}
+                value={username}
+                onChange={e => setUsername(e.target.value.replace(/[^a-zA-Z0-9_\-]/g, ''))}
+                maxLength={50}
+              />
+              {checkingUser && <div style={S.msg('ok')}>Verificando...</div>}
+              {usernameMsg && <div style={S.msg(usernameMsg.type)}>{usernameMsg.text}</div>}
+              <div style={{ fontSize: '11px', color: '#2a3046', marginTop: '4px' }}>
+                Aparece no leaderboard · Letras, números, _ e -
+              </div>
             </div>
-          </div>
-
-          {/* Card — Campos editáveis */}
-          <div style={{ background: 'var(--color-xama-surface)', border: '1px solid var(--color-xama-border)', borderRadius: '12px', overflow: 'hidden' }}>
-            <div style={{ height: '2px', background: 'linear-gradient(90deg, var(--color-xama-orange), transparent 60%)' }} />
-            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
-              <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--color-xama-muted)', margin: 0 }}>Identidade no Leaderboard</p>
-
-              <Field
-                label="Nome de exibição"
-                value={fields.display_name}
-                onChange={set('display_name')}
-                placeholder={user?.username}
-                hint="Aparece no leaderboard. Deixe vazio para usar o username."
-              />
-
-              <div style={{ height: '1px', background: 'var(--color-xama-border)' }} />
-              <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--color-xama-muted)', margin: 0 }}>Redes Sociais / IDs</p>
-
-              <Field
-                label="Twitch"
-                value={fields.twitch_username}
-                onChange={set('twitch_username')}
-                placeholder="seu_canal"
-                hint="Seu username no Twitch (sem o @)"
-                prefix="twitch.tv/"
-              />
-
-              <Field
-                label="Krafton ID"
-                value={fields.krafton_id}
-                onChange={set('krafton_id')}
-                placeholder="SeuNick#1234"
-                hint="ID da sua conta Krafton / PUBG"
-              />
-
-              <Field
-                label="Discord"
-                value={fields.discord_username}
-                onChange={set('discord_username')}
-                placeholder="seunick"
-                hint="Seu username no Discord (sem o @)"
-                prefix="@"
-              />
-
-              {/* Feedback */}
-              {error && (
-                <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '6px', padding: '10px 14px', fontSize: '13px', color: '#ef4444' }}>{error}</div>
-              )}
-              {success && (
-                <div style={{ background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.3)', borderRadius: '6px', padding: '10px 14px', fontSize: '13px', color: '#34d399' }}>✓ Perfil salvo com sucesso!</div>
-              )}
-
+            <div>
+              <label style={labelStyle}>E-mail</label>
+              <input style={inputReadonly} value={user?.email || ''} readOnly />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
               <button
-                onClick={handleSave}
-                disabled={saving}
-                style={{ padding: '11px', background: saving ? 'rgba(249,115,22,0.4)' : 'var(--color-xama-orange)', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fff', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: "'Rajdhani', sans-serif" }}
+                type="submit"
+                disabled={savingUser || !usernameOk}
+                style={btnPrimary(savingUser || !usernameOk)}
               >
-                {saving ? 'Salvando…' : 'Salvar Perfil'}
+                {savingUser ? 'Salvando...' : 'Salvar Username'}
               </button>
             </div>
-          </div>
-
+          </form>
         </div>
+
+        {/* ── Segurança ── */}
+        {!isGoogleAccount && (
+          <div style={card}>
+            <div style={sectionTitle}>Segurança</div>
+            <form onSubmit={savePassword} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label style={labelStyle}>Senha Atual</label>
+                <input style={inputStyle} type="password" value={currPwd}
+                  onChange={e => setCurrPwd(e.target.value)} required />
+              </div>
+              <div>
+                <label style={labelStyle}>Nova Senha</label>
+                <input style={inputStyle} type="password" value={newPwd}
+                  onChange={e => setNewPwd(e.target.value)} required minLength={6} />
+              </div>
+              {pwdMsg && <div style={S.msg(pwdMsg.type)}>{pwdMsg.text}</div>}
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button type="submit" disabled={savingPwd || !currPwd || !newPwd}
+                  style={btnPrimary(savingPwd || !currPwd || !newPwd)}>
+                  {savingPwd ? 'Salvando...' : 'Alterar Senha'}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* ── Contas Vinculadas ── */}
+        <div style={card}>
+          <div style={sectionTitle}>Contas Vinculadas</div>
+          {[
+            { label: '🔵 Google', linked: isGoogleAccount },
+            { label: '🟣 Twitch', linked: false, soon: true },
+            { label: '🔵 Discord', linked: false, soon: true },
+            { label: '⚫ Krafton ID', linked: false, soon: true },
+          ].map(({ label, linked, soon }) => (
+            <div key={label} style={S.linkedRow}>
+              <span style={S.linkedLabel}>{label}</span>
+              {linked
+                ? <span style={S.vinculadoTag}>✓ Vinculado</span>
+                : soon
+                  ? <span style={S.futureTag}>Em breve</span>
+                  : <button style={btnPrimary(false)}>Vincular</button>
+              }
+            </div>
+          ))}
+        </div>
+
+        {/* ── Sair ── */}
+        <div style={{ textAlign: 'center', marginTop: '8px' }}>
+          <button
+            style={{ ...btnPrimary(false), background: 'transparent', color: '#f87171', border: '1px solid #f8717133' }}
+            onClick={() => { logout(); navigate('/') }}
+          >
+            Sair da Conta
+          </button>
+        </div>
+
       </div>
     </div>
   )
