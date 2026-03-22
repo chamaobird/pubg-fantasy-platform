@@ -303,7 +303,7 @@ function AuthCard({ redirectTo = '/tournaments' }) {
 }
 
 // ── Landing page wrapper ──────────────────────────────────────────────────────
-export default function LandingPage({ redirectTo = '/tournaments' }) {
+export default function LandingPage({ redirectTo = '/dashboard' }) {
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
       <div style={{ minHeight: '100vh', background: 'var(--color-xama-black)', fontFamily: "'Rajdhani', sans-serif", display: 'flex', flexDirection: 'column' }}>

@@ -1,249 +1,360 @@
+// frontend/src/pages/Dashboard.jsx
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
-import { getTeams } from '../api/fantasyTeams'
-import { getTournaments } from '../api/tournaments'
-import LoadingSpinner from '../components/LoadingSpinner'
-import TournamentCard from '../components/TournamentCard'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../App'
+import { API_BASE_URL as API_BASE } from '../config'
+
+if (!document.getElementById('xama-fonts')) {
+  const link = document.createElement('link')
+  link.id = 'xama-fonts'; link.rel = 'stylesheet'
+  link.href = 'https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@400;600&display=swap'
+  document.head.appendChild(link)
+}
+
+const fmt2 = (v) => v != null ? Number(v).toFixed(2) : '—'
 
 export default function Dashboard() {
-  const { user } = useAuth()
-  const [teams, setTeams] = useState([])
-  const [tournaments, setTournaments] = useState([])
-  const [loading, setLoading] = useState(true)
+  const { token } = useAuth()
+  const navigate = useNavigate()
 
+  const [user, setUser]                   = useState(null)
+  const [activeTournaments, setActive]    = useState([])
+  const [finishedTournaments, setFinished] = useState([])
+  const [myLineups, setMyLineups]         = useState({})   // { [tournament_id]: lineup }
+  const [rankings, setRankings]           = useState({})   // { [tournament_id]: position }
+  const [loading, setLoading]             = useState(true)
+
+  const H = { Authorization: `Bearer ${token}` }
+
+  // 1. Carrega usuário
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [teamsData, tournamentsData] = await Promise.all([
-          getTeams().catch(() => []),
-          getTournaments().catch(() => []),
-        ])
-        setTeams(Array.isArray(teamsData) ? teamsData : [])
-        setTournaments(Array.isArray(tournamentsData) ? tournamentsData.slice(0, 3) : [])
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchData()
+    if (!token) return
+    fetch(`${API_BASE}/users/me`, { headers: H })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => setUser(d))
+      .catch(() => {})
+  }, [token])
+
+  // 2. Carrega torneios
+  useEffect(() => {
+    fetch(`${API_BASE}/tournaments/`)
+      .then(r => r.json())
+      .then(all => {
+        setActive(all.filter(t => t.status === 'active'))
+        setFinished(all.filter(t => t.status === 'finished').slice(0, 3))
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false))
   }, [])
+
+  // 3. Para cada torneio ativo, carrega lineup + ranking do usuário
+  useEffect(() => {
+    if (!token || activeTournaments.length === 0) return
+    activeTournaments.forEach(t => {
+      // Lineup
+      fetch(`${API_BASE}/tournaments/${t.id}/lineups/me`, { headers: H })
+        .then(r => r.ok ? r.json() : [])
+        .then(lineups => {
+          if (lineups.length > 0)
+            setMyLineups(prev => ({ ...prev, [t.id]: lineups[0] }))
+        })
+        .catch(() => {})
+      // Ranking
+      fetch(`${API_BASE}/tournaments/${t.id}/rankings`)
+        .then(r => r.json())
+        .then(rank => {
+          if (user) {
+            const entry = rank.find(e => e.user_id === user.id)
+            if (entry) setRankings(prev => ({ ...prev, [t.id]: entry }))
+          }
+        })
+        .catch(() => {})
+    })
+  }, [activeTournaments, user])
+
+  // Mesma busca para torneios finalizados
+  useEffect(() => {
+    if (!token || finishedTournaments.length === 0 || !user) return
+    finishedTournaments.forEach(t => {
+      fetch(`${API_BASE}/tournaments/${t.id}/rankings`)
+        .then(r => r.json())
+        .then(rank => {
+          const entry = rank.find(e => e.user_id === user.id)
+          if (entry) setRankings(prev => ({ ...prev, [t.id]: entry }))
+        })
+        .catch(() => {})
+    })
+  }, [finishedTournaments, user])
+
+  const displayName = user?.display_name || user?.username || 'jogador'
+
+  // ── Estilos ────────────────────────────────────────────────────
+  const S = {
+    page: {
+      minHeight: '100vh',
+      background: 'var(--color-xama-bg, #0d0f14)',
+      color: 'var(--color-xama-text, #dce1ea)',
+      fontFamily: "'Rajdhani', sans-serif",
+      padding: '32px 24px',
+      maxWidth: '960px',
+      margin: '0 auto',
+    },
+    greeting: {
+      fontSize: '28px',
+      fontWeight: 700,
+      marginBottom: '8px',
+      color: '#fff',
+    },
+    sub: {
+      fontSize: '14px',
+      color: 'var(--color-xama-muted, #6b7280)',
+      marginBottom: '32px',
+    },
+    sectionTitle: {
+      fontSize: '11px',
+      fontWeight: 700,
+      letterSpacing: '0.12em',
+      textTransform: 'uppercase',
+      color: 'var(--color-xama-muted, #6b7280)',
+      marginBottom: '12px',
+      marginTop: '32px',
+    },
+    grid: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+      gap: '16px',
+    },
+    card: {
+      background: '#13161d',
+      border: '1px solid var(--color-xama-border, #1e2330)',
+      borderRadius: '10px',
+      padding: '20px',
+      cursor: 'pointer',
+      transition: 'border-color 0.15s, transform 0.1s',
+    },
+    cardHover: {
+      borderColor: 'var(--color-xama-orange, #f97316)',
+    },
+    badge: (color) => ({
+      display: 'inline-block',
+      fontSize: '10px',
+      fontWeight: 700,
+      letterSpacing: '0.08em',
+      textTransform: 'uppercase',
+      padding: '2px 8px',
+      borderRadius: '4px',
+      background: color === 'green' ? '#14532d' : color === 'gray' ? '#1e2330' : '#431407',
+      color: color === 'green' ? '#4ade80' : color === 'gray' ? '#6b7280' : '#fb923c',
+      marginBottom: '10px',
+    }),
+    cardTitle: {
+      fontSize: '16px',
+      fontWeight: 700,
+      color: '#fff',
+      marginBottom: '4px',
+    },
+    cardSub: {
+      fontSize: '13px',
+      color: 'var(--color-xama-muted, #6b7280)',
+      marginBottom: '14px',
+    },
+    divider: {
+      borderTop: '1px solid var(--color-xama-border, #1e2330)',
+      margin: '12px 0',
+    },
+    stat: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      fontSize: '13px',
+      marginBottom: '6px',
+    },
+    statLabel: { color: 'var(--color-xama-muted, #6b7280)' },
+    statValue: { fontWeight: 700, color: '#fff' },
+    orange: { color: 'var(--color-xama-orange, #f97316)', fontWeight: 700 },
+    btn: {
+      marginTop: '14px',
+      width: '100%',
+      padding: '8px',
+      background: 'var(--color-xama-orange, #f97316)',
+      color: '#fff',
+      border: 'none',
+      borderRadius: '6px',
+      fontFamily: "'Rajdhani', sans-serif",
+      fontWeight: 700,
+      fontSize: '13px',
+      letterSpacing: '0.06em',
+      cursor: 'pointer',
+    },
+    btnOutline: {
+      marginTop: '14px',
+      width: '100%',
+      padding: '8px',
+      background: 'transparent',
+      color: 'var(--color-xama-muted, #6b7280)',
+      border: '1px solid var(--color-xama-border, #1e2330)',
+      borderRadius: '6px',
+      fontFamily: "'Rajdhani', sans-serif",
+      fontWeight: 700,
+      fontSize: '13px',
+      letterSpacing: '0.06em',
+      cursor: 'pointer',
+    },
+    emptyCard: {
+      background: '#13161d',
+      border: '1px dashed var(--color-xama-border, #1e2330)',
+      borderRadius: '10px',
+      padding: '24px 20px',
+      textAlign: 'center',
+      color: 'var(--color-xama-muted, #6b7280)',
+      fontSize: '13px',
+    },
+    quickLinks: {
+      display: 'flex',
+      gap: '10px',
+      flexWrap: 'wrap',
+      marginTop: '32px',
+    },
+    quickBtn: {
+      padding: '8px 16px',
+      background: '#13161d',
+      border: '1px solid var(--color-xama-border, #1e2330)',
+      borderRadius: '8px',
+      color: 'var(--color-xama-text, #dce1ea)',
+      fontFamily: "'Rajdhani', sans-serif",
+      fontWeight: 600,
+      fontSize: '13px',
+      cursor: 'pointer',
+      transition: 'border-color 0.15s',
+    },
+  }
+
+  const [hoveredCard, setHoveredCard] = useState(null)
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center pt-16">
-        <LoadingSpinner size="lg" text="Loading dashboard..." />
+      <div style={{ ...S.page, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+        <span style={{ color: 'var(--color-xama-muted)', fontSize: '14px' }}>Carregando dashboard...</span>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen pt-24 pb-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        {/* Page header */}
-        <div className="mb-10">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="h-px w-8 bg-accent" />
-            <span className="font-mono text-xs text-accent uppercase tracking-widest">Command Center</span>
-          </div>
-          <h1 className="section-title">
-            WELCOME BACK,{' '}
-            <span>{user?.username?.toUpperCase() || 'COMMANDER'}</span>
-          </h1>
-        </div>
+    <div style={S.page}>
 
-        {/* Quick stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-          <StatCard
-            label="Fantasy Teams"
-            value={teams.length}
-            icon="🎯"
-            link="/my-teams"
-            linkText="View All"
-          />
-          <StatCard
-            label="Tournaments"
-            value={tournaments.length}
-            icon="🏆"
-            link="/tournaments"
-            linkText="Browse"
-          />
-          <StatCard
-            label="Budget Available"
-            value="500cr"
-            icon="💰"
-            link="/create-team"
-            linkText="Create Team"
-          />
-          <StatCard
-            label="Active Leagues"
-            value={tournaments.filter(t => t.status === 'live' || t.status === 'active').length}
-            icon="⚡"
-            link="/tournaments"
-            linkText="Go Live"
-          />
-        </div>
+      {/* ── Saudação ── */}
+      <div style={S.greeting}>Olá, {displayName} 👋</div>
+      <div style={S.sub}>Bem-vindo ao XAMA Fantasy. Aqui está o resumo do seu fantasy.</div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* My Teams */}
-          <div className="lg:col-span-2">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-display font-bold uppercase text-xl text-white tracking-wide">
-                My Fantasy Teams
-              </h2>
-              <Link to="/create-team" className="btn-primary text-xs py-2">
-                + New Team
-              </Link>
+      {/* ── Torneios Ativos ── */}
+      <div style={S.sectionTitle}>🏆 Torneios Ativos</div>
+      <div style={S.grid}>
+        {activeTournaments.length === 0 && (
+          <div style={S.emptyCard}>Nenhum torneio ativo no momento.</div>
+        )}
+        {activeTournaments.map(t => {
+          const lineup = myLineups[t.id]
+          const rankEntry = rankings[t.id]
+          return (
+            <div
+              key={t.id}
+              style={{ ...S.card, ...(hoveredCard === t.id ? S.cardHover : {}) }}
+              onMouseEnter={() => setHoveredCard(t.id)}
+              onMouseLeave={() => setHoveredCard(null)}
+            >
+              <div style={S.badge('orange')}>● ATIVO</div>
+              <div style={S.cardTitle}>{t.name}</div>
+              <div style={S.cardSub}>{t.region}</div>
+              <div style={S.divider} />
+              {lineup ? (
+                <>
+                  <div style={S.stat}>
+                    <span style={S.statLabel}>Minha lineup</span>
+                    <span style={S.statValue}>{lineup.name}</span>
+                  </div>
+                  <div style={S.stat}>
+                    <span style={S.statLabel}>Pontos totais</span>
+                    <span style={S.orange}>{fmt2(lineup.total_points)} pts</span>
+                  </div>
+                  {rankEntry && (
+                    <div style={S.stat}>
+                      <span style={S.statLabel}>Posição</span>
+                      <span style={S.statValue}>#{rankEntry.position}</span>
+                    </div>
+                  )}
+                  <button style={S.btn} onClick={() => navigate(`/tournament/${t.id}`)}>
+                    VER TORNEIO
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div style={{ ...S.emptyCard, border: 'none', padding: '4px 0 10px' }}>
+                    Você ainda não tem lineup neste torneio.
+                  </div>
+                  <button style={S.btn} onClick={() => navigate(`/tournament/${t.id}`)}>
+                    MONTAR LINEUP
+                  </button>
+                </>
+              )}
             </div>
+          )
+        })}
+      </div>
 
-            {teams.length === 0 ? (
-              <EmptyState
-                icon="🎮"
-                title="No teams yet"
-                desc="Create your first fantasy team to get started."
-                actionLabel="Create Team"
-                actionTo="/create-team"
-              />
-            ) : (
-              <div className="space-y-3">
-                {teams.map(team => (
-                  <TeamRow key={team.id} team={team} />
-                ))}
-              </div>
-            )}
+      {/* ── Histórico ── */}
+      {finishedTournaments.length > 0 && (
+        <>
+          <div style={S.sectionTitle}>📊 Histórico</div>
+          <div style={S.grid}>
+            {finishedTournaments.map(t => {
+              const rankEntry = rankings[t.id]
+              return (
+                <div
+                  key={t.id}
+                  style={{ ...S.card, ...(hoveredCard === `f-${t.id}` ? S.cardHover : {}) }}
+                  onMouseEnter={() => setHoveredCard(`f-${t.id}`)}
+                  onMouseLeave={() => setHoveredCard(null)}
+                >
+                  <div style={S.badge('gray')}>FINALIZADO</div>
+                  <div style={S.cardTitle}>{t.name}</div>
+                  <div style={S.cardSub}>{t.region}</div>
+                  <div style={S.divider} />
+                  {rankEntry ? (
+                    <>
+                      <div style={S.stat}>
+                        <span style={S.statLabel}>Posição final</span>
+                        <span style={S.statValue}>#{rankEntry.position}</span>
+                      </div>
+                      <div style={S.stat}>
+                        <span style={S.statLabel}>Pontos totais</span>
+                        <span style={S.orange}>{fmt2(rankEntry.total_points)} pts</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div style={{ fontSize: '13px', color: 'var(--color-xama-muted)' }}>
+                      Sem participação registrada.
+                    </div>
+                  )}
+                  <button style={S.btnOutline} onClick={() => navigate(`/tournament/${t.id}`)}>
+                    VER STATS
+                  </button>
+                </div>
+              )
+            })}
           </div>
+        </>
+      )}
 
-          {/* Upcoming Tournaments */}
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-display font-bold uppercase text-xl text-white tracking-wide">
-                Tournaments
-              </h2>
-              <Link to="/tournaments" className="font-mono text-xs text-accent hover:text-white transition-colors uppercase">
-                View all →
-              </Link>
-            </div>
-
-            {tournaments.length === 0 ? (
-              <EmptyState
-                icon="🏆"
-                title="No tournaments"
-                desc="No tournaments available yet."
-                actionLabel="Check Later"
-                actionTo="/tournaments"
-              />
-            ) : (
-              <div className="space-y-3">
-                {tournaments.map(t => (
-                  <TournamentCard key={t.id} tournament={t} />
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Quick actions */}
-        <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <QuickAction
-            icon="👥"
-            title="Browse Players"
-            desc="Check stats and prices for all registered players."
-            to="/players"
-          />
-          <QuickAction
-            icon="🏆"
-            title="View Tournaments"
-            desc="Regional and global tournaments available now."
-            to="/tournaments"
-          />
-          <QuickAction
-            icon="📊"
-            title="Leaderboards"
-            desc="See where your teams rank across all tournaments."
-            to="/tournaments"
-          />
-        </div>
+      {/* ── Quick Links ── */}
+      <div style={S.sectionTitle}>⚡ Acesso Rápido</div>
+      <div style={S.quickLinks}>
+        <button style={S.quickBtn} onClick={() => navigate('/tournaments')}>
+          🏅 Todos os Torneios
+        </button>
+        <button style={S.quickBtn} onClick={() => navigate('/profile')}>
+          👤 Meu Perfil
+        </button>
       </div>
+
     </div>
-  )
-}
-
-function StatCard({ label, value, icon, link, linkText }) {
-  return (
-    <div className="card p-5">
-      <div className="flex items-start justify-between mb-3">
-        <span className="text-2xl">{icon}</span>
-        <Link to={link} className="font-mono text-[10px] text-accent hover:text-white transition-colors uppercase tracking-wider">
-          {linkText} →
-        </Link>
-      </div>
-      <div className="font-display font-black text-3xl text-white">{value}</div>
-      <div className="font-mono text-xs text-text-secondary uppercase tracking-wider mt-1">{label}</div>
-    </div>
-  )
-}
-
-function TeamRow({ team }) {
-  const playerCount = team.players?.length || 0
-  const budget = team.budget_remaining ?? (500 - (team.total_spent || 0))
-
-  return (
-    <Link to={`/teams/${team.id}`} className="card p-4 flex items-center justify-between group hover:border-accent/50 hover:bg-card-hover transition-all duration-200">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 border border-border-color flex items-center justify-center bg-bg group-hover:border-accent/40 transition-colors"
-             style={{ clipPath: 'polygon(4px 0%, 100% 0%, calc(100% - 4px) 100%, 0% 100%)' }}>
-          <span className="font-display font-black text-accent text-sm">
-            {(team.name || 'T')[0].toUpperCase()}
-          </span>
-        </div>
-        <div>
-          <h3 className="font-display font-bold text-white uppercase tracking-wide group-hover:text-accent transition-colors">
-            {team.name}
-          </h3>
-          <div className="flex items-center gap-3 mt-0.5">
-            <span className="font-mono text-xs text-muted">{playerCount}/8 players</span>
-            {team.tournament_name && (
-              <span className="font-mono text-xs text-text-secondary">{team.tournament_name}</span>
-            )}
-          </div>
-        </div>
-      </div>
-      <div className="flex items-center gap-3">
-        <div className="text-right">
-          <div className="font-mono text-sm text-accent font-bold">{budget}cr</div>
-          <div className="font-mono text-[10px] text-muted uppercase">remaining</div>
-        </div>
-        <svg className="w-4 h-4 text-muted group-hover:text-accent transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-        </svg>
-      </div>
-    </Link>
-  )
-}
-
-function EmptyState({ icon, title, desc, actionLabel, actionTo }) {
-  return (
-    <div className="card p-8 text-center">
-      <div className="text-4xl mb-3">{icon}</div>
-      <h3 className="font-display font-bold uppercase text-white text-xl mb-2">{title}</h3>
-      <p className="text-text-secondary text-sm font-body mb-4">{desc}</p>
-      <Link to={actionTo} className="btn-primary text-xs">{actionLabel}</Link>
-    </div>
-  )
-}
-
-function QuickAction({ icon, title, desc, to }) {
-  return (
-    <Link
-      to={to}
-      className="card p-5 flex items-start gap-4 hover:border-accent/50 hover:bg-card-hover transition-all duration-200 group"
-    >
-      <div className="text-2xl">{icon}</div>
-      <div>
-        <h3 className="font-display font-bold uppercase text-white tracking-wide group-hover:text-accent transition-colors">
-          {title}
-        </h3>
-        <p className="font-body text-text-secondary text-sm mt-1">{desc}</p>
-      </div>
-    </Link>
   )
 }

@@ -5,6 +5,7 @@ import LandingPage from './pages/LandingPage'
 import TournamentSelect from './pages/TournamentSelect'
 import TournamentHub from './pages/TournamentHub'
 import Profile from './pages/Profile'
+import Dashboard from './pages/Dashboard'
 
 export const AuthContext = createContext(null)
 export const useAuth = () => useContext(AuthContext)
@@ -18,7 +19,7 @@ function RequireAuth({ children }) {
 
 function LandingWithRedirect() {
   const location = useLocation()
-  const redirectTo = location.state?.from?.pathname || '/tournaments'
+  const redirectTo = location.state?.from?.pathname || '/dashboard'
   return <LandingPage redirectTo={redirectTo} />
 }
 
@@ -27,7 +28,7 @@ export default function App() {
 
   const handleSetToken = (t, redirectTo) => {
     localStorage.setItem('wf_token', t)
-    if (redirectTo && redirectTo !== '/tournaments') {
+    if (redirectTo && redirectTo !== '/dashboard') {
       localStorage.setItem('wf_redirect', redirectTo)
     }
     setToken(t)
@@ -45,28 +46,34 @@ export default function App() {
     <AuthContext.Provider value={{ token, setToken: handleSetToken, logout: handleLogout }}>
       <BrowserRouter>
         <Routes>
-          <Route
-            path="/"
-            element={
-              token
-                ? <Navigate to={pendingRedirect || '/tournaments'} replace />
-                : <LandingWithRedirect />
-            }
-          />
-          <Route
-            path="/tournaments"
-            element={<RequireAuth><TournamentSelect /></RequireAuth>}
-          />
-          <Route
-            path="/tournament/:id"
-            element={<RequireAuth><TournamentHub /></RequireAuth>}
-          />
-          {/* ── NOVO: página de perfil ── */}
-          <Route
-            path="/profile"
-            element={<RequireAuth><Profile /></RequireAuth>}
-          />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          {/* Pública */}
+          <Route path="/" element={
+            token
+              ? <Navigate to={pendingRedirect || '/dashboard'} replace />
+              : <LandingWithRedirect />
+          } />
+
+          {/* Dashboard — página inicial pós-login */}
+          <Route path="/dashboard" element={
+            <RequireAuth><Dashboard /></RequireAuth>
+          } />
+
+          {/* Perfil */}
+          <Route path="/profile" element={
+            <RequireAuth><Profile /></RequireAuth>
+          } />
+
+          {/* Torneios */}
+          <Route path="/tournaments" element={
+            <RequireAuth><TournamentSelect /></RequireAuth>
+          } />
+
+          <Route path="/tournament/:id" element={
+            <RequireAuth><TournamentHub /></RequireAuth>
+          } />
+
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </BrowserRouter>
     </AuthContext.Provider>
