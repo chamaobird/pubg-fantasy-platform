@@ -1,121 +1,123 @@
-import { useState } from 'react'
-import { Link, NavLink, useNavigate } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
+// frontend/src/components/Navbar.jsx
+import { useNavigate, useLocation } from 'react-router-dom'
+import { useAuth } from '../App'
 
-export default function Navbar() {
-  const { isAuthenticated, user, logout } = useAuth()
+const STATUS_COLOR = { active: '#4ade80', upcoming: '#f97316', finished: '#6b7280' }
+const STATUS_LABEL = { active: 'AO VIVO', upcoming: 'EM BREVE', finished: 'FINISHED' }
+
+export default function Navbar({ tournament = null }) {
   const navigate = useNavigate()
-  const [menuOpen, setMenuOpen] = useState(false)
+  const location = useLocation()
+  const { logout } = useAuth()
 
-  const handleLogout = () => {
-    logout()
-    navigate('/')
-    setMenuOpen(false)
-  }
-
-  const navLinkClass = ({ isActive }) =>
-    `font-display font-bold uppercase tracking-widest text-sm transition-colors duration-200 py-1
-     ${isActive
-       ? 'text-accent border-b border-accent'
-       : 'text-text-secondary hover:text-white'}`
+  const isActive = (path) => location.pathname === path
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-bg/90 backdrop-blur-md border-b border-border-color">
-      {/* Top accent line */}
-      <div className="h-px w-full bg-gradient-to-r from-transparent via-accent to-transparent opacity-60" />
+    <header style={{
+      background: 'var(--color-xama-surface)',
+      borderBottom: '1px solid var(--color-xama-border)',
+      position: 'relative',
+      flexShrink: 0,
+      zIndex: 10,
+    }}>
+      <div style={{ height: '2px', background: 'linear-gradient(90deg, var(--color-xama-orange), transparent 50%)' }} />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 group">
-            <div className="w-8 h-8 border border-accent flex items-center justify-center bg-accent-dim group-hover:bg-accent/20 transition-colors"
-                 style={{ clipPath: 'polygon(4px 0%, 100% 0%, calc(100% - 4px) 100%, 0% 100%)' }}>
-              <span className="text-accent font-mono font-bold text-xs">WF</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="font-display font-black uppercase text-white text-lg leading-none tracking-wider">
-                WARZONE
-              </span>
-              <span className="font-display font-light uppercase text-accent text-xs leading-none tracking-[0.3em]">
-                FANTASY
-              </span>
-            </div>
-          </Link>
+      <div style={{
+        maxWidth: '1200px', margin: '0 auto', padding: '0 24px',
+        display: 'flex', alignItems: 'center', gap: '12px', height: '56px',
+      }}>
 
-          {/* Desktop nav */}
-          <div className="hidden md:flex items-center gap-6">
-            <NavLink to="/tournaments" className={navLinkClass}>Tournaments</NavLink>
-            <NavLink to="/players" className={navLinkClass}>Players</NavLink>
-            {isAuthenticated && (
-              <>
-                <NavLink to="/dashboard" className={navLinkClass}>Dashboard</NavLink>
-                <NavLink to="/my-teams" className={navLinkClass}>My Teams</NavLink>
-              </>
-            )}
+        {/* Logo */}
+        <div
+          style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', flexShrink: 0 }}
+          onClick={() => navigate('/dashboard')}
+        >
+          <div style={{
+            width: '32px', height: '32px', fontSize: '16px',
+            background: 'linear-gradient(135deg, rgba(249,115,22,0.25), rgba(249,115,22,0.05))',
+            border: '1px solid rgba(249,115,22,0.3)', borderRadius: '8px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>🔥</div>
+          <div>
+            <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-xama-text)', letterSpacing: '0.06em', lineHeight: 1 }}>XAMA</div>
+            <div style={{ fontSize: '8px', color: 'var(--color-xama-orange)', letterSpacing: '0.16em', textTransform: 'uppercase', lineHeight: 1 }}>Fantasy</div>
           </div>
+        </div>
 
-          {/* Auth */}
-          <div className="hidden md:flex items-center gap-3">
-            {isAuthenticated ? (
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 px-3 py-1 border border-border-color">
-                  <div className="w-2 h-2 bg-success rounded-full animate-pulse" />
-                  <span className="font-mono text-xs text-text-secondary uppercase">{user?.username}</span>
-                </div>
-                <button onClick={handleLogout} className="btn-ghost text-xs">
-                  Logout
-                </button>
+        {/* Contexto do torneio (só aparece em /tournament/:id) */}
+        {tournament && (
+          <>
+            <div style={{ width: '1px', height: '28px', background: 'var(--color-xama-border)', flexShrink: 0 }} />
+            <div style={{ flexShrink: 1, minWidth: 0 }}>
+              <div style={{
+                fontSize: '13px', fontWeight: 700, color: 'var(--color-xama-text)',
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '280px',
+              }}>
+                {tournament.name}
               </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Link to="/login" className="btn-ghost text-xs">Login</Link>
-                <Link to="/register" className="btn-primary text-xs">Register</Link>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '1px' }}>
+                <span style={{
+                  width: '6px', height: '6px', borderRadius: '50%',
+                  background: STATUS_COLOR[tournament.status] || '#6b7280', flexShrink: 0,
+                }} />
+                <span style={{
+                  fontSize: '9px', fontWeight: 700, letterSpacing: '0.12em',
+                  color: STATUS_COLOR[tournament.status] || '#6b7280', textTransform: 'uppercase',
+                }}>
+                  {STATUS_LABEL[tournament.status] || tournament.status}
+                </span>
               </div>
-            )}
-          </div>
+            </div>
+          </>
+        )}
 
-          {/* Mobile hamburger */}
+        <div style={{ flex: 1 }} />
+
+        {/* Nav links */}
+        <nav style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          {[
+            { label: '← Torneios', path: '/tournaments' },
+            { label: 'Dashboard',  path: '/dashboard'   },
+            { label: '👤 Perfil',  path: '/profile'     },
+          ].map(({ label, path }) => {
+            const active = isActive(path)
+            return (
+              <button
+                key={path}
+                onClick={() => navigate(path)}
+                style={{
+                  background: active ? 'rgba(249,115,22,0.1)' : 'none',
+                  border: active ? '1px solid rgba(249,115,22,0.3)' : 'none',
+                  borderRadius: '6px', padding: '6px 12px',
+                  fontSize: '13px', fontWeight: active ? 700 : 600,
+                  letterSpacing: '0.04em',
+                  color: active ? 'var(--color-xama-orange)' : 'var(--color-xama-muted)',
+                  cursor: 'pointer', fontFamily: "'Rajdhani', sans-serif",
+                  transition: 'color 0.15s',
+                  whiteSpace: 'nowrap',
+                }}
+                onMouseEnter={e => { if (!active) e.currentTarget.style.color = 'var(--color-xama-text)' }}
+                onMouseLeave={e => { if (!active) e.currentTarget.style.color = 'var(--color-xama-muted)' }}
+              >
+                {label}
+              </button>
+            )
+          })}
           <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="md:hidden text-text-secondary hover:text-accent transition-colors p-2"
+            onClick={logout}
+            style={{
+              background: 'none', border: '1px solid var(--color-xama-border)',
+              borderRadius: '6px', padding: '6px 14px', marginLeft: '4px',
+              fontSize: '12px', fontWeight: 600, letterSpacing: '0.06em',
+              color: 'var(--color-xama-muted)', cursor: 'pointer',
+              fontFamily: "'Rajdhani', sans-serif",
+            }}
           >
-            <div className="w-5 flex flex-col gap-1">
-              <span className={`h-px bg-current transition-all duration-200 ${menuOpen ? 'rotate-45 translate-y-1.5' : ''}`} />
-              <span className={`h-px bg-current transition-all duration-200 ${menuOpen ? 'opacity-0' : ''}`} />
-              <span className={`h-px bg-current transition-all duration-200 ${menuOpen ? '-rotate-45 -translate-y-1.5' : ''}`} />
-            </div>
+            Sair
           </button>
-        </div>
-      </div>
+        </nav>
 
-      {/* Mobile menu */}
-      {menuOpen && (
-        <div className="md:hidden bg-card border-t border-border-color animate-fade-in">
-          <div className="px-4 py-4 flex flex-col gap-3">
-            <NavLink to="/tournaments" className={navLinkClass} onClick={() => setMenuOpen(false)}>Tournaments</NavLink>
-            <NavLink to="/players" className={navLinkClass} onClick={() => setMenuOpen(false)}>Players</NavLink>
-            {isAuthenticated && (
-              <>
-                <NavLink to="/dashboard" className={navLinkClass} onClick={() => setMenuOpen(false)}>Dashboard</NavLink>
-                <NavLink to="/my-teams" className={navLinkClass} onClick={() => setMenuOpen(false)}>My Teams</NavLink>
-              </>
-            )}
-            <div className="pt-2 border-t border-border-color flex flex-col gap-2">
-              {isAuthenticated ? (
-                <>
-                  <span className="font-mono text-xs text-text-secondary uppercase">{user?.username}</span>
-                  <button onClick={handleLogout} className="btn-ghost text-xs w-full text-left">Logout</button>
-                </>
-              ) : (
-                <>
-                  <Link to="/login" className="btn-ghost text-xs" onClick={() => setMenuOpen(false)}>Login</Link>
-                  <Link to="/register" className="btn-primary text-xs text-center" onClick={() => setMenuOpen(false)}>Register</Link>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-    </nav>
+      </div>
+    </header>
   )
 }
