@@ -97,8 +97,40 @@ frontend/src/
 - Quando o torneio for criado: criar T16+ no DB e rodar import
 
 ## Pendente / Backlog
-- [ ] **Importar PAS Semana 4** — rodar `import-matches-from-pubg/7` quando `am-pas1cup` tiver os matches de 23/03
-- [ ] **PGS 2** — criar torneios T16+ e championship para Circuit 2 quando iniciar (26/03)
+
+### 🔥 Próxima sessão (prioridade)
+
+**1. Dashboard — card "Lineup Aberta"**
+- Remover texto "Lineup criado via frontend" do campo "Minha lineup" → substituir por status real: se o usuário já montou lineup para a próxima etapa ("✅ Lineup montada") ou não ("Sem lineup para esta etapa")
+- Descrição da fase deve ser mais assertiva — não apenas "Scrims" mas "PAS1 Scrims Week #4" (ou seja, usar o nome real da week conforme wasdefy/DB)
+
+**2. TournamentHub — página do torneio**
+- Após salvar lineup: remover mensagem "Lineup criado ID:13" — mostrar apenas "✅ Lineup salvo com sucesso" (sem expor ID interno)
+- Seletor de fase: mostrar "Scrims Week #4" ao invés de apenas "Scrims" (verificar se `phase` no DB pode receber valor mais descritivo, ou usar `tournament_name` como fallback)
+
+**3. Player Stats — filtro por semana (Week)**
+- Atualmente todas as 3 semanas da PAS ficam consolidadas como "Scrims" sem opção de separar
+- Adicionar seletor de "Semana" (Week 1 / Week 2 / Week 3 / Todas) ao lado do seletor de Dia
+- Estratégia sugerida: usar os grupos de datas das partidas (cada grupo de ~5 matches = 1 week) para derivar o número da semana automaticamente, ou adicionar campo `week` no modelo `Match`
+
+**4. Leaderboard — regras estruturais**
+- Um usuário não deveria poder criar mais de 1 lineup por torneio (etapa); atualmente permite múltiplos (testado: CHAMAOBIRD tem 2 lineups no PAS)
+- Adicionar visualização de leaderboard por dia e por partida (não apenas acumulado total)
+- Para a PAS SCRIMS WEEK: exibir acumulado de pontos por semana inteira + detalhamento por partida
+
+**5. Logo GENG não carrega na página de stats do PGS**
+- Provavelmente o arquivo em `frontend/public/logos/` é `gen.png` mas o team tag extraído do nome do player é `GENG`
+- Verificar: `name.split('_')[0]` para jogadores da GENG → deve retornar `GENG`, mas o arquivo deve ser `geng.png`
+- Corrigir: renomear arquivo para `geng.png` ou ajustar a lógica de normalização do tag
+
+**6. wins_count / PTS TWIRE**
+- Campo `wins_count` em `MatchPlayerStat` já existe mas não está sendo usado corretamente no cálculo de PTS TWIRE
+- Verificar fórmula atual no frontend (coluna PTS TWIRE) e garantir que vitórias (placement=1) contam corretamente
+- PTS TWIRE = fórmula externa de referência — revisar spec e alinhar com o que já existe
+
+### 📅 Dados / Infra
+- [ ] **Importar PAS Semana 4** — rodar `import-matches-from-pubg/7` quando `am-pas1cup` tiver os matches de 23/03 (ainda WAITING no wasdefy em 24/03)
+- [ ] **PGS 2** — criar torneios T16+ e championship para Circuit 2 quando iniciar (26/03); pubg_tournament_id ainda não disponível na API
 - [ ] **Feature 4 — Price History:** adicionar `tournament_id` em `PlayerPriceHistory`, endpoint `GET /players/{id}/price-history`, sparkline no frontend
 
 ## Notas de Sessão
