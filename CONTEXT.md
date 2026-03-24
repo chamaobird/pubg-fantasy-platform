@@ -1,0 +1,86 @@
+# XAMA Fantasy — Contexto do Projeto
+
+## Stack
+- **Backend:** FastAPI + SQLAlchemy (sync) + PostgreSQL (Render free tier)
+- **Frontend:** React + Vite + Tailwind v4
+- **Deploy:** Render (backend + DB) + frontend via build/deploy automático no push
+- **Migrations:** Alembic (idempotente — sempre checar coluna antes de adicionar)
+
+## Design System (XAMA)
+- Fontes: `Rajdhani` (UI), `JetBrains Mono` (números/tags)
+- Cores: `#f97316` orange, `#f0c040` gold, `#0d0f14` black, `var(--color-xama-*)` tokens
+- Componentes base: `dark-select`, `dark-btn`, `msg-error`
+
+## Estrutura de Pastas
+```
+app/
+  models/          # SQLAlchemy models
+  routers/         # FastAPI routers (tournaments.py, players.py, auth.py, historical.py, ...)
+  services/        # historical.py (importação de dados PUBG)
+  database.py
+alembic/versions/  # migrations
+frontend/src/
+  components/      # LineupBuilder, TournamentLeaderboard, PlayerStatsPage, TeamLogo, Navbar, ...
+  pages/           # TournamentHub, Dashboard, Profile, TournamentSelect, Login, Register, ...
+  App.jsx          # rotas + useAuth context
+  config.ts        # API_BASE_URL
+```
+
+## Modelo de Dados Relevante
+- `tournaments` — id, name, pubg_id, region, status (active/upcoming/finished), lineup_open, budget_limit
+- `teams` — id, name, logo_url
+- `players` — id, name (formato: `TEAM_PlayerName`), team_id, tournament_id, fantasy_cost, is_active
+- `matches` — id, tournament_id, pubg_match_id, map_name, played_at, duration_secs
+- `match_player_stats` — player_id, match_id, kills, assists, damage_dealt, placement, survival_secs, fantasy_points, base_points, late_game_bonus, penalty_count, wins_count
+- `lineups` — user_id, tournament_id, name, captain_player_id, reserve_player_id, total_points, lineup_open
+- `users` — id, username, email, display_name, hashed_password
+- `championships` — id, name, region, status; `championship_phases` — championship_id, tournament_id, phase, phase_order
+
+## Convenções
+- Player name split: `name.split('_')[0]` = team tag, `name.split('_')[1:]` = player name
+- Logos servidas em `/logos/{tag.toLowerCase()}.png` (frontend/public/logos/)
+- TimeZone: BRT = UTC-3 para datas de partidas
+- Fórmula de pontuação: base_points + late_game_bonus - penalty (morte precoce = -15 × count)
+
+## Endpoints Principais
+- `GET /tournaments/` — lista torneios
+- `GET /tournaments/{id}/rankings` — leaderboard (inclui username, display_name)
+- `GET /tournaments/{id}/player-stats` — stats agregadas por jogador
+- `GET /tournaments/{id}/matches` — partidas agrupadas por dia (edição mais recente)
+- `GET /championship-phases/` — agrupa torneios por campeonato
+- `POST /tournaments/{id}/lineups` — cria lineup (requer auth + lineup_open=true)
+
+## Estado das Migrations (última: c4d5e6f7a8b9)
+| Revision | O que faz |
+|---|---|
+| b2c3d4e5f6a1 | add social fields to users |
+| b3f1a2c4d5e6 | add wins_count to match_player_stats |
+| c4d5e6f7a8b9 | add logo_url to teams |
+
+## Features Implementadas
+- ✅ Importação histórica de partidas (historical.py) com auto-lock e wins_count
+- ✅ Lineup Builder com validações (budget, 1 player/time, reserva)
+- ✅ Leaderboard com display_name, badge EU, logos nos jogadores expandidos
+- ✅ Player Stats Page com filtros por dia/partida/time, colunas W/PTS/SURV/etc.
+- ✅ TournamentSelect com agrupamento por Championship (blocos + mini-cards de fase)
+- ✅ TournamentHub com tabs, badge de status, aba Lineup oculta em torneios finalizados
+- ✅ Dashboard com 3 estados (Lineup Aberta / Aguardando / Meus Resultados)
+- ✅ Perfil com username editável, validação unicidade, seção senha
+- ✅ Navbar global
+- ✅ Logos de equipe (24 times, fallback iniciais)
+
+## Pendente / Backlog
+- [ ] Feature 4: price history — `tournament_id` em `PlayerPriceHistory`, endpoint `GET /players/{id}/price-history`, sparkline no frontend
+- [ ] Registrar PAS como Championship no DB (fases já existem como torneios individuais)
+- [ ] Pipeline T16+ (próxima fase do PGS 2026)
+
+## Como Rodar Migrations no Render
+```powershell
+$env:DATABASE_URL='postgresql://user:pass@host.oregon-postgres.render.com/db'
+python -m alembic upgrade head
+```
+
+## Como Editar Arquivos (fluxo eficiente)
+Com a pasta montada no Cowork, Claude lê e edita diretamente — sem upload, sem heredoc.
+Para mudanças pontuais: Claude usa `Edit` cirúrgico.
+Para arquivos novos: Claude usa `Write` direto no path correto.
