@@ -1,4 +1,4 @@
-// frontend/src/pages/TournamentHub.jsx
+﻿// frontend/src/pages/TournamentHub.jsx
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../App'
@@ -12,11 +12,17 @@ const TAB_LINEUP      = 'lineup'
 const TAB_LEADERBOARD = 'leaderboard'
 const TAB_STATS       = 'stats'
 
-const TABS = [
+const ALL_TABS = [
   { id: TAB_LINEUP,      label: 'Montar Lineup', icon: '⚔️' },
   { id: TAB_LEADERBOARD, label: 'Leaderboard',   icon: '🏆' },
   { id: TAB_STATS,       label: 'Stats',          icon: '📊' },
 ]
+
+const STATUS_BADGE = {
+  finished: { label: 'ENCERRADO', bg: 'rgba(248,113,113,0.12)', border: 'rgba(248,113,113,0.3)', color: '#f87171' },
+  active:   { label: 'AO VIVO',   bg: 'rgba(74,222,128,0.12)',  border: 'rgba(74,222,128,0.3)',  color: '#4ade80' },
+  upcoming: { label: 'EM BREVE',  bg: 'rgba(96,165,250,0.12)',  border: 'rgba(96,165,250,0.3)',  color: '#60a5fa' },
+}
 
 export default function TournamentHub() {
   const { id } = useParams()
@@ -43,11 +49,25 @@ export default function TournamentHub() {
       .catch(() => setTournamentsLoading(false))
   }, [id])
 
+  // Torneio finalizado: default para leaderboard
+  useEffect(() => {
+    if (tournament?.status === 'finished') setTab(TAB_LEADERBOARD)
+  }, [tournament?.status])
+
   const selectedTournamentId = String(id)
+  const isFinished = tournament?.status === 'finished'
+
+  // Esconde aba Lineup quando torneio está finalizado
+  const TABS = isFinished ? ALL_TABS.filter(t => t.id !== TAB_LINEUP) : ALL_TABS
+
+  // Garante que a aba ativa é válida
+  const activeTab = TABS.find(t => t.id === tab) ? tab : TABS[0]?.id ?? TAB_LEADERBOARD
 
   const handleTournamentChange = (newId) => {
     navigate(`/tournament/${newId}`)
   }
+
+  const badge = tournament ? STATUS_BADGE[tournament.status] : null
 
   return (
     <div style={{
@@ -58,10 +78,9 @@ export default function TournamentHub() {
       flexDirection: 'column',
     }}>
 
-      {/* Navbar global com contexto do torneio */}
       <Navbar tournament={tournament} />
 
-      {/* Tabs do torneio */}
+      {/* Tabs */}
       <div style={{
         background: 'var(--color-xama-surface)',
         borderBottom: '1px solid var(--color-xama-border)',
@@ -69,10 +88,10 @@ export default function TournamentHub() {
       }}>
         <div style={{
           maxWidth: '1200px', margin: '0 auto', padding: '0 24px',
-          display: 'flex', alignItems: 'stretch', height: '44px',
+          display: 'flex', alignItems: 'stretch', height: '44px', gap: '0',
         }}>
           {TABS.map(({ id: tabId, label, icon }) => {
-            const active = tab === tabId
+            const active = activeTab === tabId
             return (
               <button
                 key={tabId}
@@ -104,12 +123,26 @@ export default function TournamentHub() {
               </button>
             )
           })}
+
+          {/* Badge de status */}
+          {badge && (
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
+              <span style={{
+                fontSize: '10px', fontWeight: 700, letterSpacing: '0.1em',
+                fontFamily: "'JetBrains Mono', monospace",
+                padding: '3px 8px', borderRadius: '4px',
+                background: badge.bg, border: `1px solid ${badge.border}`, color: badge.color,
+              }}>
+                {badge.label}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Conteúdo da tab */}
+      {/* Conteúdo */}
       <div style={{ flex: 1 }}>
-        {tab === TAB_LINEUP && (
+        {activeTab === TAB_LINEUP && (
           <LineupBuilder
             token={token}
             setToken={setToken}
@@ -120,7 +153,7 @@ export default function TournamentHub() {
             onTournamentChange={handleTournamentChange}
           />
         )}
-        {tab === TAB_LEADERBOARD && (
+        {activeTab === TAB_LEADERBOARD && (
           <TournamentLeaderboard
             token={token}
             tournaments={tournaments}
@@ -129,7 +162,7 @@ export default function TournamentHub() {
             onTournamentChange={handleTournamentChange}
           />
         )}
-        {tab === TAB_STATS && (
+        {activeTab === TAB_STATS && (
           <PlayerStatsPage
             tournaments={tournaments}
             tournamentsLoading={tournamentsLoading}

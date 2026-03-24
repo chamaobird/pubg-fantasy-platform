@@ -1,5 +1,5 @@
 ﻿// frontend/src/components/TournamentLeaderboard.jsx
-// XAMA Fantasy — Leaderboard v3: team logos in expanded player rows
+// XAMA Fantasy — Leaderboard v4: removed Lineup column, EU badge in Manager
 
 import { useEffect, useState } from 'react'
 import { API_BASE_URL } from '../config'
@@ -114,10 +114,10 @@ export default function TournamentLeaderboard({
             <table className="w-full border-collapse">
               <thead>
                 <tr style={{ background: '#0a0c11', borderBottom: '1px solid var(--color-xama-border)' }}>
-                  {['#', 'Lineup', 'Manager', 'Pontos', ''].map((h, i) => (
+                  {['#', 'Manager', 'Pontos', ''].map((h, i) => (
                     <th key={i} className="px-4 py-3 text-[10px] font-bold tracking-[0.1em] uppercase"
-                      style={{ color: 'var(--color-xama-muted)', textAlign: i >= 3 ? 'right' : 'left',
-                        fontFamily: "'Rajdhani', sans-serif", width: i === 0 ? '52px' : i === 4 ? '120px' : undefined }}>
+                      style={{ color: 'var(--color-xama-muted)', textAlign: i >= 2 ? 'right' : 'left',
+                        fontFamily: "'Rajdhani', sans-serif", width: i === 0 ? '52px' : i === 3 ? '120px' : undefined }}>
                       {h}
                     </th>
                   ))}
@@ -137,29 +137,31 @@ export default function TournamentLeaderboard({
                           outline: isMe ? '1px solid rgba(20,184,166,0.18)' : 'none', outlineOffset: '-1px' }}
                         onMouseEnter={(e) => { if (!isMe) e.currentTarget.style.background = '#161b27' }}
                         onMouseLeave={(e) => { e.currentTarget.style.background = isMe ? 'rgba(20,184,166,0.06)' : isTop3 ? RANK_BG[pos] : 'transparent' }}>
+
+                        {/* # */}
                         <td className="px-4 py-[13px]">
                           <span className="text-[13px] font-bold tabular-nums"
                             style={{ fontFamily: "'JetBrains Mono', monospace", color: isTop3 ? RANK_COLORS[pos] : '#2a3046' }}>
                             {RANK_LABELS[pos] ?? String(pos).padStart(2, '0')}
                           </span>
                         </td>
+
+                        {/* Manager + EU badge */}
                         <td className="px-4 py-[13px]">
-                          <span className="text-[15px] font-semibold tracking-wide"
-                            style={{ color: pos === 1 ? '#ffffff' : 'var(--color-xama-text)', fontWeight: pos === 1 ? 700 : 500 }}>
-                            {entry.lineup_name}
-                          </span>
-                          {isMe && (
-                            <span className="ml-2 text-[10px] font-bold tracking-[0.06em] px-2 py-0.5 rounded align-middle"
-                              style={{ background: 'rgba(20,184,166,0.18)', border: '1px solid rgba(20,184,166,0.4)', color: '#2dd4bf' }}>
-                              EU
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span className="text-[13px]" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-muted)' }}>
+                              {ownerLabel(entry)}
                             </span>
-                          )}
+                            {isMe && (
+                              <span className="text-[10px] font-bold tracking-[0.06em] px-2 py-0.5 rounded"
+                                style={{ background: 'rgba(20,184,166,0.18)', border: '1px solid rgba(20,184,166,0.4)', color: '#2dd4bf' }}>
+                                EU
+                              </span>
+                            )}
+                          </div>
                         </td>
-                        <td className="px-4 py-[13px]">
-                          <span className="text-[12px]" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-muted)' }}>
-                            {ownerLabel(entry)}
-                          </span>
-                        </td>
+
+                        {/* Pontos */}
                         <td className="px-4 py-[13px] text-right">
                           <span className="text-[15px] font-bold tabular-nums"
                             style={{ fontFamily: "'JetBrains Mono', monospace",
@@ -167,6 +169,8 @@ export default function TournamentLeaderboard({
                             {entry.total_points.toFixed(2)}
                           </span>
                         </td>
+
+                        {/* Ver */}
                         <td className="px-4 py-[13px] text-right">
                           <button onClick={() => toggle(entry.lineup_id)}
                             className="text-[11px] font-semibold tracking-[0.04em] px-3 py-1 rounded"
@@ -178,9 +182,10 @@ export default function TournamentLeaderboard({
                           </button>
                         </td>
                       </tr>
+
                       {isOpen && (
                         <tr key={`${entry.lineup_id}-players`}>
-                          <td colSpan={5} style={{ padding: 0, background: '#0a0c11', borderBottom: '1px solid #13161f' }}>
+                          <td colSpan={4} style={{ padding: 0, background: '#0a0c11', borderBottom: '1px solid #13161f' }}>
                             <ul style={{ margin: 0, padding: '4px 0', listStyle: 'none' }}>
                               {entry.players.map((p) => {
                                 const teamTag = getTeamTag(p.name)
