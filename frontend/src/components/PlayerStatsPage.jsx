@@ -49,7 +49,7 @@ const calcPenalty = (p) => {
 }
 
 const COLUMNS = [
-  { key: 'matches_played',       label: 'M',          title: 'Partidas jogadas',         right: true,  render: (p) => `${p.matches_played}/${p.matches_total}` },
+  { key: 'matches_played',       label: 'M',          title: 'Partidas jogadas',         right: true,  render: (p) => p.matches_played ?? '—' },
   {
     key: 'total_wins',
     label: 'W',
