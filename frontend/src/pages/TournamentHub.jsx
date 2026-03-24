@@ -1,5 +1,5 @@
 ﻿// frontend/src/pages/TournamentHub.jsx
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../App'
 import { API_BASE_URL } from '../config'
@@ -33,21 +33,46 @@ export default function TournamentHub() {
   const [tournament, setTournament] = useState(null)
   const [tournaments, setTournaments] = useState([])
   const [tournamentsLoading, setTournamentsLoading] = useState(true)
+  const [championships, setChampionships] = useState([])
+  const [championshipsLoading, setChampionshipsLoading] = useState(true)
+  // Estado local para o campeonato selecionado no selector (pode divergir da URL)
+  const [localChampId, setLocalChampId] = useState(null)
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/tournaments/?skip=0&limit=50`, {
-      headers: { Accept: 'application/json' },
-    })
-      .then((r) => r.json())
-      .then((data) => {
-        const list = Array.isArray(data) ? data : []
+    Promise.all([
+      fetch(`${API_BASE_URL}/tournaments/?skip=0&limit=50`, { headers: { Accept: 'application/json' } }).then(r => r.json()),
+      fetch(`${API_BASE_URL}/championship-phases/`, { headers: { Accept: 'application/json' } }).then(r => r.json()),
+    ])
+      .then(([tournsData, champsData]) => {
+        const list = Array.isArray(tournsData) ? tournsData : []
+        const champs = Array.isArray(champsData) ? champsData : []
         setTournaments(list)
+        setChampionships(champs)
         const current = list.find((t) => String(t.id) === String(id))
         setTournament(current || null)
         setTournamentsLoading(false)
+        setChampionshipsLoading(false)
       })
-      .catch(() => setTournamentsLoading(false))
+      .catch(() => { setTournamentsLoading(false); setChampionshipsLoading(false) })
   }, [id])
+
+  // Campeonato derivado da URL (quando os dados chegam)
+  const urlChampId = useMemo(
+    () => championships.find((c) => c.phases.some((p) => p.tournament_id === Number(id)))?.id ?? null,
+    [championships, id]
+  )
+
+  // Sincroniza localChampId com o campeonato da URL quando os dados chegam
+  useEffect(() => {
+    if (urlChampId !== null) setLocalChampId(urlChampId)
+  }, [urlChampId])
+
+  const selectedChampId = localChampId ?? urlChampId
+
+  // Quando o usuário troca de campeonato no selector (sem selecionar fase ainda)
+  const handleChampChange = (champId) => {
+    setLocalChampId(champId)
+  }
 
   // Torneio finalizado: default para leaderboard
   useEffect(() => {
@@ -64,7 +89,7 @@ export default function TournamentHub() {
   const activeTab = TABS.find(t => t.id === tab) ? tab : TABS[0]?.id ?? TAB_LEADERBOARD
 
   const handleTournamentChange = (newId) => {
-    navigate(`/tournament/${newId}`)
+    if (newId) navigate(`/tournament/${newId}`)
   }
 
   const badge = tournament ? STATUS_BADGE[tournament.status] : null
@@ -151,6 +176,10 @@ export default function TournamentHub() {
             tournamentsError=""
             selectedTournamentId={selectedTournamentId}
             onTournamentChange={handleTournamentChange}
+            championships={championships}
+            championshipsLoading={championshipsLoading}
+            selectedChampId={selectedChampId}
+            onChampChange={handleChampChange}
           />
         )}
         {activeTab === TAB_LEADERBOARD && (
@@ -160,6 +189,10 @@ export default function TournamentHub() {
             tournamentsLoading={tournamentsLoading}
             selectedTournamentId={selectedTournamentId}
             onTournamentChange={handleTournamentChange}
+            championships={championships}
+            championshipsLoading={championshipsLoading}
+            selectedChampId={selectedChampId}
+            onChampChange={handleChampChange}
           />
         )}
         {activeTab === TAB_STATS && (
@@ -168,6 +201,10 @@ export default function TournamentHub() {
             tournamentsLoading={tournamentsLoading}
             selectedTournamentId={selectedTournamentId}
             onTournamentChange={handleTournamentChange}
+            championships={championships}
+            championshipsLoading={championshipsLoading}
+            selectedChampId={selectedChampId}
+            onChampChange={handleChampChange}
           />
         )}
       </div>

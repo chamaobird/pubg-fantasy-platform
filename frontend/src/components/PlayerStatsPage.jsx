@@ -1,10 +1,11 @@
 ﻿// frontend/src/components/PlayerStatsPage.jsx
 // XAMA Fantasy — Player Stats Page (expanded)
-// Filtros: torneio, dia, partida, time, jogador
+// Filtros: campeonato → fase → dia → partida → time → jogador
 
 import { useState, useEffect, useMemo } from 'react'
 import { API_BASE_URL as API_BASE } from '../config'
 import TeamLogo from './TeamLogo'
+import ChampionshipSelector from './ChampionshipSelector'
 
 if (!document.getElementById('xama-fonts')) {
   const link = document.createElement('link')
@@ -115,8 +116,21 @@ const selectStyle = {
 }
 
 export default function PlayerStatsPage({
-  tournaments, tournamentsLoading, selectedTournamentId, onTournamentChange,
+  // Hierarquia nova
+  championships, championshipsLoading,
+  selectedChampId: propChampId, onChampChange,
+  // Fase específica (legado + nova hierarquia)
+  tournaments, tournamentsLoading,
+  selectedTournamentId: propTournId, onTournamentChange,
 }) {
+  // Estado local — permite "campeonato completo" sem mudar a URL
+  const [localChampId, setLocalChampId] = useState(propChampId ? Number(propChampId) : null)
+  const [localTournId, setLocalTournId] = useState(propTournId ? Number(propTournId) : null)
+
+  // Sincroniza quando a URL (props externas) mudar
+  useEffect(() => { setLocalChampId(propChampId ? Number(propChampId) : null) }, [propChampId])
+  useEffect(() => { setLocalTournId(propTournId ? Number(propTournId) : null) }, [propTournId])
+
   const [stats, setStats]           = useState([])
   const [loading, setLoading]       = useState(false)
   const [error, setError]           = useState(null)
@@ -129,28 +143,40 @@ export default function PlayerStatsPage({
   const [selectedDate, setSelectedDate]   = useState('')
   const [selectedMatch, setSelectedMatch] = useState('')
 
+  // Modo agregado: campeonato selecionado mas sem fase específica
+  const isAggregated = !!localChampId && !localTournId
+
+  // Busca dias/partidas quando uma fase específica é selecionada
   useEffect(() => {
-    if (!selectedTournamentId) return
+    if (!localTournId) { setMatchDays([]); setSelectedDate(''); setSelectedMatch(''); return }
     setMatchDays([]); setSelectedDate(''); setSelectedMatch('')
-    fetch(`${API_BASE}/tournaments/${selectedTournamentId}/matches`)
+    fetch(`${API_BASE}/tournaments/${localTournId}/matches`)
       .then((r) => r.ok ? r.json() : null)
       .then((d) => { if (d?.days) setMatchDays(d.days) })
       .catch(() => {})
-  }, [selectedTournamentId])
+  }, [localTournId])
 
   useEffect(() => { setSelectedMatch('') }, [selectedDate])
 
+  // Busca stats: campeonato completo ou fase específica
   useEffect(() => {
-    if (!selectedTournamentId) return
-    setLoading(true); setError(null)
-    let url = `${API_BASE}/tournaments/${selectedTournamentId}/player-stats?limit=200`
-    if (selectedMatch) url += `&match_id=${selectedMatch}`
-    else if (selectedDate) url += `&date=${selectedDate}`
+    if (!localTournId && !localChampId) return
+    setLoading(true); setError(null); setStats([])
+
+    let url
+    if (isAggregated) {
+      url = `${API_BASE}/championship-phases/${localChampId}/player-stats?limit=200`
+    } else {
+      url = `${API_BASE}/tournaments/${localTournId}/player-stats?limit=200`
+      if (selectedMatch) url += `&match_id=${selectedMatch}`
+      else if (selectedDate) url += `&date=${selectedDate}`
+    }
+
     fetch(url)
       .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() })
       .then((d) => { setStats(d); setLoading(false) })
       .catch((e) => { setError(e.message); setLoading(false) })
-  }, [selectedTournamentId, selectedDate, selectedMatch])
+  }, [localChampId, localTournId, selectedDate, selectedMatch, isAggregated])
 
   const teamOptions = useMemo(() => {
     const tags = new Set(stats.map((p) => formatTeamTag(p.name, p.team)).filter(Boolean))
@@ -190,8 +216,9 @@ export default function PlayerStatsPage({
     else { setSortKey(key); setSortDir('desc') }
   }
 
-  const matchesTotal       = stats[0]?.matches_total ?? 0
-  const selectedTournament = tournaments?.find((t) => t.id === Number(selectedTournamentId))
+  const matchesTotal       = isAggregated ? 0 : (stats[0]?.matches_total ?? 0)
+  const selectedTournament = tournaments?.find((t) => t.id === localTournId)
+  const selectedChamp      = championships?.find((c) => c.id === localChampId)
 
   const matchesForDay = useMemo(() => {
     if (!selectedDate) return []
@@ -250,20 +277,39 @@ export default function PlayerStatsPage({
                 )}
               </div>
               <p className="text-[12px] tracking-[0.1em] uppercase" style={{ color: 'var(--color-xama-muted)' }}>
-                {selectedTournament?.name ?? 'Selecione um torneio'}
+                {isAggregated
+                  ? (selectedChamp?.name ?? 'Campeonato completo')
+                  : (selectedTournament?.name ?? (selectedChamp ? 'Selecione a fase' : 'Selecione um campeonato'))
+                }
               </p>
             </div>
           </div>
 
           {/* Filters */}
           <div className="flex flex-wrap items-center gap-3">
-            <select value={selectedTournamentId || ''} onChange={(e) => { onTournamentChange(Number(e.target.value)); setSelectedDate(''); setSelectedMatch('') }}
-              style={{ ...selectStyle, minWidth: '220px' }}>
-              <option value="">Selecione torneio</option>
-              {(tournaments || []).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-            </select>
+            {/* Seletor hierárquico: Campeonato → Fase */}
+            <ChampionshipSelector
+              championships={championships || []}
+              loading={championshipsLoading}
+              selectedChampId={localChampId}
+              onChampChange={(cid) => {
+                setLocalChampId(cid)
+                setLocalTournId(null)
+                setSelectedDate(''); setSelectedMatch('')
+              }}
+              selectedTournId={localTournId}
+              onTournChange={(tid) => {
+                setLocalTournId(tid)
+                // Navega para a fase selecionada (quando é uma fase real, não "campeonato completo")
+                if (tid) onTournamentChange?.(tid)
+                setSelectedDate(''); setSelectedMatch('')
+              }}
+              tournaments={tournaments || []}
+              allowAggregated={true}
+            />
 
-            {matchDays.length > 0 && (
+            {/* Filtros de dia e partida — só disponíveis para uma fase específica */}
+            {!isAggregated && matchDays.length > 0 && (
               <select value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} style={{ ...selectStyle, minWidth: '140px' }}>
                 <option value="">Todos os dias</option>
                 {matchDays.map((d) => {
@@ -273,7 +319,7 @@ export default function PlayerStatsPage({
               </select>
             )}
 
-            {selectedDate && matchesForDay.length > 0 && (
+            {!isAggregated && selectedDate && matchesForDay.length > 0 && (
               <select value={selectedMatch} onChange={(e) => setSelectedMatch(e.target.value)} style={{ ...selectStyle, minWidth: '180px' }}>
                 <option value="">Todas as partidas</option>
                 {matchesForDay.map((m) => (
@@ -315,11 +361,11 @@ export default function PlayerStatsPage({
 
         {loading && <p className="text-center py-20 text-[14px]" style={{ color: 'var(--color-xama-muted)' }}>Carregando stats...</p>}
         {error   && <div className="msg-error max-w-lg mx-auto mt-8">Erro: {error}</div>}
-        {!loading && !error && !selectedTournamentId && (
+        {!loading && !error && !localTournId && !localChampId && (
           <div className="flex flex-col items-center justify-center py-32 gap-4">
             <span style={{ fontSize: '48px' }}>📊</span>
             <p className="text-[16px] font-semibold tracking-[0.06em] uppercase" style={{ color: 'var(--color-xama-muted)' }}>
-              Selecione um torneio
+              Selecione um campeonato
             </p>
           </div>
         )}

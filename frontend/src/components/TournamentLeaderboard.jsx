@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react'
 import { API_BASE_URL } from '../config'
 import TeamLogo from './TeamLogo'
+import ChampionshipSelector from './ChampionshipSelector'
 
 const formatPlayerName = (name) => {
   if (!name) return '—'
@@ -31,6 +32,10 @@ export default function TournamentLeaderboard({
   tournamentsLoading = false,
   selectedTournamentId = '',
   onTournamentChange,
+  championships = [],
+  championshipsLoading = false,
+  selectedChampId = null,
+  onChampChange,
 }) {
   const [rankings, setRankings] = useState([])
   const [loading, setLoading] = useState(false)
@@ -78,13 +83,17 @@ export default function TournamentLeaderboard({
             </p>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
-            {!tournamentsLoading && tournaments.length > 1 && (
-              <select className="dark-select" value={tournamentId} onChange={(e) => onTournamentChange?.(e.target.value)}
-                style={{ width: 'auto', minWidth: '200px', fontFamily: "'Rajdhani', sans-serif" }}>
-                {tournaments.map((t) => (
-                  <option key={t.id} value={String(t.id)}>{t.name}{t.region ? ` (${t.region})` : ''}</option>
-                ))}
-              </select>
+            {championships.length > 0 && (
+              <ChampionshipSelector
+                championships={championships}
+                loading={championshipsLoading}
+                selectedChampId={selectedChampId ? Number(selectedChampId) : null}
+                onChampChange={onChampChange}
+                selectedTournId={selectedTournamentId ? Number(selectedTournamentId) : null}
+                onTournChange={(tid) => onTournamentChange?.(tid)}
+                tournaments={tournaments}
+                allowAggregated={false}
+              />
             )}
             <button className="dark-btn flex items-center gap-2" onClick={fetchRankings} disabled={loading}
               style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 600 }}>

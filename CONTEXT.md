@@ -68,6 +68,7 @@ frontend/src/
 - ✅ Perfil com username editável, validação unicidade, seção senha
 - ✅ Navbar global
 - ✅ Logos de equipe (24 times, fallback iniciais) — arquivos em frontend/public/logos/
+- ✅ **Seletor hierárquico Campeonato → Fase** — `ChampionshipSelector.jsx` compartilhado; substitui flat dropdown em PlayerStats, Leaderboard e LineupBuilder; PlayerStats suporta "Campeonato completo" (via `/championship-phases/{id}/player-stats`); TournamentHub busca championships + deriva selectedChampId da URL com override local
 
 ## Pendente / Backlog
 - [ ] **Feature 4 — Price History:** adicionar `tournament_id` em `PlayerPriceHistory`, endpoint `GET /players/{id}/price-history`, sparkline no frontend

@@ -4,6 +4,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { API_BASE_URL } from '../config'
+import ChampionshipSelector from './ChampionshipSelector'
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function formatPlayerName(name) {
@@ -84,6 +85,10 @@ export default function LineupBuilder({
   tournamentsError = '',
   selectedTournamentId = '',
   onTournamentChange,
+  championships = [],
+  championshipsLoading = false,
+  selectedChampId = null,
+  onChampChange,
 }) {
   const [loginEmail,    setLoginEmail]    = useState('')
   const [loginPassword, setLoginPassword] = useState('')
@@ -438,10 +443,23 @@ export default function LineupBuilder({
               {tournamentsError   && <div className="msg-error">{tournamentsError}</div>}
               {!tournamentsLoading && !tournamentsError && (
                 <>
-                  {tournaments.length === 0 ? (
+                  {championships.length === 0 && tournaments.length === 0 ? (
                     <div className="py-4 px-3 rounded-lg text-[13px]"
                       style={{ background: '#0a0c11', border: '1px solid var(--color-xama-border)', color: 'var(--color-xama-muted)' }}>
                       Nenhum torneio disponível no momento.
+                    </div>
+                  ) : championships.length > 0 ? (
+                    <div className="mb-3">
+                      <ChampionshipSelector
+                        championships={championships}
+                        loading={championshipsLoading}
+                        selectedChampId={selectedChampId ? Number(selectedChampId) : null}
+                        onChampChange={onChampChange}
+                        selectedTournId={selectedTournamentId ? Number(selectedTournamentId) : null}
+                        onTournChange={(tid) => onTournamentChange?.(tid)}
+                        tournaments={tournaments}
+                        allowAggregated={false}
+                      />
                     </div>
                   ) : (
                     <select className="dark-select mb-3" value={selectedTournamentId}
