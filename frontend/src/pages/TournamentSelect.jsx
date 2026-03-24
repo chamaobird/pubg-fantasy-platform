@@ -211,10 +211,11 @@ export default function TournamentSelect() {
   const { logout } = useAuth()
   const navigate = useNavigate()
 
-  const [tournaments, setTournaments]     = useState([])
-  const [championships, setChampionships] = useState([])
-  const [loading, setLoading]             = useState(true)
-  const [error, setError]                 = useState('')
+  const [tournaments, setTournaments]         = useState([])
+  const [championships, setChampionships]     = useState([])
+  const [loading, setLoading]                 = useState(true)
+  const [error, setError]                     = useState('')
+  const [showFinished, setShowFinished]       = useState(false)
 
   useEffect(() => {
     Promise.all([
@@ -238,12 +239,15 @@ export default function TournamentSelect() {
   // Standalone tournaments (not part of any championship)
   const standalone = tournaments.filter(t => !champTournamentIds.has(t.id))
 
-  // Build mixed render list and sort by status
+  // Build mixed render list sorted by status
   const statusOrder = { active: 0, upcoming: 1, finished: 2 }
-  const items = [
+  const allItems = [
     ...championships.map(c => ({ type: 'championship', data: c, statusRank: statusOrder[c.status] ?? 3 })),
     ...standalone.map(t => ({ type: 'tournament', data: t, statusRank: statusOrder[t.status] ?? 3 })),
   ].sort((a, b) => a.statusRank - b.statusRank)
+
+  const activeItems   = allItems.filter(i => i.data.status !== 'finished')
+  const finishedItems = allItems.filter(i => i.data.status === 'finished')
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--color-xama-black)', fontFamily: "'Rajdhani', sans-serif" }}>
@@ -359,28 +363,89 @@ export default function TournamentSelect() {
         {error && <div className="msg-error" style={{ maxWidth: '400px' }}>{error}</div>}
 
         {!loading && !error && (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-            gap: '16px',
-          }}>
-            {items.map((item) =>
-              item.type === 'championship' ? (
-                <ChampionshipBlock
-                  key={`champ-${item.data.id}`}
-                  championship={item.data}
-                  tournById={tournById}
-                  navigate={navigate}
-                />
-              ) : (
-                <TournamentCard
-                  key={`tourn-${item.data.id}`}
-                  t={item.data}
-                  navigate={navigate}
-                />
-              )
+          <>
+            {/* ── Ativos / Em breve ── */}
+            {activeItems.length > 0 ? (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+                gap: '16px',
+              }}>
+                {activeItems.map((item) =>
+                  item.type === 'championship' ? (
+                    <ChampionshipBlock
+                      key={`champ-${item.data.id}`}
+                      championship={item.data}
+                      tournById={tournById}
+                      navigate={navigate}
+                    />
+                  ) : (
+                    <TournamentCard
+                      key={`tourn-${item.data.id}`}
+                      t={item.data}
+                      navigate={navigate}
+                    />
+                  )
+                )}
+              </div>
+            ) : (
+              <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--color-xama-muted)', fontSize: '14px' }}>
+                Nenhum campeonato ativo no momento.
+              </div>
             )}
-          </div>
+
+            {/* ── Encerrados (colapsável) ── */}
+            {finishedItems.length > 0 && (
+              <div style={{ marginTop: '48px' }}>
+                {/* Header da seção */}
+                <button
+                  onClick={() => setShowFinished(v => !v)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '10px',
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    padding: '0 0 16px 0', width: '100%', textAlign: 'left',
+                  }}
+                >
+                  <div style={{ flex: 1, height: '1px', background: 'var(--color-xama-border)' }} />
+                  <span style={{
+                    fontSize: '11px', fontWeight: 700, letterSpacing: '0.16em',
+                    textTransform: 'uppercase', color: 'var(--color-xama-muted)',
+                    fontFamily: "'JetBrains Mono', monospace", whiteSpace: 'nowrap',
+                  }}>
+                    {showFinished ? '▲' : '▼'} &nbsp;Encerrados ({finishedItems.length})
+                  </span>
+                  <div style={{ flex: 1, height: '1px', background: 'var(--color-xama-border)' }} />
+                </button>
+
+                {/* Grid encerrados */}
+                {showFinished && (
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+                    gap: '16px',
+                    opacity: 0.65,
+                  }}>
+                    {finishedItems.map((item) =>
+                      item.type === 'championship' ? (
+                        <ChampionshipBlock
+                          key={`champ-${item.data.id}`}
+                          championship={item.data}
+                          tournById={tournById}
+                          navigate={navigate}
+                        />
+                      ) : (
+                        <TournamentCard
+                          key={`tourn-${item.data.id}`}
+                          t={item.data}
+                          navigate={navigate}
+                        />
+                      )
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </>
         )}
       </main>
     </div>
