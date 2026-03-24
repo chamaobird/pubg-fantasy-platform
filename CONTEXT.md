@@ -60,19 +60,23 @@ frontend/src/
 ## Features Implementadas
 - ✅ Importação histórica de partidas (historical.py) com auto-lock e wins_count
 - ✅ Lineup Builder com validações (budget, 1 player/time, reserva)
-- ✅ Leaderboard com display_name, badge EU, logos nos jogadores expandidos
-- ✅ Player Stats Page com filtros por dia/partida/time, colunas W/PTS/SURV/etc.
+- ✅ Leaderboard — coluna Lineup removida, colunas: # / Manager / Pontos / Ver; badge EU no Manager; logos nos jogadores expandidos; display_name real (não mais hardcoded None)
+- ✅ Player Stats Page com filtros por dia/partida/time, colunas W/PTS/SURV/etc., logos de time
 - ✅ TournamentSelect com agrupamento por Championship (blocos + mini-cards de fase)
-- ✅ TournamentHub com tabs, badge de status, aba Lineup oculta em torneios finalizados
+- ✅ TournamentHub com tabs, badge de status (ENCERRADO/AO VIVO/EM BREVE), aba Lineup oculta e default Leaderboard para torneios finalizados
 - ✅ Dashboard com 3 estados (Lineup Aberta / Aguardando / Meus Resultados)
 - ✅ Perfil com username editável, validação unicidade, seção senha
 - ✅ Navbar global
-- ✅ Logos de equipe (24 times, fallback iniciais)
+- ✅ Logos de equipe (24 times, fallback iniciais) — arquivos em frontend/public/logos/
 
 ## Pendente / Backlog
-- [ ] Feature 4: price history — `tournament_id` em `PlayerPriceHistory`, endpoint `GET /players/{id}/price-history`, sparkline no frontend
-- [ ] Registrar PAS como Championship no DB (fases já existem como torneios individuais)
-- [ ] Pipeline T16+ (próxima fase do PGS 2026)
+- [ ] **Feature 4 — Price History:** adicionar `tournament_id` em `PlayerPriceHistory`, endpoint `GET /players/{id}/price-history`, sparkline no frontend
+- [ ] **Registrar PAS como Championship** no DB (torneios de fase já existem; só falta criar o registro de championship e vincular)
+- [ ] **Pipeline T16+** — próxima fase do PGS 2026 Circuit 1
+
+## Notas de Sessão
+- Pasta do projeto montada no Cowork → edições diretas via Edit/Write, sem heredoc
+- Para novas sessões: pedir "monta o projeto pubg-fantasy-platform e lê o CONTEXT.md"
 
 ## Como Rodar Migrations no Render
 ```powershell
