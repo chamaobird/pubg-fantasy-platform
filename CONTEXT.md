@@ -70,10 +70,36 @@ frontend/src/
 - ✅ Logos de equipe (24 times, fallback iniciais) — arquivos em frontend/public/logos/
 - ✅ **Seletor hierárquico Campeonato → Fase** — `ChampionshipSelector.jsx` compartilhado; substitui flat dropdown em PlayerStats, Leaderboard e LineupBuilder; PlayerStats suporta "Campeonato completo" (via `/championship-phases/{id}/player-stats`); TournamentHub busca championships + deriva selectedChampId da URL com override local
 
+## Estado da Produção (atualizado 2026-03-24)
+### Torneios cadastrados (DB)
+| id | name | pubg_id | matches | players | lineup_open |
+|----|------|---------|---------|---------|-------------|
+| 7  | PAS 2026 - Americas Open Qualifier · Fase de Cups | am-pas1cup | 15 (Sem 1-3) | 107 (100%) | **true** |
+| 8  | SEA Thailand Super Cup 2026 | sea-thsc | 24 | 65 (100%) | false |
+| 9  | SEA MITH Cup 2026 | sea-mith | 19 | 67 (100%) | false |
+| 10 | Asia China Cup 2026 | as-cncup | 20 | 66 (100%) | false |
+| 11 | Korea PWS 2026 Phase 1 Cup 5 | kr-pws1c5 | 5 | 64 (100%) | false |
+| 12-15 | PGS 2026 Circuit 1 (4 fases) | eu-race26 etc | — | — | false |
+
+### Championships cadastrados
+| id | name | region | fases |
+|----|------|--------|-------|
+| 1 | PGS 2026 Circuit 1 · Series 1 | GLOBAL | T13 (Group), T12 (Winners), T14 (Survival), T15 (Final) |
+| 2 | PAS 2026 - Americas Series 1 | AM | T7 (Scrims) |
+
+### PAS Semana 4 (23/03/2026)
+- Partidas jogadas mas AINDA NÃO aparecem no `am-pas1cup` (PUBG API mostra WAITING no wasdefy)
+- Quando aparecerem: `POST /historical/import-matches-from-pubg/7 {"pubg_tournament_id": "am-pas1cup"}` (idempotente)
+- Lineup já aberta para os usuários fazerem picks para 25-26/03
+
+### PGS 2 (começa 26/03/2026)
+- Status: UPCOMING no pubgesports.com (tournament ID da PUBG API: ainda não disponível)
+- Quando o torneio for criado: criar T16+ no DB e rodar import
+
 ## Pendente / Backlog
+- [ ] **Importar PAS Semana 4** — rodar `import-matches-from-pubg/7` quando `am-pas1cup` tiver os matches de 23/03
+- [ ] **PGS 2** — criar torneios T16+ e championship para Circuit 2 quando iniciar (26/03)
 - [ ] **Feature 4 — Price History:** adicionar `tournament_id` em `PlayerPriceHistory`, endpoint `GET /players/{id}/price-history`, sparkline no frontend
-- [ ] **Registrar PAS como Championship** no DB (torneios de fase já existem; só falta criar o registro de championship e vincular)
-- [ ] **Pipeline T16+** — próxima fase do PGS 2026 Circuit 1
 
 ## Notas de Sessão
 - Pasta do projeto montada no Cowork → edições diretas via Edit/Write, sem heredoc
