@@ -75,6 +75,7 @@ class PlayerChampionshipStats(BaseModel):
     pts_per_match:         float
     total_late_game_bonus: float
     total_penalty_count:   int
+    total_wins:            int = 0
 
 
 # ── Public endpoints ──────────────────────────────────────────────────────────
@@ -109,16 +110,19 @@ def championship_player_stats(
     limit: int = Query(100, ge=1, le=500),
     db: Session = Depends(get_db),
 ):
+    from collections import defaultdict
+
     champ = db.query(Championship).filter(Championship.id == championship_id).first()
     if not champ:
         raise HTTPException(status_code=404, detail="Championship not found")
 
-    # Coleta todos os tournament_ids do campeonato
+    # Coleta todos os tournament_ids do campeonato e mapeia id → tournament_id
+    # para identificar qual fase é mais recente por player
     tournament_ids = [ct.tournament_id for ct in champ.phases]
     if not tournament_ids:
         return []
 
-    # Agrega stats de todos os matches de todas as fases
+    # Busca todos os registros sem limit/skip — dedup ocorre em Python
     rows = (
         db.query(
             Player,
@@ -133,6 +137,7 @@ def championship_player_stats(
             sql_func.sum(MatchPlayerStat.fantasy_points).label("total_fantasy_points"),
             sql_func.sum(MatchPlayerStat.late_game_bonus).label("total_late_game_bonus"),
             sql_func.sum(MatchPlayerStat.penalty_count).label("total_penalty_count"),
+            sql_func.sum(MatchPlayerStat.wins_count).label("total_wins"),
         )
         .join(MatchPlayerStat, MatchPlayerStat.player_id == Player.id)
         .join(Match, MatchPlayerStat.match_id == Match.id)
@@ -140,33 +145,75 @@ def championship_player_stats(
         .filter(Match.tournament_id.in_(tournament_ids))
         .filter(Player.is_active == True)
         .group_by(Player.id, Team.name)
-        .order_by(sql_func.sum(MatchPlayerStat.fantasy_points).desc())
-        .offset(skip)
-        .limit(limit)
         .all()
     )
 
-    result = []
+    # ── Dedup por nome normalizado (sem prefixo do time) ──────────────────────
+    # Jogadores que mudaram de time entre fases aparecem com player IDs distintos
+    # e team tags diferentes. Agrupamos pelo nome sem prefixo ("TIA_Foo" → "Foo"),
+    # somamos as stats de todos os registros e usamos o time do torneio mais recente.
+    groups = defaultdict(list)
     for r in rows:
-        mp = r.matches_played or 1
-        tfp = float(r.total_fantasy_points or 0.0)
+        name = r.Player.name
+        # "TEAM_PlayerName" → "PlayerName"; sem underscore → usa o nome inteiro
+        norm = name.split("_", 1)[1] if "_" in name else name
+        groups[norm].append(r)
+
+    merged = []
+    for norm_name, grp in groups.items():
+        # Ordena pelo tournament_id DESC → primeiro elemento = equipe atual
+        grp.sort(key=lambda r: r.Player.tournament_id or 0, reverse=True)
+        primary = grp[0]
+
+        total_mp   = sum(r.matches_played or 0 for r in grp)
+        total_tfp  = sum(float(r.total_fantasy_points or 0) for r in grp)
+
+        # Colocação média: média ponderada pelo número de partidas
+        weighted_pl = sum(float(r.avg_placement or 0) * (r.matches_played or 0) for r in grp)
+        avg_pl = weighted_pl / total_mp if total_mp > 0 else 0.0
+
+        merged.append({
+            "player":               primary.Player,
+            "team_name":            primary.team_name,
+            "matches_played":       total_mp,
+            "total_kills":          sum(int(r.total_kills or 0) for r in grp),
+            "total_assists":        sum(int(r.total_assists or 0) for r in grp),
+            "total_damage":         sum(float(r.total_damage or 0) for r in grp),
+            "avg_placement":        avg_pl,
+            "total_knocks":         sum(int(r.total_knocks or 0) for r in grp),
+            "surv_total_secs":      sum(float(r.surv_total_secs or 0) for r in grp),
+            "total_fantasy_points": total_tfp,
+            "total_late_game_bonus":sum(float(r.total_late_game_bonus or 0) for r in grp),
+            "total_penalty_count":  sum(int(r.total_penalty_count or 0) for r in grp),
+            "total_wins":           sum(int(r.total_wins or 0) for r in grp),
+        })
+
+    # Ordena por total_fantasy_points desc e aplica skip/limit pós-dedup
+    merged.sort(key=lambda x: x["total_fantasy_points"], reverse=True)
+    merged = merged[skip : skip + limit]
+
+    result = []
+    for m in merged:
+        mp  = m["matches_played"] or 1
+        tfp = m["total_fantasy_points"]
         result.append(PlayerChampionshipStats(
-            player_id=r.Player.id,
-            name=r.Player.name,
-            team=r.team_name,
-            region=r.Player.region,
-            fantasy_cost=round(float(r.Player.fantasy_cost or 0.0), 2),
-            matches_played=mp,
-            total_kills=int(r.total_kills or 0),
-            total_assists=int(r.total_assists or 0),
-            total_damage=round(float(r.total_damage or 0.0), 1),
-            avg_placement=round(float(r.avg_placement or 0.0), 1),
-            total_knocks=int(r.total_knocks or 0),
-            surv_total_secs=round(float(r.surv_total_secs or 0.0), 0),
-            total_fantasy_points=round(tfp, 2),
-            pts_per_match=round(tfp / mp, 2),
-            total_late_game_bonus=round(float(r.total_late_game_bonus or 0.0), 2),
-            total_penalty_count=int(r.total_penalty_count or 0),
+            player_id=             m["player"].id,
+            name=                  m["player"].name,
+            team=                  m["team_name"],
+            region=                m["player"].region,
+            fantasy_cost=          round(float(m["player"].fantasy_cost or 0), 2),
+            matches_played=        mp,
+            total_kills=           m["total_kills"],
+            total_assists=         m["total_assists"],
+            total_damage=          round(m["total_damage"], 1),
+            avg_placement=         round(m["avg_placement"], 1),
+            total_knocks=          m["total_knocks"],
+            surv_total_secs=       round(m["surv_total_secs"], 0),
+            total_fantasy_points=  round(tfp, 2),
+            pts_per_match=         round(tfp / mp, 2),
+            total_late_game_bonus= round(m["total_late_game_bonus"], 2),
+            total_penalty_count=   m["total_penalty_count"],
+            total_wins=            m["total_wins"],
         ))
     return result
 
