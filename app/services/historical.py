@@ -317,6 +317,7 @@ def import_matches_from_pubg(
     db: Session,
     tournament_id: int,
     pubg_tournament_id: str,
+    match_group_map: dict | None = None,
 ) -> dict:
     """
     Fetch all matches for pubg_tournament_id from the PUBG API and import them.
@@ -326,6 +327,11 @@ def import_matches_from_pubg(
         3. Resolve RawPlayerStat.pubg_account_id / pubg_name → Player.id
         4. Build MatchInput objects and call import_matches() (same as body mode)
     Returns the same {"created", "skipped", "errors"} dict as import_matches().
+
+    match_group_map: optional dict mapping PUBG match UUID → group_label (e.g. "A").
+        When provided, each newly imported match gets its group_label set.
+        Useful for scrims with groups (A/B/C/D) not encoded in the PUBG API response.
+        Example: {"b951fa9e-6a6a-4b23-8ecf-fcf07e0eb208": "A", ...}
     """
     from app.core.config import settings
     from app.services.pubg_client import PubgApiError, PubgClient, RawMatch
@@ -389,6 +395,7 @@ def import_matches_from_pubg(
                 len(unresolved_names),
                 unresolved_names[:10],
             )
+        group_lbl = (match_group_map or {}).get(match_id)
         match_inputs.append(
             MatchInput(
                 pubg_match_id=raw.pubg_match_id,
@@ -396,6 +403,7 @@ def import_matches_from_pubg(
                 played_at=raw.played_at,
                 duration_secs=raw.duration_secs,
                 player_stats=resolved_stats,
+                group_label=group_lbl,
             )
         )
     # ── 4. All fetches failed → surface as error ──────────────────────────
@@ -613,11 +621,4 @@ def recalculate_prices(
         logger.info(
             "Committed prices for %s players in tournament %s",
             updated,
-            tournament_id,
-        )
-    return {
-        "updated": updated,
-        "dry_run": dry_run,
-        "tournament_id": tournament_id,
-        "players": results,
-    }
+            tou

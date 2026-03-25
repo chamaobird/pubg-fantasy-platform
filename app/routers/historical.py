@@ -58,7 +58,15 @@ class ImportMatchesApiBody(BaseModel):
     """Body for the PUBG-API-driven import endpoint."""
     pubg_tournament_id: str = Field(
         ...,
-        description="PUBG tournament ID as returned by GET /tournaments, e.g. 'eu-race26'",
+        description="PUBG tournament ID as returned by GET /tournaments, e.g. 'am-pas1cup'",
+    )
+    match_group_map: Optional[dict[str, str]] = Field(
+        None,
+        description=(
+            "Optional mapping of PUBG match UUID → group_label (e.g. 'A', 'B', 'C', 'D'). "
+            "Use this for scrims phases where groups are not encoded in the PUBG API. "
+            "Example: {\"b951fa9e-...\": \"A\", \"57f8d62b-...\": \"B\"}"
+        ),
     )
 
 
@@ -196,7 +204,8 @@ def import_matches_from_pubg_endpoint(
 ):
     try:
         result = import_matches_from_pubg(
-            db, tournament_id, body.pubg_tournament_id
+            db, tournament_id, body.pubg_tournament_id,
+            match_group_map=body.match_group_map,
         )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc))
