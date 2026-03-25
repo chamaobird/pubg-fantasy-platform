@@ -1,9 +1,10 @@
 ﻿// frontend/src/components/PlayerStatsPage.jsx
 // XAMA Fantasy — Player Stats Page (expanded)
-// Filtros: campeonato → fase → dia → partida → time → jogador
+// Filtros: campeonato → fase → dia → grupo → partida → time → jogador
 
 import { useState, useEffect, useMemo } from 'react'
 import { API_BASE_URL as API_BASE } from '../config'
+import { PAS_2026_PHASE_MAP } from '../config/pas2026'
 import TeamLogo from './TeamLogo'
 import ChampionshipSelector from './ChampionshipSelector'
 
@@ -143,23 +144,28 @@ export default function PlayerStatsPage({
   const [matchDays, setMatchDays]         = useState([])
   const [selectedWeek, setSelectedWeek]   = useState('')
   const [selectedDate, setSelectedDate]   = useState('')
+  const [selectedGroup, setSelectedGroup] = useState('')
   const [selectedMatch, setSelectedMatch] = useState('')
 
   // Modo agregado: campeonato selecionado mas sem fase específica
   const isAggregated = !!localChampId && !localTournId
 
+  // Config estática da fase selecionada (PAS 2026)
+  const phaseConfig = localTournId ? PAS_2026_PHASE_MAP.get(localTournId) ?? null : null
+
   // Busca dias/partidas quando uma fase específica é selecionada
   useEffect(() => {
-    if (!localTournId) { setMatchDays([]); setSelectedWeek(''); setSelectedDate(''); setSelectedMatch(''); return }
-    setMatchDays([]); setSelectedWeek(''); setSelectedDate(''); setSelectedMatch('')
+    if (!localTournId) { setMatchDays([]); setSelectedWeek(''); setSelectedDate(''); setSelectedGroup(''); setSelectedMatch(''); return }
+    setMatchDays([]); setSelectedWeek(''); setSelectedDate(''); setSelectedGroup(''); setSelectedMatch('')
     fetch(`${API_BASE}/tournaments/${localTournId}/matches`)
       .then((r) => r.ok ? r.json() : null)
       .then((d) => { if (d?.days) setMatchDays(d.days) })
       .catch(() => {})
   }, [localTournId])
 
-  useEffect(() => { setSelectedMatch('') }, [selectedDate])
-  useEffect(() => { setSelectedDate(''); setSelectedMatch('') }, [selectedWeek])
+  useEffect(() => { setSelectedMatch('') }, [selectedGroup])
+  useEffect(() => { setSelectedGroup(''); setSelectedMatch('') }, [selectedDate])
+  useEffect(() => { setSelectedDate(''); setSelectedGroup(''); setSelectedMatch('') }, [selectedWeek])
 
   // Agrupa dias em semanas: gap > 4 dias entre sessões = nova semana
   const weeks = useMemo(() => {
@@ -187,6 +193,16 @@ export default function PlayerStatsPage({
     return wk ? matchDays.filter((d) => wk.dates.includes(d.date)) : matchDays
   }, [matchDays, selectedWeek, weeks])
 
+  // Grupos disponíveis no dia selecionado (derivado dos group_label das partidas)
+  // Só aparece quando a fase config indica may_have_groups e o dia tem partidas com group_label
+  const groupsForDay = useMemo(() => {
+    if (!phaseConfig?.may_have_groups || !selectedDate) return []
+    const day = matchDays.find((d) => d.date === selectedDate)
+    if (!day?.matches) return []
+    const gs = [...new Set(day.matches.map((m) => m.group_label).filter(Boolean))].sort()
+    return gs
+  }, [phaseConfig, selectedDate, matchDays])
+
   // Busca stats: campeonato completo ou fase específica
   useEffect(() => {
     if (!localTournId && !localChampId) return
@@ -197,15 +213,19 @@ export default function PlayerStatsPage({
       url = `${API_BASE}/championship-phases/${localChampId}/player-stats?limit=200`
     } else {
       url = `${API_BASE}/tournaments/${localTournId}/player-stats?limit=200`
-      if (selectedMatch) url += `&match_id=${selectedMatch}`
-      else if (selectedDate) url += `&date=${selectedDate}`
+      if (selectedMatch) {
+        url += `&match_id=${selectedMatch}`
+      } else {
+        if (selectedDate)  url += `&date=${selectedDate}`
+        if (selectedGroup) url += `&group_label=${selectedGroup}`
+      }
     }
 
     fetch(url)
       .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() })
       .then((d) => { setStats(d); setLoading(false) })
       .catch((e) => { setError(e.message); setLoading(false) })
-  }, [localChampId, localTournId, selectedDate, selectedMatch, isAggregated])
+  }, [localChampId, localTournId, selectedDate, selectedGroup, selectedMatch, isAggregated])
 
   const teamOptions = useMemo(() => {
     const tags = new Set(stats.map((p) => formatTeamTag(p.name, p.team)).filter(Boolean))
@@ -255,10 +275,24 @@ export default function PlayerStatsPage({
     return day?.matches || []
   }, [selectedDate, matchDays])
 
+  // Partidas visíveis no seletor de partida — filtradas por grupo quando selecionado
+  const matchesForGroup = useMemo(() => {
+    if (!selectedGroup) return matchesForDay
+    return matchesForDay.filter((m) => m.group_label === selectedGroup)
+  }, [matchesForDay, selectedGroup])
+
   const filterLabel = useMemo(() => {
     if (selectedMatch) {
       const match = matchesForDay.find((m) => String(m.id) === String(selectedMatch))
-      if (match) return `Partida ${match.match_number_in_day} — ${match.map_name}`
+      if (match) {
+        const groupPart = match.group_label ? ` · Grupo ${match.group_label}` : ''
+        return `Partida ${match.match_number_in_day}${groupPart} — ${match.map_name}`
+      }
+    }
+    if (selectedGroup && selectedDate) {
+      const [, mm, dd] = selectedDate.split('-')
+      const wkLabel = selectedWeek ? ` · ${weeks.find((w) => w.week === Number(selectedWeek))?.label ?? ''}` : ''
+      return `${dd}/${mm}${wkLabel} · Grupo ${selectedGroup}`
     }
     if (selectedDate) {
       const [, mm, dd] = selectedDate.split('-')
@@ -269,7 +303,7 @@ export default function PlayerStatsPage({
       return weeks.find((w) => w.week === Number(selectedWeek))?.label ?? 'Semana'
     }
     return 'Torneio completo'
-  }, [selectedMatch, selectedDate, selectedWeek, matchesForDay, weeks])
+  }, [selectedMatch, selectedDate, selectedGroup, selectedWeek, matchesForDay, weeks])
 
   const thStyle = (col) => ({
     padding: '10px 12px',
@@ -302,7 +336,7 @@ export default function PlayerStatsPage({
                     {matchesTotal}M
                   </span>
                 )}
-                {(selectedDate || selectedMatch || selectedWeek) && (
+                {(selectedDate || selectedGroup || selectedMatch || selectedWeek) && (
                   <span className="px-2 py-0.5 rounded text-[10px] font-bold"
                     style={{ fontFamily: "'JetBrains Mono', monospace", background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.3)', color: '#60a5fa' }}>
                     {filterLabel}
@@ -328,14 +362,14 @@ export default function PlayerStatsPage({
               onChampChange={(cid) => {
                 setLocalChampId(cid)
                 setLocalTournId(null)
-                setSelectedDate(''); setSelectedMatch('')
+                setSelectedDate(''); setSelectedGroup(''); setSelectedMatch('')
               }}
               selectedTournId={localTournId}
               onTournChange={(tid) => {
                 setLocalTournId(tid)
                 // Navega para a fase selecionada (quando é uma fase real, não "campeonato completo")
                 if (tid) onTournamentChange?.(tid)
-                setSelectedDate(''); setSelectedMatch('')
+                setSelectedDate(''); setSelectedGroup(''); setSelectedMatch('')
               }}
               tournaments={tournaments || []}
               allowAggregated={true}
@@ -364,12 +398,22 @@ export default function PlayerStatsPage({
               </select>
             )}
 
-            {!isAggregated && selectedDate && matchesForDay.length > 0 && (
+            {/* Seletor de Grupo — só aparece quando o dia tem partidas com group_label */}
+            {!isAggregated && groupsForDay.length > 0 && (
+              <select value={selectedGroup} onChange={(e) => setSelectedGroup(e.target.value)} style={{ ...selectStyle, minWidth: '130px' }}>
+                <option value="">Todos os grupos</option>
+                {groupsForDay.map((g) => (
+                  <option key={g} value={g}>Grupo {g}</option>
+                ))}
+              </select>
+            )}
+
+            {!isAggregated && selectedDate && matchesForGroup.length > 0 && (
               <select value={selectedMatch} onChange={(e) => setSelectedMatch(e.target.value)} style={{ ...selectStyle, minWidth: '180px' }}>
                 <option value="">Todas as partidas</option>
-                {matchesForDay.map((m) => (
+                {matchesForGroup.map((m) => (
                   <option key={m.id} value={m.id}>
-                    {MAP_ICONS[m.map_name] || '🗺️'} P{m.match_number_in_day} — {m.map_name}
+                    {MAP_ICONS[m.map_name] || '🗺️'} P{m.match_number_in_day}{m.group_label ? ` [${m.group_label}]` : ''} — {m.map_name}
                   </option>
                 ))}
               </select>
@@ -384,8 +428,8 @@ export default function PlayerStatsPage({
               onChange={(e) => setSearch(e.target.value)}
               style={{ ...selectStyle, width: '160px' }} />
 
-            {(selectedWeek || selectedDate || selectedMatch || teamFilter || search) && (
-              <button onClick={() => { setSelectedWeek(''); setSelectedDate(''); setSelectedMatch(''); setTeamFilter(''); setSearch('') }}
+            {(selectedWeek || selectedDate || selectedGroup || selectedMatch || teamFilter || search) && (
+              <button onClick={() => { setSelectedWeek(''); setSelectedDate(''); setSelectedGroup(''); setSelectedMatch(''); setTeamFilter(''); setSearch('') }}
                 style={{ ...selectStyle, color: '#f87171', borderColor: 'rgba(248,113,113,0.3)', cursor: 'pointer', background: 'rgba(248,113,113,0.05)' }}>
                 ✕ Limpar
               </button>
