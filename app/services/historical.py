@@ -317,7 +317,7 @@ def import_matches_from_pubg(
     db: Session,
     tournament_id: int,
     pubg_tournament_id: str,
-    match_group_map: dict | None = None,
+    match_group_map: Optional[dict] = None,
 ) -> dict:
     """
     Fetch all matches for pubg_tournament_id from the PUBG API and import them.
