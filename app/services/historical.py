@@ -442,9 +442,8 @@ def import_matches_by_pubg_ids(
     match_inputs: list[MatchInput] = []
     fetch_errors: list[str] = []
     for entry in pubg_match_ids:
-        # entry is {"id": "<uuid>", "group_label": "A" | None}
-        match_id   = entry["id"]
-        group_lbl  = entry.get("group_label")
+        match_id = entry["id"]
+        group_lbl = entry.get("group_label")
         try:
             raw: RawMatch = client.get_match(match_id)
         except PubgApiError as exc:
@@ -452,6 +451,12 @@ def import_matches_by_pubg_ids(
             logger.error(msg)
             fetch_errors.append(msg)
             continue
+        except Exception as exc:          # <-- ESTE É O FIX CRÍTICO
+            msg = f"Unexpected error fetching match {match_id}: {exc}"
+            logger.error(msg)
+            fetch_errors.append(msg)
+            continue
+
         resolved_stats: list[PlayerStatInput] = []
         unresolved_names: list[str] = []
         for rps in raw.player_stats:

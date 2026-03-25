@@ -96,8 +96,12 @@ class PubgClient:
     # ── Internal helpers ──────────────────────────────────────────────────
 
     def _get(self, url: str) -> dict:
-        """GET url, raise PubgApiError on non-2xx."""
-        resp = self._session.get(url, timeout=15)
+        try:
+            resp = self.session.get(url, timeout=25)
+        except requests.exceptions.Timeout:
+            raise PubgApiError(408, f"Timeout fetching {url}")
+        except requests.exceptions.RequestException as exc:
+            raise PubgApiError(503, f"Connection error fetching {url}: {exc}")
         if not resp.ok:
             raise PubgApiError(resp.status_code, resp.text)
         return resp.json()
