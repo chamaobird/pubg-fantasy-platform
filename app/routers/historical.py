@@ -15,6 +15,7 @@ from app.services.historical import (
     MatchInput,
     PlayerStatInput,
     import_matches,
+    import_matches_by_pubg_ids,
     import_matches_from_pubg,
     recalculate_prices,
 )
@@ -58,6 +59,15 @@ class ImportMatchesApiBody(BaseModel):
     pubg_tournament_id: str = Field(
         ...,
         description="PUBG tournament ID as returned by GET /tournaments, e.g. 'eu-race26'",
+    )
+
+
+class ImportMatchesByIdsBody(BaseModel):
+    """Body for the direct-UUID import endpoint."""
+    pubg_match_ids: list[str] = Field(
+        ...,
+        min_length=1,
+        description="List of PUBG match UUIDs to import directly (bypasses tournament roster lookup).",
     )
 
 
@@ -185,6 +195,38 @@ def import_matches_from_pubg_endpoint(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc))
 
+    return ImportMatchesResponse(tournament_id=tournament_id, **result)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# POST /historical/import-matches-by-ids/{tournament_id}
+# Mode C: supply PUBG match UUIDs directly (skips tournament roster lookup)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.post(
+    "/import-matches-by-ids/{tournament_id}",
+    response_model=ImportMatchesResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Import specific PUBG matches by their UUIDs",
+    description=(
+        "Direct-UUID import: supply a list of PUBG match UUIDs. "
+        "The backend fetches each match from the PUBG API and imports it. "
+        "Useful for scrim matches not yet listed in the PUBG tournament roster. "
+        "Already-imported matches are skipped (idempotent)."
+    ),
+)
+def import_matches_by_ids_endpoint(
+    tournament_id: int,
+    body: ImportMatchesByIdsBody,
+    db: Session = Depends(get_db),
+    _admin: User = Depends(_require_admin),
+):
+    try:
+        result = import_matches_by_pubg_ids(
+            db, tournament_id, body.pubg_match_ids
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc))
     return ImportMatchesResponse(tournament_id=tournament_id, **result)
 
 

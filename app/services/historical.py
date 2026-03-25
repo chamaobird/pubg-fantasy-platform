@@ -412,6 +412,83 @@ def import_matches_from_pubg(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Section 4 – Direct-UUID import (provide match IDs explicitly)
+# ─────────────────────────────────────────────────────────────────────────────
+def import_matches_by_pubg_ids(
+    db: Session,
+    tournament_id: int,
+    pubg_match_ids: list[str],
+) -> dict:
+    """
+    Like import_matches_from_pubg but skips the tournament-roster lookup.
+    Useful when matches are not yet listed under the PUBG tournament endpoint
+    (e.g. scrim matches available via wasdefy but not yet in the API roster).
+    Steps:
+        1. For each supplied match UUID call PubgClient.get_match()
+        2. Resolve participants → Player.id
+        3. Call import_matches() (same persistence core)
+    """
+    from app.core.config import settings
+    from app.services.pubg_client import PubgApiError, PubgClient, RawMatch
+    client = PubgClient(api_key=settings.PUBG_API_KEY, shard=settings.PUBG_SHARD)
+    player_lookup = _build_player_lookup(db, tournament_id)
+    if not player_lookup:
+        logger.warning(
+            "No players found for tournament %s — stats will all be skipped.",
+            tournament_id,
+        )
+    match_inputs: list[MatchInput] = []
+    fetch_errors: list[str] = []
+    for match_id in pubg_match_ids:
+        try:
+            raw: RawMatch = client.get_match(match_id)
+        except PubgApiError as exc:
+            msg = f"Failed to fetch PUBG match {match_id}: {exc}"
+            logger.error(msg)
+            fetch_errors.append(msg)
+            continue
+        resolved_stats: list[PlayerStatInput] = []
+        unresolved_names: list[str] = []
+        for rps in raw.player_stats:
+            player_id = _resolve_player_id(player_lookup, rps.pubg_account_id, rps.pubg_name)
+            if player_id is None:
+                unresolved_names.append(rps.pubg_name)
+                continue
+            resolved_stats.append(
+                PlayerStatInput(
+                    player_id=player_id,
+                    kills=rps.kills,
+                    assists=rps.assists,
+                    damage_dealt=rps.damage_dealt,
+                    placement=rps.placement,
+                    survival_secs=rps.survival_secs,
+                    headshots=rps.headshots,
+                    knocks=rps.knocks,
+                )
+            )
+        if unresolved_names:
+            logger.warning(
+                "Match %s: %s participant(s) unresolved: %s",
+                match_id, len(unresolved_names), unresolved_names[:10],
+            )
+        match_inputs.append(
+            MatchInput(
+                pubg_match_id=raw.pubg_match_id,
+                map_name=raw.map_name,
+                played_at=raw.played_at,
+                duration_secs=raw.duration_secs,
+                player_stats=resolved_stats,
+            )
+        )
+    if not match_inputs and fetch_errors:
+        raise ValueError({"message": "All PUBG API fetches failed.", "errors": fetch_errors})
+    result = import_matches(db, tournament_id, match_inputs)
+    result["errors"] = fetch_errors + result.get("errors", [])
+    result["match_ids_found"] = len(pubg_match_ids)
+    return result
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Section 4 – Pricing (unchanged)
 # ─────────────────────────────────────────────────────────────────────────────
 def _last_n_stats_for_player(
