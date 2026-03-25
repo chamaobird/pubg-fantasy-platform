@@ -645,4 +645,5 @@ def recalculate_prices(
         logger.info(
             "Committed prices for %s players in tournament %s",
             updated,
-            tou
+            tournament_id,
+        )
