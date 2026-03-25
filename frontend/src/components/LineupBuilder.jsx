@@ -327,7 +327,7 @@ export default function LineupBuilder({
         method: 'POST',
         headers: { Authorization: `Bearer ${token.trim()}` },
         body: JSON.stringify({
-          name: 'Lineup criado via frontend',
+          name: 'Lineup',
           player_ids: selectedPlayers.map((p) => p.id),
           captain_id: captainId,
           reserve_player_id: reservePlayer.id,
@@ -776,7 +776,7 @@ export default function LineupBuilder({
                 </p>
               )}
               {saveError   && <div className="msg-error mt-3">{saveError}</div>}
-              {saveSuccess && <div className="msg-success mt-3">Lineup criado! ID: <b>{saveSuccess.id}</b></div>}
+              {saveSuccess && <div className="msg-success mt-3">✅ Lineup salvo com sucesso!</div>}
             </Card>
           </div>
         </div>

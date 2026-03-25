@@ -25,16 +25,21 @@ const selectStyle = {
   outline: 'none',
 }
 
-// Deriva o label de fase a partir do campo phase ou do tournament_name
+// Deriva o label de fase a partir do tournament_name (preferido) ou phase
 function phaseLabel(phase, champName) {
-  if (phase.phase) return phase.phase
-  // Tenta remover o prefixo do campeonato: "PGS 2026 · Group Stage" → "Group Stage"
   const tn = phase.tournament_name || ''
-  if (champName && tn.startsWith(champName)) {
-    const rest = tn.slice(champName.length).replace(/^[\s·\-]+/, '').trim()
-    if (rest) return rest
+  if (tn) {
+    // Tenta remover o prefixo do campeonato: "PGS 2026 · Group Stage" → "Group Stage"
+    if (champName && tn.startsWith(champName)) {
+      const rest = tn.slice(champName.length).replace(/^[\s·\-]+/, '').trim()
+      if (rest) return rest
+    }
+    // tournament_name disponível e não começa com champName → usa direto
+    return tn
   }
-  return tn || `Torneio #${phase.tournament_id}`
+  // Fallback: campo phase curto ("Scrims", etc.)
+  if (phase.phase) return phase.phase
+  return `Torneio #${phase.tournament_id}`
 }
 
 export default function ChampionshipSelector({

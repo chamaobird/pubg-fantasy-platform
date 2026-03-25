@@ -211,6 +211,17 @@ def create_lineup(
             detail="Lineup submissions are closed for this tournament",
         )
 
+    # --- Uma lineup por usuário por torneio ---
+    existing_lineup = db.query(Lineup).filter(
+        Lineup.tournament_id == tournament_id,
+        Lineup.user_id == current_user.id,
+    ).first()
+    if existing_lineup:
+        raise HTTPException(
+            status_code=400,
+            detail="Você já possui uma lineup para este torneio. Não é possível criar mais de uma.",
+        )
+
     player_ids = body.player_ids
     if len(player_ids) != 4:
         raise HTTPException(status_code=400, detail="Lineup must have exactly 4 players")

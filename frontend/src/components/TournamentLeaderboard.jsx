@@ -1,10 +1,24 @@
 ﻿// frontend/src/components/TournamentLeaderboard.jsx
-// XAMA Fantasy — Leaderboard v4: removed Lineup column, EU badge in Manager
+// XAMA Fantasy — Leaderboard v5: per-day/match view, one-lineup enforcement
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { API_BASE_URL } from '../config'
 import TeamLogo from './TeamLogo'
 import ChampionshipSelector from './ChampionshipSelector'
+
+const MAP_ICONS = { Erangel: '🌿', Miramar: '🏜️', Taego: '🌾', Rondo: '❄️', Vikendi: '❄️', Deston: '🌊' }
+
+const selectStyle = {
+  background: '#0d0f14',
+  border: '1px solid var(--color-xama-border)',
+  borderRadius: '6px',
+  color: 'var(--color-xama-text)',
+  padding: '5px 8px',
+  fontSize: '12px',
+  fontFamily: "'Rajdhani', sans-serif",
+  cursor: 'pointer',
+  outline: 'none',
+}
 
 const formatPlayerName = (name) => {
   if (!name) return '—'
@@ -44,6 +58,13 @@ export default function TournamentLeaderboard({
   const [myLineupIds, setMyLineupIds] = useState(new Set())
   const tournamentId = selectedTournamentId
 
+  // Filtro por dia / partida
+  const [matchDays, setMatchDays] = useState([])
+  const [selectedDate, setSelectedDate] = useState('')
+  const [selectedMatch, setSelectedMatch] = useState('')
+  const [dayStats, setDayStats] = useState({})   // player_id → total_fantasy_points para o filtro
+  const [dayStatsLoading, setDayStatsLoading] = useState(false)
+
   const fetchRankings = () => {
     if (!tournamentId) return
     setLoading(true); setError(null)
@@ -53,7 +74,56 @@ export default function TournamentLeaderboard({
       .catch((e) => { setError(e.message || 'Erro desconhecido'); setLoading(false) })
   }
 
-  useEffect(() => { setRankings([]); setExpanded({}); fetchRankings() }, [tournamentId]) // eslint-disable-line
+  useEffect(() => {
+    setRankings([]); setExpanded({}); fetchRankings()
+    setMatchDays([]); setSelectedDate(''); setSelectedMatch(''); setDayStats({})
+    if (tournamentId) {
+      fetch(`${API_BASE_URL}/tournaments/${tournamentId}/matches`)
+        .then((r) => r.ok ? r.json() : null)
+        .then((d) => { if (d?.days) setMatchDays(d.days) })
+        .catch(() => {})
+    }
+  }, [tournamentId]) // eslint-disable-line
+
+  // Busca stats do dia/partida selecionado
+  useEffect(() => {
+    if (!tournamentId || (!selectedDate && !selectedMatch)) { setDayStats({}); return }
+    setDayStatsLoading(true)
+    let url = `${API_BASE_URL}/tournaments/${tournamentId}/player-stats?limit=200`
+    if (selectedMatch) url += `&match_id=${selectedMatch}`
+    else if (selectedDate) url += `&date=${selectedDate}`
+    fetch(url)
+      .then((r) => r.ok ? r.json() : [])
+      .then((data) => {
+        const map = {}
+        data.forEach((p) => { map[p.player_id] = p.total_fantasy_points || 0 })
+        setDayStats(map)
+        setDayStatsLoading(false)
+      })
+      .catch(() => { setDayStats({}); setDayStatsLoading(false) })
+  }, [selectedDate, selectedMatch, tournamentId])
+
+  useEffect(() => { setSelectedMatch('') }, [selectedDate])
+
+  const matchesForDay = useMemo(() => {
+    if (!selectedDate) return []
+    return matchDays.find((d) => d.date === selectedDate)?.matches || []
+  }, [selectedDate, matchDays])
+
+  // Rankings com pontos do dia calculados client-side
+  const rankingsWithDayPts = useMemo(() => {
+    const hasDayFilter = Object.keys(dayStats).length > 0
+    if (!hasDayFilter) return rankings
+    return [...rankings]
+      .map((entry) => ({
+        ...entry,
+        day_points: entry.players.reduce((sum, p) => sum + (dayStats[p.id] || 0), 0),
+      }))
+      .sort((a, b) => b.day_points - a.day_points)
+      .map((entry, i) => ({ ...entry, display_position: i + 1 }))
+  }, [rankings, dayStats])
+
+  const hasDayFilter = !!(selectedDate || selectedMatch)
 
   useEffect(() => {
     if (!token || !tournamentId) { setMyLineupIds(new Set()); return }
@@ -95,6 +165,33 @@ export default function TournamentLeaderboard({
                 allowAggregated={false}
               />
             )}
+            {/* Filtro por dia */}
+            {matchDays.length > 0 && (
+              <select value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} style={{ ...selectStyle }}>
+                <option value="">Acumulado total</option>
+                {matchDays.map((d) => {
+                  const [, mm, dd] = d.date.split('-')
+                  return <option key={d.date} value={d.date}>{dd}/{mm} ({d.matches_count}M)</option>
+                })}
+              </select>
+            )}
+            {/* Filtro por partida */}
+            {selectedDate && matchesForDay.length > 0 && (
+              <select value={selectedMatch} onChange={(e) => setSelectedMatch(e.target.value)} style={{ ...selectStyle }}>
+                <option value="">Dia inteiro</option>
+                {matchesForDay.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {MAP_ICONS[m.map_name] || '🗺️'} P{m.match_number_in_day} — {m.map_name}
+                  </option>
+                ))}
+              </select>
+            )}
+            {hasDayFilter && (
+              <button onClick={() => { setSelectedDate(''); setSelectedMatch('') }}
+                style={{ ...selectStyle, color: '#f87171', borderColor: 'rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.05)' }}>
+                ✕ Limpar
+              </button>
+            )}
             <button className="dark-btn flex items-center gap-2" onClick={fetchRankings} disabled={loading}
               style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 600 }}>
               <span style={{ fontSize: '13px' }}>↻</span>
@@ -105,7 +202,7 @@ export default function TournamentLeaderboard({
       </div>
 
       <div className="max-w-3xl mx-auto px-4 py-6">
-        {loading && <p className="text-center py-20 text-[13px]" style={{ color: 'var(--color-xama-muted)' }}>Carregando leaderboard…</p>}
+        {(loading || dayStatsLoading) && <p className="text-center py-20 text-[13px]" style={{ color: 'var(--color-xama-muted)' }}>{loading ? 'Carregando leaderboard…' : 'Calculando pontos do dia…'}</p>}
         {error && !loading && <div className="msg-error max-w-lg mx-auto mt-8">Erro ao carregar: {error}</div>}
         {!loading && !error && !tournamentId && (
           <div className="flex flex-col items-center justify-center py-32 gap-4">
@@ -113,17 +210,26 @@ export default function TournamentLeaderboard({
             <p className="text-[16px] font-semibold tracking-[0.06em] uppercase" style={{ color: 'var(--color-xama-muted)' }}>Selecione um torneio</p>
           </div>
         )}
-        {!loading && !error && tournamentId && rankings.length === 0 && (
+        {!loading && !error && tournamentId && rankingsWithDayPts.length === 0 && (
           <p className="text-center py-20 text-[13px]" style={{ color: 'var(--color-xama-muted)' }}>Nenhum lineup encontrado para este torneio.</p>
         )}
 
-        {!loading && !error && rankings.length > 0 && (
+        {!loading && !error && rankingsWithDayPts.length > 0 && (
           <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--color-xama-border)', background: 'var(--color-xama-surface)' }}>
             <div style={{ height: '2px', background: 'linear-gradient(90deg, var(--color-xama-gold) 0%, transparent 50%)' }} />
+            {hasDayFilter && (
+              <div className="px-4 py-2 text-[11px] font-bold tracking-[0.08em] uppercase"
+                style={{ background: 'rgba(96,165,250,0.08)', borderBottom: '1px solid rgba(96,165,250,0.2)', color: '#60a5fa', fontFamily: "'JetBrains Mono', monospace" }}>
+                📅 {selectedMatch
+                  ? `Partida ${matchesForDay.find(m => String(m.id) === String(selectedMatch))?.match_number_in_day || ''} · ${matchesForDay.find(m => String(m.id) === String(selectedMatch))?.map_name || ''}`
+                  : `Dia ${selectedDate.split('-').slice(1).reverse().join('/')}`
+                } — pontos calculados para o período selecionado
+              </div>
+            )}
             <table className="w-full border-collapse">
               <thead>
                 <tr style={{ background: '#0a0c11', borderBottom: '1px solid var(--color-xama-border)' }}>
-                  {['#', 'Manager', 'Pontos', ''].map((h, i) => (
+                  {['#', 'Manager', hasDayFilter ? 'Pts (período)' : 'Pontos', ''].map((h, i) => (
                     <th key={i} className="px-4 py-3 text-[10px] font-bold tracking-[0.1em] uppercase"
                       style={{ color: 'var(--color-xama-muted)', textAlign: i >= 2 ? 'right' : 'left',
                         fontFamily: "'Rajdhani', sans-serif", width: i === 0 ? '52px' : i === 3 ? '120px' : undefined }}>
@@ -133,10 +239,10 @@ export default function TournamentLeaderboard({
                 </tr>
               </thead>
               <tbody>
-                {rankings.map((entry) => {
+                {rankingsWithDayPts.map((entry) => {
                   const isOpen = !!expanded[entry.lineup_id]
                   const isMe = myLineupIds.has(entry.lineup_id)
-                  const pos = entry.position
+                  const pos = hasDayFilter ? (entry.display_position ?? entry.position) : entry.position
                   const isTop3 = pos <= 3
                   return (
                     <>
@@ -174,9 +280,19 @@ export default function TournamentLeaderboard({
                         <td className="px-4 py-[13px] text-right">
                           <span className="text-[15px] font-bold tabular-nums"
                             style={{ fontFamily: "'JetBrains Mono', monospace",
-                              color: anyPoints && entry.total_points > 0 ? 'var(--color-xama-gold)' : '#374151' }}>
-                            {entry.total_points.toFixed(2)}
+                              color: hasDayFilter
+                                ? (entry.day_points > 0 ? '#60a5fa' : '#374151')
+                                : (anyPoints && entry.total_points > 0 ? 'var(--color-xama-gold)' : '#374151') }}>
+                            {hasDayFilter
+                              ? (entry.day_points ?? 0).toFixed(2)
+                              : entry.total_points.toFixed(2)
+                            }
                           </span>
+                          {hasDayFilter && entry.total_points > 0 && (
+                            <div className="text-[10px] tabular-nums" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-muted)' }}>
+                              total: {entry.total_points.toFixed(2)}
+                            </div>
+                          )}
                         </td>
 
                         {/* Ver */}
@@ -227,7 +343,7 @@ export default function TournamentLeaderboard({
                 style={{ color: 'var(--color-xama-gold)', fontFamily: "'Rajdhani', sans-serif" }}>🏆 XAMA Fantasy</span>
               <span className="text-[11px] tabular-nums"
                 style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-muted)' }}>
-                {rankings.length} lineups
+                {rankingsWithDayPts.length} lineups{hasDayFilter ? ' · período filtrado' : ''}
               </span>
             </div>
           </div>

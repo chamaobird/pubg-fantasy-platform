@@ -40,7 +40,8 @@ const MAP_ICONS = { Erangel: '🌿', Miramar: '🏜️', Taego: '🌾', Rondo: '
 const calcTwire = (p) => {
   const kills  = (p.total_kills  || 0) * 2
   const damage = (p.total_damage || 0) / 100
-  return Math.round((kills + damage) * 100) / 100
+  const wins   = (p.total_wins   || 0) * 5   // +5 pts por vitória (sobreviventes)
+  return Math.round((kills + damage + wins) * 100) / 100
 }
 const calcPenalty = (p) => {
   const count = p.total_penalty_count || 0
@@ -140,6 +141,7 @@ export default function PlayerStatsPage({
   const [sortDir, setSortDir]       = useState('desc')
 
   const [matchDays, setMatchDays]         = useState([])
+  const [selectedWeek, setSelectedWeek]   = useState('')
   const [selectedDate, setSelectedDate]   = useState('')
   const [selectedMatch, setSelectedMatch] = useState('')
 
@@ -148,8 +150,8 @@ export default function PlayerStatsPage({
 
   // Busca dias/partidas quando uma fase específica é selecionada
   useEffect(() => {
-    if (!localTournId) { setMatchDays([]); setSelectedDate(''); setSelectedMatch(''); return }
-    setMatchDays([]); setSelectedDate(''); setSelectedMatch('')
+    if (!localTournId) { setMatchDays([]); setSelectedWeek(''); setSelectedDate(''); setSelectedMatch(''); return }
+    setMatchDays([]); setSelectedWeek(''); setSelectedDate(''); setSelectedMatch('')
     fetch(`${API_BASE}/tournaments/${localTournId}/matches`)
       .then((r) => r.ok ? r.json() : null)
       .then((d) => { if (d?.days) setMatchDays(d.days) })
@@ -157,6 +159,33 @@ export default function PlayerStatsPage({
   }, [localTournId])
 
   useEffect(() => { setSelectedMatch('') }, [selectedDate])
+  useEffect(() => { setSelectedDate(''); setSelectedMatch('') }, [selectedWeek])
+
+  // Agrupa dias em semanas: gap > 4 dias entre sessões = nova semana
+  const weeks = useMemo(() => {
+    if (matchDays.length === 0) return []
+    const groups = [[matchDays[0]]]
+    for (let i = 1; i < matchDays.length; i++) {
+      const prev = new Date(matchDays[i - 1].date)
+      const curr = new Date(matchDays[i].date)
+      const diffDays = (curr - prev) / (1000 * 60 * 60 * 24)
+      if (diffDays > 4) groups.push([matchDays[i]])
+      else groups[groups.length - 1].push(matchDays[i])
+    }
+    return groups.map((days, i) => ({
+      week: i + 1,
+      label: `Week ${i + 1}`,
+      dates: days.map((d) => d.date),
+      matchCount: days.reduce((a, d) => a + d.matches_count, 0),
+    }))
+  }, [matchDays])
+
+  // Dias visíveis conforme semana selecionada
+  const visibleMatchDays = useMemo(() => {
+    if (!selectedWeek) return matchDays
+    const wk = weeks.find((w) => w.week === Number(selectedWeek))
+    return wk ? matchDays.filter((d) => wk.dates.includes(d.date)) : matchDays
+  }, [matchDays, selectedWeek, weeks])
 
   // Busca stats: campeonato completo ou fase específica
   useEffect(() => {
@@ -233,10 +262,14 @@ export default function PlayerStatsPage({
     }
     if (selectedDate) {
       const [, mm, dd] = selectedDate.split('-')
-      return `${dd}/${mm}`
+      const wkLabel = selectedWeek ? ` · ${weeks.find((w) => w.week === Number(selectedWeek))?.label ?? ''}` : ''
+      return `${dd}/${mm}${wkLabel}`
+    }
+    if (selectedWeek) {
+      return weeks.find((w) => w.week === Number(selectedWeek))?.label ?? 'Semana'
     }
     return 'Torneio completo'
-  }, [selectedMatch, selectedDate, matchesForDay])
+  }, [selectedMatch, selectedDate, selectedWeek, matchesForDay, weeks])
 
   const thStyle = (col) => ({
     padding: '10px 12px',
@@ -269,7 +302,7 @@ export default function PlayerStatsPage({
                     {matchesTotal}M
                   </span>
                 )}
-                {(selectedDate || selectedMatch) && (
+                {(selectedDate || selectedMatch || selectedWeek) && (
                   <span className="px-2 py-0.5 rounded text-[10px] font-bold"
                     style={{ fontFamily: "'JetBrains Mono', monospace", background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.3)', color: '#60a5fa' }}>
                     {filterLabel}
@@ -309,10 +342,22 @@ export default function PlayerStatsPage({
             />
 
             {/* Filtros de dia e partida — só disponíveis para uma fase específica */}
-            {!isAggregated && matchDays.length > 0 && (
+            {/* Seletor de Semana (só aparece se há mais de 1 semana) */}
+            {!isAggregated && weeks.length > 1 && (
+              <select value={selectedWeek} onChange={(e) => setSelectedWeek(e.target.value)} style={{ ...selectStyle, minWidth: '130px' }}>
+                <option value="">Todas as semanas</option>
+                {weeks.map((w) => (
+                  <option key={w.week} value={w.week}>
+                    {w.label} ({w.matchCount}M)
+                  </option>
+                ))}
+              </select>
+            )}
+
+            {!isAggregated && visibleMatchDays.length > 0 && (
               <select value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} style={{ ...selectStyle, minWidth: '140px' }}>
                 <option value="">Todos os dias</option>
-                {matchDays.map((d) => {
+                {visibleMatchDays.map((d) => {
                   const [, mm, dd] = d.date.split('-')
                   return <option key={d.date} value={d.date}>{dd}/{mm} ({d.matches_count} partidas)</option>
                 })}
@@ -339,8 +384,8 @@ export default function PlayerStatsPage({
               onChange={(e) => setSearch(e.target.value)}
               style={{ ...selectStyle, width: '160px' }} />
 
-            {(selectedDate || selectedMatch || teamFilter || search) && (
-              <button onClick={() => { setSelectedDate(''); setSelectedMatch(''); setTeamFilter(''); setSearch('') }}
+            {(selectedWeek || selectedDate || selectedMatch || teamFilter || search) && (
+              <button onClick={() => { setSelectedWeek(''); setSelectedDate(''); setSelectedMatch(''); setTeamFilter(''); setSearch('') }}
                 style={{ ...selectStyle, color: '#f87171', borderColor: 'rgba(248,113,113,0.3)', cursor: 'pointer', background: 'rgba(248,113,113,0.05)' }}>
                 ✕ Limpar
               </button>

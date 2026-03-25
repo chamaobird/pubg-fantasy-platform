@@ -214,7 +214,7 @@ export default function Dashboard() {
                         <div style={S.divider} />
                         <div style={S.stat}>
                           <span style={S.statLabel}>Minha lineup</span>
-                          <span style={S.statValue}>{lineup.name}</span>
+                          <span style={{ ...S.statValue, color: '#4ade80' }}>✅ Lineup montada</span>
                         </div>
                         <div style={S.stat}>
                           <span style={S.statLabel}>Pontos totais</span>
