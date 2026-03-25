@@ -13,6 +13,7 @@ class Championship(Base):
     short_name = Column(String(50), nullable=True)
     region     = Column(String(50), nullable=True)
     status     = Column(String(20), nullable=False, default='active')
+    start_date = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     phases = relationship("ChampionshipTournament", back_populates="championship", order_by="ChampionshipTournament.phase_order")

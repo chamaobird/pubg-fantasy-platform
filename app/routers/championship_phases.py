@@ -12,6 +12,7 @@ Rotas admin:
   POST /championship-phases/{id}/tournaments        → adiciona fase ao campeonato
 """
 from typing import Optional
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy import func as sql_func
@@ -34,6 +35,7 @@ class ChampionshipCreate(BaseModel):
     short_name: Optional[str] = None
     region: Optional[str] = None
     status: str = "active"
+    start_date: Optional[datetime] = None
 
 
 class AddTournamentBody(BaseModel):
@@ -55,6 +57,7 @@ class ChampionshipOut(BaseModel):
     short_name: Optional[str]
     region: Optional[str]
     status: str
+    start_date: Optional[datetime] = None
     phases: list[PhaseOut]
 
 
@@ -96,7 +99,7 @@ def list_championships(db: Session = Depends(get_db)):
             ))
         result.append(ChampionshipOut(
             id=c.id, name=c.name, short_name=c.short_name,
-            region=c.region, status=c.status, phases=phases,
+            region=c.region, status=c.status, start_date=c.start_date, phases=phases,
         ))
     return result
 
@@ -123,7 +126,7 @@ def championship_player_stats(
         return []
 
     # Busca todos os registros sem limit/skip — dedup ocorre em Python
-    rows = (
+    q = (
         db.query(
             Player,
             Team.name.label("team_name"),
@@ -144,9 +147,14 @@ def championship_player_stats(
         .outerjoin(Team, Player.team_id == Team.id)
         .filter(Match.tournament_id.in_(tournament_ids))
         .filter(Player.is_active == True)
-        .group_by(Player.id, Team.name)
-        .all()
     )
+
+    # Filtra partidas anteriores à data de início do campeonato (se definida)
+    # Isso impede que dados de edições anteriores poluam o "Campeonato completo"
+    if champ.start_date:
+        q = q.filter(Match.played_at >= champ.start_date)
+
+    rows = q.group_by(Player.id, Team.name).all()
 
     # ── Dedup por nome normalizado (sem prefixo do time) ──────────────────────
     # Jogadores que mudaram de time entre fases aparecem com player IDs distintos
@@ -231,11 +239,45 @@ async def create_championship(
         short_name=body.short_name,
         region=body.region,
         status=body.status,
+        start_date=body.start_date,
     )
     db.add(champ)
     db.commit()
     db.refresh(champ)
     return {"id": champ.id, "name": champ.name}
+
+
+class ChampionshipUpdate(BaseModel):
+    name: Optional[str] = None
+    short_name: Optional[str] = None
+    region: Optional[str] = None
+    status: Optional[str] = None
+    start_date: Optional[datetime] = None
+
+
+@router.patch("/{championship_id}", summary="[Admin] Atualiza campeonato")
+async def update_championship(
+    championship_id: int,
+    body: ChampionshipUpdate,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    champ = db.query(Championship).filter(Championship.id == championship_id).first()
+    if not champ:
+        raise HTTPException(status_code=404, detail="Championship not found")
+    if body.name is not None:
+        champ.name = body.name
+    if body.short_name is not None:
+        champ.short_name = body.short_name
+    if body.region is not None:
+        champ.region = body.region
+    if body.status is not None:
+        champ.status = body.status
+    if body.start_date is not None:
+        champ.start_date = body.start_date
+    db.commit()
+    db.refresh(champ)
+    return {"id": champ.id, "name": champ.name, "start_date": champ.start_date}
 
 
 @router.post("/{championship_id}/tournaments", summary="[Admin] Adiciona fase ao campeonato")
