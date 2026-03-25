@@ -133,6 +133,23 @@ frontend/src/
 - [ ] **PGS 2** — criar torneios T16+ e championship para Circuit 2 quando iniciar (26/03); pubg_tournament_id ainda não disponível na API
 - [ ] **Feature 4 — Price History:** adicionar `tournament_id` em `PlayerPriceHistory`, endpoint `GET /players/{id}/price-history`, sparkline no frontend
 
+## Acessos e Credenciais de Produção
+
+| Recurso | Valor |
+|---------|-------|
+| **Backend URL** | `https://pubg-fantasy-platform.onrender.com` |
+| **Swagger UI** | `https://pubg-fantasy-platform.onrender.com/docs` |
+| **DB (External URL)** | ver painel do Render → PostgreSQL → "External Database URL" (não salvar aqui) |
+| **Admin login** | `admin@warzone.gg` / `admin123` |
+| **PUBG API Key** | ver `.env` local ou painel PUBG Developer (não salvar aqui) |
+| **PUBG API Shard** | `pc-tournament` |
+| **GitHub repo** | `https://github.com/chamaobird/pubg-fantasy-platform` |
+| **wasdefy PAS1 SW#4** | `https://wasdefy.com/pubg/competitions/019c6ffe-0a45-718f-a448-e008cdcb71fa/schedule` |
+
+> ⚠️ A VM sandbox não consegue conectar diretamente ao DB via psycopg2 (sem DNS externo). Usar a API ou o browser para queries.
+>
+> Para obter JWT admin via browser: `POST /users/login` com `{"email":"admin@warzone.gg","password":"admin123"}`
+
 ## Notas de Sessão
 - Pasta do projeto montada no Cowork → edições diretas via Edit/Write, sem heredoc
 - Para novas sessões: pedir "monta o projeto pubg-fantasy-platform e lê o CONTEXT.md"
