@@ -741,3 +741,29 @@ async def deactivate_team(
         p.is_active = False
     db.commit()
     return {"tournament_id": tournament_id, "team": team_name, "deactivated": len(players)}
+
+
+class BulkActivateBody(BaseModel):
+    player_ids: list[int]
+    activate: bool = True   # True = ativar, False = desativar
+
+
+@router.patch("/players/bulk-set-active", summary="[Admin] Ativa ou desativa jogadores em massa por ID")
+async def bulk_set_active(
+    body: BulkActivateBody,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    from app.models import Player
+    players = db.query(Player).filter(Player.id.in_(body.player_ids)).all()
+    if not players:
+        raise HTTPException(status_code=404, detail="Nenhum jogador encontrado com os IDs fornecidos")
+    for p in players:
+        p.is_active = body.activate
+    db.commit()
+    action = "activated" if body.activate else "deactivated"
+    return {
+        action: len(players),
+        "player_ids": [p.id for p in players],
+        "names": [p.name for p in players],
+    }
