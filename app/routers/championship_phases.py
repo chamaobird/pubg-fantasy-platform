@@ -149,10 +149,26 @@ def championship_player_stats(
         .filter(Player.is_active == True)
     )
 
-    # Filtra partidas anteriores à data de início do campeonato (se definida)
-    # Isso impede que dados de edições anteriores poluam o "Campeonato completo"
-    if champ.start_date:
-        q = q.filter(Match.played_at >= champ.start_date)
+    # Filtra partidas anteriores à data de início do campeonato.
+    # Isso impede que dados de edições anteriores poluam o "Campeonato completo".
+    # Prioridade:
+    #   1. champ.start_date (definido manualmente via PATCH /championship-phases/{id})
+    #   2. Fallback automático: janela rolling de 180 dias a partir do match mais recente
+    #      (mesma lógica usada no endpoint individual de torneio — impede dados de anos anteriores)
+    from datetime import timedelta
+
+    effective_start = champ.start_date
+    if not effective_start:
+        latest_played = (
+            db.query(sql_func.max(Match.played_at))
+            .filter(Match.tournament_id.in_(tournament_ids))
+            .scalar()
+        )
+        if latest_played:
+            effective_start = latest_played - timedelta(days=180)
+
+    if effective_start:
+        q = q.filter(Match.played_at >= effective_start)
 
     rows = q.group_by(Player.id, Team.name).all()
 
