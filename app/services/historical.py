@@ -418,6 +418,30 @@ def import_matches_from_pubg(
     result = import_matches(db, tournament_id, match_inputs)
     result["errors"] = fetch_errors + result.get("errors", [])
     result["match_ids_found"] = len(match_ids)
+
+    # ── 6. Patch group_label on already-imported matches when map provided ─
+    # If the scheduler already ran and created matches without group_label,
+    # this ensures a subsequent call with match_group_map still labels them.
+    if match_group_map:
+        from app.models.match import Match as MatchModel
+        patched = 0
+        for pubg_uuid, glabel in match_group_map.items():
+            rows = (
+                db.query(MatchModel)
+                .filter(
+                    MatchModel.tournament_id == tournament_id,
+                    MatchModel.pubg_match_id == pubg_uuid,
+                    MatchModel.group_label.is_(None),
+                )
+                .all()
+            )
+            for row in rows:
+                row.group_label = glabel
+                patched += 1
+        if patched:
+            db.commit()
+            logger.info("Patched group_label on %d already-imported match(es).", patched)
+
     return result
 
 
