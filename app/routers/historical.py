@@ -62,12 +62,18 @@ class ImportMatchesApiBody(BaseModel):
     )
 
 
+class MatchIdEntry(BaseModel):
+    """One PUBG match UUID with an optional group label."""
+    id:          str           = Field(..., description="PUBG match UUID")
+    group_label: Optional[str] = Field(None, description="Group label, e.g. 'A', 'B', 'C', 'D'. Null when no groups.")
+
+
 class ImportMatchesByIdsBody(BaseModel):
     """Body for the direct-UUID import endpoint."""
-    pubg_match_ids: list[str] = Field(
+    pubg_match_ids: list[MatchIdEntry] = Field(
         ...,
         min_length=1,
-        description="List of PUBG match UUIDs to import directly (bypasses tournament roster lookup).",
+        description="List of PUBG match UUIDs (with optional group_label) to import directly.",
     )
 
 
@@ -222,9 +228,8 @@ def import_matches_by_ids_endpoint(
     _admin: User = Depends(_require_admin),
 ):
     try:
-        result = import_matches_by_pubg_ids(
-            db, tournament_id, body.pubg_match_ids
-        )
+        entries = [{"id": e.id, "group_label": e.group_label} for e in body.pubg_match_ids]
+        result = import_matches_by_pubg_ids(db, tournament_id, entries)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc))
     return ImportMatchesResponse(tournament_id=tournament_id, **result)

@@ -15,6 +15,7 @@ class Match(Base):
     match_number  = Column(Integer, nullable=True)     # game # within tournament (1, 2, 3 …)
     phase         = Column(String(50), nullable=True)  # "group", "finals", etc.
     day           = Column(Integer, nullable=True)     # day within tournament
+    group_label   = Column(String(10), nullable=True)  # "A", "B", "C", "D" — null when no groups
     played_at     = Column(DateTime(timezone=True), nullable=True)
     duration_secs = Column(Integer, server_default="0", nullable=True)
     results_json  = Column(Text, nullable=True)        # raw JSON blob (optional ingestion path)

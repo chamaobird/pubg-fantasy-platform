@@ -61,6 +61,7 @@ class MatchInput:
     match_number:  Optional[int]         = None
     phase:         Optional[str]         = None
     day:           Optional[int]         = None
+    group_label:   Optional[str]         = None  # "A", "B", "C", "D" — null = no groups
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Section 1 – Player resolution (API mode only)
@@ -232,6 +233,7 @@ def import_matches(
                 match_number=match_input.match_number,
                 phase=match_input.phase,
                 day=match_input.day,
+                group_label=match_input.group_label,
             )
             db.add(match)
             db.flush()  # get match.id before committing
@@ -417,7 +419,7 @@ def import_matches_from_pubg(
 def import_matches_by_pubg_ids(
     db: Session,
     tournament_id: int,
-    pubg_match_ids: list[str],
+    pubg_match_ids: list[dict],  # list of {"id": str, "group_label": str | None}
 ) -> dict:
     """
     Like import_matches_from_pubg but skips the tournament-roster lookup.
@@ -439,7 +441,10 @@ def import_matches_by_pubg_ids(
         )
     match_inputs: list[MatchInput] = []
     fetch_errors: list[str] = []
-    for match_id in pubg_match_ids:
+    for entry in pubg_match_ids:
+        # entry is {"id": "<uuid>", "group_label": "A" | None}
+        match_id   = entry["id"]
+        group_lbl  = entry.get("group_label")
         try:
             raw: RawMatch = client.get_match(match_id)
         except PubgApiError as exc:
@@ -478,6 +483,7 @@ def import_matches_by_pubg_ids(
                 played_at=raw.played_at,
                 duration_secs=raw.duration_secs,
                 player_stats=resolved_stats,
+                group_label=group_lbl,
             )
         )
     if not match_inputs and fetch_errors:

@@ -484,6 +484,7 @@ def tournament_player_stats(
     team: Optional[str] = Query(None, description="Filtrar por nome do time"),
     match_id: Optional[int] = Query(None, description="Filtrar por partida específica"),
     date: Optional[str] = Query(None, description="Filtrar por data (YYYY-MM-DD)"),
+    group_label: Optional[str] = Query(None, description="Filtrar por grupo (ex: 'A', 'B', 'C', 'D')"),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
     db: Session = Depends(get_db),
@@ -524,10 +525,14 @@ def tournament_player_stats(
                 m for m in recent_matches
                 if m.played_at and m.played_at.astimezone(BRT).date() == filter_date
             ]
-
             recent_match_ids = [m.id for m in recent_matches]
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+
+    # ── Filtro por grupo (group_label) ────────────────────────────────────────
+    if group_label:
+        recent_matches = [m for m in recent_matches if m.group_label == group_label]
+        recent_match_ids = [m.id for m in recent_matches]
 
     matches_total = len(recent_match_ids)
 
@@ -664,6 +669,7 @@ def tournament_matches(
                 "played_at": m.played_at.isoformat() if m.played_at else None,
                 "duration_secs": m.duration_secs,
                 "match_number_in_day": j + 1,
+                "group_label": m.group_label,
             })
         result.append({
             "date": date_key,
