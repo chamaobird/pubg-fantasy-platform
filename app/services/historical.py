@@ -221,24 +221,32 @@ def import_matches(
     errors: list[str] = []
     for match_input in matches:
         # ── Idempotency check ─────────────────────────────────────────────
-        if db.query(Match).filter(Match.pubg_match_id == match_input.pubg_match_id).first():
-            logger.info("Skipping already-imported match %s", match_input.pubg_match_id)
-            skipped += 1
-            continue
+        existing = db.query(Match).filter(Match.pubg_match_id == match_input.pubg_match_id).first()
+        if existing:
+            existing_stats = db.query(MatchPlayerStat).filter(MatchPlayerStat.match_id == existing.id).count()
+            if existing_stats > 0:
+                logger.info("Skipping already-imported match %s (has %s stats)", match_input.pubg_match_id, existing_stats)
+                skipped += 1
+                continue
+            else:
+                logger.info("Repairing match %s (exists but has 0 stats) — creating stats now", match_input.pubg_match_id)
         try:
-            match = Match(
-                pubg_match_id=match_input.pubg_match_id,
-                tournament_id=tournament_id,
-                map_name=match_input.map_name,
-                played_at=match_input.played_at,
-                duration_secs=match_input.duration_secs,
-                match_number=match_input.match_number,
-                phase=match_input.phase,
-                day=match_input.day,
-                group_label=match_input.group_label,
-            )
-            db.add(match)
-            db.flush()  # get match.id before committing
+            if existing:
+                match = existing
+            else:
+                match = Match(
+                    pubg_match_id=match_input.pubg_match_id,
+                    tournament_id=tournament_id,
+                    map_name=match_input.map_name,
+                    played_at=match_input.played_at,
+                    duration_secs=match_input.duration_secs,
+                    match_number=match_input.match_number,
+                    phase=match_input.phase,
+                    day=match_input.day,
+                    group_label=match_input.group_label,
+                )
+                db.add(match)
+                db.flush()  # get match.id before committing
             # ── Calcula bônus late game para toda a partida ──────────────
             late_game_bonus = _compute_late_game_bonus(match_input.player_stats)
             for stat_input in match_input.player_stats:
