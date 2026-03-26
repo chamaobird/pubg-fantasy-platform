@@ -192,3 +192,63 @@ def resolution_check(
         coverage_pct=coverage_pct,
         sample_no_pubg_id=sample,
     )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# POST /admin/players/bulk-set-live-ids
+# Sets live_pubg_id for players by matching on name or pubg_id
+# ─────────────────────────────────────────────────────────────────────────────
+
+class LiveIdEntry(BaseModel):
+    """Map one player to their live-server PUBG account ID."""
+    player_name:  Optional[str] = Field(None, description="Match by Player.name (case-insensitive)")
+    pubg_id:      Optional[str] = Field(None, description="Match by Player.pubg_id (exact)")
+    live_pubg_id: str           = Field(..., description="account.XXXXX from live server match data")
+
+
+class BulkSetLiveIdsBody(BaseModel):
+    entries: list[LiveIdEntry] = Field(..., min_length=1)
+
+
+@router.post(
+    "/players/bulk-set-live-ids",
+    summary="Bulk-set live_pubg_id on Player records",
+    description=(
+        "Maps players to their personal Steam account IDs (live_pubg_id) so that "
+        "Live Server (steam shard) match imports can resolve player stats. "
+        "Match by player_name (case-insensitive) or pubg_id (exact). "
+        "Already-set values are overwritten."
+    ),
+)
+def bulk_set_live_ids(
+    body: BulkSetLiveIdsBody,
+    db: Session = Depends(get_db),
+    _admin: User = Depends(_require_admin),
+):
+    updated = []
+    not_found = []
+
+    for entry in body.entries:
+        player = None
+        if entry.pubg_id:
+            player = db.query(Player).filter(Player.pubg_id == entry.pubg_id).first()
+        if player is None and entry.player_name:
+            player = (
+                db.query(Player)
+                .filter(Player.name.ilike(entry.player_name))
+                .first()
+            )
+        if player is None:
+            not_found.append({"player_name": entry.player_name, "pubg_id": entry.pubg_id})
+            continue
+
+        player.live_pubg_id = entry.live_pubg_id
+        updated.append({"player_id": player.id, "name": player.name, "live_pubg_id": entry.live_pubg_id})
+
+    db.commit()
+    return {
+        "updated_count": len(updated),
+        "not_found_count": len(not_found),
+        "updated": updated,
+        "not_found": not_found,
+    }

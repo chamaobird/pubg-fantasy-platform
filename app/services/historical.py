@@ -96,6 +96,8 @@ def _build_player_lookup(db: Session, tournament_id: int) -> dict[str, int]:
     for p in players:
         if p.pubg_id:
             lookup[p.pubg_id] = p.id
+        if hasattr(p, 'live_pubg_id') and p.live_pubg_id:
+            lookup[p.live_pubg_id] = p.id
         if p.name:
             lookup[p.name.lower()] = p.id
     logger.info(

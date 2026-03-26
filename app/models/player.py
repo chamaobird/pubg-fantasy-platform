@@ -13,6 +13,7 @@ class Player(Base):
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     pubg_id: Mapped[str | None] = mapped_column(String(255), unique=True, index=True, nullable=True)
+    live_pubg_id: Mapped[str | None] = mapped_column(String(255), unique=True, index=True, nullable=True)
     region: Mapped[str | None] = mapped_column(String(50), nullable=True)
     nationality: Mapped[str | None] = mapped_column(String(50), nullable=True)
     tournament_id: Mapped[int | None] = mapped_column(ForeignKey("tournaments.id"), nullable=True, index=True)
