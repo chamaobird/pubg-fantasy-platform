@@ -22,6 +22,7 @@ alembic/versions/  # migrations
 frontend/src/
   components/      # LineupBuilder, TournamentLeaderboard, PlayerStatsPage, TeamLogo, Navbar, ...
   pages/           # TournamentHub, Dashboard, Profile, TournamentSelect, Login, Register, ...
+  config/          # pas2026.js — config estática de fases (may_have_groups)
   App.jsx          # rotas + useAuth context
   config.ts        # API_BASE_URL
 ```
@@ -29,12 +30,15 @@ frontend/src/
 ## Modelo de Dados Relevante
 - `tournaments` — id, name, pubg_id, region, status (active/upcoming/finished), lineup_open, budget_limit
 - `teams` — id, name, logo_url
-- `players` — id, name (formato: `TEAM_PlayerName`), team_id, tournament_id, fantasy_cost, is_active
-- `matches` — id, tournament_id, pubg_match_id, map_name, played_at, duration_secs
+- `players` — id, name (formato: `TEAM_PlayerName`), team_id, tournament_id, fantasy_cost, is_active, pubg_id, **live_pubg_id**
+  - `pubg_id`: ID da conta de torneio (PUBG esports server)
+  - `live_pubg_id`: ID da conta Steam pessoal (Live Server); usado para resolver partidas de scrims
+- `matches` — id, tournament_id, pubg_match_id, map_name, played_at, duration_secs, match_number, phase, day, **group_label**
+  - `group_label`: "A", "B", "C", "D" ou null
 - `match_player_stats` — player_id, match_id, kills, assists, damage_dealt, placement, survival_secs, fantasy_points, base_points, late_game_bonus, penalty_count, wins_count
 - `lineups` — user_id, tournament_id, name, captain_player_id, reserve_player_id, total_points, lineup_open
 - `users` — id, username, email, display_name, hashed_password
-- `championships` — id, name, region, status; `championship_phases` — championship_id, tournament_id, phase, phase_order
+- `championships` — id, name, region, status, **start_date**; `championship_phases` — championship_id, tournament_id, phase, phase_order
 
 ## Convenções
 - Player name split: `name.split('_')[0]` = team tag, `name.split('_')[1:]` = player name
@@ -45,93 +49,123 @@ frontend/src/
 ## Endpoints Principais
 - `GET /tournaments/` — lista torneios
 - `GET /tournaments/{id}/rankings` — leaderboard (inclui username, display_name)
-- `GET /tournaments/{id}/player-stats` — stats agregadas por jogador
-- `GET /tournaments/{id}/matches` — partidas agrupadas por dia (edição mais recente)
+- `GET /tournaments/{id}/player-stats` — stats agregadas por jogador (suporta `?group_label=A`)
+- `GET /tournaments/{id}/matches` — partidas agrupadas por dia (edição mais recente); inclui `group_label` e `stats_count` por partida
+- `GET /tournaments/{id}/debug-players` — lista todos os players com pubg_id e live_pubg_id (diagnóstico)
+- `GET /tournaments/{id}/debug-match-resolve/{pubg_match_id}?shard=steam` — dry-run de resolução de participantes sem salvar
 - `GET /championship-phases/` — agrupa torneios por campeonato
+- `GET /championship-phases/{id}/player-stats` — stats agregadas de todas as fases (filtra por start_date)
+- `PATCH /championship-phases/{id}` — [Admin] atualiza campeonato (ex: start_date)
 - `POST /tournaments/{id}/lineups` — cria lineup (requer auth + lineup_open=true)
+- `PATCH /admin/players/bulk-set-active` — [Admin] ativa/desativa jogadores em massa por lista de IDs
+- `POST /admin/players/bulk-set-live-ids` — [Admin] seta live_pubg_id em massa; corpo: `[{player_name, pubg_id, live_pubg_id}]`
+- `POST /historical/import-matches-by-ids/{tournament_id}?background=true` — importa partidas PUBG por UUID; suporta `shard` e `group_label`; modo repair automático se match existe com 0 stats
 
-## Estado das Migrations (última: c4d5e6f7a8b9)
+## Estado das Migrations (última: 20260326_0100)
 | Revision | O que faz |
 |---|---|
 | b2c3d4e5f6a1 | add social fields to users |
 | b3f1a2c4d5e6 | add wins_count to match_player_stats |
 | c4d5e6f7a8b9 | add logo_url to teams |
+| d5e6f7a8b9c0 | add start_date to championships |
+| 20260322_... | add group_label to matches |
+| 20260326_0100_f2a3b4c5d6e7 | add live_pubg_id to players (unique index) |
 
 ## Features Implementadas
 - ✅ Importação histórica de partidas (historical.py) com auto-lock e wins_count
-- ✅ Lineup Builder com validações (budget, 1 player/time, reserva)
-- ✅ Leaderboard — coluna Lineup removida, colunas: # / Manager / Pontos / Ver; badge EU no Manager; logos nos jogadores expandidos; display_name real (não mais hardcoded None)
-- ✅ Player Stats Page com filtros por dia/partida/time, colunas W/PTS/SURV/etc., logos de time
+- ✅ **Repair mode**: se match já existe com 0 stats, recria os stats sem duplicar o match
+- ✅ Lineup Builder com validações (budget, 1 player/time, reserva); **1 lineup por usuário por torneio** (backend bloqueia duplicata); mensagem de sucesso sem expor ID
+- ✅ Leaderboard — coluna Lineup removida, colunas: # / Manager / Pontos / Ver; badge EU no Manager; logos nos jogadores expandidos; display_name real; **filtro por dia/partida com re-ranking client-side** (pontos em azul, total em subscrito)
+- ✅ Player Stats Page com filtros hierárquicos **Fase → Week → Dia → Grupo → Partida**
+  - Week agrupada por **ISO calendar week** (segunda–domingo) — robusto a sessões em dias consecutivos
+  - Seletor de Grupo aparece automaticamente quando o dia tem partidas com `group_label` e `may_have_groups=true` no config
+  - Filtra stats da API por `?group_label=X` quando grupo selecionado
+- ✅ `frontend/src/config/pas2026.js` — mapa estático `tournament_id → PhaseConfig { may_have_groups }`
+  - Tournament 7 (Scrims): `may_have_groups: true`
 - ✅ TournamentSelect com agrupamento por Championship (blocos + mini-cards de fase)
 - ✅ TournamentHub com tabs, badge de status (ENCERRADO/AO VIVO/EM BREVE), aba Lineup oculta e default Leaderboard para torneios finalizados
-- ✅ Dashboard com 3 estados (Lineup Aberta / Aguardando / Meus Resultados)
+- ✅ Dashboard com 3 estados (Lineup Aberta / Aguardando / Meus Resultados); card mostra "✅ Lineup montada" em vez do nome interno
 - ✅ Perfil com username editável, validação unicidade, seção senha
 - ✅ Navbar global
 - ✅ Logos de equipe (24 times, fallback iniciais) — arquivos em frontend/public/logos/
-- ✅ **Seletor hierárquico Campeonato → Fase** — `ChampionshipSelector.jsx` compartilhado; substitui flat dropdown em PlayerStats, Leaderboard e LineupBuilder; PlayerStats suporta "Campeonato completo" (via `/championship-phases/{id}/player-stats`); TournamentHub busca championships + deriva selectedChampId da URL com override local
+- ✅ **Seletor hierárquico Campeonato → Fase** — `ChampionshipSelector.jsx`
+- ✅ **Championship stats dedup** — agrupa por nome normalizado, soma stats de todas as fases
+- ✅ **Championship start_date filter** — filtra partidas por `champ.start_date`
+- ✅ **Bulk activate/deactivate players** — `PATCH /admin/players/bulk-set-active`
+- ✅ **live_pubg_id** — campo no Player para conta Steam pessoal (Live Server scrims)
+  - `_build_player_lookup` indexa `live_pubg_id` além de `pubg_id` e nome
+  - `POST /admin/players/bulk-set-live-ids` para atualizar em massa
 
-## Estado da Produção (atualizado 2026-03-24)
+## Estado da Produção (atualizado 2026-03-26)
+
 ### Torneios cadastrados (DB)
 | id | name | pubg_id | matches | players | lineup_open |
 |----|------|---------|---------|---------|-------------|
-| 7  | PAS 2026 - Americas Open Qualifier · Fase de Cups | am-pas1cup | 15 (Sem 1-3) | 107 (100%) | **true** |
-| 8  | SEA Thailand Super Cup 2026 | sea-thsc | 24 | 65 (100%) | false |
-| 9  | SEA MITH Cup 2026 | sea-mith | 19 | 67 (100%) | false |
-| 10 | Asia China Cup 2026 | as-cncup | 20 | 66 (100%) | false |
-| 11 | Korea PWS 2026 Phase 1 Cup 5 | kr-pws1c5 | 5 | 64 (100%) | false |
-| 12-15 | PGS 2026 Circuit 1 (4 fases) | eu-race26 etc | — | — | false |
+| 7  | PAS 2026 - Americas Open Qualifier · Fase de Cups | am-pas1cup | 35 (Sem 1-4) | 107 | **true** |
+| 8  | SEA Thailand Super Cup 2026 | sea-thsc | 24 | 65 | false |
+| 9  | SEA MITH Cup 2026 | sea-mith | 19 | 67 | false |
+| 10 | Asia China Cup 2026 | as-cncup | 20 | 66 | false |
+| 11 | Korea PWS 2026 Phase 1 Cup 5 | kr-pws1c5 | 5 | 64 | false |
+| 12-15 | PGS 2026 Circuit 1 (4 fases) | eu-race26 etc | importado | 96 jogadores ativos | false |
 
 ### Championships cadastrados
-| id | name | region | fases |
-|----|------|--------|-------|
-| 1 | PGS 2026 Circuit 1 · Series 1 | GLOBAL | T13 (Group), T12 (Winners), T14 (Survival), T15 (Final) |
-| 2 | PAS 2026 - Americas Series 1 | AM | T7 (Scrims) |
+| id | name | region | fases | start_date |
+|----|------|--------|-------|------------|
+| 1 | PGS 2026 Circuit 1 · Series 1 | GLOBAL | T13 (Group), T12 (Winners), T14 (Survival), T15 (Final) | 2026-03-16 |
+| 2 | PAS 2026 - Americas Series 1 | AM | T7 (Scrims) | null |
 
-### PAS Semana 4 (23/03/2026)
-- Partidas jogadas mas AINDA NÃO aparecem no `am-pas1cup` (PUBG API mostra WAITING no wasdefy)
-- Quando aparecerem: `POST /historical/import-matches-from-pubg/7 {"pubg_tournament_id": "am-pas1cup"}` (idempotente)
-- Lineup já aberta para os usuários fazerem picks para 25-26/03
+### PAS Scrims Week 4 (23/03/2026) — Estado atual
+- **20 partidas importadas** no tournament 7 com shard `steam` (Live Server)
+- **Groups A, B, C, D** com `group_label` setado ✓
+- **Stats count por grupo**: A=15, B=15, C=8, D=22 por partida
+- **60 de 107 jogadores** têm `live_pubg_id` mapeado (auto-match por nome normalizado)
+- **47 jogadores ainda sem `live_pubg_id`** — não aparecem nas stats da Week 4
+- Partidas importadas via `POST /historical/import-matches-by-ids/7?background=true` com `shard=steam`
+
+### Match IDs Week 4 (para re-importar se necessário)
+```
+Grupo A: b951fa9e, 57f8d62b, c32cbca7, 42f37586, 89282bab
+Grupo B: 456c148c, b698ce93, c5b9f10e, e020c349, 0fc2a916
+Grupo C: 9e11a640, 8a970e0c, a030a52f, 23cbe39e, fe6aefe2
+Grupo D: 5d4e2dee, 0296c330, e2549f68, 5017894b, facc92c6
+```
+(UUIDs completos no arquivo `fetch_week4_matches.py` na raiz do projeto)
+
+### PGS 2026 Circuit 1 — Estado dos Dados
+- **96 jogadores ativos** em 24 times, todos com stats corretas no "Campeonato completo"
+- Filtro de data: `start_date = 2026-03-16` bloqueia dados de edições anteriores
+- Match counts esperados por estágio: Group Stage = 6, chegou à Final = 21-26
 
 ### PGS 2 (começa 26/03/2026)
 - Status: UPCOMING no pubgesports.com (tournament ID da PUBG API: ainda não disponível)
-- Quando o torneio for criado: criar T16+ no DB e rodar import
+- Quando o torneio for criado: criar T16+ no DB, rodar import, e setar `start_date` no novo championship
 
 ## Pendente / Backlog
 
-### 🔥 Próxima sessão (prioridade)
-
-**1. Dashboard — card "Lineup Aberta"**
-- Remover texto "Lineup criado via frontend" do campo "Minha lineup" → substituir por status real: se o usuário já montou lineup para a próxima etapa ("✅ Lineup montada") ou não ("Sem lineup para esta etapa")
-- Descrição da fase deve ser mais assertiva — não apenas "Scrims" mas "PAS1 Scrims Week #4" (ou seja, usar o nome real da week conforme wasdefy/DB)
-
-**2. TournamentHub — página do torneio**
-- Após salvar lineup: remover mensagem "Lineup criado ID:13" — mostrar apenas "✅ Lineup salvo com sucesso" (sem expor ID interno)
-- Seletor de fase: mostrar "Scrims Week #4" ao invés de apenas "Scrims" (verificar se `phase` no DB pode receber valor mais descritivo, ou usar `tournament_name` como fallback)
-
-**3. Player Stats — filtro por semana (Week)**
-- Atualmente todas as 3 semanas da PAS ficam consolidadas como "Scrims" sem opção de separar
-- Adicionar seletor de "Semana" (Week 1 / Week 2 / Week 3 / Todas) ao lado do seletor de Dia
-- Estratégia sugerida: usar os grupos de datas das partidas (cada grupo de ~5 matches = 1 week) para derivar o número da semana automaticamente, ou adicionar campo `week` no modelo `Match`
-
-**4. Leaderboard — regras estruturais**
-- Um usuário não deveria poder criar mais de 1 lineup por torneio (etapa); atualmente permite múltiplos (testado: CHAMAOBIRD tem 2 lineups no PAS)
-- Adicionar visualização de leaderboard por dia e por partida (não apenas acumulado total)
-- Para a PAS SCRIMS WEEK: exibir acumulado de pontos por semana inteira + detalhamento por partida
-
-**5. Logo GENG não carrega na página de stats do PGS**
-- Provavelmente o arquivo em `frontend/public/logos/` é `gen.png` mas o team tag extraído do nome do player é `GENG`
-- Verificar: `name.split('_')[0]` para jogadores da GENG → deve retornar `GENG`, mas o arquivo deve ser `geng.png`
-- Corrigir: renomear arquivo para `geng.png` ou ajustar a lógica de normalização do tag
-
-**6. wins_count / PTS TWIRE**
-- Campo `wins_count` em `MatchPlayerStat` já existe mas não está sendo usado corretamente no cálculo de PTS TWIRE
-- Verificar fórmula atual no frontend (coluna PTS TWIRE) e garantir que vitórias (placement=1) contam corretamente
-- PTS TWIRE = fórmula externa de referência — revisar spec e alinhar com o que já existe
+### 🔴 Alta Prioridade
+- [ ] **Mapear live_pubg_id dos 47 jogadores restantes** — os jogadores sem `live_pubg_id` não aparecem nas stats da Week 4
+  - Usar `GET /tournaments/7/debug-players` para ver quem ainda não tem `live_pubg_id`
+  - Usar `GET /tournaments/7/debug-match-resolve/{match_id}?shard=steam` para ver quem ficou unresolved
+  - Atualizar via `POST /admin/players/bulk-set-live-ids` com o payload correto
+  - Script `build_live_id_mapping.py` na raiz pode ser adaptado para os grupos faltantes
+- [ ] **Verificar Week 4 aparece como "Week 4"** no frontend após push do fix de ISO week (feito mas ainda não pushado)
 
 ### 📅 Dados / Infra
-- [ ] **Importar PAS Semana 4** — rodar `import-matches-from-pubg/7` quando `am-pas1cup` tiver os matches de 23/03 (ainda WAITING no wasdefy em 24/03)
-- [ ] **PGS 2** — criar torneios T16+ e championship para Circuit 2 quando iniciar (26/03); pubg_tournament_id ainda não disponível na API
-- [ ] **Feature 4 — Price History:** adicionar `tournament_id` em `PlayerPriceHistory`, endpoint `GET /players/{id}/price-history`, sparkline no frontend
+- [ ] **PGS 2** — criar torneios T16+ e championship para Circuit 2 quando iniciar; pubg_tournament_id ainda não disponível
+- [ ] **Feature: Price History** — adicionar `tournament_id` em `PlayerPriceHistory`, endpoint `GET /players/{id}/price-history`, sparkline no frontend
+
+## Como Mapear live_pubg_id dos Jogadores Faltantes
+```powershell
+# 1. Ver quem não tem live_pubg_id
+Invoke-RestMethod -Uri "https://pubg-fantasy-platform.onrender.com/tournaments/7/debug-players" -Headers $headers | Where-Object { -not $_.live_pubg_id } | Select name, pubg_id
+
+# 2. Ver quem ficou unresolved num match específico (ex: grupo A, partida 1)
+Invoke-RestMethod -Uri "https://pubg-fantasy-platform.onrender.com/tournaments/7/debug-match-resolve/b951fa9e-6a6a-4b23-8ecf-fcf07e0eb208?shard=steam" -Headers $headers
+
+# 3. Montar payload e enviar
+$payload = '[{"player_name":"TEAM_Nick","live_pubg_id":"account.xxx"},...]' | ConvertFrom-Json
+Invoke-RestMethod -Uri "https://pubg-fantasy-platform.onrender.com/admin/players/bulk-set-live-ids" -Method POST -Headers $headers -Body ($payload | ConvertTo-Json)
+```
 
 ## Acessos e Credenciais de Produção
 
@@ -142,13 +176,19 @@ frontend/src/
 | **DB (External URL)** | ver painel do Render → PostgreSQL → "External Database URL" (não salvar aqui) |
 | **Admin login** | `admin@warzone.gg` / `admin123` |
 | **PUBG API Key** | ver `.env` local ou painel PUBG Developer (não salvar aqui) |
-| **PUBG API Shard** | `pc-tournament` |
+| **PUBG API Shard (Live Server scrims)** | `steam` |
+| **PUBG API Shard (tournament server)** | `pc-tournament` |
 | **GitHub repo** | `https://github.com/chamaobird/pubg-fantasy-platform` |
 | **wasdefy PAS1 SW#4** | `https://wasdefy.com/pubg/competitions/019c6ffe-0a45-718f-a448-e008cdcb71fa/schedule` |
 
-> ⚠️ A VM sandbox não consegue conectar diretamente ao DB via psycopg2 (sem DNS externo). Usar a API ou o browser para queries.
->
-> Para obter JWT admin via browser: `POST /users/login` com `{"email":"admin@warzone.gg","password":"admin123"}`
+### Login correto (admin)
+```
+POST /users/login
+{"email":"admin@warzone.gg","password":"admin123"}
+```
+Retorna `{"access_token": "..."}`
+
+> ⚠️ A VM sandbox não consegue conectar diretamente ao DB via psycopg2 (sem DNS externo). Usar a API via `mcp__Claude_in_Chrome__javascript_tool` (fetch no browser) para queries e mutações.
 
 ## Notas de Sessão
 - Pasta do projeto montada no Cowork → edições diretas via Edit/Write, sem heredoc
@@ -158,6 +198,17 @@ frontend/src/
 ```powershell
 $env:DATABASE_URL='postgresql://user:pass@host.oregon-postgres.render.com/db'
 python -m alembic upgrade head
+```
+
+## Como Importar Week 4 (shard steam, background)
+```powershell
+$resp = Invoke-RestMethod -Uri "https://pubg-fantasy-platform.onrender.com/users/login" -Method POST -ContentType "application/json" -Body '{"email":"admin@warzone.gg","password":"admin123"}'
+$token = $resp.access_token
+$headers = @{ Authorization = "Bearer $token"; "Content-Type" = "application/json" }
+
+# Grupo A (exemplo)
+$body = '{"pubg_match_ids":[{"id":"b951fa9e-6a6a-4b23-8ecf-fcf07e0eb208","group_label":"A"},...],"shard":"steam"}'
+Invoke-RestMethod -Uri "https://pubg-fantasy-platform.onrender.com/historical/import-matches-by-ids/7?background=true" -Method POST -Headers $headers -Body $body
 ```
 
 ## Como Editar Arquivos (fluxo eficiente)

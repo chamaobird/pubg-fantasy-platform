@@ -167,23 +167,37 @@ export default function PlayerStatsPage({
   useEffect(() => { setSelectedGroup(''); setSelectedMatch('') }, [selectedDate])
   useEffect(() => { setSelectedDate(''); setSelectedGroup(''); setSelectedMatch('') }, [selectedWeek])
 
-  // Agrupa dias em semanas: gap > 2 dias entre sessões = nova semana
+  // Agrupa dias em semanas usando ISO calendar week (segunda → domingo)
+  // Mais robusto que gap de dias: scrims na sexta (20/03) e segunda (23/03)
+  // ficam em semanas ISO diferentes mesmo com gap de apenas 3 dias.
+  const isoWeekKey = (dateStr) => {
+    const d = new Date(dateStr)
+    // Ajusta para quinta-feira da mesma semana ISO (dia 4)
+    const thursday = new Date(d)
+    thursday.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7))
+    const yearStart = new Date(thursday.getFullYear(), 0, 1)
+    const weekNum = 1 + Math.round(((thursday - yearStart) / 86400000 - 3 + ((yearStart.getDay() + 6) % 7)) / 7)
+    return `${thursday.getFullYear()}-W${weekNum}`
+  }
+
   const weeks = useMemo(() => {
     if (matchDays.length === 0) return []
-    const groups = [[matchDays[0]]]
-    for (let i = 1; i < matchDays.length; i++) {
-      const prev = new Date(matchDays[i - 1].date)
-      const curr = new Date(matchDays[i].date)
-      const diffDays = (curr - prev) / (1000 * 60 * 60 * 24)
-      if (diffDays > 2) groups.push([matchDays[i]])
-      else groups[groups.length - 1].push(matchDays[i])
-    }
-    return groups.map((days, i) => ({
-      week: i + 1,
-      label: `Week ${i + 1}`,
-      dates: days.map((d) => d.date),
-      matchCount: days.reduce((a, d) => a + d.matches_count, 0),
-    }))
+    const ordered = []
+    const seen = new Map()
+    matchDays.forEach((day) => {
+      const key = isoWeekKey(day.date)
+      if (!seen.has(key)) { seen.set(key, []); ordered.push(key) }
+      seen.get(key).push(day)
+    })
+    return ordered.map((key, i) => {
+      const days = seen.get(key)
+      return {
+        week: i + 1,
+        label: `Week ${i + 1}`,
+        dates: days.map((d) => d.date),
+        matchCount: days.reduce((a, d) => a + d.matches_count, 0),
+      }
+    })
   }, [matchDays])
 
   // Dias visíveis conforme semana selecionada
