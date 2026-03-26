@@ -83,6 +83,10 @@ class ImportMatchesByIdsBody(BaseModel):
         min_length=1,
         description="List of PUBG match UUIDs (with optional group_label) to import directly.",
     )
+    shard: str = Field(
+        "steam",
+        description="PUBG shard to fetch matches from. Use 'steam' for Live Server matches (default), or e.g. 'pc-eu' for tournament server matches.",
+    )
 
 
 class ImportMatchesResponse(BaseModel):
@@ -225,20 +229,20 @@ def import_matches_from_pubg_endpoint(
 # Mode C: supply PUBG match UUIDs directly (skips tournament roster lookup)
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _run_import_by_ids_bg(tournament_id: int, entries: list[dict]) -> None:
+def _run_import_by_ids_bg(tournament_id: int, entries: list[dict], shard: str = "steam") -> None:
     """Background worker: opens its own DB session to avoid request-scope teardown."""
     import logging
     from app.database import SessionLocal
     logger = logging.getLogger(__name__)
     db = SessionLocal()
     try:
-        result = import_matches_by_pubg_ids(db, tournament_id, entries)
+        result = import_matches_by_pubg_ids(db, tournament_id, entries, shard=shard)
         logger.info(
-            "BG import-by-ids tournament=%s created=%s skipped=%s errors=%s",
-            tournament_id, result["created"], result["skipped"], result["errors"],
+            "BG import-by-ids tournament=%s shard=%s created=%s skipped=%s errors=%s",
+            tournament_id, shard, result["created"], result["skipped"], result["errors"],
         )
     except Exception as exc:  # noqa: BLE001
-        logger.error("BG import-by-ids tournament=%s failed: %s", tournament_id, exc)
+        logger.error("BG import-by-ids tournament=%s shard=%s failed: %s", tournament_id, shard, exc)
     finally:
         db.close()
 
@@ -264,9 +268,10 @@ def import_matches_by_ids_endpoint(
     _admin: User = Depends(_require_admin),
 ):
     entries = [{"id": e.id, "group_label": e.group_label} for e in body.pubg_match_ids]
+    shard = body.shard
 
     if background:
-        background_tasks.add_task(_run_import_by_ids_bg, tournament_id, entries)
+        background_tasks.add_task(_run_import_by_ids_bg, tournament_id, entries, shard)
         from fastapi.responses import JSONResponse
         return JSONResponse(
             status_code=202,
@@ -282,7 +287,7 @@ def import_matches_by_ids_endpoint(
         )
 
     try:
-        result = import_matches_by_pubg_ids(db, tournament_id, entries)
+        result = import_matches_by_pubg_ids(db, tournament_id, entries, shard=shard)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc))
     return ImportMatchesResponse(tournament_id=tournament_id, **result)

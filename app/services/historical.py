@@ -452,6 +452,7 @@ def import_matches_by_pubg_ids(
     db: Session,
     tournament_id: int,
     pubg_match_ids: list[dict],  # list of {"id": str, "group_label": str | None}
+    shard: Optional[str] = None,  # override shard; defaults to "steam" for live-server matches
 ) -> dict:
     """
     Like import_matches_from_pubg but skips the tournament-roster lookup.
@@ -461,10 +462,12 @@ def import_matches_by_pubg_ids(
         1. For each supplied match UUID call PubgClient.get_match()
         2. Resolve participants → Player.id
         3. Call import_matches() (same persistence core)
+    The `shard` parameter overrides settings.PUBG_SHARD. Use "steam" for Live Server matches.
     """
     from app.core.config import settings
     from app.services.pubg_client import PubgApiError, PubgClient, RawMatch
-    client = PubgClient(api_key=settings.PUBG_API_KEY, shard=settings.PUBG_SHARD)
+    effective_shard = shard if shard else "steam"  # live-server matches default to steam
+    client = PubgClient(api_key=settings.PUBG_API_KEY, shard=effective_shard)
     player_lookup = _build_player_lookup(db, tournament_id)
     if not player_lookup:
         logger.warning(
