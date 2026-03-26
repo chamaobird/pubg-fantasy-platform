@@ -5,6 +5,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { API_BASE_URL } from '../config'
 import ChampionshipSelector from './ChampionshipSelector'
+import TeamLogo from './TeamLogo'
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function formatPlayerName(name) {
@@ -577,12 +578,13 @@ export default function LineupBuilder({
                             onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
 
                             <td className="px-3 py-2">
-                              {formatTeamTag(p.name, p.team) ? (
-                                <span className="text-[10px] font-bold tracking-[0.06em] px-1.5 py-0.5 rounded"
-                                  style={{ background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.18)', color: 'var(--color-xama-orange)' }}>
-                                  {formatTeamTag(p.name, p.team)}
+                              <div className="flex items-center gap-1.5">
+                                <TeamLogo teamName={formatTeamTag(p.name, p.team)} size={22} />
+                                <span className="text-[10px] font-bold tracking-[0.06em]"
+                                  style={{ color: 'var(--color-xama-muted)' }}>
+                                  {formatTeamTag(p.name, p.team) || '—'}
                                 </span>
-                              ) : '—'}
+                              </div>
                             </td>
 
                             <td className="px-3 py-2 font-semibold whitespace-nowrap" style={{ color: 'var(--color-xama-text)' }}>
@@ -692,6 +694,7 @@ export default function LineupBuilder({
                       )}
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
+                      <TeamLogo teamName={formatTeamTag(p.name, p.team)} size={18} />
                       <span className="text-[11px]" style={{ color: 'var(--color-xama-muted)' }}>
                         {formatTeamTag(p.name, p.team)}
                       </span>
@@ -723,6 +726,7 @@ export default function LineupBuilder({
                       {formatPlayerName(reservePlayer.name)}
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
+                      <TeamLogo teamName={formatTeamTag(reservePlayer.name, reservePlayer.team)} size={18} />
                       <span className="text-[11px]" style={{ color: 'var(--color-xama-muted)' }}>
                         {formatTeamTag(reservePlayer.name, reservePlayer.team)}
                       </span>

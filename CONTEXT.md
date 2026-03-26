@@ -76,6 +76,14 @@ Para buscar o ID de um torneio novo: filtrar por `t.id.includes('26')` na lista 
 | 20260322_... | add group_label to matches |
 | 20260326_0100_f2a3b4c5d6e7 | add live_pubg_id to players (unique index) |
 
+## Convenção de Input Manual para Novas Fases
+Para fases seguintes de qualquer campeonato, o fluxo correto é:
+1. Fase termina → usuário informa quais times avançam para cada fase seguinte
+2. Checar quais times já têm players no DB (fases anteriores) — usar `copy-players-to` para reaproveitar
+3. Para times novos: usuário traz o roster, criamos via API
+4. Desativar players de times que não devem aparecer no lineup (top/bottom de fases anteriores)
+Isso é mais rápido, assertivo e confiável do que qualquer automação de detecção de avanço.
+
 ## Features Implementadas
 - ✅ Importação histórica de partidas (historical.py) com auto-lock e wins_count
 - ✅ **Repair mode**: se match já existe com 0 stats, recria os stats sem duplicar o match
@@ -97,6 +105,7 @@ Para buscar o ID de um torneio novo: filtrar por `t.id.includes('26')` na lista 
 - ✅ **Championship stats dedup** — agrupa por nome normalizado, soma stats de todas as fases
 - ✅ **Championship start_date filter** — filtra partidas por `champ.start_date`
 - ✅ **Bulk activate/deactivate players** — `PATCH /admin/players/bulk-set-active`
+- ✅ **Logos no Lineup Builder** — `TeamLogo` integrado (tabela de jogadores, cards de titulares e reserva)
 - ✅ **live_pubg_id** — campo no Player para conta Steam pessoal (Live Server scrims)
   - `_build_player_lookup` indexa `live_pubg_id` além de `pubg_id` e nome
   - `POST /admin/players/bulk-set-live-ids` para atualizar em massa
@@ -167,7 +176,11 @@ Grupo D: 5d4e2dee, 0296c330, e2549f68, 5017894b, facc92c6
 - **Shard:** `pc-tournament` ✓
 - **T16 (Winners Stage):** 5 partidas importadas ✓ | stats calculados (top: TWIS_xmpl 192pts) ✓ | lineup_open=false ✓
   - `/tournaments/16/players` mostra 4 (os com tournament_id=16); `/tournaments/16/player-stats` mostra 64 (via match_player_stats join) — comportamento esperado
-- **T17 (Survival Stage):** lineup_open=true ✓ | **50 jogadores** copiados de T16 (apenas quem jogou nos 5 matches) | status=upcoming | partidas amanhã (27/03)
+- **T17 (Survival Stage):** lineup_open=true ✓ | **64 jogadores ativos** (16 times corretos) | status=upcoming | partidas 27/03
+  - **8 times do T16 bottom (Winners Stage):** FCE, FUR, JDG, MiTH, NAVI, PeRo, S2G, T1
+  - **8 times do T14 bottom (PGS1 Survival):** 17(i7Gaming), CR, CTG, GEN, T5, TL, VIT, VP
+  - 32 players do T16 top (4AM, AL, DNS, EA, FLC, FS, TE, TWIS → Final Stage) desativados
+  - Players sem pubg_id (serão resolvidos via seed-players-from-matches após import)
 - **T18 (Final Stage):** jogadores copiados ✓ | lineup_open=false | upcoming
 
 ### Formato PGS2 (Series 2)
@@ -204,8 +217,9 @@ PATCH /admin/tournaments/18  → { status: "finished", lineup_open: false }
 ## Pendente / Backlog
 
 ### 🔴 Alta Prioridade
-- [ ] **Importar Survival Stage (T17)** quando as partidas de 27/03 forem jogadas — ver runbook abaixo
-- [ ] **28 jogadores sem live_pubg_id** — mapeamento manual necessário para os que têm Steam names muito diferentes
+- [ ] **Importar Survival Stage (T17)** quando as partidas de 27/03 forem jogadas (shard=pc-tournament) — ver runbook abaixo
+- [ ] **Fazer push do frontend** para deploy da correção de logos no Lineup Builder
+- [ ] **28 jogadores sem live_pubg_id** (PAS Scrims) — mapeamento manual necessário para os que têm Steam names muito diferentes
   - Jogadores faltantes: DUEL_Iroh, DUEL_Woo1y, INJ_Plushiee, TAES_Jaxinho, TAES_zMakhul, TAES_zZRISE, FEAR_VapeSkr, TTG_Heatn, TTG_M8, X10_San71Hero1, X10_kl4uZeera, TQ_RxbrrrT, NVM_1Yess, PNG_Falw-, EMT_KpN1, NVM_skatasxtico, DOTS_OtosakaYu-, TTG_Maffooo, WIT_marcis, FEAR_LucasMSzin, INSK_0racle_, NA_Balefrost, NA_ega, OMG_ALVARO-__--, OMG_FerHopper201, OMG_TUT4NK4M0N_, OMG_XNz-Pain, PSTL_FaKe
   - Script: `build_live_id_mapping.py` (usa `debug-match-resolve` endpoint com os match IDs do runbook)
 
