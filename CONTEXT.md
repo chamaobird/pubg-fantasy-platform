@@ -61,6 +61,11 @@ frontend/src/
 - `POST /admin/players/bulk-set-live-ids` — [Admin] seta live_pubg_id em massa; corpo: `[{player_name, pubg_id, live_pubg_id}]`
 - `POST /historical/import-matches-by-ids/{tournament_id}?background=true` — importa partidas PUBG por UUID; suporta `shard` e `group_label`; modo repair automático se match existe com 0 stats
 
+## Como encontrar tournament ID na PUBG API (lição aprendida)
+O endpoint correto é **sem shard**: `GET https://api.pubg.com/tournaments` (não `/shards/pc-tournament/tournaments`).
+Matches de torneios oficiais usam shard `pc-tournament` (não steam).
+Para buscar o ID de um torneio novo: filtrar por `t.id.includes('26')` na lista retornada.
+
 ## Estado das Migrations (última: 20260326_0100)
 | Revision | O que faz |
 |---|---|
@@ -98,6 +103,9 @@ frontend/src/
 
 ## Estado da Produção (atualizado 2026-03-26)
 
+### Novo Endpoint Disponível
+- `POST /admin/tournaments/{source_id}/copy-players-to/{target_id}` — copia jogadores que aparecem nos matches do torneio source para o target (sem pubg_id, para evitar unique constraint). Idempotente por nome. **Deployado em produção.**
+
 ### Torneios cadastrados (DB)
 | id | name | pubg_id | matches | players | lineup_open |
 |----|------|---------|---------|---------|-------------|
@@ -106,21 +114,40 @@ frontend/src/
 | 9  | SEA MITH Cup 2026 | sea-mith | 19 | 67 | false |
 | 10 | Asia China Cup 2026 | as-cncup | 20 | 66 | false |
 | 11 | Korea PWS 2026 Phase 1 Cup 5 | kr-pws1c5 | 5 | 64 | false |
-| 12-15 | PGS 2026 Circuit 1 (4 fases) | eu-race26 etc | importado | 96 jogadores ativos | false |
+| 12-15 | PGS 2026 Circuit 1 (4 fases) | as-pgs1ws/gs/ss/fs | importado | ~50 por fase | false |
+| **16** | **PGS 2026 Circuit 2 · Winners Stage** | **as-pgs2ws** | **5 (26/03)** | **64 (pubg_ids reais)** | **false** |
+| **17** | **PGS 2026 Circuit 2 · Survival Stage** | **as-pgs2ss** | 0 (partidas amanhã) | **64 (copiados de T16, sem pubg_id)** | **true** |
+| **18** | **PGS 2026 Circuit 2 · Final Stage** | **as-pgs2fs** | 0 (upcoming) | **64 (copiados de T16, sem pubg_id)** | false |
 
 ### Championships cadastrados
 | id | name | region | fases | start_date |
 |----|------|--------|-------|------------|
 | 1 | PGS 2026 Circuit 1 · Series 1 | GLOBAL | T13 (Group), T12 (Winners), T14 (Survival), T15 (Final) | 2026-03-16 |
 | 2 | PAS 2026 - Americas Series 1 | AM | T7 (Scrims) | null |
+| **3** | **PGS 2026 Circuit 2 · Series 2** | **GLOBAL** | **T16 (Winners), T17 (Survival), T18 (Final)** | **2026-03-26** |
 
 ### PAS Scrims Week 4 (23/03/2026) — Estado atual
 - **20 partidas importadas** no tournament 7 com shard `steam` (Live Server)
 - **Groups A, B, C, D** com `group_label` setado ✓
 - **Stats count por grupo**: A=15, B=15, C=8, D=22 por partida
-- **60 de 107 jogadores** têm `live_pubg_id` mapeado (auto-match por nome normalizado)
-- **47 jogadores ainda sem `live_pubg_id`** — não aparecem nas stats da Week 4
+- **79 de 107 jogadores** têm `live_pubg_id` mapeado (60 auto + 19 via fuzzy/reverse/leet matching em 26/03)
+- **28 jogadores ainda sem `live_pubg_id`** — Steam names muito diferentes, requerem mapeamento manual
 - Partidas importadas via `POST /historical/import-matches-by-ids/7?background=true` com `shard=steam`
+- ⚠️ Os 19 novos mappings NÃO afetam as Week 4 já importadas (repair mode só ativa com stats_count=0). Stats corretas a partir de Week 5.
+
+### Grupos por time (PAS Scrims)
+- **Grupo A**: CAUT, FE, TMP, TQ, WIT, X10
+- **Grupo B**: AFi, AKA, CLR, DUEL, FEAR, PEST
+- **Grupo C**: EMT, FEAR, NA, NVM, PNG, TTG
+- **Grupo D**: BO, CAUT, DOTS, FATE, INJ, INSK, LxB, NW, PSTL, TAES
+
+### Match IDs referência por grupo (1 match each — last of week)
+```
+A: 89282bab-c579-4025-8a36-f7c63fa59207
+B: 0fc2a916-f48f-4377-9eb0-41a0137a13aa
+C: fe6aefe2-6920-422e-be09-1a19ff8a9ddb
+D: facc92c6-633f-4f0a-b937-78ff782d33d0
+```
 
 ### Match IDs Week 4 (para re-importar se necessário)
 ```
@@ -136,36 +163,72 @@ Grupo D: 5d4e2dee, 0296c330, e2549f68, 5017894b, facc92c6
 - Filtro de data: `start_date = 2026-03-16` bloqueia dados de edições anteriores
 - Match counts esperados por estágio: Group Stage = 6, chegou à Final = 21-26
 
-### PGS 2 (começa 26/03/2026)
-- Status: UPCOMING no pubgesports.com (tournament ID da PUBG API: ainda não disponível)
-- Quando o torneio for criado: criar T16+ no DB, rodar import, e setar `start_date` no novo championship
+### PGS 2026 Circuit 2 — Estado dos Dados (26/03/2026) ✅
+- **Shard:** `pc-tournament` ✓
+- **T16 (Winners Stage):** 5 partidas importadas ✓ | stats calculados (top: TWIS_xmpl 192pts) ✓ | lineup_open=false ✓
+  - `/tournaments/16/players` mostra 4 (os com tournament_id=16); `/tournaments/16/player-stats` mostra 64 (via match_player_stats join) — comportamento esperado
+- **T17 (Survival Stage):** lineup_open=true ✓ | **50 jogadores** copiados de T16 (apenas quem jogou nos 5 matches) | status=upcoming | partidas amanhã (27/03)
+- **T18 (Final Stage):** jogadores copiados ✓ | lineup_open=false | upcoming
+
+### Formato PGS2 (Series 2)
+- **Winners Stage** (T16): 16 times, 5 partidas → Top 8 → Final Stage; Bottom 8 → Survival Stage
+- **Survival Stage** (T17): 16 times (8 do bottom Winners + 8 do bottom Series 1), 5 partidas → Top 8 → Final Stage
+- **Final Stage** (T18): 16 times, 10 partidas → standings finais
+
+### Resultado Winners Stage (26/03/2026)
+**→ Final Stage (top 8):** DN soopers, Twisted Minds, Four Angry Men, Team Falcons, Full Sense, The Expendables, eArena, Anyone's Legend
+**→ Survival Stage (bottom 8):** FURIA, Natus Vincere, S2G Esports, Made in Thailand, T1, Petrichor Road, Finhay Cerberus, JD Gaming
+
+### Match IDs Winners Stage T16 (para re-importar se necessário)
+```
+e6904b8a-7a46-4222-ab53-a41fb6dca6f7
+416b9ac3-cf79-43ac-85fa-f70fe386ab5f
+5e858e6e-cebc-414c-9218-50fed078fb1f
+dd289599-8e43-43e4-aa05-8285ec5a31f6
+d134b210-3515-4d2e-a4fe-24b0b796484e
+```
+
+### Próximos passos PGS2 (próxima sessão)
+```
+# Quando as partidas da Survival Stage forem jogadas (as-pgs2ss vai aparecer na API):
+POST /historical/import-matches-by-ids/17?background=true  (shard=pc-tournament)
+POST /admin/seed-players-from-matches/17     # atualiza pubg_ids nos players copiados
+PATCH /admin/tournaments/17  → { status: "finished", lineup_open: false }
+PATCH /admin/tournaments/18  → { lineup_open: true }
+
+# Quando Final Stage tiver dados (as-pgs2fs):
+POST /historical/import-matches-by-ids/18?background=true
+PATCH /admin/tournaments/18  → { status: "finished", lineup_open: false }
+```
 
 ## Pendente / Backlog
 
 ### 🔴 Alta Prioridade
-- [ ] **Mapear live_pubg_id dos 47 jogadores restantes** — os jogadores sem `live_pubg_id` não aparecem nas stats da Week 4
-  - Usar `GET /tournaments/7/debug-players` para ver quem ainda não tem `live_pubg_id`
-  - Usar `GET /tournaments/7/debug-match-resolve/{match_id}?shard=steam` para ver quem ficou unresolved
-  - Atualizar via `POST /admin/players/bulk-set-live-ids` com o payload correto
-  - Script `build_live_id_mapping.py` na raiz pode ser adaptado para os grupos faltantes
-- [ ] **Verificar Week 4 aparece como "Week 4"** no frontend após push do fix de ISO week (feito mas ainda não pushado)
+- [ ] **Importar Survival Stage (T17)** quando as partidas de 27/03 forem jogadas — ver runbook abaixo
+- [ ] **28 jogadores sem live_pubg_id** — mapeamento manual necessário para os que têm Steam names muito diferentes
+  - Jogadores faltantes: DUEL_Iroh, DUEL_Woo1y, INJ_Plushiee, TAES_Jaxinho, TAES_zMakhul, TAES_zZRISE, FEAR_VapeSkr, TTG_Heatn, TTG_M8, X10_San71Hero1, X10_kl4uZeera, TQ_RxbrrrT, NVM_1Yess, PNG_Falw-, EMT_KpN1, NVM_skatasxtico, DOTS_OtosakaYu-, TTG_Maffooo, WIT_marcis, FEAR_LucasMSzin, INSK_0racle_, NA_Balefrost, NA_ega, OMG_ALVARO-__--, OMG_FerHopper201, OMG_TUT4NK4M0N_, OMG_XNz-Pain, PSTL_FaKe
+  - Script: `build_live_id_mapping.py` (usa `debug-match-resolve` endpoint com os match IDs do runbook)
 
 ### 📅 Dados / Infra
-- [ ] **PGS 2** — criar torneios T16+ e championship para Circuit 2 quando iniciar; pubg_tournament_id ainda não disponível
 - [ ] **Feature: Price History** — adicionar `tournament_id` em `PlayerPriceHistory`, endpoint `GET /players/{id}/price-history`, sparkline no frontend
 
 ## Como Mapear live_pubg_id dos Jogadores Faltantes
 ```powershell
 # 1. Ver quem não tem live_pubg_id
-Invoke-RestMethod -Uri "https://pubg-fantasy-platform.onrender.com/tournaments/7/debug-players" -Headers $headers | Where-Object { -not $_.live_pubg_id } | Select name, pubg_id
+Invoke-RestMethod -Uri "https://pubg-fantasy-platform.onrender.com/tournaments/7/debug-players" | Select-Object -ExpandProperty all_players | Where-Object { -not $_.live_pubg_id } | Select name, pubg_id
 
-# 2. Ver quem ficou unresolved num match específico (ex: grupo A, partida 1)
-Invoke-RestMethod -Uri "https://pubg-fantasy-platform.onrender.com/tournaments/7/debug-match-resolve/b951fa9e-6a6a-4b23-8ecf-fcf07e0eb208?shard=steam" -Headers $headers
+# 2. Ver unresolved num match (use os Match IDs de referência por grupo no CONTEXT.md)
+Invoke-RestMethod -Uri "https://pubg-fantasy-platform.onrender.com/tournaments/7/debug-match-resolve/fe6aefe2-6920-422e-be09-1a19ff8a9ddb?shard=steam"
 
-# 3. Montar payload e enviar
-$payload = '[{"player_name":"TEAM_Nick","live_pubg_id":"account.xxx"},...]' | ConvertFrom-Json
-Invoke-RestMethod -Uri "https://pubg-fantasy-platform.onrender.com/admin/players/bulk-set-live-ids" -Method POST -Headers $headers -Body ($payload | ConvertTo-Json)
+# 3. Enviar payload
+$body = '{"entries":[{"player_name":"TEAM_Nick","live_pubg_id":"account.xxx"}]}'
+Invoke-RestMethod -Uri "https://pubg-fantasy-platform.onrender.com/admin/players/bulk-set-live-ids" -Method POST -Headers $headers -Body $body
 ```
+
+## Algoritmo de Matching (para novas semanas)
+O script `build_live_id_mapping.py` já implementa: normalização + stripped prefix.
+Para casos difíceis (sesão 26/03): usado matching adicional — leet (1→i, 0→o), reversed name, dedup chars.
+Resultados aplicados: 60 automático + 19 manual = 79/107 mapeados.
 
 ## Acessos e Credenciais de Produção
 
