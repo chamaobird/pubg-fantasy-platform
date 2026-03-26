@@ -690,3 +690,40 @@ def tournament_matches(
         "total_matches": len(latest_matches),
         "days": result,
     }
+
+
+@router.get(
+    "/{tournament_id}/debug-players",
+    summary="[Debug] Player pubg_id coverage for a tournament",
+)
+def debug_tournament_players(
+    tournament_id: int,
+    db: Session = Depends(get_db),
+):
+    """Returns player lookup info to diagnose stats resolution failures."""
+    players = (
+        db.query(Player)
+        .filter(Player.tournament_id == tournament_id)
+        .all()
+    )
+    fallback = False
+    if not players:
+        players = db.query(Player).all()
+        fallback = True
+
+    with_pubg_id = [p for p in players if p.pubg_id]
+    without_pubg_id = [p for p in players if not p.pubg_id]
+
+    return {
+        "tournament_id": tournament_id,
+        "fallback_to_all": fallback,
+        "total_players": len(players),
+        "with_pubg_id": len(with_pubg_id),
+        "without_pubg_id": len(without_pubg_id),
+        "sample_with_pubg_id": [
+            {"name": p.name, "pubg_id": p.pubg_id} for p in with_pubg_id[:10]
+        ],
+        "sample_without_pubg_id": [
+            {"name": p.name, "pubg_id": p.pubg_id} for p in without_pubg_id[:10]
+        ],
+    }
