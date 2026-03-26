@@ -720,11 +720,9 @@ def debug_tournament_players(
         "total_players": len(players),
         "with_pubg_id": len(with_pubg_id),
         "without_pubg_id": len(without_pubg_id),
-        "sample_with_pubg_id": [
-            {"name": p.name, "pubg_id": p.pubg_id} for p in with_pubg_id[:10]
-        ],
-        "sample_without_pubg_id": [
-            {"name": p.name, "pubg_id": p.pubg_id} for p in without_pubg_id[:10]
+        "all_players": [
+            {"id": p.id, "name": p.name, "pubg_id": p.pubg_id, "live_pubg_id": getattr(p, "live_pubg_id", None)}
+            for p in players
         ],
     }
 
