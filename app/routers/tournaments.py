@@ -663,6 +663,11 @@ def tournament_matches(
         date_key = session[0].played_at.astimezone(BRT).date().isoformat()
         session_matches = []
         for j, m in enumerate(session):
+            stats_count = (
+                db.query(sql_func.count(MatchPlayerStat.id))
+                .filter(MatchPlayerStat.match_id == m.id)
+                .scalar() or 0
+            )
             session_matches.append({
                 "id": m.id,
                 "map_name": m.map_name,
@@ -670,6 +675,7 @@ def tournament_matches(
                 "duration_secs": m.duration_secs,
                 "match_number_in_day": j + 1,
                 "group_label": m.group_label,
+                "stats_count": stats_count,
             })
         result.append({
             "date": date_key,

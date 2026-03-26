@@ -167,7 +167,7 @@ export default function PlayerStatsPage({
   useEffect(() => { setSelectedGroup(''); setSelectedMatch('') }, [selectedDate])
   useEffect(() => { setSelectedDate(''); setSelectedGroup(''); setSelectedMatch('') }, [selectedWeek])
 
-  // Agrupa dias em semanas: gap > 4 dias entre sessões = nova semana
+  // Agrupa dias em semanas: gap > 2 dias entre sessões = nova semana
   const weeks = useMemo(() => {
     if (matchDays.length === 0) return []
     const groups = [[matchDays[0]]]
@@ -175,7 +175,7 @@ export default function PlayerStatsPage({
       const prev = new Date(matchDays[i - 1].date)
       const curr = new Date(matchDays[i].date)
       const diffDays = (curr - prev) / (1000 * 60 * 60 * 24)
-      if (diffDays > 4) groups.push([matchDays[i]])
+      if (diffDays > 2) groups.push([matchDays[i]])
       else groups[groups.length - 1].push(matchDays[i])
     }
     return groups.map((days, i) => ({
