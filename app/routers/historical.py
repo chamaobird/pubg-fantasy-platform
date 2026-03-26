@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -91,6 +91,13 @@ class ImportMatchesResponse(BaseModel):
     skipped:         int
     errors:          list[str]
     match_ids_found: Optional[int] = None
+
+
+class ImportMatchesQueued(BaseModel):
+    status:        str = "queued"
+    tournament_id: int
+    match_count:   int
+    message:       str
 
 
 class PlayerPriceResult(BaseModel):
@@ -218,26 +225,63 @@ def import_matches_from_pubg_endpoint(
 # Mode C: supply PUBG match UUIDs directly (skips tournament roster lookup)
 # ─────────────────────────────────────────────────────────────────────────────
 
+def _run_import_by_ids_bg(tournament_id: int, entries: list[dict]) -> None:
+    """Background worker: opens its own DB session to avoid request-scope teardown."""
+    import logging
+    from app.database import SessionLocal
+    logger = logging.getLogger(__name__)
+    db = SessionLocal()
+    try:
+        result = import_matches_by_pubg_ids(db, tournament_id, entries)
+        logger.info(
+            "BG import-by-ids tournament=%s created=%s skipped=%s errors=%s",
+            tournament_id, result["created"], result["skipped"], result["errors"],
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.error("BG import-by-ids tournament=%s failed: %s", tournament_id, exc)
+    finally:
+        db.close()
+
+
 @router.post(
     "/import-matches-by-ids/{tournament_id}",
-    response_model=ImportMatchesResponse,
-    status_code=status.HTTP_200_OK,
     summary="Import specific PUBG matches by their UUIDs",
     description=(
         "Direct-UUID import: supply a list of PUBG match UUIDs. "
         "The backend fetches each match from the PUBG API and imports it. "
         "Useful for scrim matches not yet listed in the PUBG tournament roster. "
-        "Already-imported matches are skipped (idempotent)."
+        "Already-imported matches are skipped (idempotent). "
+        "Pass ?background=true to return 202 immediately and process in the background "
+        "(recommended on free-tier hosts with short request timeouts)."
     ),
 )
 def import_matches_by_ids_endpoint(
     tournament_id: int,
     body: ImportMatchesByIdsBody,
+    background_tasks: BackgroundTasks,
+    background: bool = Query(False, description="Process in background and return 202 immediately"),
     db: Session = Depends(get_db),
     _admin: User = Depends(_require_admin),
 ):
+    entries = [{"id": e.id, "group_label": e.group_label} for e in body.pubg_match_ids]
+
+    if background:
+        background_tasks.add_task(_run_import_by_ids_bg, tournament_id, entries)
+        from fastapi.responses import JSONResponse
+        return JSONResponse(
+            status_code=202,
+            content={
+                "status": "queued",
+                "tournament_id": tournament_id,
+                "match_count": len(entries),
+                "message": (
+                    f"Queued {len(entries)} match(es) for background import into "
+                    f"tournament {tournament_id}. Check server logs for results."
+                ),
+            },
+        )
+
     try:
-        entries = [{"id": e.id, "group_label": e.group_label} for e in body.pubg_match_ids]
         result = import_matches_by_pubg_ids(db, tournament_id, entries)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc))
