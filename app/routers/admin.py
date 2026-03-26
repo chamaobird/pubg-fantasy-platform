@@ -622,6 +622,70 @@ async def reprocess_match_stats(
     return {"tournament_id": tournament_id, "stats_created": created, "skipped": skipped, "errors": errors}
 
 
+@router.post(
+    "/tournaments/{source_id}/copy-players-to/{target_id}",
+    summary="Copia jogadores de um torneio para outro (sem pubg_id para evitar unique constraint)",
+    description=(
+        "Copia todos os jogadores ativos do torneio source_id para target_id. "
+        "O pubg_id é omitido nas cópias para evitar violação do unique constraint — "
+        "os stats serão resolvidos por nome quando as partidas forem importadas. "
+        "Idempotente: pula jogadores cujo nome já existe no torneio destino."
+    ),
+)
+async def copy_players_between_tournaments(
+    source_id: int,
+    target_id: int,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    from app.models import Player, Tournament
+
+    source = db.query(Tournament).filter(Tournament.id == source_id).first()
+    target = db.query(Tournament).filter(Tournament.id == target_id).first()
+    if not source:
+        raise HTTPException(status_code=404, detail=f"Tournament {source_id} not found")
+    if not target:
+        raise HTTPException(status_code=404, detail=f"Tournament {target_id} not found")
+
+    source_players = db.query(Player).filter(
+        Player.tournament_id == source_id,
+        Player.is_active == True,
+    ).all()
+
+    # Build set of existing names in target to avoid duplicates
+    existing_names = {
+        p.name for p in db.query(Player).filter(Player.tournament_id == target_id).all()
+    }
+
+    created = 0
+    skipped = 0
+    for p in source_players:
+        if p.name in existing_names:
+            skipped += 1
+            continue
+        new_player = Player(
+            name=p.name,
+            pubg_id=None,          # omit to avoid unique constraint
+            live_pubg_id=None,
+            tournament_id=target_id,
+            team_id=p.team_id,
+            fantasy_cost=p.fantasy_cost,
+            region=p.region or target.region,
+            is_active=True,
+        )
+        db.add(new_player)
+        existing_names.add(p.name)
+        created += 1
+
+    db.commit()
+    return {
+        "source_tournament_id": source_id,
+        "target_tournament_id": target_id,
+        "players_created": created,
+        "players_skipped": skipped,
+    }
+
+
 class TournamentUpdate(BaseModel):
     name:        Optional[str] = None
     region:      Optional[str] = None
