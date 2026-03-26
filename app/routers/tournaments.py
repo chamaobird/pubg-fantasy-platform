@@ -727,3 +727,51 @@ def debug_tournament_players(
             {"name": p.name, "pubg_id": p.pubg_id} for p in without_pubg_id[:10]
         ],
     }
+
+
+@router.get(
+    "/{tournament_id}/debug-match-resolve/{pubg_match_id}",
+    summary="[Debug] Dry-run player resolution for a PUBG match",
+)
+def debug_match_resolve(
+    tournament_id: int,
+    pubg_match_id: str,
+    shard: str = Query("steam", description="PUBG shard to fetch from"),
+    db: Session = Depends(get_db),
+):
+    """
+    Fetches a match from the PUBG API and shows which participants
+    would be resolved to Player records — without saving anything.
+    """
+    from app.core.config import settings
+    from app.services.pubg_client import PubgApiError, PubgClient
+    from app.services.historical import _build_player_lookup, _resolve_player_id
+
+    client = PubgClient(api_key=settings.PUBG_API_KEY, shard=shard)
+    try:
+        raw = client.get_match(pubg_match_id)
+    except PubgApiError as exc:
+        raise HTTPException(status_code=502, detail=f"PUBG API error: {exc}")
+
+    lookup = _build_player_lookup(db, tournament_id)
+
+    resolved = []
+    unresolved = []
+    for rps in raw.player_stats:
+        pid = _resolve_player_id(lookup, rps.pubg_account_id, rps.pubg_name)
+        entry = {"pubg_name": rps.pubg_name, "pubg_account_id": rps.pubg_account_id}
+        if pid is not None:
+            resolved.append({**entry, "player_id": pid})
+        else:
+            unresolved.append(entry)
+
+    return {
+        "pubg_match_id": pubg_match_id,
+        "shard": shard,
+        "tournament_id": tournament_id,
+        "total_participants": len(raw.player_stats),
+        "resolved_count": len(resolved),
+        "unresolved_count": len(unresolved),
+        "resolved": resolved,
+        "unresolved": unresolved,
+    }
