@@ -647,8 +647,29 @@ async def copy_players_between_tournaments(
     if not target:
         raise HTTPException(status_code=404, detail=f"Tournament {target_id} not found")
 
+    # Find all players who appeared in source tournament's matches (via match_player_stats)
+    # This is more reliable than filtering by tournament_id, since players seeded from
+    # PUBG API may retain their original tournament_id from a previous phase.
+    from app.models.match import Match, MatchPlayerStat
+
+    match_ids = [
+        m.id for m in db.query(Match).filter(Match.tournament_id == source_id).all()
+    ]
+    if not match_ids:
+        raise HTTPException(status_code=404, detail=f"No matches found for tournament {source_id}")
+
+    player_ids_in_source = [
+        row[0]
+        for row in db.query(MatchPlayerStat.player_id)
+        .filter(
+            MatchPlayerStat.match_id.in_(match_ids),
+            MatchPlayerStat.player_id.isnot(None),
+        )
+        .distinct()
+        .all()
+    ]
     source_players = db.query(Player).filter(
-        Player.tournament_id == source_id,
+        Player.id.in_(player_ids_in_source),
         Player.is_active == True,
     ).all()
 
