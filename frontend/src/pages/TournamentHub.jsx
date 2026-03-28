@@ -133,4 +133,14 @@ export default function TournamentHub() {
         <TournamentLeaderboard
           token={token}
           {...sharedProps}
-     
+        />
+      )}
+      {activeTab === TAB_STATS && (
+        <PlayerStatsPage
+          token={token}
+          {...sharedProps}
+        />
+      )}
+    </TournamentLayout>
+  )
+}
