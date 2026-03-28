@@ -659,6 +659,6 @@ export default function LineupBuilder({
           </div>{/* fim sticky wrapper */}
         </div>{/* fim xlb-grid */}
       </div>{/* fim xama-container */}
-    </div>{/* fim xlb-page */}
+    </div>
   )
 }
