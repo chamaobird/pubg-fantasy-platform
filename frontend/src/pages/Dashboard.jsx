@@ -216,4 +216,17 @@ export default function Dashboard() {
         )}
 
         {/* ── Empty state ── */}
-        {open.length === 0 && soon.length === 0
+        {open.length === 0 && soon.length === 0 && myFinished.length === 0 && (
+          <Card variant="ghost" style={{ textAlign: 'center', padding: '48px 24px' }}>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎮</div>
+            <CardTitle>Nenhum torneio ativo no momento</CardTitle>
+            <p style={{ color: 'var(--color-xama-muted)', marginTop: '8px' }}>
+              Em breve novos torneios estarão disponíveis. Fique ligado!
+            </p>
+          </Card>
+        )}
+
+      </div>
+    </div>
+  )
+}
