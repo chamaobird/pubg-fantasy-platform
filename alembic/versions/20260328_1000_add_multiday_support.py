@@ -45,6 +45,15 @@ def upgrade() -> None:
             sa.Column('day', sa.Integer(), nullable=False, server_default='1'),
         )
 
+    # ── deduplicate lineups before adding unique constraint ───────────────
+    # Old schema allowed multiple lineups per (user, tournament); keep newest.
+    conn.execute(sa.text("""
+        DELETE FROM lineups
+        WHERE id NOT IN (
+            SELECT MAX(id) FROM lineups GROUP BY user_id, tournament_id, day
+        )
+    """))
+
     # ── unique constraint on (user_id, tournament_id, day) ───────────────
     constraints = [row[0] for row in conn.execute(
         sa.text("""
