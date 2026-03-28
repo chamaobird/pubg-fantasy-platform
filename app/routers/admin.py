@@ -833,6 +833,59 @@ class BulkActivateBody(BaseModel):
     activate: bool = True   # True = ativar, False = desativar
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# POST /admin/players/bulk-upsert/{tournament_id}
+# ─────────────────────────────────────────────────────────────────────────────
+
+class PlayerRosterEntryBody(BaseModel):
+    name:         str
+    pubg_id:      Optional[str] = None
+    team_name:    Optional[str] = None
+    region:       Optional[str] = None
+    fantasy_cost: float = 10.0
+
+
+class BulkUpsertBody(BaseModel):
+    players: list[PlayerRosterEntryBody]
+    reset_tournament_players: bool = False
+
+
+@router.post(
+    "/players/bulk-upsert/{tournament_id}",
+    summary="[Admin] Cria ou atualiza jogadores para um torneio",
+    description=(
+        "Upsert de jogadores por pubg_id (se fornecido) ou nome. "
+        "Seguro para re-executar — não duplica. "
+        "Use para adicionar reservas ou corrigir rosters."
+    ),
+)
+async def bulk_upsert_players_endpoint(
+    tournament_id: int,
+    body: BulkUpsertBody,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    from app.services.player_sync import PlayerRosterEntry, bulk_upsert_players
+    entries = [
+        PlayerRosterEntry(
+            name=p.name,
+            pubg_id=p.pubg_id,
+            team_name=p.team_name,
+            region=p.region,
+            fantasy_cost=p.fantasy_cost,
+        )
+        for p in body.players
+    ]
+    try:
+        result = bulk_upsert_players(
+            db, tournament_id, entries,
+            reset_tournament_players=body.reset_tournament_players,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    return {"tournament_id": tournament_id, **result}
+
+
 @router.patch("/players/bulk-set-active", summary="[Admin] Ativa ou desativa jogadores em massa por ID")
 async def bulk_set_active(
     body: BulkActivateBody,
