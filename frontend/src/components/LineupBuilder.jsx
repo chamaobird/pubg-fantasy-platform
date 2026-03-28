@@ -647,4 +647,18 @@ export default function LineupBuilder({
                     className={`xlb-save-btn ${saveLoading ? 'loading' : canSave ? 'ready' : 'idle'}`}
                     onClick={saveLineup}
                     disabled={!canSave || saveLoading}>
-                    {saveLoading ? 'Salva
+                    {saveLoading ? 'Salvando...' : 'SALVAR LINEUP'}
+                  </button>
+                )}
+
+                {saveError   && <div className="msg-error"   style={{ marginTop: 10 }}>{saveError}</div>}
+                {saveSuccess && <div className="msg-success" style={{ marginTop: 10 }}>Lineup salva com sucesso!</div>}
+
+              </div>{/* fim xlb-panel-body (save) */}
+            </div>{/* fim xlb-panel (direito) */}
+          </div>{/* fim sticky wrapper */}
+        </div>{/* fim xlb-grid */}
+      </div>{/* fim xama-container */}
+    </div>{/* fim xlb-page */}
+  )
+}
