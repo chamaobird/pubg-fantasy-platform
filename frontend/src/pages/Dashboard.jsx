@@ -4,6 +4,11 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../App'
 import { API_BASE_URL as API_BASE } from '../config'
 import Navbar from '../components/Navbar'
+import { Card, CardDivider, CardTitle, CardSub } from '../components/ui/Card'
+import { Badge, StatusBadge } from '../components/ui/Badge'
+import { Button } from '../components/ui/Button'
+import { SectionTitle } from '../components/ui/SectionTitle'
+import { StatRow } from '../components/ui/StatRow'
 
 if (!document.getElementById('xama-fonts')) {
   const link = document.createElement('link')
@@ -12,19 +17,19 @@ if (!document.getElementById('xama-fonts')) {
   document.head.appendChild(link)
 }
 
-const fmt2 = (v) => v != null ? Number(v).toFixed(2) : '—'
-
-if (!document.getElementById('xama-dash-style')) {
+if (!document.getElementById('xama-dash-anim')) {
   const s = document.createElement('style')
-  s.id = 'xama-dash-style'
+  s.id = 'xama-dash-anim'
   s.textContent = `
-    @keyframes xamaPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    @keyframes xamaPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
     .xama-pulse { animation: xamaPulse 1.8s ease-in-out infinite; }
-    .xama-card:hover { border-color: var(--color-xama-orange) !important; transform: translateY(-2px); }
-    .xama-card { transition: border-color 0.15s, transform 0.15s; }
+    .xama-card-hover { transition: border-color 0.15s, transform 0.15s; }
+    .xama-card-hover:hover { border-color: rgba(249,115,22,0.5) !important; transform: translateY(-2px); }
   `
   document.head.appendChild(s)
 }
+
+const fmt1 = (v) => v != null ? Number(v).toFixed(1) : '—'
 
 export default function Dashboard() {
   const { token } = useAuth()
@@ -39,7 +44,6 @@ export default function Dashboard() {
   const [rankings,  setRankings]  = useState({})
   const [loading,   setLoading]   = useState(true)
 
-  // 1. Usuário
   useEffect(() => {
     if (!token) return
     fetch(`${API_BASE}/users/me`, { headers: H })
@@ -48,7 +52,6 @@ export default function Dashboard() {
       .catch(() => {})
   }, [token])
 
-  // 2. Torneios
   useEffect(() => {
     fetch(`${API_BASE}/tournaments/`)
       .then(r => r.json())
@@ -61,7 +64,6 @@ export default function Dashboard() {
       .finally(() => setLoading(false))
   }, [])
 
-  // 3. Lineups dos torneios abertos
   useEffect(() => {
     if (!token || open.length === 0) return
     open.forEach(t => {
@@ -75,7 +77,6 @@ export default function Dashboard() {
     })
   }, [open, token])
 
-  // 4. Rankings (abertos + finalizados)
   useEffect(() => {
     if (!user) return
     const all = [...open, ...finished]
@@ -90,221 +91,129 @@ export default function Dashboard() {
     })
   }, [user, open, finished])
 
-  const displayName = user?.username || 'jogador'
+  const displayName = user?.display_name || user?.username || 'jogador'
   const myFinished  = finished.filter(t => rankings[t.id])
 
-  const S = {
-    page: {
-      background: 'var(--color-xama-bg, #0d0f14)',
-      color: 'var(--color-xama-text, #dce1ea)',
-      fontFamily: "'Rajdhani', sans-serif",
-      minHeight: '100vh',
-    },
-    inner: {
-      maxWidth: '1000px',
-      margin: '0 auto',
-      padding: '32px 24px',
-    },
-    greeting:     { fontSize: '28px', fontWeight: 700, color: '#fff', marginBottom: '4px' },
-    sub:          { fontSize: '14px', color: 'var(--color-xama-muted, #6b7280)', marginBottom: '32px' },
-    sectionTitle: {
-      fontSize: '11px', fontWeight: 700, letterSpacing: '0.12em',
-      textTransform: 'uppercase', color: 'var(--color-xama-muted, #6b7280)',
-      marginBottom: '14px', marginTop: '32px',
-    },
-    grid: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))',
-      gap: '16px',
-    },
-    cardOpen: {
-      background: '#13161d',
-      border: '1px solid rgba(249,115,22,0.35)',
-      borderRadius: '12px', padding: '22px',
-      boxShadow: '0 0 20px rgba(249,115,22,0.06)',
-    },
-    cardSoon: {
-      background: '#0f1117',
-      border: '1px dashed var(--color-xama-border, #1e2330)',
-      borderRadius: '12px', padding: '18px', opacity: 0.75,
-    },
-    cardDone: {
-      background: '#13161d',
-      border: '1px solid var(--color-xama-border, #1e2330)',
-      borderRadius: '12px', padding: '20px',
-    },
-    badge: (type) => {
-      const map = {
-        open: { bg: '#431407', color: '#fb923c' },
-        soon: { bg: '#1a1f2e', color: '#6b7280' },
-        done: { bg: '#1a1f2e', color: '#6b7280' },
-      }
-      const { bg, color } = map[type] || map.done
-      return {
-        display: 'inline-flex', alignItems: 'center', gap: '5px',
-        fontSize: '10px', fontWeight: 700, letterSpacing: '0.1em',
-        textTransform: 'uppercase', padding: '3px 8px',
-        borderRadius: '4px', background: bg, color, marginBottom: '10px',
-      }
-    },
-    cardTitle:  { fontSize: '15px', fontWeight: 700, color: '#fff', marginBottom: '3px', lineHeight: 1.3 },
-    cardRegion: { fontSize: '12px', color: 'var(--color-xama-muted, #6b7280)', marginBottom: '14px' },
-    divider:    { borderTop: '1px solid var(--color-xama-border, #1e2330)', margin: '12px 0' },
-    stat:       { display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '7px' },
-    statLabel:  { color: 'var(--color-xama-muted, #6b7280)' },
-    statValue:  { fontWeight: 700, color: '#fff' },
-    orange:     { color: 'var(--color-xama-orange, #f97316)', fontWeight: 700 },
-    btnPrimary: {
-      marginTop: '14px', width: '100%', padding: '9px',
-      background: 'var(--color-xama-orange, #f97316)',
-      color: '#fff', border: 'none', borderRadius: '7px',
-      fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
-      fontSize: '13px', letterSpacing: '0.06em', cursor: 'pointer',
-    },
-    btnOutline: {
-      marginTop: '8px', width: '100%', padding: '9px',
-      background: 'transparent', color: 'var(--color-xama-muted, #6b7280)',
-      border: '1px solid var(--color-xama-border, #1e2330)',
-      borderRadius: '7px', fontFamily: "'Rajdhani', sans-serif",
-      fontWeight: 700, fontSize: '13px', letterSpacing: '0.06em', cursor: 'pointer',
-    },
-    emptyState: {
-      fontSize: '13px', color: 'var(--color-xama-muted, #6b7280)',
-      background: '#0f1117',
-      border: '1px dashed var(--color-xama-border, #1e2330)',
-      borderRadius: '10px', padding: '20px', textAlign: 'center',
-    },
-  }
-
   if (loading) return (
-    <div style={S.page}>
+    <div className="xama-page">
       <Navbar />
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 56px)' }}>
-        <span style={{ color: 'var(--color-xama-muted)', fontSize: '14px' }}>Carregando dashboard...</span>
-      </div>
+      <div className="xama-loading" style={{ flex: 1 }}>Carregando dashboard...</div>
     </div>
   )
 
   return (
-    <div style={S.page}>
+    <div className="xama-page">
       <Navbar />
-      <div style={S.inner}>
 
-        {/* Saudação */}
-        <div style={S.greeting}>Olá, {displayName.toUpperCase()} 👋</div>
-        <div style={S.sub}>Bem-vindo ao XAMA Fantasy. Aqui está o resumo do seu fantasy.</div>
+      <div className="xama-container" style={{ flex: 1, paddingTop: '36px', paddingBottom: '64px' }}>
 
-        {/* SEÇÃO 1 — LINEUP ABERTA */}
+        {/* ── Saudação ── */}
+        <div style={{ marginBottom: '40px' }}>
+          <h1 style={{
+            fontSize: 'var(--fs-page-title)', fontWeight: 800, color: '#fff',
+            margin: '0 0 6px', letterSpacing: '-0.01em',
+          }}>
+            Olá, {displayName.toUpperCase()} 👋
+          </h1>
+          <p style={{ fontSize: 'var(--fs-body)', color: 'var(--color-xama-muted)', margin: 0 }}>
+            Bem-vindo ao XAMA Fantasy — aqui está o resumo do seu fantasy.
+          </p>
+        </div>
+
+        {/* ── SEÇÃO 1: Lineup Aberta ── */}
         {open.length > 0 && (
           <>
-            <div style={S.sectionTitle}>⚡ Lineup Aberta</div>
-            <div style={S.grid}>
+            <SectionTitle icon="⚡">Lineup Aberta</SectionTitle>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 'var(--space-gap)', marginBottom: '8px' }}>
               {open.map(t => {
                 const lineup    = myLineups[t.id]
                 const rankEntry = rankings[t.id]
                 return (
-                  <div key={t.id} className="xama-card" style={S.cardOpen}>
-                    <div style={S.badge('open')}>
-                      <span className="xama-pulse">●</span> ABERTA
+                  <Card key={t.id} variant="highlight" className="xama-card-hover" style={{ display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                      <Badge preset="open" dot>
+                        <span className="xama-pulse" style={{ width: '5px', height: '5px', borderRadius: '50%', background: 'currentColor', display: 'inline-block', marginRight: '5px' }} />
+                        ABERTA
+                      </Badge>
+                      {t.region && <span style={{ fontSize: '11px', color: 'var(--color-xama-muted)', fontWeight: 600 }}>{t.region}</span>}
                     </div>
-                    <div style={S.cardTitle}>{t.name}</div>
-                    <div style={S.cardRegion}>{t.region}</div>
+
+                    <CardTitle style={{ marginBottom: '4px' }}>{t.name}</CardTitle>
+
                     {lineup ? (
                       <>
-                        <div style={S.divider} />
-                        <div style={S.stat}>
-                          <span style={S.statLabel}>Minha lineup</span>
-                          <span style={{ ...S.statValue, color: '#4ade80' }}>✅ Lineup montada</span>
-                        </div>
-                        <div style={S.stat}>
-                          <span style={S.statLabel}>Pontos totais</span>
-                          <span style={S.orange}>{fmt2(lineup.total_points)} pts</span>
-                        </div>
-                        {rankEntry && (
-                          <div style={S.stat}>
-                            <span style={S.statLabel}>Posição</span>
-                            <span style={S.statValue}>#{rankEntry.position}</span>
-                          </div>
-                        )}
-                        <button style={S.btnPrimary} onClick={() => navigate(`/tournament/${t.id}`)}>
+                        <CardDivider style={{ margin: '14px 0 10px' }} />
+                        <StatRow label="Minha lineup" value="✅ Lineup montada" color="green" />
+                        <StatRow label="Pontos totais" value={`${fmt1(lineup.total_points)} pts`} color="orange" />
+                        {rankEntry && <StatRow label="Posição" value={`#${rankEntry.position}`} />}
+                        <Button variant="primary" size="md" full style={{ marginTop: '16px' }} onClick={() => navigate(`/tournament/${t.id}`)}>
                           VER TORNEIO
-                        </button>
+                        </Button>
                       </>
                     ) : (
                       <>
-                        <div style={{ fontSize: '13px', color: 'var(--color-xama-muted)', marginBottom: '4px' }}>
+                        <p style={{ fontSize: 'var(--fs-table)', color: 'var(--color-xama-muted)', margin: '12px 0 0' }}>
                           Lineup ainda não montada.
-                        </div>
-                        <button style={S.btnPrimary} onClick={() => navigate(`/tournament/${t.id}`)}>
+                        </p>
+                        <Button variant="primary" size="md" full style={{ marginTop: '14px' }} onClick={() => navigate(`/tournament/${t.id}`)}>
                           MONTAR LINEUP
-                        </button>
+                        </Button>
                       </>
                     )}
-                  </div>
+                  </Card>
                 )
               })}
             </div>
           </>
         )}
 
-        {/* SEÇÃO 2 — AGUARDANDO ABERTURA */}
+        {/* ── SEÇÃO 2: Aguardando Abertura ── */}
         {soon.length > 0 && (
           <>
-            <div style={S.sectionTitle}>📅 Aguardando Abertura</div>
-            <div style={S.grid}>
+            <SectionTitle icon="📅">Aguardando Abertura</SectionTitle>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 'var(--space-gap)', marginBottom: '8px' }}>
               {soon.map(t => (
-                <div key={t.id} style={S.cardSoon}>
-                  <div style={S.badge('soon')}>⏳ EM BREVE</div>
-                  <div style={S.cardTitle}>{t.name}</div>
-                  <div style={S.cardRegion}>{t.region}</div>
-                  <div style={{ fontSize: '12px', color: 'var(--color-xama-muted)', marginTop: '4px' }}>
-                    Lineup será liberada quando os participantes forem confirmados.
+                <Card key={t.id} variant="ghost">
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                    <Badge preset="soon">⏳ EM BREVE</Badge>
+                    {t.region && <span style={{ fontSize: '11px', color: 'var(--color-xama-muted)', fontWeight: 600 }}>{t.region}</span>}
                   </div>
-                </div>
+                  <CardTitle>{t.name}</CardTitle>
+                  <p style={{ fontSize: 'var(--fs-table)', color: 'var(--color-xama-muted)', margin: '10px 0 0', lineHeight: 1.5 }}>
+                    Lineup será liberada quando os participantes forem confirmados.
+                  </p>
+                </Card>
               ))}
             </div>
           </>
         )}
 
-        {/* SEÇÃO 3 — MEUS RESULTADOS */}
+        {/* ── SEÇÃO 3: Meus Resultados ── */}
         {myFinished.length > 0 && (
           <>
-            <div style={S.sectionTitle}>📊 Meus Resultados</div>
-            <div style={S.grid}>
+            <SectionTitle icon="📊">Meus Resultados</SectionTitle>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 'var(--space-gap)', marginBottom: '8px' }}>
               {myFinished.map(t => {
                 const rankEntry = rankings[t.id]
                 return (
-                  <div key={t.id} className="xama-card" style={S.cardDone}>
-                    <div style={S.badge('done')}>FINALIZADO</div>
-                    <div style={S.cardTitle}>{t.name}</div>
-                    <div style={S.cardRegion}>{t.region}</div>
-                    <div style={S.divider} />
-                    <div style={S.stat}>
-                      <span style={S.statLabel}>Posição final</span>
-                      <span style={S.statValue}>#{rankEntry.position}</span>
+                  <Card key={t.id} variant="default" className="xama-card-hover" style={{ display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                      <Badge preset="done">ENCERRADO</Badge>
+                      {t.region && <span style={{ fontSize: '11px', color: 'var(--color-xama-muted)', fontWeight: 600 }}>{t.region}</span>}
                     </div>
-                    <div style={S.stat}>
-                      <span style={S.statLabel}>Pontos totais</span>
-                      <span style={S.orange}>{fmt2(rankEntry.total_points)} pts</span>
-                    </div>
-                    <button style={S.btnOutline} onClick={() => navigate(`/tournament/${t.id}`)}>
+                    <CardTitle>{t.name}</CardTitle>
+                    <CardDivider style={{ margin: '14px 0 10px' }} />
+                    <StatRow label="Posição final" value={`#${rankEntry.position}`} />
+                    <StatRow label="Pontos totais" value={`${fmt1(rankEntry.total_points)} pts`} color="gold" />
+                    <Button variant="outline" size="md" full style={{ marginTop: '16px' }} onClick={() => navigate(`/tournament/${t.id}`)}>
                       VER STATS
-                    </button>
-                  </div>
+                    </Button>
+                  </Card>
                 )
               })}
             </div>
           </>
         )}
 
-        {/* Empty state */}
-        {open.length === 0 && soon.length === 0 && (
-          <div style={{ ...S.emptyState, marginTop: '32px' }}>
-            Nenhum torneio ativo no momento. Fique de olho nas próximas edições!
-          </div>
-        )}
-
-      </div>
-    </div>
-  )
-}
+        {/* ── Empty state ── */}
+        {open.length === 0 && soon.length === 0

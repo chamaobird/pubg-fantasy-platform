@@ -110,23 +110,35 @@ Isso é mais rápido, assertivo e confiável do que qualquer automação de dete
   - `_build_player_lookup` indexa `live_pubg_id` além de `pubg_id` e nome
   - `POST /admin/players/bulk-set-live-ids` para atualizar em massa
 
-## Estado da Produção (atualizado 2026-03-26)
+## Estado da Produção (atualizado 2026-03-28 — sessão 3)
 
-### Novo Endpoint Disponível
-- `POST /admin/tournaments/{source_id}/copy-players-to/{target_id}` — copia jogadores que aparecem nos matches do torneio source para o target (sem pubg_id, para evitar unique constraint). Idempotente por nome. **Deployado em produção.**
+### Novos Endpoints Disponíveis
+- `POST /admin/tournaments/{source_id}/copy-players-to/{target_id}` — copia jogadores que aparecem nos matches do torneio source para o target (sem pubg_id, para evitar unique constraint). Idempotente por nome. **Deployado.**
+- `POST /admin/players/bulk-upsert/{tournament_id}` — cria ou atualiza jogadores por pubg_id ou nome. Usa `player_sync.bulk_upsert_players`. Ideal para adicionar reservas/substitutos. **Deployado.**
+
+### ⚠️ Atenção: campos importantes
+- `PATCH /admin/players/bulk-set-active` usa `activate` (bool), **não** `is_active`
+- `POST /admin/players/bulk-upsert/{id}` body: `{ "players": [{ "name", "pubg_id", "team_name", "fantasy_cost" }] }`
+- `POST /admin/reprocess-match-stats/{id}` — preenche stats faltantes de jogadores que ganharam pubg_id após o import original (não duplica rows existentes)
+
+### FCE — Reserva/Substituto (lição aprendida 28/03)
+- **FCE_YUDIRT** (`account.25256ae61aa2438cafce60462dced9f4`) substituiu FCE_Br1annn no Dia 1 da Final
+- Foi descoberto via `debug-match-resolve` → unresolved participant
+- Estava no DB (id 881) mas sem stats → resolvido com `reprocess-match-stats`
+- **Fluxo para substitutos:** debug-match-resolve → identificar unresolved → bulk-upsert (se não existir) → reprocess-match-stats
 
 ### Torneios cadastrados (DB)
 | id | name | pubg_id | matches | players | lineup_open |
 |----|------|---------|---------|---------|-------------|
-| 7  | PAS 2026 - Americas Open Qualifier · Fase de Cups | am-pas1cup | 35 (Sem 1-4) | 107 | **true** |
+| 7  | PAS 2026 - Americas Open Qualifier · Fase de Cups | am-pas1cup | 50 (Sem 1-5) | 107 | **true** |
 | 8  | SEA Thailand Super Cup 2026 | sea-thsc | 24 | 65 | false |
 | 9  | SEA MITH Cup 2026 | sea-mith | 19 | 67 | false |
 | 10 | Asia China Cup 2026 | as-cncup | 20 | 66 | false |
 | 11 | Korea PWS 2026 Phase 1 Cup 5 | kr-pws1c5 | 5 | 64 | false |
 | 12-15 | PGS 2026 Circuit 1 (4 fases) | as-pgs1ws/gs/ss/fs | importado | ~50 por fase | false |
 | **16** | **PGS 2026 Circuit 2 · Winners Stage** | **as-pgs2ws** | **5 (26/03)** | **64 (pubg_ids reais)** | **false** |
-| **17** | **PGS 2026 Circuit 2 · Survival Stage** | **as-pgs2ss** | 0 (partidas amanhã) | **64 (copiados de T16, sem pubg_id)** | **true** |
-| **18** | **PGS 2026 Circuit 2 · Final Stage** | **as-pgs2fs** | 0 (upcoming) | **64 (copiados de T16, sem pubg_id)** | false |
+| **17** | **PGS 2026 Circuit 2 · Survival Stage** | **as-pgs2ss** | **5 (27/03)** | **64 ativos** | **false (finished)** |
+| **18** | **PGS 2026 Circuit 2 · Final Stage** | **as-pgs2fs** | **5 (Dia 1 — 28/03)** | **65 ativos (64 + YUDIRT)** | **true (lineup aberta)** |
 
 ### Championships cadastrados
 | id | name | region | fases | start_date |
@@ -135,20 +147,58 @@ Isso é mais rápido, assertivo e confiável do que qualquer automação de dete
 | 2 | PAS 2026 - Americas Series 1 | AM | T7 (Scrims) | null |
 | **3** | **PGS 2026 Circuit 2 · Series 2** | **GLOBAL** | **T16 (Winners), T17 (Survival), T18 (Final)** | **2026-03-26** |
 
-### PAS Scrims Week 4 (23/03/2026) — Estado atual
-- **20 partidas importadas** no tournament 7 com shard `steam` (Live Server)
-- **Groups A, B, C, D** com `group_label` setado ✓
-- **Stats count por grupo**: A=15, B=15, C=8, D=22 por partida
-- **79 de 107 jogadores** têm `live_pubg_id` mapeado (60 auto + 19 via fuzzy/reverse/leet matching em 26/03)
-- **28 jogadores ainda sem `live_pubg_id`** — Steam names muito diferentes, requerem mapeamento manual
-- Partidas importadas via `POST /historical/import-matches-by-ids/7?background=true` com `shard=steam`
-- ⚠️ Os 19 novos mappings NÃO afetam as Week 4 já importadas (repair mode só ativa com stats_count=0). Stats corretas a partir de Week 5.
+### PAS Scrims — Estado atual (atualizado 26/03/2026)
+
+#### Sessões importadas no T7
+| Data (BRT) | Matches | Grupos | Formato |
+|---|---|---|---|
+| 06/03 (Sem 1) | 5 | — | Lobby único (sem group_label) |
+| 14/03 (Sem 2) | 5 | — | Lobby único (sem group_label) |
+| 21/03 (Sem 3) | 5 | — | Lobby único (sem group_label) |
+| 23/03 (Sem 4) | 20 | A, B, C, D | 4 grupos isolados × 5 matches |
+| 25/03 (Sem 5 — noite) | 3 | — | 6 grupos, lobbies combinados (A+F, B+C, D+E) |
+| 26/03 (Sem 5 — tarde/noite) | 12 | — | 6 grupos, lobbies combinados (4 rounds) |
+
+**Semana 5 (26/03/2026):** 15 matches únicos importados, sem group_label (lobbies combinados de 2 grupos cada)
+- Formato: 6 grupos (A–F), 8 times cada, round-robin combinado (cada match tem 2 grupos no mesmo lobby)
+- Grupos referência usados: A=FE/fanafps, B=PEST/JoShY-_-, C=SneakAttack, D=X10/Kalniixx, E=BETUNGAS_, F=Ykuz
+
+#### IDs de referência por grupo (Sem 5 — para debug-match-resolve se necessário)
+```
+A+F: 2bb4fd30-02a8-4a76-9c27-7a94d3d84937 (25/03 BRT)
+B+C: 87bc79b5-c979-4b44-964f-2163e17ab5f3 (25/03 BRT)
+D+E: f3cf51b0-64fc-4fc9-a846-c48a208e1079 (25/03 BRT)
+A+B: c624f43d-d075-4c29-b2ad-c374f7ff4340 (26/03 BRT)
+C+D: 5aafe178-d474-4425-b023-e0deba3bd61e (26/03 BRT)
+E+F: 32db47e1-5dc5-478b-bc78-f85741174cea (26/03 BRT)
+A+C: ba47db77-f4df-46ab-bc61-75bafcde09e8 (26/03 BRT)
+B+E: e0555bdb-6835-4db9-88aa-611838a879e2 (26/03 BRT)
+D+F: 760f59af-c9d7-4f1f-a404-e145db6bc795 (26/03 BRT)
+A+D: a925afed-4a31-40cc-a92f-e55945341a4e (26/03 BRT)
+C+E: 742e37e9-6f12-4bb7-ac75-fa844f7edf40 (26/03 BRT)
+B+F: 0f5aff4f-aeef-489b-bca0-c23393ae371f (26/03 BRT)
+A+E: 25d18d69-282b-48ac-a4b7-4e3b2086c57e (26/03 BRT)
+B+D: 42bc6c59-8129-4077-933e-86ac2ff67ca9 (26/03 BRT)
+C+F: 57a35758-c9ac-4798-b873-018fc33f8b19 (26/03 BRT)
+```
+
+#### Status de mapeamento live_pubg_id
+- **79 de 107 jogadores** mapeados (60 auto + 19 manual em 26/03)
+- **28 jogadores ainda sem `live_pubg_id`** — Steam names muito diferentes
+- ⚠️ Novos mappings da Sem 5 em diante já funcionarão nas importações futuras
 
 ### Grupos por time (PAS Scrims)
+#### Semana 4 (23/03, grupos isolados)
 - **Grupo A**: CAUT, FE, TMP, TQ, WIT, X10
 - **Grupo B**: AFi, AKA, CLR, DUEL, FEAR, PEST
 - **Grupo C**: EMT, FEAR, NA, NVM, PNG, TTG
 - **Grupo D**: BO, CAUT, DOTS, FATE, INJ, INSK, LxB, NW, PSTL, TAES
+
+#### Semana 5 (26/03, lobbies combinados — 6 grupos × 8 times)
+Times identificados por match de referência (debug-match-resolve):
+- **Grupos A+B** (c624f43d): CLR, EMT, FATE, FE, INJ, NVM, PEST, TQ
+- **Grupos B+C** (87bc79b5): AKA, EMT, FATE, FEAR, NVM, NW, PEST, WIT
+- **Grupos D+E** (f3cf51b0): AFi, BO, INSK, LxB, NA, PSTL, X10
 
 ### Match IDs referência por grupo (1 match each — last of week)
 ```
@@ -172,16 +222,21 @@ Grupo D: 5d4e2dee, 0296c330, e2549f68, 5017894b, facc92c6
 - Filtro de data: `start_date = 2026-03-16` bloqueia dados de edições anteriores
 - Match counts esperados por estágio: Group Stage = 6, chegou à Final = 21-26
 
-### PGS 2026 Circuit 2 — Estado dos Dados (26/03/2026) ✅
+### PGS 2026 Circuit 2 — Estado dos Dados (27/03/2026) ✅
 - **Shard:** `pc-tournament` ✓
 - **T16 (Winners Stage):** 5 partidas importadas ✓ | stats calculados (top: TWIS_xmpl 192pts) ✓ | lineup_open=false ✓
   - `/tournaments/16/players` mostra 4 (os com tournament_id=16); `/tournaments/16/player-stats` mostra 64 (via match_player_stats join) — comportamento esperado
-- **T17 (Survival Stage):** lineup_open=true ✓ | **64 jogadores ativos** (16 times corretos) | status=upcoming | partidas 27/03
-  - **8 times do T16 bottom (Winners Stage):** FCE, FUR, JDG, MiTH, NAVI, PeRo, S2G, T1
-  - **8 times do T14 bottom (PGS1 Survival):** 17(i7Gaming), CR, CTG, GEN, T5, TL, VIT, VP
-  - 32 players do T16 top (4AM, AL, DNS, EA, FLC, FS, TE, TWIS → Final Stage) desativados
-  - Players sem pubg_id (serão resolvidos via seed-players-from-matches após import)
-- **T18 (Final Stage):** jogadores copiados ✓ | lineup_open=false | upcoming
+- **T17 (Survival Stage):** ✅ **FINALIZADO** | status=finished | lineup_open=false
+  - 5 partidas importadas (27/03, shard=pc-tournament)
+  - 63 players com pubg_id atualizados via seed-players-from-matches
+  - **Resultado — Top 8 → Final Stage:** 17, VIT, FUR, PeRo, CR, NAVI, MiTH, FCE
+  - **Bottom 8 → Eliminados:** JDG, S2G, T1, CTG, GEN, T5, TL, VP
+- **T18 (Final Stage):** ✅ **ATIVO** | status=active | lineup_open=true
+  - **64 players ativos, 16 times corretos:**
+    - Winners Stage Top 8: DNS, TWIS, 4AM, FLC, FS, TE, EA, AL
+    - Survival Stage Top 8: 17, VIT, FUR, PeRo, CR, NAVI, MiTH, FCE
+  - Players copiados via copy-players-to (T16→T18 + T17→T18)
+  - Times eliminados desativados: JDG, S2G, T1, CTG, GEN, T5, TL, VP
 
 ### Formato PGS2 (Series 2)
 - **Winners Stage** (T16): 16 times, 5 partidas → Top 8 → Final Stage; Bottom 8 → Survival Stage
@@ -201,30 +256,105 @@ dd289599-8e43-43e4-aa05-8285ec5a31f6
 d134b210-3515-4d2e-a4fe-24b0b796484e
 ```
 
-### Próximos passos PGS2 (próxima sessão)
+### Match IDs Survival Stage T17 (para re-importar se necessário)
 ```
-# Quando as partidas da Survival Stage forem jogadas (as-pgs2ss vai aparecer na API):
-POST /historical/import-matches-by-ids/17?background=true  (shard=pc-tournament)
-POST /admin/seed-players-from-matches/17     # atualiza pubg_ids nos players copiados
-PATCH /admin/tournaments/17  → { status: "finished", lineup_open: false }
-PATCH /admin/tournaments/18  → { lineup_open: true }
+55bd5139-77c8-43aa-b105-ed40109225ca
+71f09e8e-c58e-4906-b9c6-d0d425aeb791
+0f0c65a2-3ca7-45ac-8a2b-bbb604e660cc
+3291ba58-fce4-4bee-9fd3-1bb8172b169a
+304620b4-59b4-47ab-aafc-a05be38e15b6
+```
 
-# Quando Final Stage tiver dados (as-pgs2fs):
-POST /historical/import-matches-by-ids/18?background=true
-PATCH /admin/tournaments/18  → { status: "finished", lineup_open: false }
+### PGS2 Final Stage — Dia 1 (28/03/2026) ✅
+- **5 matches importados** (Erangel, Miramar, Taego, Rondo, Erangel)
+- IDs: `7e5820be`, `82e509b2`, `3183d55a`, `26efa7a8`, `5c4b2d3b`
+- **64 players com stats** (63 titulares + FCE_YUDIRT substituto)
+- FCE_Br1annn não jogou; FCE_YUDIRT (id 881) entrou e tem 106.12pts
+
+### Automação Dia 2 (29/03/2026)
+- Scheduled task `pgs2-final-live-import` criada no Claude Desktop (sidebar "Scheduled")
+- Roda a cada 10min das **07:00 às 12:59 BRT** (19:00–00:59 KST)
+- ⚠️ **Antes do horário: clicar "Run now" uma vez** para pré-aprovar as ferramentas de browser
+- Lógica: compara total de matches no PUBG API vs DB → importa novos automaticamente
+
+### Próximos passos PGS2 (Dia 2 e encerramento)
 ```
+# Após Dia 2 (automático via scheduled task, verificar depois):
+GET /tournaments/18/matches  → confirmar 10 matches no total
+
+# Encerrar Final Stage:
+PATCH /admin/tournaments/18  → { "status": "finished", "lineup_open": false }
+
+# Se algum substituto aparecer como unresolved:
+GET /tournaments/18/debug-match-resolve/{match_id}?shard=pc-tournament
+POST /admin/players/bulk-upsert/18  (se não existir no DB)
+POST /admin/reprocess-match-stats/18
+```
+
+## Frontend — Design System XAMA (Refactor em andamento)
+
+### Arquitetura nova (Phase 1–3 concluídas em 27/03/2026)
+- **`index.css`** — tokens CSS globais (`--fs-*`, `--space-*`, `--surface-*`, `--radius-*`) + classes XAMA
+- **`frontend/src/components/ui/`** — barrel export com: `Card`, `Badge`, `StatusBadge`, `RegionBadge`, `Button`, `PageHeader`, `SectionTitle`, `StatRow`
+- **`TournamentHeader.jsx`** — strip breadcrumb (Championship › Phase) + nome + status + rank do usuário
+- **`Tabs.jsx`** — tabs horizontais com indicador animado
+- **`TournamentLayout.jsx`** — Navbar + TournamentHeader + Tabs + slot de conteúdo
+- **`TournamentHub.jsx`** — reescrito; usa `TournamentLayout`; passa `sharedProps` para tabs filhas
+- **`Dashboard.jsx`** — reescrito com Cards da ui/, grid de torneios, saudação, badges de status
+- **`LineupBuilder.jsx`** — **Phase 3 concluída** — layout 2 colunas + painel sticky
+
+### LineupBuilder — Phase 3 (concluída 27/03/2026)
+- Layout `.xlb-grid` (2 colunas: tabela de jogadores | painel sticky 330px)
+- Painel direito sticky: BudgetBar (`.xlb-budget`) com barra + 3 stats (Total/Usado/Restante)
+- 4 slots titulares (`.xlb-slot`) com placeholder dashed quando vazio
+- Capitão via botão ♛ (`.xlb-captain-btn`) em vez de radio — active state dourado
+- Slot reserva separado por divisor duplo
+- Save button (`.xlb-save-btn`) — `.ready` laranja / `.idle` cinza / `.loading`
+- Removido: seletor de torneio (delegado ao TournamentHub/TournamentLayout)
+- Removido: imports e helpers desnecessários (ChampionshipSelector, SectionTitle local, Card local)
+
+### Classes CSS por feature
+- **Global:** `.xama-page`, `.xama-container`, `.xh-*` (headings), `.xs-title`, `.xb` + variantes, `.xt-*` (tabs)
+- **Cards:** `.xama-card-v2`, `.xama-card-hover`, `.xcard-*`, `.xstat-*`
+- **Lineup Builder:** `.xlb-page`, `.xlb-grid`, `.xlb-panel`, `.xlb-panel-head/title/body`, `.xlb-budget-*`, `.xlb-slot-*`, `.xlb-captain-*`, `.xlb-remove-btn`, `.xlb-table`, `.xlb-action-btn`, `.xlb-locked-*`, `.xlb-save-btn`, `.xlb-search-*`
 
 ## Pendente / Backlog
 
 ### 🔴 Alta Prioridade
-- [ ] **Importar Survival Stage (T17)** quando as partidas de 27/03 forem jogadas (shard=pc-tournament) — ver runbook abaixo
-- [ ] **Fazer push do frontend** para deploy da correção de logos no Lineup Builder
-- [ ] **28 jogadores sem live_pubg_id** (PAS Scrims) — mapeamento manual necessário para os que têm Steam names muito diferentes
-  - Jogadores faltantes: DUEL_Iroh, DUEL_Woo1y, INJ_Plushiee, TAES_Jaxinho, TAES_zMakhul, TAES_zZRISE, FEAR_VapeSkr, TTG_Heatn, TTG_M8, X10_San71Hero1, X10_kl4uZeera, TQ_RxbrrrT, NVM_1Yess, PNG_Falw-, EMT_KpN1, NVM_skatasxtico, DOTS_OtosakaYu-, TTG_Maffooo, WIT_marcis, FEAR_LucasMSzin, INSK_0racle_, NA_Balefrost, NA_ega, OMG_ALVARO-__--, OMG_FerHopper201, OMG_TUT4NK4M0N_, OMG_XNz-Pain, PSTL_FaKe
-  - Script: `build_live_id_mapping.py` (usa `debug-match-resolve` endpoint com os match IDs do runbook)
+- [x] **Importar Survival Stage (T17)** ✓
+- [x] **Final Stage (T18)** configurada — 64 players, lineup_open=true ✓
+- [x] **Week 5 PAS Scrims (26/03)** importada ✓
+- [x] **Frontend Phase 1** — tokens CSS + componentes ui/ + TournamentHeader + Tabs + TournamentLayout ✓
+- [x] **Frontend Phase 2** — Dashboard + TournamentHub reescritos ✓
+- [x] **Frontend Phase 3** — LineupBuilder 2 colunas + sticky panel ✓
+- [x] **Final Stage Dia 1 (28/03)** — 5 matches importados, FCE_YUDIRT resolvido ✓
+- [ ] **Encerrar T18** após Dia 2 → `PATCH /admin/tournaments/18 { status: finished, lineup_open: false }`
+- [ ] **Frontend Phase 4** — Leaderboard refactor (tabela limpa, filtros aprimorados)
+- [ ] **Commit/push das mudanças de frontend** ainda não commitadas (Tabs, TournamentHeader, TournamentLayout, ui/, index.css, Dashboard, TournamentHub, LineupBuilder)
 
-### 📅 Dados / Infra
+### 🟡 Dados
+- [ ] **Jogadores sem live_pubg_id** (PAS Scrims) — restam ~26 jogadores
+  - **Pendentes:** DUEL_Woo1y, INJ_Plushiee, TAES_Jaxinho, TAES_zMakhul, FEAR_VapeSkr, FEAR_LucasMSzin, TTG_Heatn, TTG_M8, TTG_Maffooo, X10_kl4uZeera, TQ_RxbrrrT, NVM_1Yess, NVM_skatasxtico, PNG_Falw-, EMT_KpN1, DOTS_OtosakaYu-, WIT_marcis, INSK_0racle_, NA_Balefrost, NA_ega, OMG_ALVARO-__--, OMG_FerHopper201, OMG_TUT4NK4M0N_, OMG_XNz-Pain, PSTL_FaKe
+  - **Estratégia:** importar futuras sessões → debug-match-resolve → muitos se resolvem sozinhos
+  - ⚠️ TAES no DB = VOID/VD no wasdefy (tag esportiva vs tag atual)
+
+### 📅 Infra / Features futuras
 - [ ] **Feature: Price History** — adicionar `tournament_id` em `PlayerPriceHistory`, endpoint `GET /players/{id}/price-history`, sparkline no frontend
+- [ ] **Guia de atualização manual** criado em `GUIA_ATUALIZACAO_STATS.md` (na raiz do projeto) — commitar junto com as outras mudanças pendentes
+
+## Como Importar Próximas Sessões de PAS Scrims (fluxo rápido)
+```powershell
+# 1. Obter 1 Steam name por grupo com o usuário (formato "Playing as X" do wasdefy)
+# 2. Usar a PUBG API via browser (navegar para api.pubg.com primeiro para evitar CORS):
+#    GET https://api.pubg.com/shards/steam/players?filter[playerNames]=NOME
+#    Filtrar matches pelo horário da sessão (janela UTC)
+# 3. Identificar os 15 match IDs únicos (5 por grupo, round-robin entre grupos)
+# 4. Importar:
+$body = '{"pubg_match_ids":[{"id":"UUID1"},{"id":"UUID2"},...], "shard":"steam"}'
+Invoke-RestMethod -Uri "https://pubg-fantasy-platform.onrender.com/historical/import-matches-by-ids/7?background=true" -Method POST -Headers $headers -Body $body
+# 5. Verificar:
+Invoke-RestMethod -Uri "https://pubg-fantasy-platform.onrender.com/tournaments/7/matches" -Headers $headers | Select-Object -ExpandProperty days | Select-Object date, matches_count
+```
 
 ## Como Mapear live_pubg_id dos Jogadores Faltantes
 ```powershell
@@ -285,10 +415,4 @@ $headers = @{ Authorization = "Bearer $token"; "Content-Type" = "application/jso
 
 # Grupo A (exemplo)
 $body = '{"pubg_match_ids":[{"id":"b951fa9e-6a6a-4b23-8ecf-fcf07e0eb208","group_label":"A"},...],"shard":"steam"}'
-Invoke-RestMethod -Uri "https://pubg-fantasy-platform.onrender.com/historical/import-matches-by-ids/7?background=true" -Method POST -Headers $headers -Body $body
-```
-
-## Como Editar Arquivos (fluxo eficiente)
-Com a pasta montada no Cowork, Claude lê e edita diretamente — sem upload, sem heredoc.
-Para mudanças pontuais: Claude usa `Edit` cirúrgico.
-Para arquivos novos: Claude usa `Write` direto no path correto.
+Invoke-RestMethod -Uri "https

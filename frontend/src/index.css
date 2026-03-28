@@ -15,6 +15,42 @@
   --color-xama-red:      #f87171;
 }
 
+/* ─── XAMA Design Tokens ─────────────────────────────────────────────
+   Escala tipográfica e espaçamento usados pelos componentes ui/
+────────────────────────────────────────────────────────────────────── */
+:root {
+  /* Tipografia */
+  --fs-page-title:    28px;   /* Título principal da página */
+  --fs-section-title: 18px;   /* Título de seção */
+  --fs-card-title:    16px;   /* Título de card */
+  --fs-body:          14px;   /* Texto normal */
+  --fs-table:         13px;   /* Texto de tabela */
+  --fs-label:         11px;   /* Labels, badges, caps */
+  --fs-micro:         10px;   /* Micro texto */
+
+  /* Pesos */
+  --fw-heading: 700;
+  --fw-bold:    600;
+  --fw-normal:  500;
+
+  /* Espaçamento */
+  --space-section: 32px;     /* Entre seções principais */
+  --space-card:    20px;     /* Padding de card */
+  --space-row:     40px;     /* Altura mínima de linha de tabela */
+  --space-gap:     16px;     /* Gap padrão entre cards */
+
+  /* Raios */
+  --radius-card:  12px;
+  --radius-inner: 8px;
+  --radius-tag:   5px;
+
+  /* Superfícies (layers) */
+  --surface-0: #0d0f14;   /* fundo da página */
+  --surface-1: #12151c;   /* cards / painéis */
+  --surface-2: #0f1219;   /* header de tabela / sub-painel */
+  --surface-3: #1a1f2e;   /* inputs / chips */
+}
+
 /* ─── Reset / base ──────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
@@ -252,3 +288,302 @@ body {
 /* Save section */
 .bld-save-btn-row { display: flex; align-items: center; gap: 10px; }
 .bld-requirements { font-size: 11px; color: #374151; margin-top: 8px; line-height: 1.6; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   XAMA PHASE 1 — Novos utilitários / componentes base
+════════════════════════════════════════════════════════════════════ */
+
+/* ─── Container principal ─── */
+.xama-page { min-height: 100vh; background: var(--surface-0); color: var(--color-xama-text); font-family: 'Rajdhani', sans-serif; display: flex; flex-direction: column; }
+.xama-container { max-width: 1200px; margin: 0 auto; padding: 0 24px; width: 100%; }
+.xama-container-narrow { max-width: 900px; margin: 0 auto; padding: 0 24px; width: 100%; }
+
+/* ─── Page Header (título principal) ─── */
+.xh-header { padding: 32px 0 24px; }
+.xh-eyebrow { font-size: var(--fs-label); font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-xama-muted); margin: 0 0 8px; }
+.xh-title { font-size: var(--fs-page-title); font-weight: 800; color: #fff; letter-spacing: -0.01em; margin: 0 0 6px; line-height: 1.1; }
+.xh-subtitle { font-size: var(--fs-body); color: var(--color-xama-muted); margin: 0; }
+
+/* ─── Section title ─── */
+.xs-title {
+  font-size: var(--fs-label); font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--color-xama-muted);
+  margin: 0 0 16px; padding: 0;
+  display: flex; align-items: center; gap: 8px;
+}
+.xs-title::after {
+  content: ''; flex: 1; height: 1px; background: var(--color-xama-border);
+}
+
+/* ─── Card ─── */
+.xama-card-v2 {
+  background: var(--surface-1);
+  border: 1px solid var(--color-xama-border);
+  border-radius: var(--radius-card);
+  padding: var(--space-card);
+  transition: border-color 0.15s, transform 0.15s;
+}
+.xama-card-v2:hover { border-color: #2a3046; }
+.xama-card-v2.highlight {
+  border-color: rgba(249,115,22,0.35);
+  box-shadow: 0 0 24px rgba(249,115,22,0.06);
+}
+.xama-card-v2.ghost {
+  background: transparent;
+  border-style: dashed;
+  opacity: 0.75;
+}
+
+/* ─── Badge ─── */
+.xb { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: var(--radius-tag); font-size: var(--fs-label); font-weight: 700; letter-spacing: 0.06em; white-space: nowrap; }
+.xb-live   { background: rgba(74,222,128,0.12);  border: 1px solid rgba(74,222,128,0.3);  color: #4ade80; }
+.xb-soon   { background: rgba(96,165,250,0.12);  border: 1px solid rgba(96,165,250,0.3);  color: #60a5fa; }
+.xb-done   { background: rgba(107,114,128,0.12); border: 1px solid rgba(107,114,128,0.3); color: #9ca3af; }
+.xb-open   { background: rgba(249,115,22,0.12);  border: 1px solid rgba(249,115,22,0.3);  color: #f97316; }
+.xb-gold   { background: rgba(240,192,64,0.12);  border: 1px solid rgba(240,192,64,0.3);  color: #f0c040; }
+.xb-teal   { background: rgba(20,184,166,0.12);  border: 1px solid rgba(20,184,166,0.3);  color: #2dd4bf; }
+
+/* ─── Tournament Header Strip ─── */
+.xt-header {
+  background: var(--surface-1);
+  border-bottom: 1px solid var(--color-xama-border);
+  padding: 0;
+}
+.xt-header-inner {
+  max-width: 1200px; margin: 0 auto; padding: 20px 24px 16px;
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+}
+.xt-breadcrumb { font-size: var(--fs-label); color: var(--color-xama-muted); letter-spacing: 0.06em; text-transform: uppercase; margin: 0 0 6px; }
+.xt-name { font-size: 22px; font-weight: 800; color: #fff; margin: 0; letter-spacing: -0.01em; line-height: 1.1; }
+.xt-meta { display: flex; align-items: center; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
+.xt-region { font-size: var(--fs-label); color: var(--color-xama-muted); font-weight: 600; letter-spacing: 0.06em; }
+.xt-stats { display: flex; gap: 24px; flex-shrink: 0; }
+.xt-stat { text-align: right; }
+.xt-stat-label { font-size: var(--fs-label); color: var(--color-xama-muted); letter-spacing: 0.06em; text-transform: uppercase; margin: 0 0 2px; }
+.xt-stat-value { font-size: 20px; font-weight: 800; color: var(--color-xama-gold); font-variant-numeric: tabular-nums; margin: 0; font-family: 'JetBrains Mono', monospace; }
+.xt-stat-value.muted { color: var(--color-xama-text); }
+
+/* ─── Tabs (nova versão mais polida) ─── */
+.xt-tabs {
+  background: var(--surface-0);
+  border-bottom: 1px solid var(--color-xama-border);
+  flex-shrink: 0;
+}
+.xt-tabs-inner {
+  max-width: 1200px; margin: 0 auto; padding: 0 24px;
+  display: flex; align-items: stretch; height: 46px; gap: 0;
+}
+.xt-tab {
+  position: relative; display: flex; align-items: center; gap: 7px;
+  padding: 0 18px; padding-bottom: 2px;
+  font-size: var(--fs-label); font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+  font-family: 'Rajdhani', sans-serif;
+  background: none; border: none; outline: none; cursor: pointer;
+  color: var(--color-xama-muted);
+  transition: color 0.15s;
+}
+.xt-tab:hover { color: #c9d1e0; }
+.xt-tab.active { color: var(--color-xama-text); }
+.xt-tab-indicator {
+  position: absolute; bottom: 0; left: 12px; right: 12px;
+  height: 2px; border-radius: 2px 2px 0 0;
+  background: var(--color-xama-orange);
+}
+.xt-tab-icon { font-size: 13px; }
+
+/* ─── Botões base v2 ─── */
+.xbtn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; border-radius: 7px; font-family: 'Rajdhani', sans-serif; font-weight: 700; letter-spacing: 0.04em; cursor: pointer; transition: all 0.15s; white-space: nowrap; border: none; }
+.xbtn:disabled { opacity: 0.38; cursor: default; pointer-events: none; }
+.xbtn-sm  { font-size: 12px; padding: 6px 14px; border-radius: 6px; }
+.xbtn-md  { font-size: 13px; padding: 9px 20px; }
+.xbtn-lg  { font-size: 14px; padding: 11px 24px; }
+.xbtn-full { width: 100%; }
+
+.xbtn-primary { background: var(--color-xama-orange); color: #fff; }
+.xbtn-primary:hover:not(:disabled) { background: #fb923c; }
+
+.xbtn-gold { background: var(--color-xama-gold); color: #0d0f14; }
+.xbtn-gold:hover:not(:disabled) { background: #f5d060; }
+
+.xbtn-ghost { background: var(--surface-3); border: 1px solid #2a3046; color: var(--color-xama-muted); }
+.xbtn-ghost:hover:not(:disabled) { color: var(--color-xama-text); border-color: #3d4d6e; }
+
+.xbtn-outline { background: transparent; border: 1px solid var(--color-xama-border); color: var(--color-xama-muted); }
+.xbtn-outline:hover:not(:disabled) { border-color: #3d4d6e; color: var(--color-xama-text); }
+
+/* ─── Stat Row (para cards de dashboard) ─── */
+.xstat-row { display: flex; justify-content: space-between; align-items: baseline; padding: 5px 0; font-size: var(--fs-table); }
+.xstat-row + .xstat-row { border-top: 1px solid var(--color-xama-border); margin-top: 1px; padding-top: 6px; }
+.xstat-label { color: var(--color-xama-muted); }
+.xstat-value { font-weight: 700; color: var(--color-xama-text); font-variant-numeric: tabular-nums; }
+.xstat-value.orange { color: var(--color-xama-orange); }
+.xstat-value.green  { color: var(--color-xama-green); }
+.xstat-value.gold   { color: var(--color-xama-gold); }
+
+/* ─── Card title ─── */
+.xcard-title   { font-size: var(--fs-card-title); font-weight: 700; color: #fff; margin: 0 0 3px; line-height: 1.3; }
+.xcard-region  { font-size: 12px; color: var(--color-xama-muted); margin: 0 0 14px; }
+.xcard-divider { border: none; border-top: 1px solid var(--color-xama-border); margin: 12px 0; }
+
+/* ─── Loading / empty states ─── */
+.xama-loading  { display: flex; align-items: center; justify-content: center; min-height: 200px; color: var(--color-xama-muted); font-size: var(--fs-body); }
+.xama-empty    { padding: 24px; text-align: center; color: var(--color-xama-muted); font-size: var(--fs-body); background: var(--surface-1); border: 1px dashed var(--color-xama-border); border-radius: var(--radius-card); }
+.xama-error    { padding: 12px 16px; background: #1f1215; border: 1px solid #7f1d1d; border-radius: 7px; color: #f87171; font-size: var(--fs-table); }
+
+/* ═══════════════════════════════════════════════════════════════════
+   FASE 3 — Lineup Builder: painel sticky + budget bar + tabela
+════════════════════════════════════════════════════════════════════ */
+
+/* ─── Layout principal ─── */
+.xlb-page { padding: 24px 0 72px; }
+.xlb-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 330px;
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 860px) { .xlb-grid { grid-template-columns: 1fr; } }
+
+/* ─── Panel (card genérico do builder) ─── */
+.xlb-panel {
+  background: var(--surface-1);
+  border: 1px solid var(--color-xama-border);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+.xlb-panel + .xlb-panel { margin-top: 12px; }
+.xlb-panel-head {
+  padding: 14px 18px 12px;
+  border-bottom: 1px solid var(--color-xama-border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.xlb-panel-title {
+  font-size: var(--fs-label); font-weight: 700; letter-spacing: 0.09em;
+  text-transform: uppercase; color: var(--color-xama-muted);
+  font-family: 'Rajdhani', sans-serif; margin: 0;
+}
+.xlb-panel-body { padding: 16px 18px; }
+
+/* ─── BudgetBar ─── */
+.xlb-budget {
+  padding: 14px 18px 16px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--color-xama-border);
+}
+.xlb-budget-label { font-size: var(--fs-label); font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--color-xama-muted); margin: 0 0 10px; }
+.xlb-budget-bar-track { height: 5px; background: #1e2330; border-radius: 99px; overflow: hidden; margin-bottom: 10px; }
+.xlb-budget-bar-fill { height: 100%; border-radius: 99px; transition: width 0.3s ease, background 0.3s; }
+.xlb-budget-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.xlb-budget-stat { text-align: center; }
+.xlb-budget-stat-label { font-size: 10px; color: var(--color-xama-muted); letter-spacing: 0.06em; text-transform: uppercase; margin: 0 0 2px; }
+.xlb-budget-stat-value { font-size: 14px; font-weight: 800; font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; margin: 0; color: var(--color-xama-text); }
+.xlb-budget-stat-value.danger { color: var(--color-xama-red); }
+.xlb-budget-stat-value.warn   { color: var(--color-xama-gold); }
+.xlb-budget-stat-value.ok     { color: var(--color-xama-green); }
+
+/* ─── Lineup slots ─── */
+.xlb-slot {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 18px;
+  border-bottom: 1px solid #13161f;
+  min-height: 56px;
+}
+.xlb-slot:last-of-type { border-bottom: none; }
+.xlb-slot-num {
+  width: 20px; flex-shrink: 0; text-align: center;
+  font-size: 11px; font-weight: 700; font-family: 'JetBrains Mono', monospace;
+  color: var(--color-xama-muted);
+}
+.xlb-slot-info { flex: 1; min-width: 0; }
+.xlb-slot-name { font-size: 14px; font-weight: 600; color: var(--color-xama-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.xlb-slot-meta { font-size: 11px; color: var(--color-xama-muted); margin-top: 1px; display: flex; align-items: center; gap: 6px; }
+.xlb-slot-cost { font-family: 'JetBrains Mono', monospace; color: var(--color-xama-gold); font-variant-numeric: tabular-nums; }
+.xlb-slot-empty { color: #2d3548; font-style: italic; font-size: 13px; }
+
+/* Capitão */
+.xlb-captain-badge {
+  font-size: 10px; font-weight: 800; letter-spacing: 0.07em;
+  padding: 2px 6px; border-radius: 4px;
+  background: rgba(240,192,64,0.15); border: 1px solid rgba(240,192,64,0.35); color: var(--color-xama-gold);
+  flex-shrink: 0;
+}
+.xlb-captain-btn {
+  width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+  background: none; border: 1.5px solid var(--color-xama-border);
+  cursor: pointer; transition: border-color 0.15s, background 0.15s;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; color: var(--color-xama-muted);
+}
+.xlb-captain-btn:hover { border-color: var(--color-xama-gold); color: var(--color-xama-gold); }
+.xlb-captain-btn.active { background: rgba(240,192,64,0.15); border-color: var(--color-xama-gold); color: var(--color-xama-gold); }
+.xlb-remove-btn {
+  width: 22px; height: 22px; border-radius: 4px; flex-shrink: 0;
+  background: none; border: 1px solid #3d1515; color: #f87171;
+  cursor: pointer; font-size: 12px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.12s;
+}
+.xlb-remove-btn:hover { background: #1f1215; }
+
+/* ─── Player table (melhorada) ─── */
+.xlb-table { width: 100%; border-collapse: collapse; font-size: var(--fs-table); }
+.xlb-table thead tr { background: var(--surface-2); }
+.xlb-table th {
+  padding: 10px 12px; text-align: left;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--color-xama-muted); border-bottom: 1px solid var(--color-xama-border);
+  white-space: nowrap; cursor: pointer; user-select: none;
+  transition: color 0.15s;
+}
+.xlb-table th:hover { color: var(--color-xama-text); }
+.xlb-table th.active { color: var(--color-xama-orange); }
+.xlb-table th.right, .xlb-table td.right { text-align: right; }
+.xlb-table td { padding: 0 12px; height: var(--space-row); vertical-align: middle; border-bottom: 1px solid #13161f; }
+.xlb-table tbody tr { transition: background 0.1s; }
+.xlb-table tbody tr:hover { background: #161b27; }
+.xlb-table tbody tr:last-child td { border-bottom: none; }
+
+/* Botões de ação dentro da tabela */
+.xlb-action-btn {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.05em;
+  padding: 4px 10px; border-radius: 5px; cursor: pointer;
+  font-family: 'Rajdhani', sans-serif; transition: all 0.12s;
+  background: var(--surface-3); border: 1px solid #2a3046; color: var(--color-xama-muted);
+}
+.xlb-action-btn:hover:not(:disabled) { color: var(--color-xama-text); border-color: #3d4d6e; }
+.xlb-action-btn:disabled { opacity: 0.3; cursor: default; }
+
+/* ─── Locked banner ─── */
+.xlb-locked {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 18px; margin-bottom: 12px;
+  background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.22);
+  border-radius: var(--radius-inner);
+}
+.xlb-locked-title { font-size: 13px; font-weight: 700; color: var(--color-xama-red); margin: 0 0 2px; letter-spacing: 0.04em; text-transform: uppercase; }
+.xlb-locked-sub   { font-size: 11px; color: var(--color-xama-muted); margin: 0; }
+
+/* ─── Save button ─── */
+.xlb-save-btn {
+  width: 100%; padding: 13px 20px; border-radius: 8px;
+  font-size: 14px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+  font-family: 'Rajdhani', sans-serif; cursor: pointer;
+  transition: background 0.15s, color 0.15s, opacity 0.15s;
+  border: none;
+}
+.xlb-save-btn.ready   { background: var(--color-xama-orange); color: #fff; }
+.xlb-save-btn.ready:hover { background: #fb923c; }
+.xlb-save-btn.idle    { background: var(--surface-3); color: #374151; border: 1px solid #2a3046; cursor: default; }
+.xlb-save-btn.loading { background: var(--surface-3); color: var(--color-xama-muted); cursor: default; }
+
+/* ─── Search bar ─── */
+.xlb-search-row { display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-bottom: 1px solid var(--color-xama-border); }
+.xlb-search-input {
+  flex: 1; background: var(--surface-2); border: 1px solid var(--color-xama-border);
+  border-radius: 6px; color: var(--color-xama-text); font-size: 13px;
+  padding: 7px 12px; outline: none; font-family: 'Rajdhani', sans-serif;
+  transition: border-color 0.15s;
+}
+.xlb-search-input::placeholder { color: #374151; }
+.xlb-search-input:focus { border-color: #3d4d6e; }
+.xlb-count { font-size: 11px; color: var(--color-xama-muted); font-family: 'JetBrains Mono', monospace; white-space: nowrap; }

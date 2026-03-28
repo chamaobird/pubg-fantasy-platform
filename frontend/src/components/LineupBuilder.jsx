@@ -4,7 +4,6 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { API_BASE_URL } from '../config'
-import ChampionshipSelector from './ChampionshipSelector'
 import TeamLogo from './TeamLogo'
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -48,34 +47,6 @@ const placementColorHex = (val) => {
   return '#f87171'
 }
 const fmtMin = (secs) => secs != null ? Math.round(Number(secs) / 60) : '—'
-
-// ── Section title ──────────────────────────────────────────────────────────
-function SectionTitle({ step, label }) {
-  return (
-    <div className="flex items-center gap-2 mb-4">
-      {step && (
-        <span className="flex items-center justify-center rounded text-[10px] font-bold w-5 h-5"
-          style={{ background: 'rgba(249,115,22,0.15)', border: '1px solid rgba(249,115,22,0.3)', color: 'var(--color-xama-orange)', fontFamily: "'JetBrains Mono', monospace" }}>
-          {step}
-        </span>
-      )}
-      <span className="text-[10px] font-bold tracking-[0.1em] uppercase"
-        style={{ color: 'var(--color-xama-muted)', fontFamily: "'Rajdhani', sans-serif" }}>
-        {label}
-      </span>
-    </div>
-  )
-}
-
-// ── Card wrapper ───────────────────────────────────────────────────────────
-function Card({ children, className = '' }) {
-  return (
-    <div className={`rounded-xl p-5 mb-4 last:mb-0 ${className}`}
-      style={{ background: 'var(--color-xama-surface)', border: '1px solid var(--color-xama-border)' }}>
-      {children}
-    </div>
-  )
-}
 
 // ── Main component ─────────────────────────────────────────────────────────
 export default function LineupBuilder({
@@ -351,18 +322,6 @@ export default function LineupBuilder({
     else { setSortKey(key); setSortDir('desc') }
   }
 
-  const SortIcon = ({ col }) => {
-    if (sortKey !== col) return <span className="ml-0.5 opacity-25 text-[9px]">&#8645;</span>
-    return <span className="ml-0.5 text-[9px]" style={{ color: 'var(--color-xama-orange)' }}>{sortDir === 'desc' ? '▼' : '▲'}</span>
-  }
-
-  const thStyle = (col) => ({
-    cursor: 'pointer', userSelect: 'none',
-    color: sortKey === col ? 'var(--color-xama-orange)' : 'var(--color-xama-muted)',
-    fontFamily: "'Rajdhani', sans-serif",
-    transition: 'color 0.15s',
-  })
-
   const budgetUsedPct  = Math.min((totalCost / budgetLimit) * 100, 100)
   const budgetBarColor = isOverBudget ? '#f87171' : totalCost / budgetLimit > 0.85 ? 'var(--color-xama-gold)' : 'var(--color-xama-orange)'
 
@@ -379,412 +338,313 @@ export default function LineupBuilder({
   ]
 
   return (
-    <div className="min-h-screen py-6 px-4"
-      style={{ background: 'var(--color-xama-black)', fontFamily: "'Rajdhani', sans-serif" }}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+    <div className="xlb-page">
+      <div className="xama-container">
 
-        {/* Login / Register */}
+        {/* ── Login / Cadastro ───────────────────────────────────────────── */}
         {!token && (
-          <Card className="mb-4">
-            <div className="flex gap-1 mb-4 p-1 rounded-lg" style={{ background: '#0a0c11', width: 'fit-content' }}>
-              {['login', 'register'].map((mode) => (
-                <button key={mode}
-                  onClick={() => { setAuthMode(mode); setLoginError(''); setRegisterError(''); setRegisterSuccess('') }}
-                  className="px-4 py-1.5 rounded text-[12px] font-bold tracking-[0.06em] uppercase transition-all duration-150"
-                  style={{
-                    fontFamily: "'Rajdhani', sans-serif",
-                    background: authMode === mode ? 'var(--color-xama-surface)' : 'none',
-                    color: authMode === mode ? 'var(--color-xama-orange)' : 'var(--color-xama-muted)',
-                    border: authMode === mode ? '1px solid var(--color-xama-border)' : '1px solid transparent',
-                    cursor: 'pointer',
-                  }}>
-                  {mode === 'login' ? 'Login' : 'Cadastro'}
-                </button>
-              ))}
+          <div className="xlb-panel" style={{ marginBottom: 20 }}>
+            <div className="xlb-panel-head">
+              <div className="flex gap-1 p-1 rounded-lg" style={{ background: '#0a0c11', width: 'fit-content' }}>
+                {['login', 'register'].map((mode) => (
+                  <button key={mode}
+                    onClick={() => { setAuthMode(mode); setLoginError(''); setRegisterError(''); setRegisterSuccess('') }}
+                    style={{
+                      fontFamily: "'Rajdhani', sans-serif",
+                      padding: '6px 16px',
+                      borderRadius: 6,
+                      fontSize: 12,
+                      fontWeight: 700,
+                      letterSpacing: '0.06em',
+                      textTransform: 'uppercase',
+                      cursor: 'pointer',
+                      background: authMode === mode ? 'var(--color-xama-surface)' : 'transparent',
+                      color: authMode === mode ? 'var(--color-xama-orange)' : 'var(--color-xama-muted)',
+                      border: authMode === mode ? '1px solid var(--color-xama-border)' : '1px solid transparent',
+                    }}>
+                    {mode === 'login' ? 'Login' : 'Cadastro'}
+                  </button>
+                ))}
+              </div>
             </div>
-            {authMode === 'login' && (
-              <>
-                <div className="grid gap-3 mb-3" style={{ gridTemplateColumns: '1fr 1fr auto' }}>
-                  <input className="dark-input" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} placeholder="E-mail" style={{ fontFamily: "'Rajdhani', sans-serif" }} />
-                  <input className="dark-input" type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} placeholder="Senha" style={{ fontFamily: "'Rajdhani', sans-serif" }} />
-                  <button className="dark-btn" onClick={doLogin} disabled={loginLoading} style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 600 }}>
-                    {loginLoading ? 'Entrando...' : 'Entrar'}
-                  </button>
-                </div>
-                {loginError && <div className="msg-error">{loginError}</div>}
-              </>
-            )}
-            {authMode === 'register' && (
-              <>
-                <div className="grid gap-3 mb-3" style={{ gridTemplateColumns: '1fr 1fr 1fr auto' }}>
-                  <input className="dark-input" value={registerEmail} onChange={(e) => setRegisterEmail(e.target.value)} placeholder="E-mail" style={{ fontFamily: "'Rajdhani', sans-serif" }} />
-                  <input className="dark-input" value={registerUsername} onChange={(e) => setRegisterUsername(e.target.value)} placeholder="Username" style={{ fontFamily: "'Rajdhani', sans-serif" }} />
-                  <input className="dark-input" type="password" value={registerPassword} onChange={(e) => setRegisterPassword(e.target.value)} placeholder="Senha" style={{ fontFamily: "'Rajdhani', sans-serif" }} />
-                  <button className="dark-btn" onClick={doRegister} disabled={registerLoading} style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 600 }}>
-                    {registerLoading ? 'Criando...' : 'Criar conta'}
-                  </button>
-                </div>
-                {registerError   && <div className="msg-error">{registerError}</div>}
-                {registerSuccess && <div className="msg-success">{registerSuccess}</div>}
-              </>
-            )}
-          </Card>
-        )}
-
-        {/* Two-column layout */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 0.4fr', gap: '16px' }}
-             className="max-md:block">
-
-          {/* Left column */}
-          <div>
-            {/* Tournament + budget */}
-            <Card>
-              <SectionTitle step="1" label="Torneio" />
-              {tournamentsLoading && <span className="text-[13px]" style={{ color: 'var(--color-xama-muted)' }}>Carregando...</span>}
-              {tournamentsError   && <div className="msg-error">{tournamentsError}</div>}
-              {!tournamentsLoading && !tournamentsError && (
+            <div className="xlb-panel-body">
+              {authMode === 'login' && (
                 <>
-                  {championships.length === 0 && tournaments.length === 0 ? (
-                    <div className="py-4 px-3 rounded-lg text-[13px]"
-                      style={{ background: '#0a0c11', border: '1px solid var(--color-xama-border)', color: 'var(--color-xama-muted)' }}>
-                      Nenhum torneio disponível no momento.
-                    </div>
-                  ) : championships.length > 0 ? (
-                    <div className="mb-3">
-                      <ChampionshipSelector
-                        championships={championships}
-                        loading={championshipsLoading}
-                        selectedChampId={selectedChampId ? Number(selectedChampId) : null}
-                        onChampChange={onChampChange}
-                        selectedTournId={selectedTournamentId ? Number(selectedTournamentId) : null}
-                        onTournChange={(tid) => onTournamentChange?.(tid)}
-                        tournaments={tournaments}
-                        allowAggregated={false}
-                      />
-                    </div>
-                  ) : (
-                    <select className="dark-select mb-3" value={selectedTournamentId}
-                      onChange={(e) => onTournamentChange?.(e.target.value)}
-                      style={{ fontFamily: "'Rajdhani', sans-serif" }}>
-                      {tournaments.map((t) => (
-                        <option key={t.id} value={String(t.id)}>
-                          {t.name}{t.region ? ` (${t.region})` : ''}{!t.lineup_open ? ' 🔒' : ''}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-
-                  {/* Banner LOCKED: aparece quando o torneio selecionado está fechado */}
-                  {isLocked && (
-                    <div className="flex items-center gap-3 mb-3 px-4 py-3 rounded-lg"
-                      style={{
-                        background: 'rgba(239,68,68,0.07)',
-                        border: '1px solid rgba(239,68,68,0.25)',
-                      }}>
-                      <span style={{ fontSize: 20, lineHeight: 1 }}>🔒</span>
-                      <div>
-                        <p className="text-[13px] font-bold tracking-[0.04em] uppercase"
-                          style={{ color: '#f87171', fontFamily: "'Rajdhani', sans-serif", marginBottom: 2 }}>
-                          Lineup Fechado
-                        </p>
-                        <p className="text-[11px]" style={{ color: 'var(--color-xama-muted)' }}>
-                          As submissões encerraram quando o primeiro match foi importado.
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Hint quando há torneios abertos mas nenhum está selecionado */}
-                  {openTournaments.length === 0 && !isLocked && (
-                    <div className="py-3 px-3 rounded-lg text-[12px] mb-3"
-                      style={{ background: '#0a0c11', border: '1px solid var(--color-xama-border)', color: 'var(--color-xama-muted)' }}>
-                      Nenhum torneio com lineup aberto no momento.
-                    </div>
-                  )}
+                  <div className="grid gap-3" style={{ gridTemplateColumns: '1fr 1fr auto' }}>
+                    <input className="dark-input" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} placeholder="E-mail" style={{ fontFamily: "'Rajdhani', sans-serif" }} />
+                    <input className="dark-input" type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} placeholder="Senha" style={{ fontFamily: "'Rajdhani', sans-serif" }} onKeyDown={(e) => e.key === 'Enter' && doLogin()} />
+                    <button className="dark-btn" onClick={doLogin} disabled={loginLoading} style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 600 }}>
+                      {loginLoading ? 'Entrando...' : 'Entrar'}
+                    </button>
+                  </div>
+                  {loginError && <div className="msg-error" style={{ marginTop: 10 }}>{loginError}</div>}
                 </>
               )}
+              {authMode === 'register' && (
+                <>
+                  <div className="grid gap-3" style={{ gridTemplateColumns: '1fr 1fr 1fr auto' }}>
+                    <input className="dark-input" value={registerEmail} onChange={(e) => setRegisterEmail(e.target.value)} placeholder="E-mail" style={{ fontFamily: "'Rajdhani', sans-serif" }} />
+                    <input className="dark-input" value={registerUsername} onChange={(e) => setRegisterUsername(e.target.value)} placeholder="Username" style={{ fontFamily: "'Rajdhani', sans-serif" }} />
+                    <input className="dark-input" type="password" value={registerPassword} onChange={(e) => setRegisterPassword(e.target.value)} placeholder="Senha" style={{ fontFamily: "'Rajdhani', sans-serif" }} />
+                    <button className="dark-btn" onClick={doRegister} disabled={registerLoading} style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 600 }}>
+                      {registerLoading ? 'Criando...' : 'Criar conta'}
+                    </button>
+                  </div>
+                  {registerError   && <div className="msg-error"   style={{ marginTop: 10 }}>{registerError}</div>}
+                  {registerSuccess && <div className="msg-success" style={{ marginTop: 10 }}>{registerSuccess}</div>}
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── Banner lineup fechado ──────────────────────────────────────── */}
+        {isLocked && (
+          <div className="xlb-locked" style={{ marginBottom: 20 }}>
+            <span style={{ fontSize: 20, lineHeight: 1 }}>🔒</span>
+            <div>
+              <p className="xlb-locked-title">Lineup Fechado</p>
+              <p className="xlb-locked-sub">As submissões encerraram quando o primeiro match foi importado.</p>
+            </div>
+          </div>
+        )}
+
+        {/* ── Grid principal ────────────────────────────────────────────── */}
+        <div className="xlb-grid">
+
+          {/* ── Coluna esquerda: pool de jogadores ── */}
+          <div className="xlb-panel">
+
+            {/* Barra de busca */}
+            <div className="xlb-search-row">
+              <input
+                className="xlb-search-input"
+                value={searchName}
+                onChange={(e) => setSearchName(e.target.value)}
+                placeholder="Buscar jogador..."
+              />
+              <span className="xlb-count">{filteredPlayers.length}/{players.length}</span>
+              {Object.keys(champStats.byId || {}).length > 0 && (
+                <span style={{
+                  fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
+                  padding: '2px 8px', borderRadius: 4, whiteSpace: 'nowrap', flexShrink: 0,
+                  background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.25)', color: '#60a5fa',
+                  fontFamily: "'Rajdhani', sans-serif",
+                }}>
+                  STATS CAMP.
+                </span>
+              )}
+            </div>
+
+            {/* Estados de carregamento */}
+            {playersLoading && <p className="xama-loading" style={{ padding: '24px 18px' }}>Carregando jogadores...</p>}
+            {playersError   && <p className="xama-error"   style={{ padding: '16px 18px' }}>{playersError}</p>}
+
+            {/* Tabela de jogadores */}
+            {!playersLoading && !playersError && (
+              <div style={{ overflowX: 'auto' }}>
+                <table className="xlb-table">
+                  <thead>
+                    <tr>
+                      {COLS.map(({ key, label, right }) => (
+                        <th key={key}
+                          className={`${right ? 'right' : ''} ${sortKey === key ? 'active' : ''}`}
+                          onClick={() => handleSort(key)}>
+                          {label}
+                          {sortKey === key
+                            ? <span className="ml-0.5 text-[9px]">{sortDir === 'desc' ? '▼' : '▲'}</span>
+                            : <span className="ml-0.5 opacity-25 text-[9px]">⇅</span>}
+                        </th>
+                      ))}
+                      <th />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedPlayers.map((p) => {
+                      const cs = p._cs
+                      return (
+                        <tr key={p.id}>
+                          <td>
+                            <div className="flex items-center gap-1.5">
+                              <TeamLogo teamName={formatTeamTag(p.name, p.team)} size={20} />
+                              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--color-xama-muted)' }}>
+                                {formatTeamTag(p.name, p.team) || '—'}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="font-semibold whitespace-nowrap" style={{ color: 'var(--color-xama-text)' }}>
+                            {formatPlayerName(p.name)}
+                          </td>
+                          <td className="right tabular-nums font-bold"
+                            style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-gold)' }}>
+                            ${Number(p.fantasy_cost || 0).toFixed(2)}
+                          </td>
+                          <td className="right tabular-nums"
+                            style={{ fontFamily: "'JetBrains Mono', monospace", color: cs ? 'var(--color-xama-orange)' : 'var(--color-xama-muted)' }}>
+                            {cs ? Number(cs.total_fantasy_points).toFixed(1) : '—'}
+                          </td>
+                          <td className="right tabular-nums"
+                            style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-text)' }}>
+                            {cs ? cs.total_kills : '—'}
+                          </td>
+                          <td className="right tabular-nums"
+                            style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-text)' }}>
+                            {cs ? cs.total_assists : '—'}
+                          </td>
+                          <td className="right tabular-nums"
+                            style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-text)' }}>
+                            {cs ? fmtMin(cs.surv_total_secs) : '—'}
+                          </td>
+                          <td className="right tabular-nums"
+                            style={{ fontFamily: "'JetBrains Mono', monospace", color: cs?.total_late_game_bonus > 0 ? '#4ade80' : 'var(--color-xama-muted)' }}>
+                            {cs ? (cs.total_late_game_bonus > 0 ? cs.total_late_game_bonus.toFixed(0) : '0') : '—'}
+                          </td>
+                          <td className="right tabular-nums"
+                            style={{ fontFamily: "'JetBrains Mono', monospace", color: cs?.total_penalty_count > 0 ? '#f87171' : 'var(--color-xama-muted)' }}>
+                            {cs
+                              ? cs.total_penalty_count > 0
+                                ? `${cs.total_penalty_count}(${cs.total_penalty_count * -15})`
+                                : '0'
+                              : '—'}
+                          </td>
+                          <td>
+                            <div className="flex gap-1 justify-end">
+                              <button className="xlb-action-btn" disabled={isLocked} onClick={() => !isLocked && addPlayer(p)}>
+                                Titular
+                              </button>
+                              <button className="xlb-action-btn" disabled={isLocked} onClick={() => !isLocked && setAsReserve(p)}>
+                                Reserva
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* ── Coluna direita: painel sticky ── */}
+          <div style={{ position: 'sticky', top: 24, alignSelf: 'start' }}>
+            <div className="xlb-panel">
+
+              {/* Cabeçalho do painel */}
+              <div className="xlb-panel-head">
+                <p className="xlb-panel-title">Meu Lineup</p>
+              </div>
+
               {/* Budget bar */}
-              <div className="rounded-lg p-3" style={{ background: '#0a0c11', border: '1px solid var(--color-xama-border)' }}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] font-bold tracking-[0.06em] uppercase" style={{ color: 'var(--color-xama-muted)', fontFamily: "'Rajdhani', sans-serif" }}>Budget</span>
-                  <span className="text-[13px] font-bold tabular-nums"
-                    style={{ fontFamily: "'JetBrains Mono', monospace", color: isOverBudget ? '#f87171' : 'var(--color-xama-text)' }}>
-                    {totalCost.toFixed(2)} <span style={{ color: 'var(--color-xama-muted)' }}>/ {budgetLimit}</span>
-                  </span>
+              <div className="xlb-budget">
+                <p className="xlb-budget-label">Budget</p>
+                <div className="xlb-budget-bar-track">
+                  <div className="xlb-budget-bar-fill" style={{ width: `${budgetUsedPct}%`, background: budgetBarColor }} />
                 </div>
-                <div className="rounded-full overflow-hidden" style={{ height: '4px', background: '#1e2330' }}>
-                  <div className="h-full rounded-full transition-all duration-300"
-                    style={{ width: `${budgetUsedPct}%`, background: budgetBarColor }} />
+                <div className="xlb-budget-stats">
+                  <div className="xlb-budget-stat">
+                    <p className="xlb-budget-stat-label">Total</p>
+                    <p className="xlb-budget-stat-value">{budgetLimit}</p>
+                  </div>
+                  <div className="xlb-budget-stat">
+                    <p className="xlb-budget-stat-label">Usado</p>
+                    <p className={`xlb-budget-stat-value ${isOverBudget ? 'danger' : totalCost / budgetLimit > 0.85 ? 'warn' : ''}`}>
+                      {totalCost.toFixed(2)}
+                    </p>
+                  </div>
+                  <div className="xlb-budget-stat">
+                    <p className="xlb-budget-stat-label">Restante</p>
+                    <p className={`xlb-budget-stat-value ${isOverBudget ? 'danger' : 'ok'}`}>
+                      {(budgetLimit - totalCost).toFixed(2)}
+                    </p>
+                  </div>
                 </div>
                 {reservePlayer && (
-                  <div className="flex items-center justify-between mt-2">
-                    <span className="text-[11px]" style={{ color: 'var(--color-xama-muted)' }}>Reserva</span>
-                    <span className="text-[11px] font-bold tabular-nums"
-                      style={{ fontFamily: "'JetBrains Mono', monospace", color: reserveEligible ? '#4ade80' : '#f87171' }}>
-                      ${reserveCost.toFixed(2)}{!reserveEligible && <span className="ml-1 text-[9px]">&#9888;</span>}
+                  <div className="flex items-center justify-between mt-2 pt-2" style={{ borderTop: '1px solid var(--color-xama-border)' }}>
+                    <span style={{ fontSize: 11, color: 'var(--color-xama-muted)' }}>Reserva</span>
+                    <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontVariantNumeric: 'tabular-nums', color: reserveEligible ? '#4ade80' : '#f87171' }}>
+                      ${reserveCost.toFixed(2)}{!reserveEligible && ' ⚠'}
                     </span>
                   </div>
                 )}
               </div>
-            </Card>
 
-            {/* Player pool */}
-            <Card>
-              <div className="flex items-center justify-between mb-3">
-                <SectionTitle step="2" label="Jogadores do torneio" />
-                {Object.keys(champStats.byId || {}).length > 0 && (
-                  <span className="text-[10px] px-2 py-0.5 rounded font-bold tracking-[0.06em]"
-                    style={{ background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.25)', color: '#60a5fa', fontFamily: "'Rajdhani', sans-serif" }}>
-                    STATS DO CAMPEONATO
-                  </span>
-                )}
-              </div>
-
-              <div className="flex items-center gap-3 mb-3">
-                <input className="dark-input" value={searchName} onChange={(e) => setSearchName(e.target.value)}
-                  placeholder="Buscar por nome..." style={{ fontFamily: "'Rajdhani', sans-serif" }} />
-                <span className="text-[11px] tabular-nums whitespace-nowrap"
-                  style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-muted)' }}>
-                  {filteredPlayers.length}/{players.length}
-                </span>
-              </div>
-
-              {playersLoading && <span className="text-[13px]" style={{ color: 'var(--color-xama-muted)' }}>Carregando jogadores...</span>}
-              {playersError   && <div className="msg-error">{playersError}</div>}
-
-              {!playersLoading && !playersError && (
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse text-[13px]">
-                    <thead>
-                      <tr style={{ borderBottom: '1px solid var(--color-xama-border)', background: '#0a0c11' }}>
-                        {COLS.map(({ key, label, right }) => (
-                          <th key={key}
-                            className="px-3 py-2 text-[10px] font-bold tracking-[0.08em] uppercase whitespace-nowrap"
-                            style={{ ...thStyle(key), textAlign: right ? 'right' : 'left' }}
-                            onClick={() => handleSort(key)}>
-                            {label}<SortIcon col={key} />
-                          </th>
-                        ))}
-                        <th className="px-3 py-2" />
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sortedPlayers.map((p) => {
-                        const cs = p._cs
-                        return (
-                          <tr key={p.id}
-                            style={{ borderBottom: '1px solid #13161f' }}
-                            onMouseEnter={(e) => e.currentTarget.style.background = '#161b27'}
-                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
-
-                            <td className="px-3 py-2">
-                              <div className="flex items-center gap-1.5">
-                                <TeamLogo teamName={formatTeamTag(p.name, p.team)} size={22} />
-                                <span className="text-[10px] font-bold tracking-[0.06em]"
-                                  style={{ color: 'var(--color-xama-muted)' }}>
-                                  {formatTeamTag(p.name, p.team) || '—'}
-                                </span>
-                              </div>
-                            </td>
-
-                            <td className="px-3 py-2 font-semibold whitespace-nowrap" style={{ color: 'var(--color-xama-text)' }}>
-                              {formatPlayerName(p.name)}
-                            </td>
-
-                            <td className="px-3 py-2 text-right tabular-nums font-bold"
-                              style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-gold)' }}>
-                              ${Number(p.fantasy_cost || 0).toFixed(2)}
-                            </td>
-
-                            <td className="px-3 py-2 text-right tabular-nums"
-                              style={{ fontFamily: "'JetBrains Mono', monospace", color: cs ? 'var(--color-xama-orange)' : 'var(--color-xama-muted)' }}>
-                              {cs ? Number(cs.total_fantasy_points).toFixed(1) : '—'}
-                            </td>
-
-                            <td className="px-3 py-2 text-right tabular-nums"
-                              style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-text)' }}>
-                              {cs ? cs.total_kills : '—'}
-                            </td>
-
-                            <td className="px-3 py-2 text-right tabular-nums"
-                              style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-text)' }}>
-                              {cs ? cs.total_assists : '—'}
-                            </td>
-
-                            <td className="px-3 py-2 text-right tabular-nums"
-                              style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-text)' }}>
-                              {cs ? fmtMin(cs.surv_total_secs) : '—'}
-                            </td>
-
-                            <td className="px-3 py-2 text-right tabular-nums"
-                              style={{ fontFamily: "'JetBrains Mono', monospace", color: cs?.total_late_game_bonus > 0 ? '#4ade80' : 'var(--color-xama-muted)' }}>
-                              {cs ? (cs.total_late_game_bonus > 0 ? cs.total_late_game_bonus.toFixed(0) : '0') : '—'}
-                            </td>
-
-                            <td className="px-3 py-2 text-right tabular-nums"
-                              style={{ fontFamily: "'JetBrains Mono', monospace", color: cs?.total_penalty_count > 0 ? '#f87171' : 'var(--color-xama-muted)' }}>
-                              {cs
-                                ? cs.total_penalty_count > 0
-                                  ? `${cs.total_penalty_count}(${cs.total_penalty_count * -15})`
-                                  : '0'
-                                : '—'}
-                            </td>
-
-                            <td className="px-3 py-2">
-                              {/* Botões desabilitados quando lineup está locked */}
-                              <div className="flex gap-1 justify-end">
-                                <button className="dark-btn-sm"
-                                  disabled={isLocked}
-                                  style={{
-                                    fontFamily: "'Rajdhani', sans-serif",
-                                    fontWeight: 600,
-                                    opacity: isLocked ? 0.35 : 1,
-                                    cursor: isLocked ? 'not-allowed' : 'pointer',
-                                  }}
-                                  onClick={() => !isLocked && addPlayer(p)}>
-                                  Titular
-                                </button>
-                                <button className="dark-btn-sm"
-                                  disabled={isLocked}
-                                  style={{
-                                    fontFamily: "'Rajdhani', sans-serif",
-                                    fontWeight: 600,
-                                    opacity: isLocked ? 0.35 : 1,
-                                    cursor: isLocked ? 'not-allowed' : 'pointer',
-                                  }}
-                                  onClick={() => !isLocked && setAsReserve(p)}>
-                                  Reserva
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </Card>
-          </div>
-
-          {/* Right column */}
-          <div>
-            <Card>
-              <SectionTitle step="3" label={`Titulares (${selectedPlayers.length}/4)`} />
-              {selectedPlayers.length === 0 && (
-                <p className="text-[14px] py-2" style={{ color: '#374151' }}>Nenhum jogador adicionado.</p>
-              )}
-              {selectedPlayers.map((p, idx) => (
-                <div key={p.id} className="flex items-center gap-3 py-3"
-                  style={{ borderBottom: idx < selectedPlayers.length - 1 ? '1px solid #13161f' : 'none' }}>
-                  <span className="text-[11px] font-bold tabular-nums flex-shrink-0"
-                    style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-muted)', width: '16px' }}>
-                    {idx + 1}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-[15px] truncate" style={{ color: 'var(--color-xama-text)' }}>
+              {/* Slots de titulares × 4 */}
+              {Array.from({ length: 4 }).map((_, idx) => {
+                const p = selectedPlayers[idx]
+                if (!p) {
+                  return (
+                    <div key={`empty-${idx}`} className="xlb-slot">
+                      <span className="xlb-slot-num">{idx + 1}</span>
+                      <span className="xlb-slot-empty">— vazio —</span>
+                    </div>
+                  )
+                }
+                const isCap = captainId === p.id
+                return (
+                  <div key={p.id} className="xlb-slot">
+                    <span className="xlb-slot-num">{idx + 1}</span>
+                    <div className="xlb-slot-info">
+                      <div className="xlb-slot-name">
                         {formatPlayerName(p.name)}
-                      </span>
-                      {captainId === p.id && (
-                        <span className="text-[9px] font-bold tracking-[0.06em] px-1.5 py-0.5 rounded flex-shrink-0"
-                          style={{ background: 'rgba(240,192,64,0.15)', border: '1px solid rgba(240,192,64,0.3)', color: 'var(--color-xama-gold)' }}>
-                          CAP 1.25x
-                        </span>
-                      )}
+                        {isCap && <span className="xlb-captain-badge" style={{ marginLeft: 6 }}>CAP 1.25×</span>}
+                      </div>
+                      <div className="xlb-slot-meta">
+                        <TeamLogo teamName={formatTeamTag(p.name, p.team)} size={14} />
+                        <span>{formatTeamTag(p.name, p.team)}</span>
+                        <span className="xlb-slot-cost">${Number(p.fantasy_cost || 0).toFixed(2)}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <TeamLogo teamName={formatTeamTag(p.name, p.team)} size={18} />
-                      <span className="text-[11px]" style={{ color: 'var(--color-xama-muted)' }}>
-                        {formatTeamTag(p.name, p.team)}
-                      </span>
-                      <span className="text-[12px] tabular-nums"
-                        style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-gold)' }}>
-                        ${Number(p.fantasy_cost || 0).toFixed(2)}
-                      </span>
-                    </div>
+                    <button
+                      className={`xlb-captain-btn${isCap ? ' active' : ''}`}
+                      onClick={() => setCaptainId(p.id)}
+                      title="Definir como capitão">
+                      ♛
+                    </button>
+                    <button className="xlb-remove-btn" onClick={() => removePlayer(p.id)} title="Remover">×</button>
                   </div>
-                  <label className="flex items-center gap-1 text-[11px] font-bold tracking-[0.06em] cursor-pointer flex-shrink-0"
-                    style={{ color: captainId === p.id ? 'var(--color-xama-gold)' : 'var(--color-xama-muted)' }}>
-                    <input type="radio" name="captain" checked={captainId === p.id} onChange={() => setCaptainId(p.id)} style={{ accentColor: '#f0c040' }} />
-                    Cap
-                  </label>
-                  <button className="dark-btn-danger flex-shrink-0" onClick={() => removePlayer(p.id)}>x</button>
-                </div>
-              ))}
-            </Card>
+                )
+              })}
 
-            <Card>
-              <SectionTitle label="Reserva (obrigatorio)" />
-              {!reservePlayer && (
-                <p className="text-[14px] py-2" style={{ color: '#374151' }}>Nenhum reserva selecionado.</p>
-              )}
-              {reservePlayer && (
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-[15px]" style={{ color: 'var(--color-xama-text)' }}>
-                      {formatPlayerName(reservePlayer.name)}
-                    </div>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <TeamLogo teamName={formatTeamTag(reservePlayer.name, reservePlayer.team)} size={18} />
-                      <span className="text-[11px]" style={{ color: 'var(--color-xama-muted)' }}>
-                        {formatTeamTag(reservePlayer.name, reservePlayer.team)}
-                      </span>
-                      <span className="text-[12px] tabular-nums"
-                        style={{ fontFamily: "'JetBrains Mono', monospace", color: reserveEligible ? '#4ade80' : '#f87171' }}>
+              {/* Divisor + slot de reserva */}
+              <div style={{ borderTop: '2px solid var(--color-xama-border)' }} />
+
+              {reservePlayer ? (
+                <div className="xlb-slot">
+                  <span className="xlb-slot-num" style={{ fontSize: 9, fontStyle: 'italic', color: '#4b5563' }}>RES</span>
+                  <div className="xlb-slot-info">
+                    <div className="xlb-slot-name">{formatPlayerName(reservePlayer.name)}</div>
+                    <div className="xlb-slot-meta">
+                      <TeamLogo teamName={formatTeamTag(reservePlayer.name, reservePlayer.team)} size={14} />
+                      <span>{formatTeamTag(reservePlayer.name, reservePlayer.team)}</span>
+                      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontVariantNumeric: 'tabular-nums', fontSize: 11, color: reserveEligible ? '#4ade80' : '#f87171' }}>
                         ${Number(reservePlayer.fantasy_cost || 0).toFixed(2)}
+                        {!reserveEligible && ' ⚠'}
                       </span>
-                      {!reserveEligible && <span className="text-[10px]" style={{ color: '#f87171' }}>mais caro que minimo</span>}
                     </div>
                   </div>
-                  <button className="dark-btn-danger flex-shrink-0" onClick={removeReserve}>x</button>
-                </div>
-              )}
-            </Card>
-
-            <Card>
-              <SectionTitle step="4" label="Salvar lineup" />
-
-              {/* Banner LOCKED no painel de save */}
-              {isLocked ? (
-                <div className="w-full py-3 px-4 rounded-lg text-center"
-                  style={{
-                    background: 'rgba(239,68,68,0.07)',
-                    border: '1px solid rgba(239,68,68,0.25)',
-                  }}>
-                  <p className="text-[14px] font-bold tracking-[0.06em] uppercase"
-                    style={{ color: '#f87171', fontFamily: "'Rajdhani', sans-serif" }}>
-                    🔒 Lineup Fechado
-                  </p>
-                  <p className="text-[11px] mt-1" style={{ color: 'var(--color-xama-muted)' }}>
-                    Submissões encerradas para este torneio
-                  </p>
+                  <button className="xlb-remove-btn" onClick={removeReserve} title="Remover reserva">×</button>
                 </div>
               ) : (
-                <button onClick={saveLineup} disabled={!canSave || saveLoading}
-                  className="w-full py-3 rounded-lg text-[15px] font-bold tracking-[0.04em] uppercase transition-all duration-150"
-                  style={{
-                    fontFamily: "'Rajdhani', sans-serif",
-                    background: canSave && !saveLoading ? 'var(--color-xama-orange)' : '#1a1f2e',
-                    color: canSave && !saveLoading ? '#0d0f14' : '#374151',
-                    border: canSave && !saveLoading ? 'none' : '1px solid #2a3046',
-                    cursor: canSave && !saveLoading ? 'pointer' : 'default',
-                  }}>
-                  {saveLoading ? 'Salvando...' : 'Salvar lineup'}
-                </button>
+                <div className="xlb-slot">
+                  <span className="xlb-slot-num" style={{ fontSize: 9, fontStyle: 'italic', color: '#4b5563' }}>RES</span>
+                  <span className="xlb-slot-empty">— reserva —</span>
+                </div>
               )}
 
-              {!isLocked && (
-                <p className="text-[12px] mt-3 leading-relaxed" style={{ color: '#374151' }}>
-                  Necessario: 4 titulares · 1 reserva · capitao · login · total &le; budget
-                </p>
-              )}
-              {saveError   && <div className="msg-error mt-3">{saveError}</div>}
-              {saveSuccess && <div className="msg-success mt-3">✅ Lineup salvo com sucesso!</div>}
-            </Card>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
+              {/* Salvar lineup */}
+              <div className="xlb-panel-body" style={{ borderTop: '1px solid var(--color-xama-border)' }}>
+                {isLocked ? (
+                  <div className="xlb-locked" style={{ margin: 0 }}>
+                    <span style={{ fontSize: 16 }}>🔒</span>
+                    <div>
+                      <p className="xlb-locked-title">Lineup Fechado</p>
+                      <p className="xlb-locked-sub">Submissões encerradas para este torneio</p>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    className={`xlb-save-btn ${saveLoading ? 'loading' : canSave ? 'ready' : 'idle'}`}
+                    onClick={saveLineup}
+                    disabled={!canSave || saveLoading}>
+                    {saveLoading ? 'Salva

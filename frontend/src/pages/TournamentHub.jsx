@@ -1,12 +1,12 @@
-﻿// frontend/src/pages/TournamentHub.jsx
+// frontend/src/pages/TournamentHub.jsx
 import { useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../App'
 import { API_BASE_URL } from '../config'
+import TournamentLayout from '../components/TournamentLayout'
 import LineupBuilder from '../components/LineupBuilder'
 import TournamentLeaderboard from '../components/TournamentLeaderboard'
 import PlayerStatsPage from '../components/PlayerStatsPage'
-import Navbar from '../components/Navbar'
 
 const TAB_LINEUP      = 'lineup'
 const TAB_LEADERBOARD = 'leaderboard'
@@ -18,197 +18,119 @@ const ALL_TABS = [
   { id: TAB_STATS,       label: 'Stats',          icon: '📊' },
 ]
 
-const STATUS_BADGE = {
-  finished: { label: 'ENCERRADO', bg: 'rgba(248,113,113,0.12)', border: 'rgba(248,113,113,0.3)', color: '#f87171' },
-  active:   { label: 'AO VIVO',   bg: 'rgba(74,222,128,0.12)',  border: 'rgba(74,222,128,0.3)',  color: '#4ade80' },
-  upcoming: { label: 'EM BREVE',  bg: 'rgba(96,165,250,0.12)',  border: 'rgba(96,165,250,0.3)',  color: '#60a5fa' },
-}
-
 export default function TournamentHub() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { token, setToken } = useAuth()
 
-  const [tab, setTab] = useState(TAB_LINEUP)
-  const [tournament, setTournament] = useState(null)
-  const [tournaments, setTournaments] = useState([])
-  const [tournamentsLoading, setTournamentsLoading] = useState(true)
-  const [championships, setChampionships] = useState([])
+  // ── Estado principal ──────────────────────────────────────────────
+  const [tab,                  setTab]                  = useState(TAB_LINEUP)
+  const [tournament,           setTournament]           = useState(null)
+  const [tournaments,          setTournaments]          = useState([])
+  const [tournamentsLoading,   setTournamentsLoading]   = useState(true)
+  const [championships,        setChampionships]        = useState([])
   const [championshipsLoading, setChampionshipsLoading] = useState(true)
-  // Estado local para o campeonato selecionado no selector (pode divergir da URL)
-  const [localChampId, setLocalChampId] = useState(null)
+  const [myRank,               setMyRank]               = useState(null)
+  const [localChampId,         setLocalChampId]         = useState(null)
 
+  // ── Usuário (para buscar ranking) ─────────────────────────────────
+  const [userId, setUserId] = useState(null)
+  useEffect(() => {
+    if (!token) return
+    fetch(`${API_BASE_URL}/users/me`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then(u => { if (u) setUserId(u.id) })
+      .catch(() => {})
+  }, [token])
+
+  // ── Torneios + campeonatos ────────────────────────────────────────
   useEffect(() => {
     Promise.all([
-      fetch(`${API_BASE_URL}/tournaments/?skip=0&limit=50`, { headers: { Accept: 'application/json' } }).then(r => r.json()),
-      fetch(`${API_BASE_URL}/championship-phases/`, { headers: { Accept: 'application/json' } }).then(r => r.json()),
+      fetch(`${API_BASE_URL}/tournaments/?skip=0&limit=50`).then(r => r.json()),
+      fetch(`${API_BASE_URL}/championship-phases/`).then(r => r.json()),
     ])
       .then(([tournsData, champsData]) => {
-        const list = Array.isArray(tournsData) ? tournsData : []
+        const list  = Array.isArray(tournsData) ? tournsData : []
         const champs = Array.isArray(champsData) ? champsData : []
         setTournaments(list)
         setChampionships(champs)
-        const current = list.find((t) => String(t.id) === String(id))
-        setTournament(current || null)
+        setTournament(list.find(t => String(t.id) === String(id)) || null)
         setTournamentsLoading(false)
         setChampionshipsLoading(false)
       })
       .catch(() => { setTournamentsLoading(false); setChampionshipsLoading(false) })
   }, [id])
 
-  // Campeonato derivado da URL (quando os dados chegam)
+  // ── Ranking do usuário (para o header) ───────────────────────────
+  useEffect(() => {
+    if (!userId || !id) return
+    fetch(`${API_BASE_URL}/tournaments/${id}/rankings`)
+      .then(r => r.json())
+      .then(rank => {
+        const entry = rank.find(e => e.user_id === userId)
+        if (entry) setMyRank(entry)
+      })
+      .catch(() => {})
+  }, [userId, id])
+
+  // ── Campeonato da URL ─────────────────────────────────────────────
   const urlChampId = useMemo(
-    () => championships.find((c) => c.phases.some((p) => p.tournament_id === Number(id)))?.id ?? null,
+    () => championships.find(c => c.phases.some(p => p.tournament_id === Number(id)))?.id ?? null,
     [championships, id]
   )
-
-  // Sincroniza localChampId com o campeonato da URL quando os dados chegam
-  useEffect(() => {
-    if (urlChampId !== null) setLocalChampId(urlChampId)
-  }, [urlChampId])
-
+  useEffect(() => { if (urlChampId !== null) setLocalChampId(urlChampId) }, [urlChampId])
   const selectedChampId = localChampId ?? urlChampId
 
-  // Quando o usuário troca de campeonato no selector (sem selecionar fase ainda)
-  const handleChampChange = (champId) => {
-    setLocalChampId(champId)
-  }
+  // ── Dados derivados para o header ─────────────────────────────────
+  const championship = championships.find(c => c.phases.some(p => p.tournament_id === Number(id)))
+  const phase        = championship?.phases.find(p => p.tournament_id === Number(id))
+  const phaseLabel   = phase?.phase ?? null
 
-  // Torneio finalizado: default para leaderboard
-  useEffect(() => {
-    if (tournament?.status === 'finished') setTab(TAB_LEADERBOARD)
-  }, [tournament?.status])
-
-  const selectedTournamentId = String(id)
+  // ── Tabs (Lineup oculta quando torneio finalizado) ────────────────
   const isFinished = tournament?.status === 'finished'
+  const TABS       = isFinished ? ALL_TABS.filter(t => t.id !== TAB_LINEUP) : ALL_TABS
+  const activeTab  = TABS.find(t => t.id === tab) ? tab : TABS[0]?.id ?? TAB_LEADERBOARD
 
-  // Esconde aba Lineup quando torneio está finalizado
-  const TABS = isFinished ? ALL_TABS.filter(t => t.id !== TAB_LINEUP) : ALL_TABS
+  useEffect(() => {
+    if (isFinished) setTab(TAB_LEADERBOARD)
+  }, [isFinished])
 
-  // Garante que a aba ativa é válida
-  const activeTab = TABS.find(t => t.id === tab) ? tab : TABS[0]?.id ?? TAB_LEADERBOARD
+  // ── Handlers ─────────────────────────────────────────────────────
+  const handleChampChange      = (champId) => setLocalChampId(champId)
+  const handleTournamentChange = (newId)   => { if (newId) navigate(`/tournament/${newId}`) }
 
-  const handleTournamentChange = (newId) => {
-    if (newId) navigate(`/tournament/${newId}`)
+  // Props compartilhadas entre os componentes filhos
+  const sharedProps = {
+    tournaments,
+    tournamentsLoading,
+    selectedTournamentId: String(id),
+    onTournamentChange: handleTournamentChange,
+    championships,
+    championshipsLoading,
+    selectedChampId,
+    onChampChange: handleChampChange,
   }
-
-  const badge = tournament ? STATUS_BADGE[tournament.status] : null
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'var(--color-xama-black)',
-      fontFamily: "'Rajdhani', sans-serif",
-      display: 'flex',
-      flexDirection: 'column',
-    }}>
-
-      <Navbar tournament={tournament} />
-
-      {/* Tabs */}
-      <div style={{
-        background: 'var(--color-xama-surface)',
-        borderBottom: '1px solid var(--color-xama-border)',
-        flexShrink: 0,
-      }}>
-        <div style={{
-          maxWidth: '1200px', margin: '0 auto', padding: '0 24px',
-          display: 'flex', alignItems: 'stretch', height: '44px', gap: '0',
-        }}>
-          {TABS.map(({ id: tabId, label, icon }) => {
-            const active = activeTab === tabId
-            return (
-              <button
-                key={tabId}
-                onClick={() => setTab(tabId)}
-                style={{
-                  position: 'relative',
-                  display: 'flex', alignItems: 'center', gap: '6px',
-                  padding: '0 16px', paddingBottom: '2px',
-                  fontSize: '12px', fontWeight: 700,
-                  letterSpacing: '0.05em', textTransform: 'uppercase',
-                  fontFamily: "'Rajdhani', sans-serif",
-                  background: 'none', border: 'none', outline: 'none',
-                  cursor: 'pointer',
-                  color: active ? 'var(--color-xama-text)' : 'var(--color-xama-muted)',
-                  transition: 'color 0.15s',
-                }}
-                onMouseEnter={(e) => { if (!active) e.currentTarget.style.color = '#c9d1e0' }}
-                onMouseLeave={(e) => { if (!active) e.currentTarget.style.color = 'var(--color-xama-muted)' }}
-              >
-                <span style={{ fontSize: '12px' }}>{icon}</span>
-                {label}
-                {active && (
-                  <span style={{
-                    position: 'absolute', bottom: 0, left: '8px', right: '8px',
-                    height: '2px', borderRadius: '2px 2px 0 0',
-                    background: 'var(--color-xama-orange)',
-                  }} />
-                )}
-              </button>
-            )
-          })}
-
-          {/* Badge de status */}
-          {badge && (
-            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
-              <span style={{
-                fontSize: '10px', fontWeight: 700, letterSpacing: '0.1em',
-                fontFamily: "'JetBrains Mono', monospace",
-                padding: '3px 8px', borderRadius: '4px',
-                background: badge.bg, border: `1px solid ${badge.border}`, color: badge.color,
-              }}>
-                {badge.label}
-              </span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Conteúdo */}
-      <div style={{ flex: 1 }}>
-        {activeTab === TAB_LINEUP && (
-          <LineupBuilder
-            token={token}
-            setToken={setToken}
-            tournaments={tournaments}
-            tournamentsLoading={tournamentsLoading}
-            tournamentsError=""
-            selectedTournamentId={selectedTournamentId}
-            onTournamentChange={handleTournamentChange}
-            championships={championships}
-            championshipsLoading={championshipsLoading}
-            selectedChampId={selectedChampId}
-            onChampChange={handleChampChange}
-          />
-        )}
-        {activeTab === TAB_LEADERBOARD && (
-          <TournamentLeaderboard
-            token={token}
-            tournaments={tournaments}
-            tournamentsLoading={tournamentsLoading}
-            selectedTournamentId={selectedTournamentId}
-            onTournamentChange={handleTournamentChange}
-            championships={championships}
-            championshipsLoading={championshipsLoading}
-            selectedChampId={selectedChampId}
-            onChampChange={handleChampChange}
-          />
-        )}
-        {activeTab === TAB_STATS && (
-          <PlayerStatsPage
-            tournaments={tournaments}
-            tournamentsLoading={tournamentsLoading}
-            selectedTournamentId={selectedTournamentId}
-            onTournamentChange={handleTournamentChange}
-            championships={championships}
-            championshipsLoading={championshipsLoading}
-            selectedChampId={selectedChampId}
-            onChampChange={handleChampChange}
-          />
-        )}
-      </div>
-
-    </div>
-  )
-}
+    <TournamentLayout
+      tournament={tournament}
+      championship={championship}
+      phaseLabel={phaseLabel}
+      myRank={myRank}
+      tabs={TABS}
+      activeTab={activeTab}
+      onTabChange={setTab}
+    >
+      {activeTab === TAB_LINEUP && (
+        <LineupBuilder
+          token={token}
+          setToken={setToken}
+          tournamentsError=""
+          {...sharedProps}
+        />
+      )}
+      {activeTab === TAB_LEADERBOARD && (
+        <TournamentLeaderboard
+          token={token}
+          {...sharedProps}
+     
