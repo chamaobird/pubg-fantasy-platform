@@ -241,6 +241,11 @@ def score_lineup_for_match(
 def score_all_lineups_for_match(match_id: int, db: Session) -> dict:
     """
     Score every Lineup in the match's tournament for the given match.
+
+    Multi-day support: if match.day is set, only scores lineups for that day
+    (i.e., lineups submitted for the same competition day as the match).
+    Falls back to scoring all lineups if match.day is None (legacy behavior).
+
     Commits once at the end.
     Returns a summary dict suitable for direct use as a JSON response.
     """
@@ -248,11 +253,13 @@ def score_all_lineups_for_match(match_id: int, db: Session) -> dict:
     if not match:
         raise ValueError(f"Match {match_id} not found")
 
-    lineups = (
-        db.query(Lineup)
-        .filter(Lineup.tournament_id == match.tournament_id)
-        .all()
-    )
+    lineup_query = db.query(Lineup).filter(Lineup.tournament_id == match.tournament_id)
+
+    if match.day is not None:
+        # ── Multi-day: score only lineups for this match's day ────────────
+        lineup_query = lineup_query.filter(Lineup.day == match.day)
+
+    lineups = lineup_query.all()
 
     scored: int = 0
     errors: list[dict] = []

@@ -66,7 +66,7 @@ O endpoint correto é **sem shard**: `GET https://api.pubg.com/tournaments` (nã
 Matches de torneios oficiais usam shard `pc-tournament` (não steam).
 Para buscar o ID de um torneio novo: filtrar por `t.id.includes('26')` na lista retornada.
 
-## Estado das Migrations (última: 20260326_0100)
+## Estado das Migrations (última: 20260328_1000)
 | Revision | O que faz |
 |---|---|
 | b2c3d4e5f6a1 | add social fields to users |
@@ -75,6 +75,61 @@ Para buscar o ID de um torneio novo: filtrar por `t.id.includes('26')` na lista 
 | d5e6f7a8b9c0 | add start_date to championships |
 | 20260322_... | add group_label to matches |
 | 20260326_0100_f2a3b4c5d6e7 | add live_pubg_id to players (unique index) |
+| 20260328_1000 | add current_day to tournaments; add day + uq_lineup_user_tournament_day to lineups |
+
+## Suporte Multi-Dia (implementado 2026-03-28)
+### Modelo
+- `tournaments.current_day` (int, default=1): qual dia de competição está aberto para submissão
+- `lineups.day` (int, default=1): para qual dia a lineup foi submetida
+- Unique constraint `uq_lineup_user_tournament_day` em `(user_id, tournament_id, day)`
+- Uma lineup por usuário por dia por torneio (antes era uma por torneio)
+
+### Endpoints novos/atualizados
+- `GET /tournaments/{id}` e `GET /tournaments/` — agora inclui `current_day`
+- `POST /tournaments/{id}/lineups` — submete para `current_day`; único por (user, torneio, dia)
+- `GET /tournaments/{id}/lineups/me` — retorna todas as lineups do usuário (uma por dia), ordenadas por dia
+- `GET /tournaments/{id}/rankings?day=N` — opcional; sem param = total acumulado por usuário; com param = só o dia N
+- `GET /tournaments/{id}/matches` — cada `day` no response agora inclui campo `day` (número do dia de competição)
+- `PATCH /admin/tournaments/{id}` — aceita `current_day` no body
+- `POST /admin/tournaments/{id}/open-day/{day_number}` — define current_day + lineup_open=true
+- `POST /admin/tournaments/{id}/close-day` — fecha lineup_open sem alterar current_day
+
+### Scoring Service
+- `score_all_lineups_for_match` agora filtra lineups por `match.day` (quando set)
+- Assim matches do Dia 1 só pontuam lineups do Dia 1, e vice-versa
+
+### Fluxo Operacional para Fases Multi-Dia
+#### Antes do Dia 1
+1. Criar torneio normalmente (status=active, lineup_open=false, current_day=1 automático)
+2. `POST /admin/tournaments/{id}/open-day/1` → abre submissões para Dia 1
+
+#### Fechamento Dia 1 / Abertura Dia 2
+1. Dia 1 importado → histórico fecha lineup_open automaticamente (auto-lock no 1º match)
+   - OU: `POST /admin/tournaments/{id}/close-day` para fechar manualmente
+2. Importar matches do Dia 1 normalmente via `/historical/import-matches-by-ids`
+3. Pontuar matches do Dia 1 via `/admin/matches/{id}/score` (só pontuará lineups day=1)
+4. `POST /admin/tournaments/{id}/open-day/2` → incrementa current_day=2, abre submissões
+
+#### Lineup Builder (frontend)
+- Mostra badge "DIA N" quando lineup aberta
+- Mostra banner verde "✅ Dia N Submetida" quando user já tem lineup pro dia atual
+- Mostra todas as lineups submetidas no banner (Dia 1 · Dia 2)
+- Botão de salvar mostra "SALVAR LINEUP — DIA N"
+
+#### Leaderboard (frontend)
+- Se torneio tem matches em múltiplos dias de competição: chips "Total / Dia 1 / Dia 2" aparecem
+- "Total": soma pontos de todas as lineups do usuário; mostra players do dia mais recente
+- "Dia N": busca rankings?day=N; mostra lineups e pontos só daquele dia
+- Dentro de cada dia, filtro por data/partida funciona normalmente (re-ranking client-side)
+- Badges "D1" e "D2" por usuário no modo total quando user tem múltiplos dias
+
+### T18 — Estado Após Deploy
+- Lineups existentes (Dia 1): automaticamente recebem day=1 via migration (default)
+- T18.current_day = 1 (default automático)
+- Para abrir Dia 2: `POST /admin/tournaments/18/open-day/2`
+  - Usuários que montaram no Dia 1 verão banner "✅ Dia 1 Submetida" e poderão montar Dia 2
+  - Usuários novos podem montar Dia 2 mesmo sem ter montado Dia 1
+- Scoring Dia 2: `/admin/matches/{id}/score` para cada match do Dia 2
 
 ## Convenção de Input Manual para Novas Fases
 Para fases seguintes de qualquer campeonato, o fluxo correto é:
@@ -84,7 +139,7 @@ Para fases seguintes de qualquer campeonato, o fluxo correto é:
 4. Desativar players de times que não devem aparecer no lineup (top/bottom de fases anteriores)
 Isso é mais rápido, assertivo e confiável do que qualquer automação de detecção de avanço.
 
-## Features Implementadas
+## Features Implementadas (atualizado 2026-03-28)
 - ✅ Importação histórica de partidas (historical.py) com auto-lock e wins_count
 - ✅ **Repair mode**: se match já existe com 0 stats, recria os stats sem duplicar o match
 - ✅ Lineup Builder com validações (budget, 1 player/time, reserva); **1 lineup por usuário por torneio** (backend bloqueia duplicata); mensagem de sucesso sem expor ID
@@ -107,6 +162,7 @@ Isso é mais rápido, assertivo e confiável do que qualquer automação de dete
 - ✅ **Bulk activate/deactivate players** — `PATCH /admin/players/bulk-set-active`
 - ✅ **Logos no Lineup Builder** — `TeamLogo` integrado (tabela de jogadores, cards de titulares e reserva)
 - ✅ **live_pubg_id** — campo no Player para conta Steam pessoal (Live Server scrims)
+- ✅ **Suporte Multi-Dia (Opção B)** — `current_day` em tournaments + `day` em lineups; uma lineup por usuário por dia; leaderboard total/por-dia; scoring filtrado por match.day; admin endpoints `open-day` e `close-day`
   - `_build_player_lookup` indexa `live_pubg_id` além de `pubg_id` e nome
   - `POST /admin/players/bulk-set-live-ids` para atualizar em massa
 

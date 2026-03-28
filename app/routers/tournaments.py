@@ -1,3 +1,4 @@
+from collections import defaultdict
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
@@ -26,6 +27,7 @@ class TournamentResponse(BaseModel):
     budget_limit: float
     is_active: bool
     lineup_open: bool = False
+    current_day: int = 1
 
     class Config:
         from_attributes = True
@@ -75,6 +77,7 @@ def list_tournaments(
             budget_limit=float(t.budget_limit or 0.0),
             is_active=(t.status == "active"),
             lineup_open=bool(t.lineup_open),
+            current_day=int(t.current_day or 1),
         )
         for t in tournaments
     ]
@@ -106,7 +109,8 @@ def get_tournament(tournament_id: int, db: Session = Depends(get_db)):
         max_teams=tournament.max_teams,
         budget_limit=float(tournament.budget_limit or 0.0),
         is_active=(tournament.status == "active"),
-        lineup_open=bool(tournament.lineup_open),  # FIX: era missing aqui
+        lineup_open=bool(tournament.lineup_open),
+        current_day=int(tournament.current_day or 1),
     )
 
 
@@ -181,6 +185,7 @@ class LineupOut(BaseModel):
     id: int
     name: str
     tournament_id: int
+    day: int = 1
     captain_id: int
     reserve_player_id: Optional[int] = None
     total_points: float = 0.0
@@ -192,7 +197,7 @@ class LineupOut(BaseModel):
     "/{tournament_id}/lineups",
     response_model=LineupOut,
     status_code=status.HTTP_201_CREATED,
-    summary="Cria lineup do usuário no torneio",
+    summary="Cria lineup do usuário no torneio para o dia atual",
 )
 def create_lineup(
     tournament_id: int,
@@ -211,15 +216,18 @@ def create_lineup(
             detail="Lineup submissions are closed for this tournament",
         )
 
-    # --- Uma lineup por usuário por torneio ---
+    current_day = int(tournament.current_day or 1)
+
+    # --- Uma lineup por usuário por torneio POR DIA ---
     existing_lineup = db.query(Lineup).filter(
         Lineup.tournament_id == tournament_id,
         Lineup.user_id == current_user.id,
+        Lineup.day == current_day,
     ).first()
     if existing_lineup:
         raise HTTPException(
             status_code=400,
-            detail="Você já possui uma lineup para este torneio. Não é possível criar mais de uma.",
+            detail=f"Você já possui uma lineup para o Dia {current_day} deste torneio. Não é possível criar mais de uma por dia.",
         )
 
     player_ids = body.player_ids
@@ -264,6 +272,7 @@ def create_lineup(
     lineup = Lineup(
         user_id=current_user.id,
         tournament_id=tournament_id,
+        day=current_day,
         name=body.name,
         captain_player_id=body.captain_id,
         reserve_player_id=reserve_player_id,
@@ -285,6 +294,7 @@ def create_lineup(
         id=lineup.id,
         name=lineup.name,
         tournament_id=lineup.tournament_id,
+        day=lineup.day,
         captain_id=lineup.captain_player_id,
         reserve_player_id=lineup.reserve_player_id,
         total_points=float(lineup.total_points or 0.0),
@@ -304,7 +314,7 @@ def create_lineup(
 @router.get(
     "/{tournament_id}/lineups/me",
     response_model=list[LineupOut],
-    summary="Lista lineups do usuário no torneio",
+    summary="Lista lineups do usuário no torneio (uma por dia)",
 )
 def my_lineups(
     tournament_id: int,
@@ -318,7 +328,7 @@ def my_lineups(
         db.query(Lineup)
         .options(joinedload(Lineup.players))
         .filter(Lineup.tournament_id == tournament_id, Lineup.user_id == current_user.id)
-        .order_by(Lineup.created_at.desc())
+        .order_by(Lineup.day.asc(), Lineup.created_at.desc())
         .all()
     )
     result: list[LineupOut] = []
@@ -328,6 +338,7 @@ def my_lineups(
                 id=lineup.id,
                 name=lineup.name,
                 tournament_id=lineup.tournament_id,
+                day=int(lineup.day or 1),
                 captain_id=lineup.captain_player_id,
                 reserve_player_id=lineup.reserve_player_id,
                 total_points=float(lineup.total_points or 0.0),
@@ -348,7 +359,8 @@ def my_lineups(
 
 # ------------------------------------------------------------------
 # GET /tournaments/{tournament_id}/rankings
-# ── v2: inclui username e display_name de cada dono de lineup ──────
+# ── v3: multi-day support — soma pontos de todos os dias por padrão
+#        ?day=N filtra por dia específico
 # ------------------------------------------------------------------
 class RankingEntry(BaseModel):
     position: int
@@ -358,21 +370,24 @@ class RankingEntry(BaseModel):
     username: str                      # sempre preenchido (fallback = "user_{id}")
     display_name: Optional[str] = None # preenchido se o user definiu em /profile
     total_points: float
+    day: Optional[int] = None          # None = total acumulado; N = dia específico
+    days_played: list[int] = []        # quais dias o usuário tem lineup
     players: list[LineupPlayerBasicOut]
 
 
 @router.get(
     "/{tournament_id}/rankings",
     response_model=list[RankingEntry],
-    summary="Rankings do torneio por total_points",
+    summary="Rankings do torneio",
     description=(
-        "Returns all lineups for the tournament ordered by total_points DESC "
-        "(nulls treated as 0, placed at the bottom), ties broken by created_at ASC. "
-        "Each entry includes a 1-based position field, username and display_name."
+        "Sem ?day: retorna um entry por usuário com total_points = soma de todos os dias. "
+        "Com ?day=N: retorna rankings apenas do dia N. "
+        "Ties broken by created_at ASC."
     ),
 )
 def tournament_rankings(
     tournament_id: int,
+    day: Optional[int] = Query(None, description="Filtrar por dia (ex: 1, 2). Sem filtro = total acumulado."),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     db: Session = Depends(get_db),
@@ -383,50 +398,144 @@ def tournament_rankings(
 
     from sqlalchemy import nullslast
 
-    lineups = (
-        db.query(Lineup)
-        .options(joinedload(Lineup.players))
-        .filter(Lineup.tournament_id == tournament_id)
-        .order_by(
-            nullslast(Lineup.total_points.desc()),
-            Lineup.created_at.asc(),
-        )
-        .offset(skip)
-        .limit(limit)
-        .all()
-    )
-
-    # Carrega todos os users de uma vez (evita N+1 queries)
-    user_ids = list({lineup.user_id for lineup in lineups})
-    users_by_id = {
-        u.id: u
-        for u in db.query(User).filter(User.id.in_(user_ids)).all()
-    }
-
-    result: list[RankingEntry] = []
-    for position, lineup in enumerate(lineups, start=skip + 1):
-        user = users_by_id.get(lineup.user_id)
-        result.append(
-            RankingEntry(
-                position=position,
-                lineup_id=lineup.id,
-                lineup_name=lineup.name,
-                user_id=lineup.user_id,
-                username=user.username if user else f"user_{lineup.user_id}",
-                display_name=user.display_name if user else None,
-                total_points=float(lineup.total_points or 0.0),
-                players=[
-                    LineupPlayerBasicOut(
-                        id=p.id,
-                        name=p.name,
-                        team_id=p.team_id,
-                        fantasy_cost=float(p.fantasy_cost or 0.0),
-                    )
-                    for p in lineup.players
-                ],
+    if day is not None:
+        # ── Filtro por dia específico ──────────────────────────────────────
+        lineups = (
+            db.query(Lineup)
+            .options(joinedload(Lineup.players))
+            .filter(
+                Lineup.tournament_id == tournament_id,
+                Lineup.day == day,
             )
+            .order_by(
+                nullslast(Lineup.total_points.desc()),
+                Lineup.created_at.asc(),
+            )
+            .offset(skip)
+            .limit(limit)
+            .all()
         )
-    return result
+
+        # Carrega todos os users de uma vez (evita N+1)
+        user_ids = list({l.user_id for l in lineups})
+        users_by_id = {
+            u.id: u
+            for u in db.query(User).filter(User.id.in_(user_ids)).all()
+        }
+
+        # Pré-carrega quais dias cada usuário tem lineup
+        all_lineups_for_users = (
+            db.query(Lineup.user_id, Lineup.day)
+            .filter(
+                Lineup.tournament_id == tournament_id,
+                Lineup.user_id.in_(user_ids),
+            )
+            .all()
+        )
+        days_by_user: dict[int, list[int]] = defaultdict(list)
+        for row in all_lineups_for_users:
+            days_by_user[row.user_id].append(row.day)
+
+        result: list[RankingEntry] = []
+        for position, lineup in enumerate(lineups, start=skip + 1):
+            user = users_by_id.get(lineup.user_id)
+            result.append(
+                RankingEntry(
+                    position=position,
+                    lineup_id=lineup.id,
+                    lineup_name=lineup.name,
+                    user_id=lineup.user_id,
+                    username=user.username if user else f"user_{lineup.user_id}",
+                    display_name=user.display_name if user else None,
+                    total_points=float(lineup.total_points or 0.0),
+                    day=day,
+                    days_played=sorted(set(days_by_user[lineup.user_id])),
+                    players=[
+                        LineupPlayerBasicOut(
+                            id=p.id,
+                            name=p.name,
+                            team_id=p.team_id,
+                            fantasy_cost=float(p.fantasy_cost or 0.0),
+                        )
+                        for p in lineup.players
+                    ],
+                )
+            )
+        return result
+
+    else:
+        # ── Visão total: soma de todos os dias por usuário ─────────────────
+        # Carrega todas as lineups do torneio
+        all_lineups = (
+            db.query(Lineup)
+            .options(joinedload(Lineup.players))
+            .filter(Lineup.tournament_id == tournament_id)
+            .order_by(Lineup.day.asc(), Lineup.created_at.asc())
+            .all()
+        )
+
+        if not all_lineups:
+            return []
+
+        # Agrupa por user_id
+        user_lineup_map: dict[int, list[Lineup]] = defaultdict(list)
+        for l in all_lineups:
+            user_lineup_map[l.user_id].append(l)
+
+        # Constrói entries: total de pontos por user, players do dia mais recente
+        entries = []
+        for user_id, user_lineups in user_lineup_map.items():
+            total_pts = sum(float(l.total_points or 0.0) for l in user_lineups)
+            latest_lineup = max(user_lineups, key=lambda l: l.day)
+            earliest_created = min(l.created_at for l in user_lineups if l.created_at)
+            entries.append({
+                "user_id": user_id,
+                "total_points": total_pts,
+                "lineup": latest_lineup,
+                "days_played": sorted(set(l.day for l in user_lineups)),
+                "earliest_created": earliest_created,
+            })
+
+        # Ordena: total_points DESC, created_at ASC (empate)
+        entries.sort(key=lambda x: (-x["total_points"], x["earliest_created"] or ""))
+
+        # Paginação manual
+        paginated = entries[skip: skip + limit]
+
+        # Carrega users de uma vez
+        user_ids = [e["user_id"] for e in paginated]
+        users_by_id = {
+            u.id: u
+            for u in db.query(User).filter(User.id.in_(user_ids)).all()
+        }
+
+        result: list[RankingEntry] = []
+        for position, entry in enumerate(paginated, start=skip + 1):
+            user = users_by_id.get(entry["user_id"])
+            lineup = entry["lineup"]
+            result.append(
+                RankingEntry(
+                    position=position,
+                    lineup_id=lineup.id,
+                    lineup_name=lineup.name,
+                    user_id=entry["user_id"],
+                    username=user.username if user else f"user_{entry['user_id']}",
+                    display_name=user.display_name if user else None,
+                    total_points=entry["total_points"],
+                    day=None,  # visão total
+                    days_played=entry["days_played"],
+                    players=[
+                        LineupPlayerBasicOut(
+                            id=p.id,
+                            name=p.name,
+                            team_id=p.team_id,
+                            fantasy_cost=float(p.fantasy_cost or 0.0),
+                        )
+                        for p in lineup.players
+                    ],
+                )
+            )
+        return result
 
 
 # ------------------------------------------------------------------
@@ -661,6 +770,8 @@ def tournament_matches(
         from datetime import timezone, timedelta
         BRT = timezone(timedelta(hours=-3))
         date_key = session[0].played_at.astimezone(BRT).date().isoformat()
+        # Usa o campo day do primeiro match da sessão (se disponível)
+        session_day = session[0].day if session[0].day else (i + 1)
         session_matches = []
         for j, m in enumerate(session):
             stats_count = (
@@ -680,6 +791,7 @@ def tournament_matches(
         result.append({
             "date": date_key,
             "session": i + 1,
+            "day": session_day,
             "matches_count": len(session_matches),
             "matches": session_matches,
         })

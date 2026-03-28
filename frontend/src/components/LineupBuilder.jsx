@@ -90,6 +90,9 @@ export default function LineupBuilder({
   const [saveError,   setSaveError]   = useState('')
   const [saveSuccess, setSaveSuccess] = useState(null)
 
+  // ── Lineups já submetidas pelo usuário (multi-dia) ──────────────────────
+  const [myLineups, setMyLineups] = useState([])
+
   const [sortKey, setSortKey] = useState('fantasy_cost')
   const [sortDir, setSortDir] = useState('desc')
 
@@ -106,8 +109,22 @@ export default function LineupBuilder({
     return tournaments.find((t) => t.id === idNum) || null
   }, [selectedTournamentId, tournaments])
 
-  // true quando o torneio selecionado tem lineup_open=false
-  const isLocked = selectedTournament ? !selectedTournament.lineup_open : false
+  // Dia atual do torneio (1 por default)
+  const currentDay = selectedTournament?.current_day ?? 1
+
+  // Lineup já submetida para o dia atual (se houver)
+  const currentDayLineup = useMemo(
+    () => myLineups.find((l) => l.day === currentDay) || null,
+    [myLineups, currentDay]
+  )
+
+  // true quando o torneio selecionado tem lineup_open=false OU user já submeteu para o dia atual
+  const isLocked = selectedTournament
+    ? !selectedTournament.lineup_open || !!currentDayLineup
+    : false
+
+  // true especificamente porque o torneio fechou (vs. user já submeteu)
+  const isTournamentClosed = selectedTournament ? !selectedTournament.lineup_open : false
 
   const budgetLimit = useMemo(() => {
     const val = selectedTournament?.budget_limit
@@ -203,9 +220,20 @@ export default function LineupBuilder({
       .finally(() => { if (mounted) setPlayersLoading(false) })
 
     setSelectedPlayers([]); setReservePlayer(null); setCaptainId(null)
-    setSaveError(''); setSaveSuccess(null)
+    setSaveError(''); setSaveSuccess(null); setMyLineups([])
     return () => { mounted = false }
   }, [selectedTournamentId])
+
+  // ── Busca lineups submetidas pelo usuário para o torneio selecionado ───
+  useEffect(() => {
+    if (!token || !selectedTournamentId) { setMyLineups([]); return }
+    httpJson(`${API_BASE_URL}/tournaments/${selectedTournamentId}/lineups/me`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token.trim()}` },
+    })
+      .then((data) => setMyLineups(Array.isArray(data) ? data : []))
+      .catch(() => setMyLineups([]))
+  }, [token, selectedTournamentId, saveSuccess])
 
   // ── Actions ────────────────────────────────────────────────────────────
   async function doLogin() {
@@ -398,13 +426,51 @@ export default function LineupBuilder({
           </div>
         )}
 
+        {/* ── Banner de dia de competição (quando multi-dia) ─────────────── */}
+        {selectedTournament && selectedTournament.lineup_open && (
+          <div style={{
+            marginBottom: 16, padding: '10px 16px', borderRadius: 8,
+            background: 'rgba(96,165,250,0.06)', border: '1px solid rgba(96,165,250,0.2)',
+            display: 'flex', alignItems: 'center', gap: 10,
+          }}>
+            <span style={{ fontSize: 18, lineHeight: 1 }}>📅</span>
+            <div>
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 700, letterSpacing: '0.05em', color: '#60a5fa', fontFamily: "'Rajdhani', sans-serif" }}>
+                Dia {currentDay} — Lineup Aberta
+              </p>
+              {myLineups.length > 0 && (
+                <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--color-xama-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
+                  Submetidas: {myLineups.map((l) => `Dia ${l.day}`).join(' · ')}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* ── Banner lineup fechado ──────────────────────────────────────── */}
-        {isLocked && (
+        {isTournamentClosed && (
           <div className="xlb-locked" style={{ marginBottom: 20 }}>
             <span style={{ fontSize: 20, lineHeight: 1 }}>🔒</span>
             <div>
               <p className="xlb-locked-title">Lineup Fechado</p>
               <p className="xlb-locked-sub">As submissões encerraram quando o primeiro match foi importado.</p>
+            </div>
+          </div>
+        )}
+
+        {/* ── Banner lineup já submetida para o dia atual ─────────────────── */}
+        {!isTournamentClosed && currentDayLineup && (
+          <div className="xlb-locked" style={{ marginBottom: 20, background: 'rgba(34,197,94,0.05)', borderColor: 'rgba(34,197,94,0.2)' }}>
+            <span style={{ fontSize: 20, lineHeight: 1 }}>✅</span>
+            <div>
+              <p className="xlb-locked-title" style={{ color: '#4ade80' }}>Lineup Dia {currentDay} Submetida</p>
+              <p className="xlb-locked-sub">
+                Sua lineup foi salva para o Dia {currentDay}.
+                {myLineups.length > 1
+                  ? ` Você tem lineups nos dias: ${myLineups.map((l) => l.day).join(', ')}.`
+                  : ' Aguarde a abertura do próximo dia.'
+                }
+              </p>
             </div>
           </div>
         )}
@@ -532,7 +598,19 @@ export default function LineupBuilder({
 
               {/* Cabeçalho do painel */}
               <div className="xlb-panel-head">
-                <p className="xlb-panel-title">Meu Lineup</p>
+                <p className="xlb-panel-title">
+                  Meu Lineup
+                  {selectedTournament?.lineup_open && (
+                    <span style={{
+                      marginLeft: 8, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
+                      padding: '2px 8px', borderRadius: 4, background: 'rgba(96,165,250,0.12)',
+                      border: '1px solid rgba(96,165,250,0.3)', color: '#60a5fa',
+                      fontFamily: "'Rajdhani', sans-serif",
+                    }}>
+                      DIA {currentDay}
+                    </span>
+                  )}
+                </p>
               </div>
 
               {/* Budget bar */}
@@ -634,7 +712,7 @@ export default function LineupBuilder({
 
               {/* Salvar lineup */}
               <div className="xlb-panel-body" style={{ borderTop: '1px solid var(--color-xama-border)' }}>
-                {isLocked ? (
+                {isTournamentClosed ? (
                   <div className="xlb-locked" style={{ margin: 0 }}>
                     <span style={{ fontSize: 16 }}>🔒</span>
                     <div>
@@ -642,17 +720,25 @@ export default function LineupBuilder({
                       <p className="xlb-locked-sub">Submissões encerradas para este torneio</p>
                     </div>
                   </div>
+                ) : currentDayLineup ? (
+                  <div className="xlb-locked" style={{ margin: 0, background: 'rgba(34,197,94,0.05)', borderColor: 'rgba(34,197,94,0.2)' }}>
+                    <span style={{ fontSize: 16 }}>✅</span>
+                    <div>
+                      <p className="xlb-locked-title" style={{ color: '#4ade80' }}>Dia {currentDay} concluído</p>
+                      <p className="xlb-locked-sub">Aguarde a abertura do próximo dia</p>
+                    </div>
+                  </div>
                 ) : (
                   <button
                     className={`xlb-save-btn ${saveLoading ? 'loading' : canSave ? 'ready' : 'idle'}`}
                     onClick={saveLineup}
                     disabled={!canSave || saveLoading}>
-                    {saveLoading ? 'Salvando...' : 'SALVAR LINEUP'}
+                    {saveLoading ? 'Salvando...' : `SALVAR LINEUP — DIA ${currentDay}`}
                   </button>
                 )}
 
                 {saveError   && <div className="msg-error"   style={{ marginTop: 10 }}>{saveError}</div>}
-                {saveSuccess && <div className="msg-success" style={{ marginTop: 10 }}>Lineup salva com sucesso!</div>}
+                {saveSuccess && <div className="msg-success" style={{ marginTop: 10 }}>Lineup Dia {currentDay} salva com sucesso!</div>}
 
               </div>{/* fim xlb-panel-body (save) */}
             </div>{/* fim xlb-panel (direito) */}

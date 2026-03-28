@@ -19,10 +19,14 @@ lineup_players = Table(
 
 class Lineup(Base):
     __tablename__ = "lineups"
+    __table_args__ = (
+        UniqueConstraint("user_id", "tournament_id", "day", name="uq_lineup_user_tournament_day"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
     tournament_id: Mapped[int] = mapped_column(ForeignKey("tournaments.id"), nullable=False, index=True)
+    day: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     captain_player_id: Mapped[int] = mapped_column(ForeignKey("players.id"), nullable=False)
     reserve_player_id: Mapped[int | None] = mapped_column(ForeignKey("players.id"), nullable=True)

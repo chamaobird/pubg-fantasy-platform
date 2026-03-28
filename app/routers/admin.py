@@ -712,9 +712,10 @@ class TournamentUpdate(BaseModel):
     region:      Optional[str] = None
     status:      Optional[str] = None
     lineup_open: Optional[bool] = None
+    current_day: Optional[int] = None
 
 
-@router.patch("/tournaments/{tournament_id}", summary="Atualiza nome/região/status de um torneio")
+@router.patch("/tournaments/{tournament_id}", summary="Atualiza nome/região/status/lineup_open/current_day")
 async def update_tournament(
     tournament_id: int,
     body: TournamentUpdate,
@@ -733,6 +734,8 @@ async def update_tournament(
         t.status = body.status
     if body.lineup_open is not None:
         t.lineup_open = body.lineup_open
+    if body.current_day is not None:
+        t.current_day = body.current_day
     db.commit()
     return {
         "id": t.id,
@@ -740,6 +743,94 @@ async def update_tournament(
         "region": t.region,
         "status": t.status,
         "lineup_open": t.lineup_open,
+        "current_day": t.current_day,
+    }
+
+
+@router.post(
+    "/tournaments/{tournament_id}/open-day/{day_number}",
+    summary="[Admin] Abre lineup para um novo dia de competição",
+    description=(
+        "Define current_day=day_number e lineup_open=True. "
+        "Use ao iniciar cada dia de uma fase multi-dia. "
+        "Usuários que já têm lineup para esse dia verão o formulário bloqueado. "
+        "Usuários sem lineup para esse dia poderão submeter."
+    ),
+)
+async def open_day(
+    tournament_id: int,
+    day_number: int,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    from app.models import Tournament
+    from app.models.lineup import Lineup
+
+    t = db.query(Tournament).filter(Tournament.id == tournament_id).first()
+    if not t:
+        raise HTTPException(status_code=404, detail="Tournament not found")
+    if day_number < 1:
+        raise HTTPException(status_code=400, detail="day_number deve ser >= 1")
+
+    prev_day = int(t.current_day or 1)
+    prev_open = bool(t.lineup_open)
+
+    # Conta lineups já submetidas para o dia alvo (para informação)
+    existing_count = db.query(Lineup).filter(
+        Lineup.tournament_id == tournament_id,
+        Lineup.day == day_number,
+    ).count()
+
+    t.current_day = day_number
+    t.lineup_open = True
+    db.commit()
+
+    return {
+        "tournament_id": tournament_id,
+        "previous_day": prev_day,
+        "previous_lineup_open": prev_open,
+        "current_day": day_number,
+        "lineup_open": True,
+        "existing_lineups_for_day": existing_count,
+        "message": (
+            f"Dia {day_number} aberto para submissões. "
+            f"{existing_count} lineup(s) já existentes para este dia."
+        ),
+    }
+
+
+@router.post(
+    "/tournaments/{tournament_id}/close-day",
+    summary="[Admin] Fecha lineup do dia atual",
+    description="Define lineup_open=False sem alterar current_day.",
+)
+async def close_day(
+    tournament_id: int,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    from app.models import Tournament
+    from app.models.lineup import Lineup
+
+    t = db.query(Tournament).filter(Tournament.id == tournament_id).first()
+    if not t:
+        raise HTTPException(status_code=404, detail="Tournament not found")
+
+    current_day = int(t.current_day or 1)
+    lineup_count = db.query(Lineup).filter(
+        Lineup.tournament_id == tournament_id,
+        Lineup.day == current_day,
+    ).count()
+
+    t.lineup_open = False
+    db.commit()
+
+    return {
+        "tournament_id": tournament_id,
+        "current_day": current_day,
+        "lineup_open": False,
+        "lineups_locked": lineup_count,
+        "message": f"Dia {current_day} fechado. {lineup_count} lineup(s) bloqueadas.",
     }
 
 
