@@ -13,10 +13,11 @@ function formatPlayerName(name) {
   return idx !== -1 ? name.slice(idx + 1) : name
 }
 function formatTeamTag(name, team) {
-  if (team) return team
-  if (!name) return ''
-  const idx = name.indexOf('_')
-  return idx !== -1 ? name.slice(0, idx) : ''
+  if (name) {
+    const idx = name.indexOf('_')
+    if (idx !== -1) return name.slice(0, idx)
+  }
+  return team || ''
 }
 function parseErrorMessage(err) {
   if (typeof err === 'string') return err
