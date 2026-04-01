@@ -24,7 +24,7 @@
   --fs-section-title: 18px;   /* Título de seção */
   --fs-card-title:    16px;   /* Título de card */
   --fs-body:          14px;   /* Texto normal */
-  --fs-table:         13px;   /* Texto de tabela */
+  --fs-table:         14px;   /* Texto de tabela */
   --fs-label:         11px;   /* Labels, badges, caps */
   --fs-micro:         10px;   /* Micro texto */
 
@@ -36,7 +36,7 @@
   /* Espaçamento */
   --space-section: 32px;     /* Entre seções principais */
   --space-card:    20px;     /* Padding de card */
-  --space-row:     40px;     /* Altura mínima de linha de tabela */
+  --space-row:     46px;     /* Altura mínima de linha de tabela */
   --space-gap:     16px;     /* Gap padrão entre cards */
 
   /* Raios */
@@ -458,7 +458,7 @@ body {
   min-width: 0;
 }
 .xlb-sticky-title {
-  font-size: 11px; font-weight: 700; letter-spacing: 0.09em;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.09em;
   text-transform: uppercase; color: var(--color-xama-muted);
   font-family: 'Rajdhani', sans-serif; margin: 0;
   white-space: nowrap; flex-shrink: 0;
@@ -478,12 +478,12 @@ body {
   display: flex; flex-direction: column; align-items: center; gap: 1px;
 }
 .xlb-sticky-stat-label {
-  font-size: 9px; color: var(--color-xama-muted);
+  font-size: 10px; color: var(--color-xama-muted);
   letter-spacing: 0.06em; text-transform: uppercase;
   font-family: 'JetBrains Mono', monospace;
 }
 .xlb-sticky-stat-value {
-  font-size: 13px; font-weight: 800;
+  font-size: 14px; font-weight: 800;
   font-family: 'JetBrains Mono', monospace;
   font-variant-numeric: tabular-nums; color: var(--color-xama-text);
 }
@@ -531,7 +531,7 @@ body {
   color: var(--color-xama-muted); flex-shrink: 0;
 }
 .xlb-hslot-name {
-  font-size: 12px; font-weight: 600; color: var(--color-xama-text);
+  font-size: 13px; font-weight: 600; color: var(--color-xama-text);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   flex: 1; min-width: 0;
 }
@@ -632,8 +632,8 @@ body {
 .xlb-table { width: 100%; border-collapse: collapse; font-size: var(--fs-table); }
 .xlb-table thead tr { background: var(--surface-2); }
 .xlb-table th {
-  padding: 10px 12px; text-align: left;
-  font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 12px 12px; text-align: left;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
   color: var(--color-xama-muted); border-bottom: 1px solid var(--color-xama-border);
   white-space: nowrap; cursor: pointer; user-select: none;
   transition: color 0.15s;
@@ -641,20 +641,26 @@ body {
 .xlb-table th:hover { color: var(--color-xama-text); }
 .xlb-table th.active { color: var(--color-xama-orange); }
 .xlb-table th.right, .xlb-table td.right { text-align: right; }
-.xlb-table td { padding: 0 12px; height: var(--space-row); vertical-align: middle; border-bottom: 1px solid #13161f; }
+.xlb-table td { padding: 0 12px; height: var(--space-row); vertical-align: middle; border-bottom: 1px solid #13161f; font-size: var(--fs-table); }
 .xlb-table tbody tr { transition: background 0.1s; }
+.xlb-table tbody tr:nth-child(even) { background: rgba(255,255,255,0.018); }
 .xlb-table tbody tr:hover { background: #161b27; }
 .xlb-table tbody tr:last-child td { border-bottom: none; }
 
+/* ─── Linha atenuada por conflito de time ─── */
+.xlb-row--dimmed { opacity: 0.32; pointer-events: none; }
+.xlb-row--dimmed td { user-select: none; }
+
 /* Botões de ação dentro da tabela */
 .xlb-action-btn {
-  font-size: 11px; font-weight: 700; letter-spacing: 0.05em;
-  padding: 4px 10px; border-radius: 5px; cursor: pointer;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.05em;
+  padding: 5px 12px; border-radius: 5px; cursor: pointer;
   font-family: 'Rajdhani', sans-serif; transition: all 0.12s;
   background: var(--surface-3); border: 1px solid #2a3046; color: var(--color-xama-muted);
 }
 .xlb-action-btn:hover:not(:disabled) { color: var(--color-xama-text); border-color: #3d4d6e; }
 .xlb-action-btn:disabled { opacity: 0.3; cursor: default; }
+.xlb-action-btn--conflict { opacity: 0.25; cursor: not-allowed; }
 
 /* ─── Locked banner ─── */
 .xlb-locked {

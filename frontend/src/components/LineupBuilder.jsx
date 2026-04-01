@@ -179,6 +179,14 @@ export default function LineupBuilder({
     })
   }, [filteredPlayers, sortKey, sortDir])
 
+  // ── Conflict detection: times já com jogador escalado (titular ou reserva) ─
+  const conflictedTeams = useMemo(() => {
+    const teams = new Set()
+    selectedPlayers.forEach((p) => teams.add(formatTeamTag(p.name, p.team)))
+    if (reservePlayer) teams.add(formatTeamTag(reservePlayer.name, reservePlayer.team))
+    return teams
+  }, [selectedPlayers, reservePlayer])
+
   // ── Effects ────────────────────────────────────────────────────────────
   useEffect(() => {
     let mounted = true
@@ -685,13 +693,18 @@ export default function LineupBuilder({
                 <tbody>
                   {sortedPlayers.map((p) => {
                     const cs = p._cs
+                    const playerTag  = formatTeamTag(p.name, p.team)
+                    const isSelected = selectedPlayers.some((sp) => sp.id === p.id) || reservePlayer?.id === p.id
+                    const isConflicted = !isSelected && conflictedTeams.has(playerTag) && conflictedTeams.size > 0
+                    const rowClass   = isConflicted ? 'xlb-row--dimmed' : ''
+                    const btnDisabled = isLocked || isConflicted
                     return (
-                      <tr key={p.id}>
+                      <tr key={p.id} className={rowClass}>
                         <td>
                           <div className="flex items-center gap-1.5">
-                            <TeamLogo teamName={formatTeamTag(p.name, p.team)} size={20} />
-                            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--color-xama-muted)' }}>
-                              {formatTeamTag(p.name, p.team) || '—'}
+                            <TeamLogo teamName={playerTag} size={20} />
+                            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--color-xama-muted)' }}>
+                              {playerTag || '—'}
                             </span>
                           </div>
                         </td>
@@ -732,10 +745,16 @@ export default function LineupBuilder({
                         </td>
                         <td>
                           <div className="flex gap-1 justify-end">
-                            <button className="xlb-action-btn" disabled={isLocked} onClick={() => !isLocked && addPlayer(p)}>
+                            <button
+                              className={`xlb-action-btn${isConflicted ? ' xlb-action-btn--conflict' : ''}`}
+                              disabled={btnDisabled}
+                              onClick={() => !btnDisabled && addPlayer(p)}>
                               Titular
                             </button>
-                            <button className="xlb-action-btn" disabled={isLocked} onClick={() => !isLocked && setAsReserve(p)}>
+                            <button
+                              className={`xlb-action-btn${isConflicted ? ' xlb-action-btn--conflict' : ''}`}
+                              disabled={btnDisabled}
+                              onClick={() => !btnDisabled && setAsReserve(p)}>
                               Reserva
                             </button>
                           </div>

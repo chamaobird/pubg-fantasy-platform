@@ -1,0 +1,496 @@
+[33mcommit 74107c0afb863e0eca2eec18ba4fc997ba29f9b8[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Sun Mar 22 18:33:11 2026 -0400
+
+    feat: adiciona navbar com Dashboard/Perfil/Sair no TournamentSelect
+
+[33mcommit 85189770d5840e0fe2af60125038bdfaf5c3d8f8[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Sun Mar 22 17:23:20 2026 -0400
+
+    refactor: simplifica perfil - username editável, remove display_name e campos sociais
+
+[33mcommit e6bb1d8236c57858366537de4d2185d3ef3ff11c[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Sun Mar 22 17:05:51 2026 -0400
+
+    feat: dashboard com 3 estados de torneio (aberto/em breve/finalizado)
+
+[33mcommit e3401627ef0e291e1dd5f032b292095d2a41ca54[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Sun Mar 22 15:14:00 2026 -0400
+
+    feat: dashboard como home pós-login com torneios ativos e histórico
+
+[33mcommit 79662ccee4c37681fddc9ee66cdc4506724c8421[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Sun Mar 22 14:40:58 2026 -0400
+
+    fix: use BRT (UTC-3) for match date grouping and filtering
+
+[33mcommit e206c149a587ec56512a09d5ee33879a528de719[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Sun Mar 22 14:09:29 2026 -0400
+
+    fix: reprocess-match-stats missing wins_count and tuple bug
+
+[33mcommit d1fa79058abfac0362e21b69296c071eafc333af[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Sat Mar 21 21:13:52 2026 -0400
+
+    feat: add team logo assets
+
+[33mcommit ce3f95c11f80aa88f63819aa95b47ce049b1ec1f[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Sat Mar 21 20:28:35 2026 -0400
+
+    feat: team logos in player stats and leaderboard
+
+[33mcommit f47cdc49fca90110ca381ccfbc2b3f90fccc56b5[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Sat Mar 21 19:15:24 2026 -0400
+
+    feat: group tournaments by championship in TournamentSelect (Feature 2)
+
+[33mcommit 60bd6d73598e43b67f1fb0166b2c45cf10e19f9d[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Sat Mar 21 18:57:27 2026 -0400
+
+    fix: use Column style for wins_count in MatchPlayerStat
+
+[33mcommit 1cec581dd268af0361bf4e31da0b606b360e0c62[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Sat Mar 21 18:49:52 2026 -0400
+
+    feat: add wins_count to match_player_stats (Feature 1)
+
+[33mcommit 6f06b20fa408654932970ddd6d74061515938705[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Sat Mar 21 14:49:20 2026 -0400
+
+    feat: lineup lock automático via import de matches
+    
+    - auto-lock: import_matches() seta lineup_open=False quando o primeiro
+      match é persistido (funciona para manual e scheduler)
+    - create_lineup: retorna 403 se lineup_open=False
+    - get_tournament: corrige lineup_open ausente no TournamentResponse
+    - LineupBuilder: banner LOCKED + botões desabilitados + dropdown mostra
+      todos os torneios com indicador 🔒
+    
+    Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+
+[33mcommit 16a2075a4757a602967ea9305b97d9c6e6b7d4b5[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Sat Mar 21 13:45:49 2026 -0400
+
+    feat: perfil completo, choose-username Google, botão Perfil navbar
+
+[33mcommit d4297b99da471fa9d632e95a7ddfe21657b416a3[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Sat Mar 21 13:32:17 2026 -0400
+
+    feat: perfil completo, choose-username Google, botão Perfil navbar
+
+[33mcommit f187b5e055bb33c9247e3f02ba3695adb2c7ed90[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Sat Mar 21 13:28:38 2026 -0400
+
+    feat: campos sociais twitch/krafton/discord, Google login com username obrigatório
+
+[33mcommit 544e04ead435799fbb02b0e1b41d29fa73f45402[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Sat Mar 21 12:54:40 2026 -0400
+
+    fix: migration display_name que faltou
+
+[33mcommit 627d88f8a08a50b0685dc0a5ce0b89d0679b09fc[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Sat Mar 21 12:40:59 2026 -0400
+
+    fix: remover auth.router duplicado — conflito com users.router no /users/login
+
+[33mcommit 7bb37fd9ec3e323032ba873caa75952e22f47909[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Sat Mar 21 12:17:20 2026 -0400
+
+    feat: profile page, display_name no leaderboard, link perfil navbar
+
+[33mcommit 3fd06ebf10271f39bae7479670662d3f58369b0f[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Sat Mar 21 12:17:11 2026 -0400
+
+    feat: display_name, leaderboard username, PATCH /users/me
+
+[33mcommit f6ce0198759d49d51f73fef86492589e01114fba[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Fri Mar 20 23:18:12 2026 -0400
+
+    arrumando championship
+
+[33mcommit 4f5930a09647ce27fbd0dfc99ebbf582ee13f750[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Fri Mar 20 23:06:42 2026 -0400
+
+    arrumando championship
+
+[33mcommit 1c25fc20e20624b212d1a4a3939eb81294d63b65[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Fri Mar 20 22:45:44 2026 -0400
+
+    arrumando championship
+
+[33mcommit 3237e320df18f926c0237ee73f2990732e772c03[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Fri Mar 20 22:37:02 2026 -0400
+
+    arrumando championship
+
+[33mcommit a6ad780108436aebe96381e0228fc72ac3b41c73[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Fri Mar 20 22:28:52 2026 -0400
+
+    feat: only allow lineup building for tournaments with lineup_open
+
+[33mcommit 5ad54a3a8d4c9bbb844fff92497cda0342aa55b9[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Fri Mar 20 22:17:24 2026 -0400
+
+    feat: lineup_open flag on tournaments
+
+[33mcommit 63b9777980b44ae97630a449ae2386c188b00710[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Fri Mar 20 21:49:59 2026 -0400
+
+    feat: LineupBuilder with championship stats cross-tournament
+
+[33mcommit 57d9eb90f7cd9d6ed1dfcb58e1c85df40fa84741[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Fri Mar 20 21:32:07 2026 -0400
+
+    arrumando championship
+
+[33mcommit 76c35c3db796c3cefecc36c90e84d3775bd7599c[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Fri Mar 20 20:56:09 2026 -0400
+
+    feat: add total_penalty_count to player-stats endpoint
+
+[33mcommit df0c8275dad1fc07e945bfc53fb02e88d4f35808[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Fri Mar 20 20:08:10 2026 -0400
+
+    feat: penalty_count structural field + 600s threshold
+
+[33mcommit c83adbe0f6642e0af7d7a0972c337301dfb20e6a[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Fri Mar 20 19:36:22 2026 -0400
+
+    feat: penalty_count structural field + 600s threshold
+
+[33mcommit bf249c8a1ce3145a4f567ff555c0bea20b72e370[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Fri Mar 20 19:19:45 2026 -0400
+
+    feat: add base_points and late_game_bonus columns to MatchPlayerStat model
+
+[33mcommit a2a75276df5311dd8acab8c9830dc62a8cd5c11c[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Fri Mar 20 19:02:53 2026 -0400
+
+    feat: add base_points and late_game_bonus columns to MatchPlayerStat model
+
+[33mcommit 57760822de1920607ca79ebb90fc5abab5da6f9e[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Fri Mar 20 18:53:55 2026 -0400
+
+    feat: add base_points and late_game_bonus columns to MatchPlayerStat model
+
+[33mcommit dce8f83f4d5a8493a1d822426f828290ec55753f[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Fri Mar 20 18:43:33 2026 -0400
+
+    fix: unpack tuple from _compute_fantasy_points correctly
+
+[33mcommit 6719f1fc2b033e1e8c74ed6e26f3fd61bb6a872b[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Fri Mar 20 18:32:41 2026 -0400
+
+    feat: recalculate-fantasy-points populates base_points and late_game_bonus
+
+[33mcommit 77757612aea64db38d0e4b47b4cd48ddb8bbc958[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Fri Mar 20 18:21:45 2026 -0400
+
+    feat: recalculate-fantasy-points populates base_points and late_game_bonus
+
+[33mcommit 70d7b90ec6dbc4bbeccabe3545437b19d6968950[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Fri Mar 20 18:18:24 2026 -0400
+
+    feat: separate base_points and late_game_bonus in MatchPlayerStat
+
+[33mcommit f6ee8e630963d43bf7e03d24338094c504f58a0c[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Fri Mar 20 17:22:17 2026 -0400
+
+    fix: captain multiplier 1.25x instead of 2x in lineup scoring
+
+[33mcommit 54df41adfa65080fae240b3ad225678fe5dcd2ff[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Fri Mar 20 16:58:08 2026 -0400
+
+    feat: players inherit region from tournament on seed
+
+[33mcommit 71f09e6e0b07aafd822416230ee018d0839ba722[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Fri Mar 20 12:05:50 2026 -0400
+
+    feat: is_active filter on players + deactivate team endpoint
+
+[33mcommit 2d10a1a9b9c3544edc0c4111c18b3daed0af282b[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Fri Mar 20 10:58:19 2026 -0400
+
+    arrumando estrutura de players ativos et3
+
+[33mcommit 4e399d8f98f2f3618a0df6f7f2378d83de01bc37[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Fri Mar 20 10:52:11 2026 -0400
+
+    arrumando estrutura de players ativos et2
+
+[33mcommit a204d33a60f0f8dd8df45b9caf904b6ec70364fa[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Fri Mar 20 10:27:03 2026 -0400
+
+    arrumando estrutura de players ativos et1
+
+[33mcommit 551390e32139e3e2eb50861bacb1213185287f67[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Fri Mar 20 09:50:51 2026 -0400
+
+    feat: replace cr with $ as currency symbol
+
+[33mcommit e9a2bb8ace91251dba4eeaa3bc3cc9c1fe9afd86[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Thu Mar 19 16:57:34 2026 -0400
+
+    temp: fix matches schema endpoint
+
+[33mcommit ac2ebe07697d229302480917085d065d2c4525ff[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Thu Mar 19 16:34:22 2026 -0400
+
+    temp: fix matches schema endpoint
+
+[33mcommit 9e832f297211c4454dad107bccd4c7ffc41dd209[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Wed Mar 18 10:57:57 2026 -0400
+
+    feat: day and match filters on Stats page
+
+[33mcommit f7d6f5c0fd2346e6d1cd8fae6e2647272aefa777[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Wed Mar 18 10:35:43 2026 -0400
+
+    feat: day and match filters on Stats page
+
+[33mcommit ae14a2d0b0512bc74c9379631d0a8c00fa58ee5e[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Wed Mar 18 10:23:04 2026 -0400
+
+    feat: add match/date filters to player-stats + GET /tournaments/{id}/matches
+
+[33mcommit 3e865759e83f9c0fd5af8ff420a42e74ffc816b0[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Wed Mar 18 10:11:21 2026 -0400
+
+    feat: add match/date filters to player-stats + GET /tournaments/{id}/matches
+
+[33mcommit 437becb21513a436f5e6eff6200e803cf35da768[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Wed Mar 18 09:56:55 2026 -0400
+
+    temp: fix matches schema endpoint
+
+[33mcommit 92fa86a35732fda238f1a541b1c8c00cab072cef[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Wed Mar 18 09:35:35 2026 -0400
+
+    temp: fix matches schema endpoint
+
+[33mcommit dd52a6043c97327200015fe50ab34b663b903c18[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Wed Mar 18 09:33:28 2026 -0400
+
+    temp: fix matches schema endpoint
+
+[33mcommit 10dece5ae50a15360fa036672bc28db6f967a2bf[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Tue Mar 17 21:49:07 2026 -0400
+
+    temp: fix matches schema endpoint
+
+[33mcommit f5e95ebe54c5e57cab20f293ea3fa865f6d078a7[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Tue Mar 17 21:42:16 2026 -0400
+
+    feat: XAMA scoring formula - kills/assists/knocks/damage + early death penalty
+
+[33mcommit c8afd8576fbc618ca1a852d77e2e55cba1ad89ed[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Tue Mar 17 19:16:18 2026 -0400
+
+    fix: redirect to original URL after login
+
+[33mcommit a88621b427eb79c50029f5f47631bd2c40cf8391[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Tue Mar 17 19:08:24 2026 -0400
+
+    temp: fix matches schema endpoint
+
+[33mcommit 276e7b286d9fa6169ce8f0ad5f477ff48c4a0809[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Tue Mar 17 19:05:02 2026 -0400
+
+    fix: redirect to original tournament after login
+
+[33mcommit 7b60cbf0b9c32b243df9be3bba352381e2d5437a[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Tue Mar 17 19:01:01 2026 -0400
+
+    temp: fix matches schema endpoint
+
+[33mcommit de0fb02b4e904f3ccaca6f9771d5c9dda5fe2a4c[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Tue Mar 17 18:50:55 2026 -0400
+
+    fix: persist redirect destination in localStorage before token set
+
+[33mcommit df2cbf7730d861f273c02e84eedb4fcd27889278[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Tue Mar 17 18:41:34 2026 -0400
+
+    fix: use redirectTo prop instead of location.state in AuthCard
+
+[33mcommit de734dd87cb2c3b2f4c9e6f15c60edc74ae11255[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Tue Mar 17 17:01:33 2026 -0400
+
+    fix: redirect to original destination after login
+
+[33mcommit da8d8facc67e1b6ee52ffdb0704a9456b643d662[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Tue Mar 17 16:40:38 2026 -0400
+
+    temp: fix matches schema endpoint
+
+[33mcommit 3487c2e92af5f8d460aeb28d386d9b3dac4d2dd5[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Tue Mar 17 16:23:28 2026 -0400
+
+    chore: remove obsolete seed-data endpoint
+
+[33mcommit fd27974b3c0708f43463fe8e7a4f5bbb70a14b6a[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Tue Mar 17 16:18:48 2026 -0400
+
+    fix: sort by player name uses formatted name without team prefix
+
+[33mcommit 01ac3fa0bb19685d754a38abbea9b52f44c01102[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Tue Mar 17 16:07:43 2026 -0400
+
+    temp: fix matches schema endpoint
+
+[33mcommit ceb3134c637fdfe219397ec9e0cab74c27179f4e[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Tue Mar 17 15:58:05 2026 -0400
+
+    fix: add CN to REGION_FLAGS map
+
+[33mcommit a058efed88d77fea50d2086c18da412185fad6dc[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Sun Mar 15 18:19:11 2026 -0400
+
+    fix: remove invalid User fields in google_login
+
+[33mcommit 0a2cfe5a8c4c8f3b433ebb554cd4809a7c835080[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Sun Mar 15 18:10:16 2026 -0400
+
+    fix: register users router in main.py
+
+[33mcommit b8087153cfdcf60ccc838784c47166b1c277da08[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Sun Mar 15 17:54:55 2026 -0400
+
+    fix: remove duplicate GoogleLoginBody class
+
+[33mcommit 6aebb99b416564de6cbebc8fa091019b5f89a381[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Sun Mar 15 17:49:42 2026 -0400
+
+    fix: add google-login endpoint body
+
+[33mcommit 4fb34518faf2f6316380a83445ae0288df4bb105[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Sun Mar 15 17:41:34 2026 -0400
+
+    feat: Google OAuth login
+
+[33mcommit 2358289c0c9b6b7f888fd0f32936931880f9e1b7[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Sun Mar 15 14:41:10 2026 -0400
+
+    temp: fix matches schema endpoint
+
+[33mcommit ba0ae6ab6f51cad07cd847255707d016f5253cae[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Sun Mar 15 14:27:58 2026 -0400
+
+    temp: fix matches schema endpoint
+
+[33mcommit f8e162943682c54813f09be8ce34460b746cee79[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Sun Mar 15 14:15:31 2026 -0400
+
+    temp: fix matches schema endpoint
+
+[33mcommit 2805679b203062f8bf97b9591828a2c1d68b0fe8[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Sun Mar 15 14:00:29 2026 -0400
+
+    temp: fix matches schema endpoint
+
+[33mcommit 638a1e2eb733696cb3e16b5f4acea9e3e429bdbc[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Sun Mar 15 13:20:46 2026 -0400
+
+    feat: PATCH /admin/tournaments/{id} + remove obsolete endpoints
+
+[33mcommit 2c362f77e75b8c5fcedbd925eb3b97824eb83a0f[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Sun Mar 15 12:35:55 2026 -0400
+
+    fix: hide login card when token exists
+
+[33mcommit b215141f1ea2d1cd5478b3e4a751427e5c5a7374[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Sun Mar 15 10:08:58 2026 -0400
+
+    feat: React Router, landing page, tournament select, tournament hub
+
+[33mcommit 757dd5dd2cb970b8d574c6706f4259a480f676d0[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Sat Mar 14 22:35:38 2026 -0400
+
+    temp: fix matches schema endpoint
+
+[33mcommit 79f19fcbcce540ed1c4d698069a52a46d18ccbb0[m
+Author: chamaobird <lgpassarini@gmail.com>
+Date:   Sat Mar 14 22:16:45 2026 -0400
+
+    feat: add seed-players-from-matches endpoint
+
+[33mcommit 5615e26ffef9
