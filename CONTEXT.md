@@ -471,7 +471,7 @@ Retorna `{"access_token": "..."}`
 
 ## Como Rodar Migrations no Render
 ```powershell
-$env:DATABASE_URL='postgresql://user:pass@host.oregon-postgres.render.com/db'
+$env:DATABASE_URL='postgresql://USER:PASSWORD@HOST:5432/DBNAME'
 python -m alembic upgrade head
 ```
 
