@@ -166,7 +166,7 @@ Isso é mais rápido, assertivo e confiável do que qualquer automação de dete
   - `_build_player_lookup` indexa `live_pubg_id` além de `pubg_id` e nome
   - `POST /admin/players/bulk-set-live-ids` para atualizar em massa
 
-## Estado da Produção (atualizado 2026-03-28 — sessão 3)
+## Estado da Produção (atualizado 2026-03-31 — sessão 5)
 
 ### Novos Endpoints Disponíveis
 - `POST /admin/tournaments/{source_id}/copy-players-to/{target_id}` — copia jogadores que aparecem nos matches do torneio source para o target (sem pubg_id, para evitar unique constraint). Idempotente por nome. **Deployado.**
@@ -194,7 +194,9 @@ Isso é mais rápido, assertivo e confiável do que qualquer automação de dete
 | 12-15 | PGS 2026 Circuit 1 (4 fases) | as-pgs1ws/gs/ss/fs | importado | ~50 por fase | false |
 | **16** | **PGS 2026 Circuit 2 · Winners Stage** | **as-pgs2ws** | **5 (26/03)** | **64 (pubg_ids reais)** | **false** |
 | **17** | **PGS 2026 Circuit 2 · Survival Stage** | **as-pgs2ss** | **5 (27/03)** | **64 ativos** | **false (finished)** |
-| **18** | **PGS 2026 Circuit 2 · Final Stage** | **as-pgs2fs** | **5 (Dia 1 — 28/03)** | **65 ativos (64 + YUDIRT)** | **true (lineup aberta)** |
+| **18** | **PGS 2026 Circuit 2 · Final Stage** | **as-pgs2fs** | **10 (Dia 1+2 — 28-29/03)** | **65 (64 + YUDIRT)** | **false (ENCERRADO)** |
+| **19** | **PGS 2026 Circuit 1 · Series Final — Grand Final** | *(a definir)* | 0 | ~64 (a registrar) | false |
+| **20** | **PGS 2026 Circuit 1 · Series Final — Survival Stage** | *(a definir)* | 0 | ~64 (bulk-upsert feito) | **true (lineup aberta, Dia 1 — 02/04)** |
 
 ### Championships cadastrados
 | id | name | region | fases | start_date |
@@ -202,6 +204,7 @@ Isso é mais rápido, assertivo e confiável do que qualquer automação de dete
 | 1 | PGS 2026 Circuit 1 · Series 1 | GLOBAL | T13 (Group), T12 (Winners), T14 (Survival), T15 (Final) | 2026-03-16 |
 | 2 | PAS 2026 - Americas Series 1 | AM | T7 (Scrims) | null |
 | **3** | **PGS 2026 Circuit 2 · Series 2** | **GLOBAL** | **T16 (Winners), T17 (Survival), T18 (Final)** | **2026-03-26** |
+| **4** | **PGS 2026 Circuit 1 · Series Final** | **GLOBAL** | **T20 (Survival Stage), T19 (Grand Final)** | *(a definir)* |
 
 ### PAS Scrims — Estado atual (atualizado 26/03/2026)
 
@@ -359,20 +362,23 @@ POST /admin/reprocess-match-stats/18
 - **`Dashboard.jsx`** — reescrito com Cards da ui/, grid de torneios, saudação, badges de status
 - **`LineupBuilder.jsx`** — **Phase 3 concluída** — layout 2 colunas + painel sticky
 
-### LineupBuilder — Phase 3 (concluída 27/03/2026)
-- Layout `.xlb-grid` (2 colunas: tabela de jogadores | painel sticky 330px)
-- Painel direito sticky: BudgetBar (`.xlb-budget`) com barra + 3 stats (Total/Usado/Restante)
-- 4 slots titulares (`.xlb-slot`) com placeholder dashed quando vazio
-- Capitão via botão ♛ (`.xlb-captain-btn`) em vez de radio — active state dourado
-- Slot reserva separado por divisor duplo
-- Save button (`.xlb-save-btn`) — `.ready` laranja / `.idle` cinza / `.loading`
-- Removido: seletor de torneio (delegado ao TournamentHub/TournamentLayout)
-- Removido: imports e helpers desnecessários (ChampionshipSelector, SectionTitle local, Card local)
+### LineupBuilder — Phase 3 (atualizado 31/03/2026)
+- ~~Layout `.xlb-grid` (2 colunas)~~ → **MEU LINEUP movido para strip sticky no topo** (`.xlb-sticky-header`)
+- **Row 1 sticky:** título + badge DIA + budget bar horizontal + stats (Total/Usado/Restante) + botão salvar compacto
+- **Row 2 sticky:** 5 cards horizontais (`.xlb-hslot`) — 4 titulares + divisor + 1 reserva
+  - Cada card: número/label, nome do jogador, logo + tag + preço, botão ♛ (capitão) + botão ×
+  - Estados: `.empty` (dashed, opaco) e `.reserve` (borda azul)
+- **Tabela de jogadores** agora é full-width (sem grid wrapper)
+- **Keep-alive** integrado no mesmo componente: `setInterval` a cada 10min pinga `/tournaments` para evitar spin-down do Render free tier
+- Capitão via botão ♛ (`.xlb-captain-btn`) — active state dourado
+- Save button compacto (`.xlb-save-btn-compact`) no header sticky — `.ready` laranja / `.idle` cinza / `.loading`
+- Mensagens de erro/sucesso ficam abaixo dos slots, ainda dentro do sticky header
 
 ### Classes CSS por feature
 - **Global:** `.xama-page`, `.xama-container`, `.xh-*` (headings), `.xs-title`, `.xb` + variantes, `.xt-*` (tabs)
 - **Cards:** `.xama-card-v2`, `.xama-card-hover`, `.xcard-*`, `.xstat-*`
-- **Lineup Builder:** `.xlb-page`, `.xlb-grid`, `.xlb-panel`, `.xlb-panel-head/title/body`, `.xlb-budget-*`, `.xlb-slot-*`, `.xlb-captain-*`, `.xlb-remove-btn`, `.xlb-table`, `.xlb-action-btn`, `.xlb-locked-*`, `.xlb-save-btn`, `.xlb-search-*`
+- **Lineup Builder:** `.xlb-page`, `.xlb-panel`, `.xlb-panel-head/title/body`, `.xlb-budget-*`, `.xlb-slot-*`, `.xlb-captain-*`, `.xlb-remove-btn`, `.xlb-table`, `.xlb-action-btn`, `.xlb-locked-*`, `.xlb-save-btn`, `.xlb-search-*`
+  - **Novo (31/03):** `.xlb-sticky-header`, `.xlb-sticky-top`, `.xlb-sticky-title`, `.xlb-sticky-budget`, `.xlb-budget-bar-track-h`, `.xlb-sticky-stats`, `.xlb-sticky-stat-*`, `.xlb-save-btn-compact`, `.xlb-hslots`, `.xlb-hslot`, `.xlb-hslot-top`, `.xlb-hslot-num`, `.xlb-hslot-name`, `.xlb-hslot-meta`, `.xlb-hslot-divider`
 
 ## Pendente / Backlog
 
@@ -384,9 +390,15 @@ POST /admin/reprocess-match-stats/18
 - [x] **Frontend Phase 2** — Dashboard + TournamentHub reescritos ✓
 - [x] **Frontend Phase 3** — LineupBuilder 2 colunas + sticky panel ✓
 - [x] **Final Stage Dia 1 (28/03)** — 5 matches importados, FCE_YUDIRT resolvido ✓
-- [ ] **Encerrar T18** após Dia 2 → `PATCH /admin/tournaments/18 { status: finished, lineup_open: false }`
+- [x] **T18 encerrado** — 10 matches (Dia 1+2), lineups pontuadas, status=finished, lineup_open=false, championship_id=3 ✓
+- [x] **PGS 2026 Circuit 1 Series Final criada** — T20 (Survival, DB ID=20) + T19 (Grand Final, DB ID=19), championship 4 ✓
+  - T20 lineup_open=true, current_day=1, abertura pra picks em 02/04
+  - Players do T20 inseridos via bulk-upsert com nome no formato TAG_Player (logos corretas via formatTeamTag)
+  - T19 preparado (players a confirmar após Survival Stage)
+- [x] **Fix logos no LineupBuilder** — `formatTeamTag` agora sempre usa `name.split('_')[0]` (não team_name do DB) ✓
+- [x] **LineupBuilder sticky top** — MEU LINEUP no topo (strip sticky horizontal), tabela full-width, keep-alive 10min ✓ (commit bb4fd7c)
+- [ ] **Push para GitHub** — commitar está feito localmente (bb4fd7c); push manual necessário: `git push origin main`
 - [ ] **Frontend Phase 4** — Leaderboard refactor (tabela limpa, filtros aprimorados)
-- [ ] **Commit/push das mudanças de frontend** ainda não commitadas (Tabs, TournamentHeader, TournamentLayout, ui/, index.css, Dashboard, TournamentHub, LineupBuilder)
 
 ### 🟡 Dados
 - [ ] **Jogadores sem live_pubg_id** (PAS Scrims) — restam ~26 jogadores
