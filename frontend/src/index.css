@@ -436,13 +436,116 @@ body {
 
 /* ─── Layout principal ─── */
 .xlb-page { padding: 24px 0 72px; }
-.xlb-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 330px;
-  gap: 20px;
-  align-items: start;
+/* ─── Sticky lineup header (novo layout horizontal) ─── */
+.xlb-sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--surface-1);
+  border: 1px solid var(--color-xama-border);
+  border-radius: var(--radius-card);
+  box-shadow: 0 6px 28px rgba(0,0,0,0.55);
+  margin-bottom: 16px;
 }
-@media (max-width: 860px) { .xlb-grid { grid-template-columns: 1fr; } }
+/* Row 1: título + budget bar + stats + save */
+.xlb-sticky-top {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--color-xama-border);
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+.xlb-sticky-title {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.09em;
+  text-transform: uppercase; color: var(--color-xama-muted);
+  font-family: 'Rajdhani', sans-serif; margin: 0;
+  white-space: nowrap; flex-shrink: 0;
+}
+.xlb-sticky-budget {
+  flex: 1; display: flex; align-items: center;
+  gap: 12px; min-width: 0;
+}
+.xlb-budget-bar-track-h {
+  flex: 1; height: 4px; background: #1e2330;
+  border-radius: 99px; overflow: hidden; min-width: 40px;
+}
+.xlb-sticky-stats {
+  display: flex; gap: 14px; flex-shrink: 0;
+}
+.xlb-sticky-stat {
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+}
+.xlb-sticky-stat-label {
+  font-size: 9px; color: var(--color-xama-muted);
+  letter-spacing: 0.06em; text-transform: uppercase;
+  font-family: 'JetBrains Mono', monospace;
+}
+.xlb-sticky-stat-value {
+  font-size: 13px; font-weight: 800;
+  font-family: 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums; color: var(--color-xama-text);
+}
+.xlb-sticky-stat-value.danger { color: var(--color-xama-red); }
+.xlb-sticky-stat-value.warn   { color: var(--color-xama-gold); }
+.xlb-sticky-stat-value.ok     { color: var(--color-xama-green); }
+
+/* Save button compacto para o header */
+.xlb-save-btn-compact {
+  padding: 7px 14px; border-radius: 7px; flex-shrink: 0;
+  font-size: 12px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase;
+  font-family: 'Rajdhani', sans-serif; cursor: pointer;
+  transition: background 0.15s, color 0.15s, opacity 0.15s; border: none;
+}
+.xlb-save-btn-compact.ready   { background: var(--color-xama-orange); color: #fff; }
+.xlb-save-btn-compact.ready:hover { background: #fb923c; }
+.xlb-save-btn-compact.idle    { background: var(--surface-3); color: #374151; border: 1px solid #2a3046; cursor: default; }
+.xlb-save-btn-compact.loading { background: var(--surface-3); color: var(--color-xama-muted); cursor: default; }
+
+/* Row 2: slots horizontais */
+.xlb-hslots {
+  display: flex; gap: 8px;
+  padding: 10px 16px; overflow-x: auto;
+}
+.xlb-hslot {
+  flex: 1; min-width: 110px; max-width: 200px;
+  background: var(--surface-2); border: 1px solid var(--color-xama-border);
+  border-radius: 8px; padding: 8px 10px;
+  display: flex; flex-direction: column; gap: 3px;
+}
+.xlb-hslot.empty {
+  border-style: dashed; opacity: 0.4;
+  justify-content: center; align-items: center; gap: 2px;
+}
+.xlb-hslot.reserve {
+  border-color: rgba(59,130,246,0.35);
+  background: rgba(59,130,246,0.03);
+}
+.xlb-hslot-top {
+  display: flex; align-items: center; gap: 4px;
+}
+.xlb-hslot-num {
+  font-size: 10px; font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--color-xama-muted); flex-shrink: 0;
+}
+.xlb-hslot-name {
+  font-size: 12px; font-weight: 600; color: var(--color-xama-text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  flex: 1; min-width: 0;
+}
+.xlb-hslot-meta {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 10px; color: var(--color-xama-muted);
+  font-family: 'JetBrains Mono', monospace;
+  white-space: nowrap; overflow: hidden;
+}
+.xlb-hslot-divider {
+  width: 1px; flex-shrink: 0;
+  background: var(--color-xama-border);
+  align-self: stretch; margin: 0 2px;
+}
 
 /* ─── Panel (card genérico do builder) ─── */
 .xlb-panel {

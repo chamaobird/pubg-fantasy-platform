@@ -236,6 +236,15 @@ export default function LineupBuilder({
       .catch(() => setMyLineups([]))
   }, [token, selectedTournamentId, saveSuccess])
 
+  // ── Keep-alive: ping backend a cada 10min para evitar spin-down do Render ─
+  useEffect(() => {
+    const ping = () => {
+      fetch(`${API_BASE_URL}/tournaments`, { method: 'GET' }).catch(() => {})
+    }
+    const interval = setInterval(ping, 10 * 60 * 1000) // 10 minutos
+    return () => clearInterval(interval)
+  }, [])
+
   // ── Actions ────────────────────────────────────────────────────────────
   async function doLogin() {
     setLoginLoading(true); setLoginError('')
@@ -476,275 +485,269 @@ export default function LineupBuilder({
           </div>
         )}
 
-        {/* ── Grid principal ────────────────────────────────────────────── */}
-        <div className="xlb-grid">
+        {/* ── Painel MEU LINEUP sticky (topo) ──────────────────────────── */}
+        <div className="xlb-sticky-header">
 
-          {/* ── Coluna esquerda: pool de jogadores ── */}
-          <div className="xlb-panel">
+          {/* Linha 1: título · budget bar · stats · botão salvar */}
+          <div className="xlb-sticky-top">
 
-            {/* Barra de busca */}
-            <div className="xlb-search-row">
-              <input
-                className="xlb-search-input"
-                value={searchName}
-                onChange={(e) => setSearchName(e.target.value)}
-                placeholder="Buscar jogador..."
-              />
-              <span className="xlb-count">{filteredPlayers.length}/{players.length}</span>
-              {Object.keys(champStats.byId || {}).length > 0 && (
+            {/* Título + badge DIA */}
+            <p className="xlb-sticky-title">
+              Meu Lineup
+              {selectedTournament?.lineup_open && (
                 <span style={{
-                  fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
-                  padding: '2px 8px', borderRadius: 4, whiteSpace: 'nowrap', flexShrink: 0,
-                  background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.25)', color: '#60a5fa',
-                  fontFamily: "'Rajdhani', sans-serif",
+                  marginLeft: 8, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
+                  padding: '2px 7px', borderRadius: 4, background: 'rgba(96,165,250,0.12)',
+                  border: '1px solid rgba(96,165,250,0.3)', color: '#60a5fa',
+                  fontFamily: "'Rajdhani', sans-serif", verticalAlign: 'middle',
                 }}>
-                  STATS CAMP.
+                  DIA {currentDay}
                 </span>
               )}
+            </p>
+
+            {/* Budget: barra + stats */}
+            <div className="xlb-sticky-budget">
+              <div className="xlb-budget-bar-track-h">
+                <div className="xlb-budget-bar-fill" style={{ width: `${budgetUsedPct}%`, background: budgetBarColor }} />
+              </div>
+              <div className="xlb-sticky-stats">
+                <div className="xlb-sticky-stat">
+                  <span className="xlb-sticky-stat-label">Total</span>
+                  <span className="xlb-sticky-stat-value">{budgetLimit}</span>
+                </div>
+                <div className="xlb-sticky-stat">
+                  <span className="xlb-sticky-stat-label">Usado</span>
+                  <span className={`xlb-sticky-stat-value ${isOverBudget ? 'danger' : totalCost / budgetLimit > 0.85 ? 'warn' : ''}`}>
+                    {totalCost.toFixed(2)}
+                  </span>
+                </div>
+                <div className="xlb-sticky-stat">
+                  <span className="xlb-sticky-stat-label">Restante</span>
+                  <span className={`xlb-sticky-stat-value ${isOverBudget ? 'danger' : totalCost > 0 ? 'ok' : ''}`}>
+                    {(budgetLimit - totalCost).toFixed(2)}
+                  </span>
+                </div>
+              </div>
             </div>
 
-            {/* Estados de carregamento */}
-            {playersLoading && <p className="xama-loading" style={{ padding: '24px 18px' }}>Carregando jogadores...</p>}
-            {playersError   && <p className="xama-error"   style={{ padding: '16px 18px' }}>{playersError}</p>}
+            {/* Botão salvar / status */}
+            <div style={{ flexShrink: 0 }}>
+              {isTournamentClosed ? (
+                <span style={{
+                  fontSize: 11, fontWeight: 700, letterSpacing: '0.05em',
+                  color: '#f87171', fontFamily: "'Rajdhani', sans-serif",
+                }}>🔒 FECHADO</span>
+              ) : currentDayLineup ? (
+                <span style={{
+                  fontSize: 11, fontWeight: 700, letterSpacing: '0.05em',
+                  color: '#4ade80', fontFamily: "'Rajdhani', sans-serif",
+                }}>✅ DIA {currentDay} SALVO</span>
+              ) : (
+                <button
+                  className={`xlb-save-btn-compact ${saveLoading ? 'loading' : canSave ? 'ready' : 'idle'}`}
+                  onClick={saveLineup}
+                  disabled={!canSave || saveLoading}>
+                  {saveLoading ? 'Salvando...' : `SALVAR — DIA ${currentDay}`}
+                </button>
+              )}
+            </div>
+          </div>
 
-            {/* Tabela de jogadores */}
-            {!playersLoading && !playersError && (
-              <div style={{ overflowX: 'auto' }}>
-                <table className="xlb-table">
-                  <thead>
-                    <tr>
-                      {COLS.map(({ key, label, right }) => (
-                        <th key={key}
-                          className={`${right ? 'right' : ''} ${sortKey === key ? 'active' : ''}`}
-                          onClick={() => handleSort(key)}>
-                          {label}
-                          {sortKey === key
-                            ? <span className="ml-0.5 text-[9px]">{sortDir === 'desc' ? '▼' : '▲'}</span>
-                            : <span className="ml-0.5 opacity-25 text-[9px]">⇅</span>}
-                        </th>
-                      ))}
-                      <th />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sortedPlayers.map((p) => {
-                      const cs = p._cs
-                      return (
-                        <tr key={p.id}>
-                          <td>
-                            <div className="flex items-center gap-1.5">
-                              <TeamLogo teamName={formatTeamTag(p.name, p.team)} size={20} />
-                              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--color-xama-muted)' }}>
-                                {formatTeamTag(p.name, p.team) || '—'}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="font-semibold whitespace-nowrap" style={{ color: 'var(--color-xama-text)' }}>
-                            {formatPlayerName(p.name)}
-                          </td>
-                          <td className="right tabular-nums font-bold"
-                            style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-gold)' }}>
-                            ${Number(p.fantasy_cost || 0).toFixed(2)}
-                          </td>
-                          <td className="right tabular-nums"
-                            style={{ fontFamily: "'JetBrains Mono', monospace", color: cs ? 'var(--color-xama-orange)' : 'var(--color-xama-muted)' }}>
-                            {cs ? Number(cs.total_fantasy_points).toFixed(1) : '—'}
-                          </td>
-                          <td className="right tabular-nums"
-                            style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-text)' }}>
-                            {cs ? cs.total_kills : '—'}
-                          </td>
-                          <td className="right tabular-nums"
-                            style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-text)' }}>
-                            {cs ? cs.total_assists : '—'}
-                          </td>
-                          <td className="right tabular-nums"
-                            style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-text)' }}>
-                            {cs ? fmtMin(cs.surv_total_secs) : '—'}
-                          </td>
-                          <td className="right tabular-nums"
-                            style={{ fontFamily: "'JetBrains Mono', monospace", color: cs?.total_late_game_bonus > 0 ? '#4ade80' : 'var(--color-xama-muted)' }}>
-                            {cs ? (cs.total_late_game_bonus > 0 ? cs.total_late_game_bonus.toFixed(0) : '0') : '—'}
-                          </td>
-                          <td className="right tabular-nums"
-                            style={{ fontFamily: "'JetBrains Mono', monospace", color: cs?.total_penalty_count > 0 ? '#f87171' : 'var(--color-xama-muted)' }}>
-                            {cs
-                              ? cs.total_penalty_count > 0
-                                ? `${cs.total_penalty_count}(${cs.total_penalty_count * -15})`
-                                : '0'
-                              : '—'}
-                          </td>
-                          <td>
-                            <div className="flex gap-1 justify-end">
-                              <button className="xlb-action-btn" disabled={isLocked} onClick={() => !isLocked && addPlayer(p)}>
-                                Titular
-                              </button>
-                              <button className="xlb-action-btn" disabled={isLocked} onClick={() => !isLocked && setAsReserve(p)}>
-                                Reserva
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
+          {/* Linha 2: slots horizontais (4 titulares + reserva) */}
+          <div className="xlb-hslots">
+
+            {/* Titulares */}
+            {Array.from({ length: 4 }).map((_, idx) => {
+              const p = selectedPlayers[idx]
+              if (!p) return (
+                <div key={`empty-${idx}`} className="xlb-hslot empty">
+                  <span className="xlb-hslot-num">{idx + 1}</span>
+                  <span style={{ fontSize: 11, color: '#2d3548', fontStyle: 'italic' }}>— vazio —</span>
+                </div>
+              )
+              const isCap = captainId === p.id
+              return (
+                <div key={p.id} className="xlb-hslot">
+                  <div className="xlb-hslot-top">
+                    <span className="xlb-hslot-num">{idx + 1}</span>
+                    {isCap && (
+                      <span className="xlb-captain-badge" style={{ fontSize: 9, padding: '1px 5px' }}>CAP</span>
+                    )}
+                    <div style={{ display: 'flex', gap: 3, marginLeft: 'auto' }}>
+                      <button
+                        className={`xlb-captain-btn${isCap ? ' active' : ''}`}
+                        onClick={() => setCaptainId(p.id)}
+                        title="Capitão">♛</button>
+                      <button
+                        className="xlb-remove-btn"
+                        onClick={() => removePlayer(p.id)}
+                        title="Remover">×</button>
+                    </div>
+                  </div>
+                  <div className="xlb-hslot-name">{formatPlayerName(p.name)}</div>
+                  <div className="xlb-hslot-meta">
+                    <TeamLogo teamName={formatTeamTag(p.name, p.team)} size={12} />
+                    <span>{formatTeamTag(p.name, p.team)}</span>
+                    <span className="xlb-slot-cost">${Number(p.fantasy_cost || 0).toFixed(2)}</span>
+                  </div>
+                </div>
+              )
+            })}
+
+            {/* Divisor visual */}
+            <div className="xlb-hslot-divider" />
+
+            {/* Reserva */}
+            {reservePlayer ? (
+              <div className="xlb-hslot reserve">
+                <div className="xlb-hslot-top">
+                  <span className="xlb-hslot-num" style={{ color: '#60a5fa', fontSize: 9, fontStyle: 'italic' }}>RES</span>
+                  <button
+                    className="xlb-remove-btn"
+                    onClick={removeReserve}
+                    style={{ marginLeft: 'auto' }}
+                    title="Remover reserva">×</button>
+                </div>
+                <div className="xlb-hslot-name">{formatPlayerName(reservePlayer.name)}</div>
+                <div className="xlb-hslot-meta">
+                  <TeamLogo teamName={formatTeamTag(reservePlayer.name, reservePlayer.team)} size={12} />
+                  <span>{formatTeamTag(reservePlayer.name, reservePlayer.team)}</span>
+                  <span style={{ color: reserveEligible ? '#4ade80' : '#f87171' }}>
+                    ${Number(reservePlayer.fantasy_cost || 0).toFixed(2)}{!reserveEligible && ' ⚠'}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="xlb-hslot empty reserve">
+                <span className="xlb-hslot-num" style={{ color: '#60a5fa', fontSize: 9, fontStyle: 'italic' }}>RES</span>
+                <span style={{ fontSize: 11, color: '#2d3548', fontStyle: 'italic' }}>— reserva —</span>
               </div>
             )}
           </div>
 
-          {/* ── Coluna direita: painel sticky ── */}
-          <div style={{ position: 'sticky', top: 24, alignSelf: 'start' }}>
-            <div className="xlb-panel">
+          {/* Mensagens de feedback */}
+          {(saveError || saveSuccess) && (
+            <div style={{ padding: '0 16px 10px' }}>
+              {saveError   && <div className="msg-error">{saveError}</div>}
+              {saveSuccess && <div className="msg-success">Lineup Dia {currentDay} salva com sucesso!</div>}
+            </div>
+          )}
+        </div>{/* fim xlb-sticky-header */}
 
-              {/* Cabeçalho do painel */}
-              <div className="xlb-panel-head">
-                <p className="xlb-panel-title">
-                  Meu Lineup
-                  {selectedTournament?.lineup_open && (
-                    <span style={{
-                      marginLeft: 8, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
-                      padding: '2px 8px', borderRadius: 4, background: 'rgba(96,165,250,0.12)',
-                      border: '1px solid rgba(96,165,250,0.3)', color: '#60a5fa',
-                      fontFamily: "'Rajdhani', sans-serif",
-                    }}>
-                      DIA {currentDay}
-                    </span>
-                  )}
-                </p>
-              </div>
+        {/* ── Pool de jogadores (largura total) ────────────────────────── */}
+        <div className="xlb-panel">
 
-              {/* Budget bar */}
-              <div className="xlb-budget">
-                <p className="xlb-budget-label">Budget</p>
-                <div className="xlb-budget-bar-track">
-                  <div className="xlb-budget-bar-fill" style={{ width: `${budgetUsedPct}%`, background: budgetBarColor }} />
-                </div>
-                <div className="xlb-budget-stats">
-                  <div className="xlb-budget-stat">
-                    <p className="xlb-budget-stat-label">Total</p>
-                    <p className="xlb-budget-stat-value">{budgetLimit}</p>
-                  </div>
-                  <div className="xlb-budget-stat">
-                    <p className="xlb-budget-stat-label">Usado</p>
-                    <p className={`xlb-budget-stat-value ${isOverBudget ? 'danger' : totalCost / budgetLimit > 0.85 ? 'warn' : ''}`}>
-                      {totalCost.toFixed(2)}
-                    </p>
-                  </div>
-                  <div className="xlb-budget-stat">
-                    <p className="xlb-budget-stat-label">Restante</p>
-                    <p className={`xlb-budget-stat-value ${isOverBudget ? 'danger' : 'ok'}`}>
-                      {(budgetLimit - totalCost).toFixed(2)}
-                    </p>
-                  </div>
-                </div>
-                {reservePlayer && (
-                  <div className="flex items-center justify-between mt-2 pt-2" style={{ borderTop: '1px solid var(--color-xama-border)' }}>
-                    <span style={{ fontSize: 11, color: 'var(--color-xama-muted)' }}>Reserva</span>
-                    <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontVariantNumeric: 'tabular-nums', color: reserveEligible ? '#4ade80' : '#f87171' }}>
-                      ${reserveCost.toFixed(2)}{!reserveEligible && ' ⚠'}
-                    </span>
-                  </div>
-                )}
-              </div>
+          {/* Barra de busca */}
+          <div className="xlb-search-row">
+            <input
+              className="xlb-search-input"
+              value={searchName}
+              onChange={(e) => setSearchName(e.target.value)}
+              placeholder="Buscar jogador..."
+            />
+            <span className="xlb-count">{filteredPlayers.length}/{players.length}</span>
+            {Object.keys(champStats.byId || {}).length > 0 && (
+              <span style={{
+                fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
+                padding: '2px 8px', borderRadius: 4, whiteSpace: 'nowrap', flexShrink: 0,
+                background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.25)', color: '#60a5fa',
+                fontFamily: "'Rajdhani', sans-serif",
+              }}>
+                STATS CAMP.
+              </span>
+            )}
+          </div>
 
-              {/* Slots de titulares × 4 */}
-              {Array.from({ length: 4 }).map((_, idx) => {
-                const p = selectedPlayers[idx]
-                if (!p) {
-                  return (
-                    <div key={`empty-${idx}`} className="xlb-slot">
-                      <span className="xlb-slot-num">{idx + 1}</span>
-                      <span className="xlb-slot-empty">— vazio —</span>
-                    </div>
-                  )
-                }
-                const isCap = captainId === p.id
-                return (
-                  <div key={p.id} className="xlb-slot">
-                    <span className="xlb-slot-num">{idx + 1}</span>
-                    <div className="xlb-slot-info">
-                      <div className="xlb-slot-name">
-                        {formatPlayerName(p.name)}
-                        {isCap && <span className="xlb-captain-badge" style={{ marginLeft: 6 }}>CAP 1.25×</span>}
-                      </div>
-                      <div className="xlb-slot-meta">
-                        <TeamLogo teamName={formatTeamTag(p.name, p.team)} size={14} />
-                        <span>{formatTeamTag(p.name, p.team)}</span>
-                        <span className="xlb-slot-cost">${Number(p.fantasy_cost || 0).toFixed(2)}</span>
-                      </div>
-                    </div>
-                    <button
-                      className={`xlb-captain-btn${isCap ? ' active' : ''}`}
-                      onClick={() => setCaptainId(p.id)}
-                      title="Definir como capitão">
-                      ♛
-                    </button>
-                    <button className="xlb-remove-btn" onClick={() => removePlayer(p.id)} title="Remover">×</button>
-                  </div>
-                )
-              })}
+          {/* Estados de carregamento */}
+          {playersLoading && <p className="xama-loading" style={{ padding: '24px 18px' }}>Carregando jogadores...</p>}
+          {playersError   && <p className="xama-error"   style={{ padding: '16px 18px' }}>{playersError}</p>}
 
-              {/* Divisor + slot de reserva */}
-              <div style={{ borderTop: '2px solid var(--color-xama-border)' }} />
-
-              {reservePlayer ? (
-                <div className="xlb-slot">
-                  <span className="xlb-slot-num" style={{ fontSize: 9, fontStyle: 'italic', color: '#4b5563' }}>RES</span>
-                  <div className="xlb-slot-info">
-                    <div className="xlb-slot-name">{formatPlayerName(reservePlayer.name)}</div>
-                    <div className="xlb-slot-meta">
-                      <TeamLogo teamName={formatTeamTag(reservePlayer.name, reservePlayer.team)} size={14} />
-                      <span>{formatTeamTag(reservePlayer.name, reservePlayer.team)}</span>
-                      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontVariantNumeric: 'tabular-nums', fontSize: 11, color: reserveEligible ? '#4ade80' : '#f87171' }}>
-                        ${Number(reservePlayer.fantasy_cost || 0).toFixed(2)}
-                        {!reserveEligible && ' ⚠'}
-                      </span>
-                    </div>
-                  </div>
-                  <button className="xlb-remove-btn" onClick={removeReserve} title="Remover reserva">×</button>
-                </div>
-              ) : (
-                <div className="xlb-slot">
-                  <span className="xlb-slot-num" style={{ fontSize: 9, fontStyle: 'italic', color: '#4b5563' }}>RES</span>
-                  <span className="xlb-slot-empty">— reserva —</span>
-                </div>
-              )}
-
-              {/* Salvar lineup */}
-              <div className="xlb-panel-body" style={{ borderTop: '1px solid var(--color-xama-border)' }}>
-                {isTournamentClosed ? (
-                  <div className="xlb-locked" style={{ margin: 0 }}>
-                    <span style={{ fontSize: 16 }}>🔒</span>
-                    <div>
-                      <p className="xlb-locked-title">Lineup Fechado</p>
-                      <p className="xlb-locked-sub">Submissões encerradas para este torneio</p>
-                    </div>
-                  </div>
-                ) : currentDayLineup ? (
-                  <div className="xlb-locked" style={{ margin: 0, background: 'rgba(34,197,94,0.05)', borderColor: 'rgba(34,197,94,0.2)' }}>
-                    <span style={{ fontSize: 16 }}>✅</span>
-                    <div>
-                      <p className="xlb-locked-title" style={{ color: '#4ade80' }}>Dia {currentDay} concluído</p>
-                      <p className="xlb-locked-sub">Aguarde a abertura do próximo dia</p>
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    className={`xlb-save-btn ${saveLoading ? 'loading' : canSave ? 'ready' : 'idle'}`}
-                    onClick={saveLineup}
-                    disabled={!canSave || saveLoading}>
-                    {saveLoading ? 'Salvando...' : `SALVAR LINEUP — DIA ${currentDay}`}
-                  </button>
-                )}
-
-                {saveError   && <div className="msg-error"   style={{ marginTop: 10 }}>{saveError}</div>}
-                {saveSuccess && <div className="msg-success" style={{ marginTop: 10 }}>Lineup Dia {currentDay} salva com sucesso!</div>}
-
-              </div>{/* fim xlb-panel-body (save) */}
-            </div>{/* fim xlb-panel (direito) */}
-          </div>{/* fim sticky wrapper */}
-        </div>{/* fim xlb-grid */}
+          {/* Tabela de jogadores */}
+          {!playersLoading && !playersError && (
+            <div style={{ overflowX: 'auto' }}>
+              <table className="xlb-table">
+                <thead>
+                  <tr>
+                    {COLS.map(({ key, label, right }) => (
+                      <th key={key}
+                        className={`${right ? 'right' : ''} ${sortKey === key ? 'active' : ''}`}
+                        onClick={() => handleSort(key)}>
+                        {label}
+                        {sortKey === key
+                          ? <span className="ml-0.5 text-[9px]">{sortDir === 'desc' ? '▼' : '▲'}</span>
+                          : <span className="ml-0.5 opacity-25 text-[9px]">⇅</span>}
+                      </th>
+                    ))}
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedPlayers.map((p) => {
+                    const cs = p._cs
+                    return (
+                      <tr key={p.id}>
+                        <td>
+                          <div className="flex items-center gap-1.5">
+                            <TeamLogo teamName={formatTeamTag(p.name, p.team)} size={20} />
+                            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--color-xama-muted)' }}>
+                              {formatTeamTag(p.name, p.team) || '—'}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="font-semibold whitespace-nowrap" style={{ color: 'var(--color-xama-text)' }}>
+                          {formatPlayerName(p.name)}
+                        </td>
+                        <td className="right tabular-nums font-bold"
+                          style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-gold)' }}>
+                          ${Number(p.fantasy_cost || 0).toFixed(2)}
+                        </td>
+                        <td className="right tabular-nums"
+                          style={{ fontFamily: "'JetBrains Mono', monospace", color: cs ? 'var(--color-xama-orange)' : 'var(--color-xama-muted)' }}>
+                          {cs ? Number(cs.total_fantasy_points).toFixed(1) : '—'}
+                        </td>
+                        <td className="right tabular-nums"
+                          style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-text)' }}>
+                          {cs ? cs.total_kills : '—'}
+                        </td>
+                        <td className="right tabular-nums"
+                          style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-text)' }}>
+                          {cs ? cs.total_assists : '—'}
+                        </td>
+                        <td className="right tabular-nums"
+                          style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-text)' }}>
+                          {cs ? fmtMin(cs.surv_total_secs) : '—'}
+                        </td>
+                        <td className="right tabular-nums"
+                          style={{ fontFamily: "'JetBrains Mono', monospace", color: cs?.total_late_game_bonus > 0 ? '#4ade80' : 'var(--color-xama-muted)' }}>
+                          {cs ? (cs.total_late_game_bonus > 0 ? cs.total_late_game_bonus.toFixed(0) : '0') : '—'}
+                        </td>
+                        <td className="right tabular-nums"
+                          style={{ fontFamily: "'JetBrains Mono', monospace", color: cs?.total_penalty_count > 0 ? '#f87171' : 'var(--color-xama-muted)' }}>
+                          {cs
+                            ? cs.total_penalty_count > 0
+                              ? `${cs.total_penalty_count}(${cs.total_penalty_count * -15})`
+                              : '0'
+                            : '—'}
+                        </td>
+                        <td>
+                          <div className="flex gap-1 justify-end">
+                            <button className="xlb-action-btn" disabled={isLocked} onClick={() => !isLocked && addPlayer(p)}>
+                              Titular
+                            </button>
+                            <button className="xlb-action-btn" disabled={isLocked} onClick={() => !isLocked && setAsReserve(p)}>
+                              Reserva
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>{/* fim xlb-panel (pool) */}
       </div>{/* fim xama-container */}
     </div>
   )
