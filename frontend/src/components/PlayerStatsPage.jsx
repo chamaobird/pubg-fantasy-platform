@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { API_BASE_URL as API_BASE } from '../config'
-import { PAS_2026_PHASE_MAP } from '../config/pas2026'
+import { PAS_2026_PHASE_MAP, PAS_TOURNAMENT_7_DATE_TO_WEEK } from '../config/pas2026'
 import TeamLogo from './TeamLogo'
 import ChampionshipSelector from './ChampionshipSelector'
 
@@ -167,21 +167,44 @@ export default function PlayerStatsPage({
   useEffect(() => { setSelectedGroup(''); setSelectedMatch('') }, [selectedDate])
   useEffect(() => { setSelectedDate(''); setSelectedGroup(''); setSelectedMatch('') }, [selectedWeek])
 
-  // Agrupa dias em semanas usando ISO calendar week (segunda → domingo)
-  // Mais robusto que gap de dias: scrims na sexta (20/03) e segunda (23/03)
-  // ficam em semanas ISO diferentes mesmo com gap de apenas 3 dias.
-  const isoWeekKey = (dateStr) => {
-    const d = new Date(dateStr)
-    // Ajusta para quinta-feira da mesma semana ISO (dia 4)
-    const thursday = new Date(d)
-    thursday.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7))
-    const yearStart = new Date(thursday.getFullYear(), 0, 1)
-    const weekNum = 1 + Math.round(((thursday - yearStart) / 86400000 - 3 + ((yearStart.getDay() + 6) % 7)) / 7)
-    return `${thursday.getFullYear()}-W${weekNum}`
-  }
-
+  // Agrupa dias em semanas usando mapeamento explícito do pas2026.js.
+  // Garante que datas com atraso (ex: 30/03 da Week 5) sejam agrupadas
+  // corretamente, independente do calendário ISO.
   const weeks = useMemo(() => {
     if (matchDays.length === 0) return []
+
+    const dateToWeek = phaseConfig?.weeks
+      ? new Map(phaseConfig.weeks.flatMap((w) => w.dates.map((d) => [d, w])))
+      : null
+
+    if (dateToWeek) {
+      const seen = new Map()
+      matchDays.forEach((day) => {
+        const wk = dateToWeek.get(day.date)
+        if (!wk) return
+        const key = wk.week
+        if (!seen.has(key)) seen.set(key, { ...wk, matchDays: [] })
+        seen.get(key).matchDays.push(day)
+      })
+      return Array.from(seen.values())
+        .sort((a, b) => a.week - b.week)
+        .map((wk) => ({
+          week: wk.week,
+          label: wk.label,
+          dates: wk.matchDays.map((d) => d.date),
+          matchCount: wk.matchDays.reduce((a, d) => a + d.matches_count, 0),
+        }))
+    }
+
+    // Fallback ISO para torneios sem mapeamento explícito
+    const isoWeekKey = (dateStr) => {
+      const d = new Date(dateStr)
+      const thursday = new Date(d)
+      thursday.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7))
+      const yearStart = new Date(thursday.getFullYear(), 0, 1)
+      const weekNum = 1 + Math.round(((thursday - yearStart) / 86400000 - 3 + ((yearStart.getDay() + 6) % 7)) / 7)
+      return `${thursday.getFullYear()}-W${weekNum}`
+    }
     const ordered = []
     const seen = new Map()
     matchDays.forEach((day) => {
@@ -198,7 +221,7 @@ export default function PlayerStatsPage({
         matchCount: days.reduce((a, d) => a + d.matches_count, 0),
       }
     })
-  }, [matchDays])
+  }, [matchDays, phaseConfig])
 
   // Dias visíveis conforme semana selecionada
   const visibleMatchDays = useMemo(() => {
