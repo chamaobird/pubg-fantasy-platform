@@ -28,6 +28,7 @@ class TournamentResponse(BaseModel):
     is_active: bool
     lineup_open: bool = False
     current_day: int = 1
+    championship_id: Optional[int] = None
 
     class Config:
         from_attributes = True
@@ -78,6 +79,7 @@ def list_tournaments(
             is_active=(t.status == "active"),
             lineup_open=bool(t.lineup_open),
             current_day=int(t.current_day or 1),
+            championship_id=t.championship_id,
         )
         for t in tournaments
     ]
@@ -111,6 +113,7 @@ def get_tournament(tournament_id: int, db: Session = Depends(get_db)):
         is_active=(tournament.status == "active"),
         lineup_open=bool(tournament.lineup_open),
         current_day=int(tournament.current_day or 1),
+        championship_id=tournament.championship_id,
     )
 
 
