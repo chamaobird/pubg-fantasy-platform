@@ -725,21 +725,26 @@ def tournament_matches(
     db: Session = Depends(get_db),
 ):
     from app.models.match import Match
-
+    from datetime import timezone, timedelta
+ 
+    # Timezone fixo BRT (UTC-3) — usado em todo o agrupamento por data
+    BRT = timezone(timedelta(hours=-3))
+ 
     tournament = db.query(Tournament).filter(Tournament.id == tournament_id).first()
     if not tournament:
         raise HTTPException(status_code=404, detail="Tournament not found")
-
+ 
     matches = (
         db.query(Match)
         .filter(Match.tournament_id == tournament_id)
         .order_by(Match.played_at)
         .all()
     )
-
+ 
     if not matches:
         return {"tournament_id": tournament_id, "total_matches": 0, "days": []}
-
+ 
+    # ── 1. Agrupa em sessões: partidas com gap ≤ 4h ficam na mesma sessão ──
     sessions = []
     current_session = []
     for m in matches:
@@ -755,7 +760,8 @@ def tournament_matches(
                 current_session = [m]
     if current_session:
         sessions.append(current_session)
-
+ 
+    # ── 2. Separa edições (gap > 30 dias = novo evento/torneio) ────────────
     editions = [[sessions[0]]]
     for i in range(1, len(sessions)):
         gap = abs((sessions[i][0].played_at - sessions[i-1][-1].played_at).total_seconds())
@@ -763,17 +769,19 @@ def tournament_matches(
             editions.append([sessions[i]])
         else:
             editions[-1].append(sessions[i])
-
+ 
     latest_edition = editions[-1]
-    result = []
+ 
+    # ── 3. Constrói lista bruta de sessões com date_key em BRT ─────────────
+    # Importante: played_at vem do banco como UTC (timezone-aware).
+    # .astimezone(BRT) converte corretamente ANTES de extrair a data,
+    # garantindo que partidas jogadas às 23h BRT não "vazem" para o dia seguinte.
+    raw_sessions = []
     for i, session in enumerate(latest_edition):
-        from datetime import timezone, timedelta
-        BRT = timezone(timedelta(hours=-3))
         date_key = session[0].played_at.astimezone(BRT).date().isoformat()
-        # Usa o campo day do primeiro match da sessão (se disponível)
         session_day = session[0].day if session[0].day else (i + 1)
         session_matches = []
-        for j, m in enumerate(session):
+        for m in session:
             stats_count = (
                 db.query(sql_func.count(MatchPlayerStat.id))
                 .filter(MatchPlayerStat.match_id == m.id)
@@ -784,25 +792,44 @@ def tournament_matches(
                 "map_name": m.map_name,
                 "played_at": m.played_at.isoformat() if m.played_at else None,
                 "duration_secs": m.duration_secs,
-                "match_number_in_day": j + 1,
                 "group_label": m.group_label,
                 "stats_count": stats_count,
             })
-        result.append({
+        raw_sessions.append({
             "date": date_key,
-            "session": i + 1,
             "day": session_day,
-            "matches_count": len(session_matches),
             "matches": session_matches,
         })
-
+ 
+    # ── 4. Mescla sessões que caem no mesmo dia BRT ─────────────────────────
+    # Cenário real PAS: pausa de >4h entre manhã e tarde/noite do mesmo dia
+    # cria duas sessões com o mesmo date_key. Sem essa etapa, o frontend
+    # recebe dois objetos com a mesma `date` e o find() só encontra o primeiro.
+    merged: dict[str, dict] = {}
+    for s in raw_sessions:
+        key = s["date"]
+        if key not in merged:
+            merged[key] = {"date": key, "day": s["day"], "matches": []}
+        merged[key]["matches"].extend(s["matches"])
+ 
+    # ── 5. Renumera match_number_in_day de forma contínua dentro do dia ─────
+    result = []
+    for day_data in merged.values():
+        for idx, m in enumerate(day_data["matches"]):
+            m["match_number_in_day"] = idx + 1
+        result.append({
+            "date": day_data["date"],
+            "day": day_data["day"],
+            "matches_count": len(day_data["matches"]),
+            "matches": day_data["matches"],
+        })
+ 
     latest_matches = [m for session in latest_edition for m in session]
     return {
         "tournament_id": tournament_id,
         "total_matches": len(latest_matches),
         "days": result,
     }
-
 
 @router.get(
     "/{tournament_id}/debug-players",
