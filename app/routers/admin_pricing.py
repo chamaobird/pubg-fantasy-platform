@@ -4,6 +4,11 @@ XAMA Fantasy — Admin Pricing Router
   POST /admin/tournaments/{id}/day-zero
   GET  /admin/tournaments/{id}/pricing-preview
   POST /admin/tournaments/{id}/apply-pricing
+
+O parâmetro opcional `gf_day` ativa o modo intra-Grand Final:
+  - Filtra as partidas do T19 pelo day especificado
+  - Usa PHASE_WEIGHTS_IN_GF (T19 com maior peso)
+  - Permite repricing entre dias da Grand Final
 """
 
 from __future__ import annotations
@@ -20,9 +25,11 @@ from sqlalchemy.orm import Session
 from app.core.pricing import (
     DAY_ZERO_PRICE,
     DEFAULT_PRICE,
+    GRAND_FINAL_TOURNAMENT_ID,
     NORM_MAX,
     NORM_MIN,
-    PHASE_WEIGHTS,
+    PHASE_WEIGHTS_IN_GF,
+    PHASE_WEIGHTS_PRE_GF,
     PhaseStats,
     PlayerPricingData,
     apply_day_zero,
@@ -72,6 +79,7 @@ class PricingPreviewResponse(BaseModel):
     championship_id: Optional[int]
     circuit_tournament_ids: list[int]
     phase_weights: dict[str, float]
+    mode: str                          # "pre_gf" ou "in_gf_day_{N}"
     players_with_history: int
     players_without_history: int
     norm_min: float
@@ -83,6 +91,7 @@ class ApplyPricingRequest(BaseModel):
     reason: Optional[str] = None
     norm_min: float = NORM_MIN
     norm_max: float = NORM_MAX
+    gf_day: Optional[int] = None      # se informado, ativa modo intra-GF
 
 
 class ApplyPricingResponse(BaseModel):
@@ -90,6 +99,7 @@ class ApplyPricingResponse(BaseModel):
     players_updated: int
     players_at_default: int
     reason: str
+    mode: str
 
 
 class DayZeroResponse(BaseModel):
@@ -118,17 +128,13 @@ def _get_circuit_tournament_ids(db: Session, championship_id: int) -> list[int]:
     return [r.id for r in rows]
 
 
-def _fetch_phase_stats_for_players(
+def _fetch_phase_stats(
     db: Session,
     player_names: list[str],
-    circuit_tournament_ids: list[int],
+    tournament_ids: list[int],
 ) -> dict[str, list[PhaseStats]]:
-    """
-    Agrega total_fantasy_points e matches_played por jogador por fase (tournament_id).
-    Cruza por nome pois player_id muda entre fases.
-    Retorna dict: player_name → [PhaseStats, ...]
-    """
-    if not player_names or not circuit_tournament_ids:
+    """Agrega total_fantasy_points e matches_played por jogador por fase."""
+    if not player_names or not tournament_ids:
         return {}
 
     rows = (
@@ -142,7 +148,7 @@ def _fetch_phase_stats_for_players(
         .join(Match, Match.id == MatchPlayerStat.match_id)
         .filter(
             Player.name.in_(player_names),
-            Match.tournament_id.in_(circuit_tournament_ids),
+            Match.tournament_id.in_(tournament_ids),
         )
         .group_by(Player.name, Match.tournament_id)
         .all()
@@ -157,45 +163,121 @@ def _fetch_phase_stats_for_players(
             total_fantasy_points=float(row.total_pts or 0),
             matches_played=int(row.matches),
         ))
-
     return result
+
+
+def _fetch_gf_day_stats(
+    db: Session,
+    player_names: list[str],
+    gf_tournament_id: int,
+    gf_day: int,
+) -> dict[str, PhaseStats]:
+    """
+    Agrega stats dos jogadores apenas para as partidas de um day específico
+    dentro do torneio da Grand Final.
+    """
+    rows = (
+        db.query(
+            Player.name,
+            func.sum(MatchPlayerStat.fantasy_points).label("total_pts"),
+            func.count(MatchPlayerStat.id).label("matches"),
+        )
+        .join(MatchPlayerStat, MatchPlayerStat.player_id == Player.id)
+        .join(Match, Match.id == MatchPlayerStat.match_id)
+        .filter(
+            Player.name.in_(player_names),
+            Match.tournament_id == gf_tournament_id,
+            Match.day == gf_day,
+        )
+        .group_by(Player.name)
+        .all()
+    )
+
+    return {
+        row.name: PhaseStats(
+            tournament_id=gf_tournament_id,
+            total_fantasy_points=float(row.total_pts or 0),
+            matches_played=int(row.matches),
+        )
+        for row in rows
+    }
 
 
 def _build_inputs(
     db: Session,
     target: Tournament,
-) -> tuple[list[PlayerPricingData], list[int]]:
+    gf_day: Optional[int] = None,
+) -> tuple[list[PlayerPricingData], list[int], dict[int, float], str]:
+    """
+    Monta inputs para calculate_prices_for_group.
+
+    Se gf_day for informado, ativa modo intra-Grand Final:
+      - Busca stats do T19 filtradas pelo day especificado
+      - Usa PHASE_WEIGHTS_IN_GF
+    Caso contrário usa PHASE_WEIGHTS_PRE_GF.
+
+    Retorna (inputs, circuit_ids, phase_weights, mode_label)
+    """
     target_players = (
         db.query(Player)
         .filter(Player.tournament_id == target.id)
         .all()
     )
     if not target_players:
-        return [], []
+        return [], [], {}, "pre_gf"
 
     circuit_ids: list[int] = []
     if target.championship_id:
         circuit_ids = _get_circuit_tournament_ids(db, target.championship_id)
 
-    # Inclui também torneios de outros championships do mesmo circuito
-    # que estejam em PHASE_WEIGHTS mas não no championship_id do alvo
-    extra_ids = [tid for tid in PHASE_WEIGHTS if tid not in circuit_ids]
-    all_source_ids = list(set(circuit_ids + extra_ids))
+    # Inclui torneios de PHASE_WEIGHTS não cobertos pelo championship
+    if gf_day is not None:
+        all_weights = PHASE_WEIGHTS_IN_GF
+        # Busca fases históricas (excluindo T19 — será buscado por day)
+        historical_ids = [
+            tid for tid in all_weights
+            if tid != GRAND_FINAL_TOURNAMENT_ID
+        ]
+        extra_ids = [tid for tid in historical_ids if tid not in circuit_ids]
+        source_ids = list(set(circuit_ids + extra_ids))
+        mode = f"in_gf_day_{gf_day}"
+    else:
+        all_weights = PHASE_WEIGHTS_PRE_GF
+        extra_ids = [tid for tid in all_weights if tid not in circuit_ids]
+        source_ids = list(set(circuit_ids + extra_ids))
+        mode = "pre_gf"
 
     player_names = [p.name for p in target_players]
-    phase_stats_by_name = _fetch_phase_stats_for_players(db, player_names, all_source_ids)
 
-    inputs: list[PlayerPricingData] = [
-        PlayerPricingData(
+    # Stats das fases históricas
+    historical_stats = _fetch_phase_stats(db, player_names, source_ids)
+
+    # Stats do day da GF (apenas no modo intra-GF)
+    gf_day_stats: dict[str, PhaseStats] = {}
+    if gf_day is not None:
+        gf_day_stats = _fetch_gf_day_stats(
+            db, player_names, GRAND_FINAL_TOURNAMENT_ID, gf_day
+        )
+
+    inputs: list[PlayerPricingData] = []
+    for p in target_players:
+        phases = list(historical_stats.get(p.name, []))
+
+        # Adiciona stats do day da GF como uma "fase" separada com tournament_id=T19
+        if gf_day is not None and p.name in gf_day_stats:
+            gf_phase = gf_day_stats[p.name]
+            # Remove qualquer entrada T19 que veio do histórico geral e substitui
+            phases = [ph for ph in phases if ph["tournament_id"] != GRAND_FINAL_TOURNAMENT_ID]
+            phases.append(gf_phase)
+
+        inputs.append(PlayerPricingData(
             player_id=p.id,
             player_name=p.name,
             current_price=float(p.fantasy_cost or DAY_ZERO_PRICE),
-            phases=phase_stats_by_name.get(p.name, []),
-        )
-        for p in target_players
-    ]
+            phases=phases,
+        ))
 
-    return inputs, all_source_ids
+    return inputs, circuit_ids, all_weights, mode
 
 
 def _persist_results(
@@ -205,19 +287,15 @@ def _persist_results(
     now: datetime,
 ) -> tuple[int, int]:
     updated = at_default = 0
-
     for r in results:
         player = db.query(Player).filter(Player.id == r["player_id"]).first()
         if not player:
             continue
-
         old_price = float(player.fantasy_cost or DAY_ZERO_PRICE)
         new_price = r["suggested_price"]
-
         player.fantasy_cost = new_price
         player.computed_price = new_price
         player.price_updated_at = now
-
         db.add(PlayerPriceHistory(
             player_id=player.id,
             old_price=old_price,
@@ -226,12 +304,10 @@ def _persist_results(
             reason=reason,
             formula_components_json=json.dumps(r["components"]) if r["components"] else None,
         ))
-
         if r["no_history"]:
             at_default += 1
         else:
             updated += 1
-
     db.commit()
     return updated, at_default
 
@@ -248,19 +324,17 @@ def _persist_results(
 def day_zero(tournament_id: int, db: Session = Depends(get_db)):
     target = _get_tournament_or_404(db, tournament_id)
     players = db.query(Player).filter(Player.tournament_id == target.id).all()
-
     if not players:
         raise HTTPException(status_code=422, detail="Nenhum jogador encontrado.")
 
     inputs = [
-        {"player_id": p.id, "player_name": p.name, "current_price": float(p.fantasy_cost or 0), "phases": []}
+        {"player_id": p.id, "player_name": p.name,
+         "current_price": float(p.fantasy_cost or 0), "phases": []}
         for p in players
     ]
-
     results = apply_day_zero(inputs)
     now = datetime.now(timezone.utc)
     updated, _ = _persist_results(db, results, reason="day_zero", now=now)
-
     return DayZeroResponse(
         applied_at=now.isoformat(),
         players_updated=updated,
@@ -281,15 +355,27 @@ def pricing_preview(
     tournament_id: int,
     norm_min: float = Query(NORM_MIN),
     norm_max: float = Query(NORM_MAX),
+    gf_day: Optional[int] = Query(
+        None,
+        description="Dia da Grand Final a usar como fonte (ex: 1). Ativa modo intra-GF.",
+    ),
     db: Session = Depends(get_db),
 ):
+    """
+    Calcula preços sugeridos sem persistir.
+
+    Sem `gf_day`: usa PHASE_WEIGHTS_PRE_GF (histórico do circuito).
+    Com `gf_day=1`: usa PHASE_WEIGHTS_IN_GF com stats do Dia 1 da GF.
+    """
     target = _get_tournament_or_404(db, tournament_id)
-    inputs, circuit_ids = _build_inputs(db, target)
+    inputs, circuit_ids, phase_weights, mode = _build_inputs(db, target, gf_day)
 
     if not inputs:
         raise HTTPException(status_code=422, detail="Nenhum jogador encontrado.")
 
-    results = calculate_prices_for_group(inputs, norm_min=norm_min, norm_max=norm_max)
+    results = calculate_prices_for_group(
+        inputs, norm_min=norm_min, norm_max=norm_max, phase_weights=phase_weights
+    )
 
     items: list[PlayerPricePreviewItem] = []
     for r in results:
@@ -324,7 +410,8 @@ def pricing_preview(
         target_tournament_id=tournament_id,
         championship_id=target.championship_id,
         circuit_tournament_ids=circuit_ids,
-        phase_weights={str(k): v for k, v in PHASE_WEIGHTS.items()},
+        phase_weights={str(k): v for k, v in phase_weights.items()},
+        mode=mode,
         players_with_history=sum(1 for i in items if not i.no_history),
         players_without_history=sum(1 for i in items if i.no_history),
         norm_min=norm_min,
@@ -347,18 +434,30 @@ def apply_pricing(
     body: ApplyPricingRequest,
     db: Session = Depends(get_db),
 ):
+    """
+    Aplica os preços calculados.
+
+    Sem `gf_day`: modo pré-Grand Final (histórico do circuito).
+    Com `gf_day=1`: modo intra-GF usando stats do Dia 1 da Grand Final.
+    """
     target = _get_tournament_or_404(db, tournament_id)
-    inputs, _ = _build_inputs(db, target)
+    inputs, _, phase_weights, mode = _build_inputs(db, target, body.gf_day)
 
     if not inputs:
         raise HTTPException(status_code=422, detail="Nenhum jogador encontrado.")
 
     results = calculate_prices_for_group(
-        inputs, norm_min=body.norm_min, norm_max=body.norm_max
+        inputs, norm_min=body.norm_min, norm_max=body.norm_max,
+        phase_weights=phase_weights,
     )
 
     now = datetime.now(timezone.utc)
-    reason = body.reason or f"repricing_{now.strftime('%Y%m%d')}"
+    default_reason = (
+        f"repricing_gf_day{body.gf_day}_{now.strftime('%Y%m%d')}"
+        if body.gf_day
+        else f"repricing_{now.strftime('%Y%m%d')}"
+    )
+    reason = body.reason or default_reason
     updated, at_default = _persist_results(db, results, reason=reason, now=now)
 
     return ApplyPricingResponse(
@@ -366,4 +465,5 @@ def apply_pricing(
         players_updated=updated,
         players_at_default=at_default,
         reason=reason,
+        mode=mode,
     )
