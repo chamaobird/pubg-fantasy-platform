@@ -595,7 +595,7 @@ export default function LineupBuilder({
                   </div>
                   <div className="xlb-hslot-name">{formatPlayerName(p.name)}</div>
                   <div className="xlb-hslot-meta">
-                    <TeamLogo teamName={formatTeamTag(p.name, p.team)} size={12} />
+                    <TeamLogo teamName={formatTeamTag(p.name, p.team)} logoUrl={p.team_logo} size={12} />
                     <span>{formatTeamTag(p.name, p.team)}</span>
                     <span className="xlb-slot-cost">${Number(p.fantasy_cost || 0).toFixed(2)}</span>
                   </div>
@@ -619,7 +619,7 @@ export default function LineupBuilder({
                 </div>
                 <div className="xlb-hslot-name">{formatPlayerName(reservePlayer.name)}</div>
                 <div className="xlb-hslot-meta">
-                  <TeamLogo teamName={formatTeamTag(reservePlayer.name, reservePlayer.team)} size={12} />
+                  <TeamLogo teamName={formatTeamTag(reservePlayer.name, reservePlayer.team)} logoUrl={reservePlayer.team_logo} size={12} />
                   <span>{formatTeamTag(reservePlayer.name, reservePlayer.team)}</span>
                   <span style={{ color: reserveEligible ? '#4ade80' : '#f87171' }}>
                     ${Number(reservePlayer.fantasy_cost || 0).toFixed(2)}{!reserveEligible && ' ⚠'}
@@ -702,7 +702,7 @@ export default function LineupBuilder({
                       <tr key={p.id} className={rowClass}>
                         <td>
                           <div className="flex items-center gap-1.5">
-                            <TeamLogo teamName={playerTag} size={20} />
+                            <TeamLogo teamName={playerTag} logoUrl={p.team_logo} size={20} />
                             <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--color-xama-muted)' }}>
                               {playerTag || '—'}
                             </span>

@@ -423,7 +423,7 @@ export default function TournamentLeaderboard({
                                     padding: '7px 16px 7px 52px', borderBottom: '1px solid #14171f',
                                     fontSize: '12px', color: 'var(--color-xama-muted)' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                      {teamTag && <TeamLogo teamName={teamTag} size={18} />}
+                                      {teamTag && <TeamLogo teamName={teamTag} logoUrl={p.team_logo} size={18} />}
                                       <span style={{ color: '#c4cad6' }}>{formatPlayerName(p.name)}</span>
                                     </div>
                                     <span style={{ fontFamily: "'JetBrains Mono', monospace", color: '#4b5563', fontSize: '11px' }}>

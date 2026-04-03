@@ -1,13 +1,18 @@
-﻿import { useState } from 'react'
-export default function TeamLogo({ teamName, size = 28 }) {
+import { useState } from 'react'
+
+export default function TeamLogo({ teamName, logoUrl: logoUrlProp, size = 28 }) {
   const [imgError, setImgError] = useState(false)
-  const logoUrl = teamName ? `/logos/${teamName.toLowerCase()}.png` : null
+
+  // Prioriza a URL vinda da API; fallback para o padrão antigo se não houver
+  const logoUrl = logoUrlProp || (teamName ? `/logos/${teamName.toLowerCase()}.png` : null)
+
   if (logoUrl && !imgError) {
     return (
       <img src={logoUrl} alt={teamName} onError={() => setImgError(true)}
         style={{ width: size, height: size, objectFit: 'contain', borderRadius: '3px', flexShrink: 0, display: 'block' }} />
     )
   }
+
   const initials = teamName ? teamName.slice(0, 3).toUpperCase() : '?'
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center',

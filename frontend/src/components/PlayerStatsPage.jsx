@@ -536,7 +536,7 @@ export default function PlayerStatsPage({
                         </td>
                         <td style={{ padding: '10px 12px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <TeamLogo teamName={teamTag} size={28} />
+                            <TeamLogo teamName={teamTag} logoUrl={p.team_logo} size={28} />
                             <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.06em',
                               color: 'var(--color-xama-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
                               {teamTag}
