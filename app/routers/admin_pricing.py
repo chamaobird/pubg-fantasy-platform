@@ -1,18 +1,9 @@
 """
 XAMA Fantasy — Admin Pricing Router
 =====================================
-Dois endpoints para o fluxo de repricing entre fases:
-
+  POST /admin/tournaments/{id}/day-zero
   GET  /admin/tournaments/{id}/pricing-preview
-       Calcula preços sugeridos SEM persistir nada.
-
   POST /admin/tournaments/{id}/apply-pricing
-       Aplica os preços, atualiza fantasy_cost e grava PlayerPriceHistory.
-
-Fluxo esperado:
-  1. Fase anterior encerra (tournament.status = "finished")
-  2. Admin acessa o preview para conferir os preços sugeridos
-  3. Admin confirma → chama apply-pricing
 """
 
 from __future__ import annotations
@@ -27,10 +18,14 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.pricing import (
+    DAY_ZERO_PRICE,
     DEFAULT_PRICE,
     NORM_MAX,
     NORM_MIN,
-    PlayerStats,
+    PHASE_WEIGHTS,
+    PhaseStats,
+    PlayerPricingData,
+    apply_day_zero,
     calculate_prices_for_group,
 )
 from app.database import get_db
@@ -45,22 +40,19 @@ router = APIRouter(prefix="/admin", tags=["admin-pricing"])
 # Schemas
 # ---------------------------------------------------------------------------
 
+class PhaseStatsOut(BaseModel):
+    tournament_id: int
+    pts_per_match: float
+    matches_played: int
+    weight_original: float
+    weight_effective: float
+
+
 class PriceComponentsOut(BaseModel):
-    avg_kills: float
-    avg_damage: float
-    avg_survival_minutes: float
-    avg_placement: float
-    total_teams: int
-    games_considered: int
-    kill_component: float
-    damage_component: float
-    survival_component: float
-    placement_component: float
-    base_score: float
-    raw_price: float
+    phases_used: list[PhaseStatsOut]
+    weighted_avg: float
+    raw_score: float
     final_price: float
-    had_recent_phase: bool
-    had_other_phases: bool
     formula_version: str
 
 
@@ -77,7 +69,9 @@ class PlayerPricePreviewItem(BaseModel):
 
 class PricingPreviewResponse(BaseModel):
     target_tournament_id: int
-    source_tournament_id: Optional[int]
+    championship_id: Optional[int]
+    circuit_tournament_ids: list[int]
+    phase_weights: dict[str, float]
     players_with_history: int
     players_without_history: int
     norm_min: float
@@ -86,7 +80,6 @@ class PricingPreviewResponse(BaseModel):
 
 
 class ApplyPricingRequest(BaseModel):
-    source_tournament_id: Optional[int] = None
     reason: Optional[str] = None
     norm_min: float = NORM_MIN
     norm_max: float = NORM_MAX
@@ -99,8 +92,14 @@ class ApplyPricingResponse(BaseModel):
     reason: str
 
 
+class DayZeroResponse(BaseModel):
+    applied_at: str
+    players_updated: int
+    price_applied: float
+
+
 # ---------------------------------------------------------------------------
-# Helpers de dados
+# Helpers
 # ---------------------------------------------------------------------------
 
 def _get_tournament_or_404(db: Session, tournament_id: int) -> Tournament:
@@ -110,116 +109,163 @@ def _get_tournament_or_404(db: Session, tournament_id: int) -> Tournament:
     return t
 
 
-def _get_stats_for_player_ids(
+def _get_circuit_tournament_ids(db: Session, championship_id: int) -> list[int]:
+    rows = (
+        db.query(Tournament.id)
+        .filter(Tournament.championship_id == championship_id)
+        .all()
+    )
+    return [r.id for r in rows]
+
+
+def _fetch_phase_stats_for_players(
     db: Session,
-    player_ids: list[int],
-    tournament_id: int,
-) -> dict[int, PlayerStats]:
+    player_names: list[str],
+    circuit_tournament_ids: list[int],
+) -> dict[str, list[PhaseStats]]:
     """
-    Agrega stats de match_player_stats para uma lista de player_ids
-    dentro de um torneio específico.
+    Agrega total_fantasy_points e matches_played por jogador por fase (tournament_id).
+    Cruza por nome pois player_id muda entre fases.
+    Retorna dict: player_name → [PhaseStats, ...]
     """
-    if not player_ids:
+    if not player_names or not circuit_tournament_ids:
         return {}
 
     rows = (
         db.query(
-            MatchPlayerStat.player_id,
+            Player.name,
+            Match.tournament_id,
+            func.sum(MatchPlayerStat.fantasy_points).label("total_pts"),
             func.count(MatchPlayerStat.id).label("matches"),
-            func.avg(MatchPlayerStat.kills).label("avg_kills"),
-            func.avg(MatchPlayerStat.damage_dealt).label("avg_damage"),
-            func.avg(MatchPlayerStat.placement).label("avg_placement"),
-            func.avg(MatchPlayerStat.survival_secs / 60.0).label("avg_survival_min"),
         )
+        .join(MatchPlayerStat, MatchPlayerStat.player_id == Player.id)
         .join(Match, Match.id == MatchPlayerStat.match_id)
         .filter(
-            MatchPlayerStat.player_id.in_(player_ids),
-            Match.tournament_id == tournament_id,
+            Player.name.in_(player_names),
+            Match.tournament_id.in_(circuit_tournament_ids),
         )
-        .group_by(MatchPlayerStat.player_id)
+        .group_by(Player.name, Match.tournament_id)
         .all()
     )
 
-    return {
-        row.player_id: PlayerStats(
-            avg_kills=float(row.avg_kills or 0),
-            avg_damage=float(row.avg_damage or 0),
-            avg_placement=float(row.avg_placement or 16),
-            avg_survival_minutes=float(row.avg_survival_min or 0),
+    result: dict[str, list[PhaseStats]] = {}
+    for row in rows:
+        if row.name not in result:
+            result[row.name] = []
+        result[row.name].append(PhaseStats(
+            tournament_id=row.tournament_id,
+            total_fantasy_points=float(row.total_pts or 0),
             matches_played=int(row.matches),
-        )
-        for row in rows
-    }
+        ))
 
-
-def _resolve_recent_tournament(
-    db: Session,
-    target: Tournament,
-    source_tournament_id: Optional[int],
-) -> Optional[Tournament]:
-    """
-    Resolve o torneio fonte dos stats recentes.
-    Se source_tournament_id for fornecido, usa ele diretamente.
-    Caso contrário, tenta inferir pelo championship_id e phase_order (futuro).
-    Por agora, retorna None quando não fornecido explicitamente.
-    """
-    if source_tournament_id:
-        return _get_tournament_or_404(db, source_tournament_id)
-    return None
+    return result
 
 
 def _build_inputs(
     db: Session,
     target: Tournament,
-    source_tournament_id: Optional[int],
-) -> tuple[list[dict], Optional[Tournament]]:
-    """
-    Monta a lista de inputs para calculate_prices_for_group.
-
-    Para cada jogador do torneio alvo:
-      - recent_stats: stats no torneio fonte (via player.name, já que player_id muda entre fases)
-      - historical_stats: None por enquanto (extensível na próxima iteração)
-    """
+) -> tuple[list[PlayerPricingData], list[int]]:
     target_players = (
         db.query(Player)
         .filter(Player.tournament_id == target.id)
         .all()
     )
     if not target_players:
-        return [], None
+        return [], []
 
-    recent_t = _resolve_recent_tournament(db, target, source_tournament_id)
-    recent_stats_by_name: dict[str, PlayerStats] = {}
+    circuit_ids: list[int] = []
+    if target.championship_id:
+        circuit_ids = _get_circuit_tournament_ids(db, target.championship_id)
 
-    if recent_t:
-        player_names = [p.name for p in target_players]
-        recent_players = (
-            db.query(Player)
-            .filter(
-                Player.tournament_id == recent_t.id,
-                Player.name.in_(player_names),
-            )
-            .all()
+    # Inclui também torneios de outros championships do mesmo circuito
+    # que estejam em PHASE_WEIGHTS mas não no championship_id do alvo
+    extra_ids = [tid for tid in PHASE_WEIGHTS if tid not in circuit_ids]
+    all_source_ids = list(set(circuit_ids + extra_ids))
+
+    player_names = [p.name for p in target_players]
+    phase_stats_by_name = _fetch_phase_stats_for_players(db, player_names, all_source_ids)
+
+    inputs: list[PlayerPricingData] = [
+        PlayerPricingData(
+            player_id=p.id,
+            player_name=p.name,
+            current_price=float(p.fantasy_cost or DAY_ZERO_PRICE),
+            phases=phase_stats_by_name.get(p.name, []),
         )
-        if recent_players:
-            recent_ids = [rp.id for rp in recent_players]
-            stats_by_id = _get_stats_for_player_ids(db, recent_ids, recent_t.id)
-            for rp in recent_players:
-                if rp.id in stats_by_id:
-                    recent_stats_by_name[rp.name] = stats_by_id[rp.id]
-
-    inputs = [
-        {
-            "player_id": p.id,
-            "player_name": p.name,
-            "current_price": float(p.fantasy_cost or DEFAULT_PRICE),
-            "recent_stats": recent_stats_by_name.get(p.name),
-            "historical_stats": None,  # extensível: adicionar outras fases aqui
-        }
         for p in target_players
     ]
 
-    return inputs, recent_t
+    return inputs, all_source_ids
+
+
+def _persist_results(
+    db: Session,
+    results: list[dict],
+    reason: str,
+    now: datetime,
+) -> tuple[int, int]:
+    updated = at_default = 0
+
+    for r in results:
+        player = db.query(Player).filter(Player.id == r["player_id"]).first()
+        if not player:
+            continue
+
+        old_price = float(player.fantasy_cost or DAY_ZERO_PRICE)
+        new_price = r["suggested_price"]
+
+        player.fantasy_cost = new_price
+        player.computed_price = new_price
+        player.price_updated_at = now
+
+        db.add(PlayerPriceHistory(
+            player_id=player.id,
+            old_price=old_price,
+            new_price=new_price,
+            changed_at=now,
+            reason=reason,
+            formula_components_json=json.dumps(r["components"]) if r["components"] else None,
+        ))
+
+        if r["no_history"]:
+            at_default += 1
+        else:
+            updated += 1
+
+    db.commit()
+    return updated, at_default
+
+
+# ---------------------------------------------------------------------------
+# POST /admin/tournaments/{id}/day-zero
+# ---------------------------------------------------------------------------
+
+@router.post(
+    "/tournaments/{tournament_id}/day-zero",
+    response_model=DayZeroResponse,
+    summary="Dia Zero — todos os jogadores recebem 25 cr",
+)
+def day_zero(tournament_id: int, db: Session = Depends(get_db)):
+    target = _get_tournament_or_404(db, tournament_id)
+    players = db.query(Player).filter(Player.tournament_id == target.id).all()
+
+    if not players:
+        raise HTTPException(status_code=422, detail="Nenhum jogador encontrado.")
+
+    inputs = [
+        {"player_id": p.id, "player_name": p.name, "current_price": float(p.fantasy_cost or 0), "phases": []}
+        for p in players
+    ]
+
+    results = apply_day_zero(inputs)
+    now = datetime.now(timezone.utc)
+    updated, _ = _persist_results(db, results, reason="day_zero", now=now)
+
+    return DayZeroResponse(
+        applied_at=now.isoformat(),
+        players_updated=updated,
+        price_applied=DAY_ZERO_PRICE,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -233,46 +279,34 @@ def _build_inputs(
 )
 def pricing_preview(
     tournament_id: int,
-    source_tournament_id: Optional[int] = Query(
-        None,
-        description="Torneio de origem dos stats. Obrigatório até que a detecção automática por phase_order seja implementada.",
-    ),
-    norm_min: float = Query(NORM_MIN, description="Menor preço após normalização"),
-    norm_max: float = Query(NORM_MAX, description="Maior preço após normalização"),
+    norm_min: float = Query(NORM_MIN),
+    norm_max: float = Query(NORM_MAX),
     db: Session = Depends(get_db),
 ):
-    """
-    Calcula os preços sugeridos para os jogadores do torneio alvo
-    com base nas performances do torneio fonte.
-
-    **Não persiste nada.** Use para conferir antes de chamar apply-pricing.
-    """
     target = _get_tournament_or_404(db, tournament_id)
-    inputs, recent_t = _build_inputs(db, target, source_tournament_id)
+    inputs, circuit_ids = _build_inputs(db, target)
 
     if not inputs:
-        raise HTTPException(
-            status_code=422,
-            detail=f"Nenhum jogador encontrado no torneio {tournament_id}.",
-        )
+        raise HTTPException(status_code=422, detail="Nenhum jogador encontrado.")
 
-    results = calculate_prices_for_group(
-        inputs,
-        norm_min=norm_min,
-        norm_max=norm_max,
-        total_teams=target.max_teams or 16,
-    )
+    results = calculate_prices_for_group(inputs, norm_min=norm_min, norm_max=norm_max)
 
     items: list[PlayerPricePreviewItem] = []
     for r in results:
         comp_out = None
-        if r["components"]:
-            comp_out = PriceComponentsOut(**r["components"])
-
-        delta_pct = None
-        if r["current_price"]:
-            delta_pct = round((r["delta"] / r["current_price"]) * 100, 1)
-
+        if r["components"] and r["components"].get("formula_version") != "day_zero":
+            comp = r["components"]
+            comp_out = PriceComponentsOut(
+                phases_used=[PhaseStatsOut(**ph) for ph in comp.get("phases_used", [])],
+                weighted_avg=comp["weighted_avg"],
+                raw_score=comp["raw_score"],
+                final_price=comp["final_price"],
+                formula_version=comp["formula_version"],
+            )
+        delta_pct = (
+            round((r["delta"] / r["current_price"]) * 100, 1)
+            if r["current_price"] else None
+        )
         items.append(PlayerPricePreviewItem(
             player_id=r["player_id"],
             player_name=r["player_name"],
@@ -288,7 +322,9 @@ def pricing_preview(
 
     return PricingPreviewResponse(
         target_tournament_id=tournament_id,
-        source_tournament_id=recent_t.id if recent_t else None,
+        championship_id=target.championship_id,
+        circuit_tournament_ids=circuit_ids,
+        phase_weights={str(k): v for k, v in PHASE_WEIGHTS.items()},
         players_with_history=sum(1 for i in items if not i.no_history),
         players_without_history=sum(1 for i in items if i.no_history),
         norm_min=norm_min,
@@ -304,74 +340,26 @@ def pricing_preview(
 @router.post(
     "/tournaments/{tournament_id}/apply-pricing",
     response_model=ApplyPricingResponse,
-    summary="Aplica preços calculados e grava histórico",
+    summary="Aplica preços e grava histórico",
 )
 def apply_pricing(
     tournament_id: int,
     body: ApplyPricingRequest,
     db: Session = Depends(get_db),
 ):
-    """
-    Aplica os preços sugeridos aos jogadores do torneio:
-    - Atualiza `fantasy_cost` e `computed_price`
-    - Grava `PlayerPriceHistory` com componentes detalhados
-    - Jogadores sem histórico recebem DEFAULT_PRICE e também são logados
-    """
     target = _get_tournament_or_404(db, tournament_id)
-    inputs, recent_t = _build_inputs(db, target, body.source_tournament_id)
+    inputs, _ = _build_inputs(db, target)
 
     if not inputs:
-        raise HTTPException(
-            status_code=422,
-            detail=f"Nenhum jogador encontrado no torneio {tournament_id}.",
-        )
+        raise HTTPException(status_code=422, detail="Nenhum jogador encontrado.")
 
     results = calculate_prices_for_group(
-        inputs,
-        norm_min=body.norm_min,
-        norm_max=body.norm_max,
-        total_teams=target.max_teams or 16,
+        inputs, norm_min=body.norm_min, norm_max=body.norm_max
     )
 
-    source_label = f"T{recent_t.id}" if recent_t else "manual"
-    reason = body.reason or f"recalc_from_{source_label}"
     now = datetime.now(timezone.utc)
-    updated = 0
-    at_default = 0
-
-    for r in results:
-        player = db.query(Player).filter(Player.id == r["player_id"]).first()
-        if not player:
-            continue
-
-        old_price = float(player.fantasy_cost or DEFAULT_PRICE)
-        new_price = r["suggested_price"]
-
-        player.fantasy_cost = new_price
-        player.computed_price = new_price
-        player.price_updated_at = now
-
-        components_json = (
-            json.dumps(r["components"])
-            if r["components"]
-            else json.dumps({"note": "no_history", "default_price": DEFAULT_PRICE})
-        )
-
-        db.add(PlayerPriceHistory(
-            player_id=player.id,
-            old_price=old_price,
-            new_price=new_price,
-            changed_at=now,
-            reason=reason,
-            formula_components_json=components_json,
-        ))
-
-        if r["no_history"]:
-            at_default += 1
-        else:
-            updated += 1
-
-    db.commit()
+    reason = body.reason or f"repricing_{now.strftime('%Y%m%d')}"
+    updated, at_default = _persist_results(db, results, reason=reason, now=now)
 
     return ApplyPricingResponse(
         applied_at=now.isoformat(),
