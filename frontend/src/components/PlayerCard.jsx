@@ -40,7 +40,25 @@ export default function PlayerCard({ player, onSelect, isSelected, showSelect = 
           </div>
           <div className="flex items-center gap-2 mt-1">
             {player.team && (
-              <span className="font-mono text-xs text-text-secondary uppercase">{player.team}</span>
+              player.team_logo ? (
+                <img
+                  src={player.team_logo}
+                  alt={player.team}
+                  className="h-5 w-auto object-contain"
+                  onError={e => {
+                    e.target.style.display = 'none'
+                    e.target.nextSibling.style.display = 'inline'
+                  }}
+                />
+              ) : null
+            )}
+            {player.team && (
+              <span
+                className="font-mono text-xs text-text-secondary uppercase"
+                style={{ display: player.team_logo ? 'none' : 'inline' }}
+              >
+                {player.team}
+              </span>
             )}
             <span className={`region-tag border ${regionColor}`}>{region}</span>
           </div>
