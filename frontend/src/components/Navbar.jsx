@@ -24,44 +24,44 @@ export default function Navbar({ tournament = null }) {
 
       <div style={{
         maxWidth: '1200px', margin: '0 auto', padding: '0 24px',
-        display: 'flex', alignItems: 'center', gap: '12px', height: '56px',
+        display: 'flex', alignItems: 'center', gap: '12px', height: '70px',
       }}>
 
         {/* Logo */}
         <div
-          style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', flexShrink: 0 }}
+          style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', flexShrink: 0 }}
           onClick={() => navigate('/dashboard')}
         >
           <div style={{
-            width: '32px', height: '32px', fontSize: '16px',
+            width: '40px', height: '40px', fontSize: '20px',
             background: 'linear-gradient(135deg, rgba(249,115,22,0.25), rgba(249,115,22,0.05))',
-            border: '1px solid rgba(249,115,22,0.3)', borderRadius: '8px',
+            border: '1px solid rgba(249,115,22,0.3)', borderRadius: '10px',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>🔥</div>
           <div>
-            <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-xama-text)', letterSpacing: '0.06em', lineHeight: 1 }}>XAMA</div>
-            <div style={{ fontSize: '8px', color: 'var(--color-xama-orange)', letterSpacing: '0.16em', textTransform: 'uppercase', lineHeight: 1 }}>Fantasy</div>
+            <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--color-xama-text)', letterSpacing: '0.06em', lineHeight: 1 }}>XAMA</div>
+            <div style={{ fontSize: '11px', color: 'var(--color-xama-orange)', letterSpacing: '0.16em', textTransform: 'uppercase', lineHeight: 1 }}>Fantasy</div>
           </div>
         </div>
 
-        {/* Contexto do torneio (só aparece em /tournament/:id) */}
+        {/* Contexto do torneio */}
         {tournament && (
           <>
-            <div style={{ width: '1px', height: '28px', background: 'var(--color-xama-border)', flexShrink: 0 }} />
+            <div style={{ width: '1px', height: '32px', background: 'var(--color-xama-border)', flexShrink: 0 }} />
             <div style={{ flexShrink: 1, minWidth: 0 }}>
               <div style={{
-                fontSize: '13px', fontWeight: 700, color: 'var(--color-xama-text)',
-                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '280px',
+                fontSize: '19px', fontWeight: 700, color: 'var(--color-xama-text)',
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '320px',
               }}>
                 {tournament.name}
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '1px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
                 <span style={{
-                  width: '6px', height: '6px', borderRadius: '50%',
+                  width: '7px', height: '7px', borderRadius: '50%',
                   background: STATUS_COLOR[tournament.status] || '#6b7280', flexShrink: 0,
                 }} />
                 <span style={{
-                  fontSize: '9px', fontWeight: 700, letterSpacing: '0.12em',
+                  fontSize: '12px', fontWeight: 700, letterSpacing: '0.12em',
                   color: STATUS_COLOR[tournament.status] || '#6b7280', textTransform: 'uppercase',
                 }}>
                   {STATUS_LABEL[tournament.status] || tournament.status}
@@ -88,8 +88,8 @@ export default function Navbar({ tournament = null }) {
                 style={{
                   background: active ? 'rgba(249,115,22,0.1)' : 'none',
                   border: active ? '1px solid rgba(249,115,22,0.3)' : 'none',
-                  borderRadius: '6px', padding: '6px 12px',
-                  fontSize: '13px', fontWeight: active ? 700 : 600,
+                  borderRadius: '6px', padding: '8px 16px',
+                  fontSize: '17px', fontWeight: active ? 700 : 600,
                   letterSpacing: '0.04em',
                   color: active ? 'var(--color-xama-orange)' : 'var(--color-xama-muted)',
                   cursor: 'pointer', fontFamily: "'Rajdhani', sans-serif",
@@ -107,8 +107,8 @@ export default function Navbar({ tournament = null }) {
             onClick={logout}
             style={{
               background: 'none', border: '1px solid var(--color-xama-border)',
-              borderRadius: '6px', padding: '6px 14px', marginLeft: '4px',
-              fontSize: '12px', fontWeight: 600, letterSpacing: '0.06em',
+              borderRadius: '6px', padding: '8px 18px', marginLeft: '4px',
+              fontSize: '16px', fontWeight: 600, letterSpacing: '0.06em',
               color: 'var(--color-xama-muted)', cursor: 'pointer',
               fontFamily: "'Rajdhani', sans-serif",
             }}
