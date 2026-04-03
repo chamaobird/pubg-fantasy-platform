@@ -37,6 +37,7 @@ class Tournament(Base):
         DateTime(timezone=True), server_default=func.now()
     )
     created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    championship_id: Mapped[int | None] = mapped_column(ForeignKey("championships.id"), nullable=True, index=True)
 
     creator: Mapped["User | None"] = relationship("User", back_populates="tournaments")
     matches: Mapped[list["Match"]] = relationship("Match", back_populates="tournament")
