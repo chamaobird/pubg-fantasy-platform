@@ -92,6 +92,7 @@ class ApplyPricingRequest(BaseModel):
     norm_min: float = NORM_MIN
     norm_max: float = NORM_MAX
     gf_day: Optional[int] = None      # se informado, ativa modo intra-GF
+    self_contained: bool = False       # se True, usa só o torneio alvo como fonte
 
 
 class ApplyPricingResponse(BaseModel):
@@ -100,6 +101,8 @@ class ApplyPricingResponse(BaseModel):
     players_at_default: int
     reason: str
     mode: str
+    norm_min: float
+    norm_max: float
 
 
 class DayZeroResponse(BaseModel):
@@ -207,14 +210,15 @@ def _build_inputs(
     db: Session,
     target: Tournament,
     gf_day: Optional[int] = None,
+    self_contained: bool = False,
 ) -> tuple[list[PlayerPricingData], list[int], dict[int, float], str]:
     """
     Monta inputs para calculate_prices_for_group.
 
-    Se gf_day for informado, ativa modo intra-Grand Final:
-      - Busca stats do T19 filtradas pelo day especificado
-      - Usa PHASE_WEIGHTS_IN_GF
-    Caso contrário usa PHASE_WEIGHTS_PRE_GF.
+    Modos:
+      self_contained=True  → usa só o torneio alvo como fonte (PAS, torneios únicos)
+      gf_day=N             → modo intra-Grand Final, filtra T_GF pelo day N
+      padrão               → usa PHASE_WEIGHTS_PRE_GF com torneios do championship
 
     Retorna (inputs, circuit_ids, phase_weights, mode_label)
     """
@@ -230,10 +234,14 @@ def _build_inputs(
     if target.championship_id:
         circuit_ids = _get_circuit_tournament_ids(db, target.championship_id)
 
-    # Inclui torneios de PHASE_WEIGHTS não cobertos pelo championship
-    if gf_day is not None:
+    # Modo self_contained: usa só o torneio alvo
+    if self_contained:
+        all_weights = {target.id: 100.0}
+        source_ids = [target.id]
+        mode = f"self_contained_T{target.id}"
+    # Modo intra-Grand Final
+    elif gf_day is not None:
         all_weights = PHASE_WEIGHTS_IN_GF
-        # Busca fases históricas (excluindo T19 — será buscado por day)
         historical_ids = [
             tid for tid in all_weights
             if tid != GRAND_FINAL_TOURNAMENT_ID
@@ -359,6 +367,10 @@ def pricing_preview(
         None,
         description="Dia da Grand Final a usar como fonte (ex: 1). Ativa modo intra-GF.",
     ),
+    self_contained: bool = Query(
+        False,
+        description="Se True, usa só o próprio torneio como fonte de stats. Ideal para torneios únicos como o PAS T7.",
+    ),
     db: Session = Depends(get_db),
 ):
     """
@@ -368,7 +380,9 @@ def pricing_preview(
     Com `gf_day=1`: usa PHASE_WEIGHTS_IN_GF com stats do Dia 1 da GF.
     """
     target = _get_tournament_or_404(db, tournament_id)
-    inputs, circuit_ids, phase_weights, mode = _build_inputs(db, target, gf_day)
+    inputs, circuit_ids, phase_weights, mode = _build_inputs(
+        db, target, gf_day, self_contained
+    )
 
     if not inputs:
         raise HTTPException(status_code=422, detail="Nenhum jogador encontrado.")
@@ -441,7 +455,9 @@ def apply_pricing(
     Com `gf_day=1`: modo intra-GF usando stats do Dia 1 da Grand Final.
     """
     target = _get_tournament_or_404(db, tournament_id)
-    inputs, _, phase_weights, mode = _build_inputs(db, target, body.gf_day)
+    inputs, _, phase_weights, mode = _build_inputs(
+        db, target, body.gf_day, body.self_contained
+    )
 
     if not inputs:
         raise HTTPException(status_code=422, detail="Nenhum jogador encontrado.")
@@ -466,4 +482,6 @@ def apply_pricing(
         players_at_default=at_default,
         reason=reason,
         mode=mode,
+        norm_min=body.norm_min,
+        norm_max=body.norm_max,
     )
