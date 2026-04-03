@@ -91,8 +91,9 @@ class ApplyPricingRequest(BaseModel):
     reason: Optional[str] = None
     norm_min: float = NORM_MIN
     norm_max: float = NORM_MAX
-    gf_day: Optional[int] = None      # se informado, ativa modo intra-GF
-    self_contained: bool = False       # se True, usa só o torneio alvo como fonte
+    gf_day: Optional[int] = None           # se informado, ativa modo intra-GF
+    self_contained: bool = False            # se True, usa só o torneio alvo como fonte
+    source_tournament_id: Optional[int] = None  # busca stats de outro torneio por nome
 
 
 class ApplyPricingResponse(BaseModel):
@@ -206,11 +207,48 @@ def _fetch_gf_day_stats(
     }
 
 
+def _fetch_stats_by_name_suffix(
+    db: Session,
+    player_names: list[str],
+    source_tournament_id: int,
+) -> dict[str, "PhaseStats"]:
+    """
+    Busca stats do source_tournament_id cruzando por sufixo de nome.
+    Ex: jogador "FE_Haven_-" no T21 busca "%Haven_-%" no T7.
+    Retorna dict: player_name_t21 -> PhaseStats
+    """
+    result = {}
+    for full_name in player_names:
+        # Extrai sufixo: "FE_Haven_-" -> "Haven_-"
+        parts = full_name.split("_", 1)
+        suffix = parts[1] if len(parts) > 1 else full_name
+
+        row = db.query(
+            MatchPlayerStat.player_id,
+            func.sum(MatchPlayerStat.fantasy_points).label("total_pts"),
+            func.count(MatchPlayerStat.id).label("matches"),
+        ).join(Match, Match.id == MatchPlayerStat.match_id
+        ).join(Player, Player.id == MatchPlayerStat.player_id
+        ).filter(
+            Match.tournament_id == source_tournament_id,
+            Player.name.ilike(f"%{suffix}%"),
+        ).group_by(MatchPlayerStat.player_id).first()
+
+        if row and row.matches > 0:
+            result[full_name] = PhaseStats(
+                tournament_id=source_tournament_id,
+                total_fantasy_points=float(row.total_pts or 0),
+                matches_played=int(row.matches),
+            )
+    return result
+
+
 def _build_inputs(
     db: Session,
     target: Tournament,
     gf_day: Optional[int] = None,
     self_contained: bool = False,
+    source_tournament_id: Optional[int] = None,
 ) -> tuple[list[PlayerPricingData], list[int], dict[int, float], str]:
     """
     Monta inputs para calculate_prices_for_group.
@@ -256,6 +294,22 @@ def _build_inputs(
         mode = "pre_gf"
 
     player_names = [p.name for p in target_players]
+
+    # Modo source_tournament_id: busca stats de outro torneio por sufixo de nome
+    if source_tournament_id is not None:
+        suffix_stats = _fetch_stats_by_name_suffix(db, player_names, source_tournament_id)
+        inputs_result: list[PlayerPricingData] = [
+            PlayerPricingData(
+                player_id=p.id,
+                player_name=p.name,
+                current_price=float(p.fantasy_cost or DAY_ZERO_PRICE),
+                phases=[suffix_stats[p.name]] if p.name in suffix_stats else [],
+            )
+            for p in target_players
+        ]
+        phase_weights_used = {source_tournament_id: 100.0}
+        mode_label = f"source_T{source_tournament_id}"
+        return inputs_result, [source_tournament_id], phase_weights_used, mode_label
 
     # Stats das fases históricas
     historical_stats = _fetch_phase_stats(db, player_names, source_ids)
@@ -371,6 +425,10 @@ def pricing_preview(
         False,
         description="Se True, usa só o próprio torneio como fonte de stats. Ideal para torneios únicos como o PAS T7.",
     ),
+    source_tournament_id: Optional[int] = Query(
+        None,
+        description="Busca stats deste torneio cruzando jogadores por nome. Ideal para Cup Weeks do PAS.",
+    ),
     db: Session = Depends(get_db),
 ):
     """
@@ -381,7 +439,7 @@ def pricing_preview(
     """
     target = _get_tournament_or_404(db, tournament_id)
     inputs, circuit_ids, phase_weights, mode = _build_inputs(
-        db, target, gf_day, self_contained
+        db, target, gf_day, self_contained, source_tournament_id
     )
 
     if not inputs:
@@ -456,7 +514,7 @@ def apply_pricing(
     """
     target = _get_tournament_or_404(db, tournament_id)
     inputs, _, phase_weights, mode = _build_inputs(
-        db, target, body.gf_day, body.self_contained
+        db, target, body.gf_day, body.self_contained, body.source_tournament_id
     )
 
     if not inputs:
