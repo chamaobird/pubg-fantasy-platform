@@ -121,6 +121,7 @@ class TournamentPlayerResponse(BaseModel):
     id: int
     name: str
     team: Optional[str] = None
+    team_logo: Optional[str] = None
     nationality: Optional[str] = None
     region: Optional[str] = None
     fantasy_cost: float
@@ -146,7 +147,7 @@ def list_tournament_players(
     tournament = db.query(Tournament).filter(Tournament.id == tournament_id).first()
     if not tournament:
         raise HTTPException(status_code=404, detail="Tournament not found")
-    query = db.query(Player, Team.name).outerjoin(Team, Player.team_id == Team.id)
+    query = db.query(Player, Team.name, Team.logo_url).outerjoin(Team, Player.team_id == Team.id)
     query = query.filter(Player.tournament_id == tournament_id)
     query = query.filter(Player.is_active == True)
     if name:
@@ -166,6 +167,7 @@ def list_tournament_players(
             id=p.id,
             name=p.name,
             team=team_name,
+            team_logo=team_logo,
             nationality=p.nationality,
             region=p.region,
             fantasy_cost=float(p.fantasy_cost or 0.0),
@@ -173,7 +175,7 @@ def list_tournament_players(
             avg_damage_50=float(p.avg_damage_50) if p.avg_damage_50 is not None else None,
             avg_placement_50=float(p.avg_placement_50) if p.avg_placement_50 is not None else None,
         )
-        for p, team_name in rows
+        for p, team_name, team_logo in rows
     ]
 
 
