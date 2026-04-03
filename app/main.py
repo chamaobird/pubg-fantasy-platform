@@ -10,6 +10,7 @@ from app.routers.historical import router as historical_router
 from app.routers import admin_players
 from app.routers import users
 from app.routers.championship_phases import router as championship_phases_router
+from app.routers.admin_pricing import router as pricing_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -65,6 +66,7 @@ app.include_router(championships_router)
 app.include_router(historical_router)
 app.include_router(championship_phases_router)
 app.include_router(admin_players.router)
+app.include_router(pricing_router)
 
 
 @app.get("/", tags=["Health"])
