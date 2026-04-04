@@ -69,6 +69,7 @@ function TournamentCard({ t, navigate }) {
         transition: 'border-color 0.15s, transform 0.15s',
         position: 'relative',
         overflow: 'hidden',
+        gridColumn: '1 / -1',
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.borderColor = 'rgba(249,115,22,0.4)'
