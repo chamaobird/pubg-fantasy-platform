@@ -270,13 +270,24 @@ export default function TournamentSelect() {
 
   const statusOrder = { active: 0, upcoming: 1, finished: 2 }
 
+  // Deriva status real do championship: se todas as fases estão finished → finished
+  const champEffectiveStatus = (c) => {
+    const statuses = c.phases.map(p => tournById[p.tournament_id]?.status || 'finished')
+    if (statuses.every(s => s === 'finished')) return 'finished'
+    if (statuses.some(s => s === 'active')) return 'active'
+    return 'upcoming'
+  }
+
   const isPriority = (item) => {
     if (item.type === 'championship') return item.data.phases.some(p => PRIORITY_IDS.has(p.tournament_id))
     return PRIORITY_IDS.has(item.data.id)
   }
 
   const allItems = [
-    ...championships.map(c => ({ type: 'championship', data: c, statusRank: statusOrder[c.status] ?? 3 })),
+    ...championships.map(c => {
+      const eff = champEffectiveStatus(c)
+      return { type: 'championship', data: { ...c, status: eff }, statusRank: statusOrder[eff] ?? 3 }
+    }),
     ...standalone.map(t => ({ type: 'tournament', data: t, statusRank: statusOrder[t.status] ?? 3 })),
   ].sort((a, b) => a.statusRank - b.statusRank)
 
