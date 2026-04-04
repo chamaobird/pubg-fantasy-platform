@@ -245,6 +245,11 @@ export default function TournamentSelect() {
   const [loading, setLoading]           = useState(true)
   const [error, setError]               = useState('')
   const [showFinished, setShowFinished] = useState(false)
+  const [showOnHold, setShowOnHold]     = useState(false)
+
+  // IDs de torneios/campeonatos que devem aparecer em destaque (AO VIVO real)
+  // Atualizar esta lista conforme novos torneios principais entram em cena
+  const PRIORITY_IDS = new Set([19, 21])
 
   useEffect(() => {
     Promise.all([
@@ -264,12 +269,19 @@ export default function TournamentSelect() {
   const standalone = tournaments.filter(t => !champTournamentIds.has(t.id))
 
   const statusOrder = { active: 0, upcoming: 1, finished: 2 }
+
+  const isPriority = (item) => {
+    if (item.type === 'championship') return item.data.phases.some(p => PRIORITY_IDS.has(p.tournament_id))
+    return PRIORITY_IDS.has(item.data.id)
+  }
+
   const allItems = [
     ...championships.map(c => ({ type: 'championship', data: c, statusRank: statusOrder[c.status] ?? 3 })),
     ...standalone.map(t => ({ type: 'tournament', data: t, statusRank: statusOrder[t.status] ?? 3 })),
   ].sort((a, b) => a.statusRank - b.statusRank)
 
-  const activeItems   = allItems.filter(i => i.data.status !== 'finished')
+  const activeItems   = allItems.filter(i => i.data.status !== 'finished' && isPriority(i))
+  const onHoldItems   = allItems.filter(i => i.data.status !== 'finished' && !isPriority(i))
   const finishedItems = allItems.filter(i => i.data.status === 'finished')
 
   return (
@@ -407,8 +419,54 @@ export default function TournamentSelect() {
               </div>
             )}
 
-            {finishedItems.length > 0 && (
+            {/* ── Seção Em Espera ── */}
+            {onHoldItems.length > 0 && (
               <div style={{ marginTop: '48px' }}>
+                <button
+                  onClick={() => setShowOnHold(v => !v)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '10px',
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    padding: '0 0 16px 0', width: '100%', textAlign: 'left',
+                  }}
+                >
+                  <div style={{ flex: 1, height: '1px', background: 'var(--color-xama-border)' }} />
+                  <span style={{
+                    fontSize: '16px', fontWeight: 700, letterSpacing: '0.16em',
+                    textTransform: 'uppercase', color: '#f97316',
+                    fontFamily: "'JetBrains Mono', monospace", whiteSpace: 'nowrap',
+                  }}>
+                    {showOnHold ? '▲' : '▼'} &nbsp;Em Espera ({onHoldItems.length})
+                  </span>
+                  <div style={{ flex: 1, height: '1px', background: 'var(--color-xama-border)' }} />
+                </button>
+
+                {showOnHold && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px', opacity: 0.75 }}>
+                    {onHoldItems.map((item) =>
+                      item.type === 'championship' ? (
+                        <ChampionshipBlock
+                          key={`champ-${item.data.id}`}
+                          championship={item.data}
+                          tournById={tournById}
+                          navigate={navigate}
+                        />
+                      ) : (
+                        <TournamentCard
+                          key={`tourn-${item.data.id}`}
+                          t={item.data}
+                          navigate={navigate}
+                        />
+                      )
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── Seção Encerrados ── */}
+            {finishedItems.length > 0 && (
+              <div style={{ marginTop: '24px' }}>
                 <button
                   onClick={() => setShowFinished(v => !v)}
                   style={{
