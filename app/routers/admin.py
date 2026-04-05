@@ -542,7 +542,9 @@ async def seed_players_from_matches(
 
 
 @router.post("/reprocess-match-stats/{tournament_id}", summary="Re-processa stats de matches jÃ¡ importados")
-async def reprocess_match_stats(`n    tournament_id: int,`n    shard: str = Query("pc-tournament", description="PUBG shard: pc-tournament ou steam"),
+async def reprocess_match_stats(
+    tournament_id: int,
+    shard: str = Query("pc-tournament", description="PUBG shard: pc-tournament ou steam"),
     db: Session = Depends(get_db),
     admin: User = Depends(require_admin),
 ):
