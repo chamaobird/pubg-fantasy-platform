@@ -1,4 +1,5 @@
 # app/models/__init__.py
+from app.models.user import User
 from app.models.championship import Championship
 from app.models.stage import Stage
 from app.models.stage_day import StageDay
@@ -12,6 +13,7 @@ from app.models.lineup import Lineup, LineupPlayer
 from app.models.user_stat import UserStageStat, UserDayStat
 
 __all__ = [
+    "User",
     "Championship",
     "Stage",
     "StageDay",

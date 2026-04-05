@@ -9,6 +9,18 @@ class Settings(BaseSettings):
     # PUBG API
     PUBG_API_KEY: str = ""
 
+    # Auth — JWT
+    SECRET_KEY: str = "change-this-in-production"
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
+
+    # Auth — Google OAuth
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+
+    # Frontend URL (used for OAuth redirect)
+    FRONTEND_URL: str = "http://localhost:5173"
+
     class Config:
         env_file = ".env"
 

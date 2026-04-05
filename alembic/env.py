@@ -1,69 +1,48 @@
-# alembic/env.py
 """
-Configuração do ambiente Alembic para o Warzone Fantasy.
+Alembic environment configuration for XAMA Fantasy.
 
-Suporta dois modos:
-  - offline: gera SQL sem conectar ao banco (útil para revisar migrations)
-  - online:  conecta ao banco e aplica as migrations diretamente
+Supports two modes:
+  - offline: generates SQL without connecting to the database
+  - online:  connects to the database and applies migrations directly
 
-A DATABASE_URL é lida da variável de ambiente (ou do .env via app/config.py),
-garantindo que o mesmo valor usado pelo FastAPI seja usado pelo Alembic.
+DATABASE_URL is read from the environment variable (or .env via app/core/config.py),
+ensuring the same value used by FastAPI is used by Alembic.
 """
-
 import os
 import sys
-import importlib.util
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config, pool
 from alembic import context
 
-# Garante que o diretório raiz do projeto está no path,
-# permitindo importar `app.*` independente de onde o alembic é chamado.
+# Ensure project root is on the path so `app.*` imports work
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-# Importa Base (com todos os models registrados) e a config da aplicação.
-# O import de models.py é obrigatório para que o Alembic detecte as tabelas.
+# Import Base with all models registered, and app settings
 from app.database import Base
 from app.core.config import settings
 
-# Carrega o arquivo legado app/models.py explicitamente.
-# Motivo: existe também um pacote app/models/ (novo) com mapeamentos diferentes.
-# Para manter alinhado com as migrations 0001–0003, o Alembic deve registrar
-# os models definidos em app/models.py (sem coluna tournaments.type).
-_legacy_models_path = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "app", "models.py")
-)
-_spec = importlib.util.spec_from_file_location("app_models_legacy", _legacy_models_path)
-if _spec and _spec.loader:
-    _legacy_models = importlib.util.module_from_spec(_spec)
-    _spec.loader.exec_module(_legacy_models)
-else:
-    raise RuntimeError("Could not load legacy models from app/models.py")
+# Import all models so Alembic can detect them via Base.metadata
+import app.models  # noqa: F401
 
-# Objeto de configuração do Alembic (lê alembic.ini)
+# Alembic config object (reads alembic.ini)
 config = context.config
 
-# Configura logging a partir do alembic.ini
+# Configure logging from alembic.ini
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Passa o metadata dos models para o Alembic usar na detecção de mudanças
+# Pass model metadata to Alembic for autogenerate support
 target_metadata = Base.metadata
 
-# Injeta a DATABASE_URL da aplicação no Alembic,
-# sobrescrevendo qualquer valor que esteja no alembic.ini.
-# Isso garante que dev, staging e prod usem sempre a URL correta.
+# Inject DATABASE_URL from app settings, overriding alembic.ini
 config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
 
 
 def run_migrations_offline() -> None:
     """
-    Modo offline: gera o SQL das migrations sem conectar ao banco.
-    Útil para revisar o SQL antes de aplicar, ou para ambientes
-    onde não há acesso direto ao banco durante o desenvolvimento.
-
-    Uso: alembic upgrade head --sql > migration.sql
+    Offline mode: generate SQL without connecting to the database.
+    Usage: alembic upgrade head --sql > migration.sql
     """
     url = config.get_main_option("sqlalchemy.url")
     context.configure(
@@ -71,26 +50,23 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
-        # Detecta alterações em tipos de colunas além de adições/remoções
         compare_type=True,
         compare_server_default=True,
     )
-
     with context.begin_transaction():
         context.run_migrations()
 
 
 def run_migrations_online() -> None:
     """
-    Modo online: conecta ao banco e aplica as migrations diretamente.
-    Usado pelo comando `alembic upgrade head` e pelo script de startup.
+    Online mode: connect to the database and apply migrations directly.
+    Used by `alembic upgrade head`.
     """
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
-        poolclass=pool.NullPool,  # NullPool: sem pool, fecha conexão após uso
+        poolclass=pool.NullPool,
     )
-
     with connectable.connect() as connection:
         context.configure(
             connection=connection,
@@ -98,7 +74,6 @@ def run_migrations_online() -> None:
             compare_type=True,
             compare_server_default=True,
         )
-
         with context.begin_transaction():
             context.run_migrations()
 

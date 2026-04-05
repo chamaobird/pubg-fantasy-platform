@@ -13,3 +13,7 @@ alembic>=1.13.0
 requests>=2.31.0
 APScheduler==3.10.4
 google-auth==2.29.0
+python-jose[cryptography]
+passlib[bcrypt]
+httpx
+pydantic[email]
