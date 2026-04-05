@@ -22,13 +22,9 @@ body { background: #0f1117 !important; }
 .swagger-ui .info .title { color: #a78bfa; }
 .swagger-ui .info p, .swagger-ui .info li, .swagger-ui .info table { color: #cbd5e1; }
 .swagger-ui .scheme-container { background: #1a1d27; box-shadow: none; border-bottom: 1px solid #2d3148; }
-.swagger-ui select {
-    background: #252837; color: #e2e8f0; border: 1px solid #3d4166;
-}
-/* Tags / section headers */
+.swagger-ui select { background: #252837; color: #e2e8f0; border: 1px solid #3d4166; }
 .swagger-ui .opblock-tag { color: #a78bfa; border-bottom: 1px solid #2d3148; }
 .swagger-ui .opblock-tag:hover { background: #1e2133; }
-/* Operation blocks */
 .swagger-ui .opblock { background: #1a1d27; border: 1px solid #2d3148; box-shadow: none; }
 .swagger-ui .opblock .opblock-summary { border-bottom: 1px solid #2d3148; }
 .swagger-ui .opblock .opblock-summary-path { color: #e2e8f0; }
@@ -42,18 +38,13 @@ body { background: #0f1117 !important; }
 .swagger-ui .opblock-description-wrapper p,
 .swagger-ui .opblock-external-docs-wrapper p,
 .swagger-ui .opblock-title_normal p { color: #cbd5e1; }
-/* HTTP method badges */
-.swagger-ui .opblock-summary-method {
-    font-weight: 700; border-radius: 4px; min-width: 70px; text-align: center;
-}
-/* Parameters */
+.swagger-ui .opblock-summary-method { font-weight: 700; border-radius: 4px; min-width: 70px; text-align: center; }
 .swagger-ui .parameters-col_description p { color: #cbd5e1; }
 .swagger-ui table thead tr td,
 .swagger-ui table thead tr th { color: #94a3b8; border-bottom: 1px solid #2d3148; }
 .swagger-ui .parameter__name { color: #e2e8f0; }
 .swagger-ui .parameter__type { color: #a78bfa; }
 .swagger-ui .parameter__in   { color: #38bdf8; }
-/* Input fields */
 .swagger-ui input[type=text],
 .swagger-ui input[type=password],
 .swagger-ui textarea {
@@ -61,36 +52,28 @@ body { background: #0f1117 !important; }
     border: 1px solid #3d4166 !important;
 }
 .swagger-ui input[type=text]:focus,
-.swagger-ui textarea:focus {
-    border-color: #a78bfa !important; outline: none !important;
-}
-/* Buttons */
+.swagger-ui textarea:focus { border-color: #a78bfa !important; outline: none !important; }
 .swagger-ui .btn { color: #e2e8f0; border-color: #3d4166; background: #252837; }
 .swagger-ui .btn:hover { background: #2d3148; }
 .swagger-ui .btn.execute { background: #a78bfa; border-color: #a78bfa; color: #0f1117; font-weight: 700; }
 .swagger-ui .btn.execute:hover { background: #9061f9; }
 .swagger-ui .btn.cancel  { background: #f87171; border-color: #f87171; color: #0f1117; }
 .swagger-ui .btn.authorize { background: #4ade80; border-color: #4ade80; color: #0f1117; font-weight: 700; }
-/* Responses */
 .swagger-ui .responses-inner { background: #13151f; }
 .swagger-ui .response-col_status  { color: #4ade80; }
 .swagger-ui .response-col_links   { color: #38bdf8; }
 .swagger-ui table.responses-table tbody tr td { border-bottom: 1px solid #2d3148; }
-/* Code / pre blocks */
 .swagger-ui .highlight-code,
 .swagger-ui pre { background: #0a0c14 !important; color: #e2e8f0 !important; border: 1px solid #2d3148; }
 .swagger-ui .microlight { background: #0a0c14; color: #e2e8f0; }
-/* Models section */
 .swagger-ui section.models { background: #1a1d27; border: 1px solid #2d3148; }
 .swagger-ui section.models h4 { color: #a78bfa; }
 .swagger-ui .model-title { color: #e2e8f0; }
 .swagger-ui .model { color: #cbd5e1; }
 .swagger-ui .model-toggle:after { filter: invert(1); }
-/* Authorization modal */
 .swagger-ui .dialog-ux .modal-ux { background: #1a1d27; border: 1px solid #3d4166; color: #e2e8f0; }
 .swagger-ui .dialog-ux .modal-ux-header { background: #13151f; border-bottom: 1px solid #2d3148; }
 .swagger-ui .dialog-ux .modal-ux-header h3 { color: #a78bfa; }
-/* Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: #0f1117; }
 ::-webkit-scrollbar-thumb { background: #3d4166; border-radius: 3px; }
@@ -100,9 +83,17 @@ body { background: #0f1117 !important; }
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # ── Scheduler ────────────────────────────────────────────────────────────
+    from app.services.scheduler import create_scheduler
+    scheduler = create_scheduler()
+    scheduler.start()
+    logger.info("Scheduler iniciado — lineup_control (1min), pricing (30min).")
+
     logger.info("XAMA Fantasy API iniciada.")
     yield
-    logger.info("XAMA Fantasy API encerrando.")
+
+    scheduler.shutdown(wait=False)
+    logger.info("Scheduler encerrado. XAMA Fantasy API encerrando.")
 
 
 app = FastAPI(
@@ -123,7 +114,7 @@ app.add_middleware(
 )
 
 
-# ── Swagger dark mode ────────────────────────────────────────────────────────
+# ── Swagger dark mode ─────────────────────────────────────────────────────────
 @app.get("/docs", include_in_schema=False)
 async def custom_swagger_ui() -> HTMLResponse:
     return HTMLResponse(f"""<!DOCTYPE html>
@@ -152,11 +143,11 @@ async def custom_swagger_ui() -> HTMLResponse:
 </html>""")
 
 
-# ── Routers ──────────────────────────────────────────────────────────────────
+# ── Routers ───────────────────────────────────────────────────────────────────
 # Fase 2+ — adicionar routers aqui conforme forem criados
 
 
-# ── Health ───────────────────────────────────────────────────────────────────
+# ── Health ────────────────────────────────────────────────────────────────────
 @app.get("/", tags=["Health"])
 def root():
     return {"status": "ok", "service": "XAMA Fantasy API", "version": "3.0.0"}
