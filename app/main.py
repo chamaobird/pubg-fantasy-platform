@@ -5,6 +5,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from app.routers.auth import router as auth_router
+from app.routers.admin import router as admin_router
+
 
 logging.basicConfig(
     level=logging.INFO,
@@ -147,6 +149,8 @@ async def custom_swagger_ui() -> HTMLResponse:
 # ── Routers ───────────────────────────────────────────────────────────────────
 # Fase 2+ — adicionar routers aqui conforme forem criados
 app.include_router(auth_router)
+app.include_router(auth_router)
+app.include_router(admin_router)
 
 
 # ── Health ────────────────────────────────────────────────────────────────────
