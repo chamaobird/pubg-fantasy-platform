@@ -1,23 +1,9 @@
 # BACKLOG — XAMA Fantasy
 
-## 🔴 Bugs ativos (producao)
-> Os bugs #001-#003 eram do schema antigo e foram descartados com o reset.
-
 ## 🟡 Proximas tarefas (priorizadas)
 
-### Fundacao (Fase 1) ✅
-- [x] #010 Novo schema completo — migrations Alembic
-- [x] #011 Swagger dark mode (main.py)
-- [x] #012 APScheduler integrado ao FastAPI (lineup_control + pricing placeholder)
-- [x] #014 Auth — User model, JWT, Google OAuth, register/login/me
+### Auth (pendente)
 - [ ] #013 Confirmacao de email via Resend (aguardando conta Resend)
-
-### Admin core (Fase 2)
-- [ ] #020 CRUD Championship
-- [ ] #021 CRUD Stage (com validacao de lineup_open_at obrigatorio)
-- [ ] #022 CRUD Stage Day
-- [ ] #023 CRUD Person + Player Account
-- [ ] #024 Endpoint para adicionar jogador ao Roster de uma Stage
 
 ### Import e stats (Fase 3)
 - [ ] #030 Import de matches com shard herdado da Stage
@@ -39,10 +25,21 @@
 - [ ] #054 ROSTER_PRICE_HISTORY
 
 ## 🟢 Concluido
+
+### Fase 0 — Setup
 - [x] #000 Diagnostico estrutural e desenho do novo modelo (05/04/2026)
 - [x] #000 Projeto movido para C:\Users\lgpas\PROJECTS\pubg-fantasy-platform (05/04/2026)
 - [x] #000 Schema antigo movido para _legacy/, projeto resetado (05/04/2026)
+
+### Fase 1 — Fundacao
 - [x] #010 Migration 0001 — schema completo (14 tabelas) (05/04/2026)
 - [x] #011 Swagger dark mode — CSS inline, tema roxo/escuro (05/04/2026)
 - [x] #012 APScheduler — lineup_control (1min) + pricing placeholder (30min) (05/04/2026)
 - [x] #014 Auth — tabela user, JWT, Google OAuth, /auth/register /login /me /google (05/04/2026)
+
+### Fase 2 — Admin core
+- [x] #020 CRUD Championship (05/04/2026)
+- [x] #021 CRUD Stage com validacoes de shard, lineup_open_at e carries_stats_from (05/04/2026)
+- [x] #022 CRUD Stage Day (05/04/2026)
+- [x] #023 CRUD Person + PlayerAccount (05/04/2026)
+- [x] #024 Roster — add/list/update/remove player from stage (05/04/2026)
