@@ -996,3 +996,28 @@ async def bulk_set_active(
         "player_ids": [p.id for p in players],
         "names": [p.name for p in players],
     }
+
+
+@router.patch("/matches/{pubg_match_id}/move-to-tournament/{tournament_id}", summary="Move um match para outro torneio")
+def move_match_to_tournament(
+    pubg_match_id: str,
+    tournament_id: int,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    from app.models import Match, Tournament
+    match = db.query(Match).filter(Match.pubg_match_id == pubg_match_id).first()
+    if not match:
+        raise HTTPException(status_code=404, detail=f"Match {pubg_match_id} nao encontrado")
+    tournament = db.query(Tournament).filter(Tournament.id == tournament_id).first()
+    if not tournament:
+        raise HTTPException(status_code=404, detail=f"Torneio {tournament_id} nao encontrado")
+    old_tournament_id = match.tournament_id
+    match.tournament_id = tournament_id
+    db.commit()
+    return {
+        "pubg_match_id": pubg_match_id,
+        "match_id": match.id,
+        "old_tournament_id": old_tournament_id,
+        "new_tournament_id": tournament_id,
+    }
