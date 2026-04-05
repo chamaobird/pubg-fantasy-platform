@@ -1,7 +1,7 @@
-# app/routers/admin.py
+﻿# app/routers/admin.py
 """
-Endpoints administrativos para sincronização com a PUBG API.
-Todos os endpoints requerem autenticação JWT + is_admin=True.
+Endpoints administrativos para sincronizaÃ§Ã£o com a PUBG API.
+Todos os endpoints requerem autenticaÃ§Ã£o JWT + is_admin=True.
 """
 
 
@@ -37,7 +37,7 @@ router = APIRouter(prefix="/admin", tags=["Admin"])
     summary="Recalcula fantasy_cost de todos os jogadores",
     description=(
         "Recalcula o fantasy_cost de todos os jogadores no banco usando "
-        "a fórmula padrão, sem chamar a PUBG API. Útil após ajuste da fórmula."
+        "a fÃ³rmula padrÃ£o, sem chamar a PUBG API. Ãštil apÃ³s ajuste da fÃ³rmula."
     ),
 )
 async def recalculate_costs(
@@ -63,21 +63,21 @@ async def recalculate_costs(
     }
 
 
-@router.post("/promote-to-admin", summary="[TEMP] Promove usuário a admin")
+@router.post("/promote-to-admin", summary="[TEMP] Promove usuÃ¡rio a admin")
 async def promote_user_to_admin(
     email: str,
     db: Session = Depends(get_db),
     admin: User = Depends(require_admin),
 ):
     """
-    ENDPOINT TEMPORÁRIO: Promove qualquer usuário a admin.
-    ⚠️ REMOVER EM PRODUÇÃO! Deixar apenas para setup inicial.
+    ENDPOINT TEMPORÃRIO: Promove qualquer usuÃ¡rio a admin.
+    âš ï¸ REMOVER EM PRODUÃ‡ÃƒO! Deixar apenas para setup inicial.
     """
     user = db.query(User).filter(User.email == email).first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Usuário com email {email} não encontrado"
+            detail=f"UsuÃ¡rio com email {email} nÃ£o encontrado"
         )
 
     user.is_admin = True
@@ -85,7 +85,7 @@ async def promote_user_to_admin(
     db.refresh(user)
 
     return {
-        "message": f"Usuário {email} promovido a admin com sucesso!",
+        "message": f"UsuÃ¡rio {email} promovido a admin com sucesso!",
         "user_id": user.id,
         "email": user.email,
         "is_admin": user.is_admin
@@ -97,7 +97,7 @@ async def list_all_users(
     db: Session = Depends(get_db),
     admin: User = Depends(require_admin),
 ):
-    """TEMPORÁRIO: Lista emails de todos os usuários para debug"""
+    """TEMPORÃRIO: Lista emails de todos os usuÃ¡rios para debug"""
     users = db.query(User).all()
     return {
         "total": len(users),
@@ -134,7 +134,7 @@ async def score_match_lineups(
     if not match.tournament_id:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Match {match_id} has no tournament_id — cannot score lineups.",
+            detail=f"Match {match_id} has no tournament_id â€” cannot score lineups.",
         )
 
     try:
@@ -150,7 +150,7 @@ async def score_match_lineups(
 # ------------------------------------------------------------------
 
 
-# Hardcoded per-slot stats — deterministic so results are predictable
+# Hardcoded per-slot stats â€” deterministic so results are predictable
 _TEST_STATS = [
     {"kills": 5, "assists": 2, "damage_dealt": 380.0, "placement": 1, "survival_secs": 1750, "headshots": 3, "knocks": 4},
     {"kills": 3, "assists": 1, "damage_dealt": 210.0, "placement": 1, "survival_secs": 1600, "headshots": 1, "knocks": 2},
@@ -168,7 +168,7 @@ _TEST_PUBG_MATCH_ID = "test-match-001"
         "Creates one Match and MatchPlayerStat rows for the first lineup found in the "
         "given tournament. Idempotent: if 'test-match-001' already exists it returns "
         "the existing match_id without inserting duplicates. "
-        "For local testing only — use before calling POST /admin/matches/{match_id}/score."
+        "For local testing only â€” use before calling POST /admin/matches/{match_id}/score."
     ),
 )
 async def seed_test_match(
@@ -176,7 +176,7 @@ async def seed_test_match(
     db: Session = Depends(get_db),
     admin: User = Depends(require_admin),
 ):
-    # ── Validate tournament exists ─────────────────────────────────────────
+    # â”€â”€ Validate tournament exists â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     tournament = db.query(Tournament).filter(Tournament.id == tournament_id).first()
     if not tournament:
         raise HTTPException(
@@ -184,7 +184,7 @@ async def seed_test_match(
             detail=f"Tournament {tournament_id} not found.",
         )
 
-    # ── Find first lineup for this tournament ─────────────────────────────
+    # â”€â”€ Find first lineup for this tournament â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     lineup = (
         db.query(Lineup)
         .filter(Lineup.tournament_id == tournament_id)
@@ -206,7 +206,7 @@ async def seed_test_match(
             detail=f"Lineup {lineup.id} has no players in lineup_players.",
         )
 
-    # ── Upsert Match (idempotent on pubg_match_id) ────────────────────────
+    # â”€â”€ Upsert Match (idempotent on pubg_match_id) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     match = (
         db.query(Match)
         .filter(Match.pubg_match_id == _TEST_PUBG_MATCH_ID)
@@ -226,7 +226,7 @@ async def seed_test_match(
         db.flush()  # populate match.id
         created_match = True
 
-    # ── Upsert MatchPlayerStat for each starter ───────────────────────────
+    # â”€â”€ Upsert MatchPlayerStat for each starter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     player_ids = []
     for i, player in enumerate(starter_players):
         raw = _TEST_STATS[i] if i < len(_TEST_STATS) else _TEST_STATS[-1]
@@ -303,7 +303,7 @@ async def register_tournament(
     Idempotent: if pubg_id already exists, returns the existing row unchanged.
 
     Typical weekly flow for PAS:
-      1. Run client.list_tournaments() in REPL — spot new am-pasNcup ID
+      1. Run client.list_tournaments() in REPL â€” spot new am-pasNcup ID
       2. POST /admin/register-tournament with the new pubg_id
       3. POST /admin/players/bulk-upsert/{id} if roster changed
       4. Scheduler picks it up automatically on next 15-min cycle
@@ -365,7 +365,7 @@ async def reset_database(
         return {"status": "error", "message": str(e)}
     
 
-@router.post("/run-migrations", summary="[TEMP] Força alembic upgrade head")
+@router.post("/run-migrations", summary="[TEMP] ForÃ§a alembic upgrade head")
 async def run_migrations(
     admin: User = Depends(require_admin),
 ):
@@ -383,7 +383,7 @@ async def run_migrations(
     }
 
 
-@router.get("/db-version", summary="[TEMP] Verifica versão atual do Alembic no banco")
+@router.get("/db-version", summary="[TEMP] Verifica versÃ£o atual do Alembic no banco")
 async def db_version(
     db: Session = Depends(get_db),
     admin: User = Depends(require_admin),
@@ -435,10 +435,10 @@ async def backfill_player_stats(
     "/seed-players-from-matches/{tournament_id}",
     summary="Cria players automaticamente a partir dos matches importados",
     description=(
-        "Lê os matches já importados para o torneio, busca cada match na PUBG API, "
+        "LÃª os matches jÃ¡ importados para o torneio, busca cada match na PUBG API, "
         "extrai pubg_id + name de cada participante e cria/atualiza Player rows. "
-        "Usa pubg_id como chave de upsert — se o player já existe, só atualiza o nome. "
-        "Após rodar, execute import-matches-from-pubg novamente para resolver os stats."
+        "Usa pubg_id como chave de upsert â€” se o player jÃ¡ existe, sÃ³ atualiza o nome. "
+        "ApÃ³s rodar, execute import-matches-from-pubg novamente para resolver os stats."
     ),
 )
 async def seed_players_from_matches(
@@ -451,7 +451,7 @@ async def seed_players_from_matches(
     from app.services.pubg_client import PubgClient, PubgApiError
     from app.core.config import settings
 
-    # ── 1. Busca matches já importados para este torneio ──────────────────
+    # â”€â”€ 1. Busca matches jÃ¡ importados para este torneio â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     matches = db.query(Match).filter(Match.tournament_id == tournament_id).all()
     if not matches:
         raise HTTPException(
@@ -460,12 +460,12 @@ async def seed_players_from_matches(
                    "Execute import-matches-from-pubg primeiro.",
         )
 
-    # Busca o torneio para herdar região
+    # Busca o torneio para herdar regiÃ£o
     tournament = db.query(Tournament).filter(Tournament.id == tournament_id).first()
     if not tournament:
         raise HTTPException(status_code=404, detail="Tournament not found")
 
-    client = PubgClient(api_key=settings.PUBG_API_KEY, shard=settings.PUBG_SHARD)
+    client = PubgClient(api_key=settings.PUBG_API_KEY, shard=shard)
 
     created = 0
     updated = 0
@@ -484,12 +484,12 @@ async def seed_players_from_matches(
                 continue
             seen_pubg_ids.add(rps.pubg_account_id)
 
-            # ── Extrai tag do time do nome (ex: "FE_fana" → "FE") ────────
+            # â”€â”€ Extrai tag do time do nome (ex: "FE_fana" â†’ "FE") â”€â”€â”€â”€â”€â”€â”€â”€
             name_parts = rps.pubg_name.split("_", 1)
             team_tag   = name_parts[0] if len(name_parts) > 1 else None
-            clean_name = rps.pubg_name  # mantém nome completo com prefixo
+            clean_name = rps.pubg_name  # mantÃ©m nome completo com prefixo
 
-            # ── Upsert do time ────────────────────────────────────────────
+            # â”€â”€ Upsert do time â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             team_id = None
             if team_tag:
                 team = db.query(Team).filter(Team.name == team_tag).first()
@@ -499,7 +499,7 @@ async def seed_players_from_matches(
                     db.flush()
                 team_id = team.id
 
-            # ── Upsert do player por pubg_id ──────────────────────────────
+            # â”€â”€ Upsert do player por pubg_id â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             player = db.query(Player).filter(Player.pubg_id == rps.pubg_account_id).first()
             if player:
                 if player.tournament_id is None:
@@ -536,14 +536,13 @@ async def seed_players_from_matches(
         "errors": errors,
         "next_step": (
             f"Execute POST /historical/import-matches-from-pubg/{tournament_id} "
-            "novamente para resolver os stats com os players recém-criados."
+            "novamente para resolver os stats com os players recÃ©m-criados."
         ),
     }
 
 
-@router.post("/reprocess-match-stats/{tournament_id}", summary="Re-processa stats de matches já importados")
-async def reprocess_match_stats(
-    tournament_id: int,
+@router.post("/reprocess-match-stats/{tournament_id}", summary="Re-processa stats de matches jÃ¡ importados")
+async def reprocess_match_stats(`n    tournament_id: int,`n    shard: str = Query("pc-tournament", description="PUBG shard: pc-tournament ou steam"),
     db: Session = Depends(get_db),
     admin: User = Depends(require_admin),
 ):
@@ -557,7 +556,7 @@ async def reprocess_match_stats(
     if not matches:
         raise HTTPException(status_code=404, detail="Nenhum match encontrado")
 
-    client = PubgClient(api_key=settings.PUBG_API_KEY, shard=settings.PUBG_SHARD)
+    client = PubgClient(api_key=settings.PUBG_API_KEY, shard=shard)
 
     # Mapa pubg_id -> player_id
     players = db.query(Player).filter(Player.tournament_id == tournament_id).all()
@@ -581,7 +580,7 @@ async def reprocess_match_stats(
                 skipped += 1
                 continue
 
-            # Verifica se já existe
+            # Verifica se jÃ¡ existe
             existing = db.query(MatchPlayerStat).filter(
                 MatchPlayerStat.match_id == match.id,
                 MatchPlayerStat.player_id == player_id,
@@ -627,9 +626,9 @@ async def reprocess_match_stats(
     summary="Copia jogadores de um torneio para outro (sem pubg_id para evitar unique constraint)",
     description=(
         "Copia todos os jogadores ativos do torneio source_id para target_id. "
-        "O pubg_id é omitido nas cópias para evitar violação do unique constraint — "
-        "os stats serão resolvidos por nome quando as partidas forem importadas. "
-        "Idempotente: pula jogadores cujo nome já existe no torneio destino."
+        "O pubg_id Ã© omitido nas cÃ³pias para evitar violaÃ§Ã£o do unique constraint â€” "
+        "os stats serÃ£o resolvidos por nome quando as partidas forem importadas. "
+        "Idempotente: pula jogadores cujo nome jÃ¡ existe no torneio destino."
     ),
 )
 async def copy_players_between_tournaments(
@@ -715,7 +714,7 @@ class TournamentUpdate(BaseModel):
     current_day: Optional[int] = None
 
 
-@router.patch("/tournaments/{tournament_id}", summary="Atualiza nome/região/status/lineup_open/current_day")
+@router.patch("/tournaments/{tournament_id}", summary="Atualiza nome/regiÃ£o/status/lineup_open/current_day")
 async def update_tournament(
     tournament_id: int,
     body: TournamentUpdate,
@@ -749,12 +748,12 @@ async def update_tournament(
 
 @router.post(
     "/tournaments/{tournament_id}/open-day/{day_number}",
-    summary="[Admin] Abre lineup para um novo dia de competição",
+    summary="[Admin] Abre lineup para um novo dia de competiÃ§Ã£o",
     description=(
         "Define current_day=day_number e lineup_open=True. "
         "Use ao iniciar cada dia de uma fase multi-dia. "
-        "Usuários que já têm lineup para esse dia verão o formulário bloqueado. "
-        "Usuários sem lineup para esse dia poderão submeter."
+        "UsuÃ¡rios que jÃ¡ tÃªm lineup para esse dia verÃ£o o formulÃ¡rio bloqueado. "
+        "UsuÃ¡rios sem lineup para esse dia poderÃ£o submeter."
     ),
 )
 async def open_day(
@@ -775,7 +774,7 @@ async def open_day(
     prev_day = int(t.current_day or 1)
     prev_open = bool(t.lineup_open)
 
-    # Conta lineups já submetidas para o dia alvo (para informação)
+    # Conta lineups jÃ¡ submetidas para o dia alvo (para informaÃ§Ã£o)
     existing_count = db.query(Lineup).filter(
         Lineup.tournament_id == tournament_id,
         Lineup.day == day_number,
@@ -793,8 +792,8 @@ async def open_day(
         "lineup_open": True,
         "existing_lineups_for_day": existing_count,
         "message": (
-            f"Dia {day_number} aberto para submissões. "
-            f"{existing_count} lineup(s) já existentes para este dia."
+            f"Dia {day_number} aberto para submissÃµes. "
+            f"{existing_count} lineup(s) jÃ¡ existentes para este dia."
         ),
     }
 
@@ -834,7 +833,7 @@ async def close_day(
     }
 
 
-@router.post("/recalculate-fantasy-points/{tournament_id}", summary="Recalcula fantasy_points com fórmula XAMA")
+@router.post("/recalculate-fantasy-points/{tournament_id}", summary="Recalcula fantasy_points com fÃ³rmula XAMA")
 async def recalculate_fantasy_points(
     tournament_id: int,
     db: Session = Depends(get_db),
@@ -853,7 +852,7 @@ async def recalculate_fantasy_points(
         if not stats:
             continue
 
-        # Constrói lista de PlayerStatInput para calcular bônus
+        # ConstrÃ³i lista de PlayerStatInput para calcular bÃ´nus
         stat_inputs = [
             PlayerStatInput(
                 player_id=s.player_id,
@@ -924,9 +923,9 @@ class BulkActivateBody(BaseModel):
     activate: bool = True   # True = ativar, False = desativar
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # POST /admin/players/bulk-upsert/{tournament_id}
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class PlayerRosterEntryBody(BaseModel):
     name:         str
@@ -946,7 +945,7 @@ class BulkUpsertBody(BaseModel):
     summary="[Admin] Cria ou atualiza jogadores para um torneio",
     description=(
         "Upsert de jogadores por pubg_id (se fornecido) ou nome. "
-        "Seguro para re-executar — não duplica. "
+        "Seguro para re-executar â€” nÃ£o duplica. "
         "Use para adicionar reservas ou corrigir rosters."
     ),
 )
