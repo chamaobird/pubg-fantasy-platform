@@ -1,17 +1,17 @@
-# app/services/historical.py
+﻿# app/services/historical.py
 """
 Service layer for historical match import and player pricing.
 Two import modes
-────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 body-driven (fetch_from_pubg=False, default):
     Caller passes a list[MatchInput] built from the request body.
     No external HTTP calls. Used by the existing import-matches endpoint.
 API-driven  (fetch_from_pubg=True):
     Caller passes a pubg_tournament_id string.
-    This service calls PubgClient, resolves participants → Player rows,
+    This service calls PubgClient, resolves participants â†’ Player rows,
     and then runs the same core persistence logic.
 Player resolution strategy
-──────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 Priority 1: Player.pubg_id == participant.pubg_account_id  (exact, reliable)
 Priority 2: Player.name    == participant.pubg_name        (fuzzy fallback)
 If neither matches, the participant is skipped and logged as a warning.
@@ -29,17 +29,17 @@ from app.models import Match, MatchPlayerStat, Player, Tournament, Team, PlayerP
 
 logger = logging.getLogger(__name__)
 
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Pricing constants
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 BASE_PRICE   = 10.0
 PRICE_FACTOR = 0.5
 MIN_PRICE    = 5.0
 MAX_PRICE    = 30.0
 
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Input DTOs (used by both modes)
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 @dataclass
 class PlayerStatInput:
     player_id:     int
@@ -61,14 +61,14 @@ class MatchInput:
     match_number:  Optional[int]         = None
     phase:         Optional[str]         = None
     day:           Optional[int]         = None
-    group_label:   Optional[str]         = None  # "A", "B", "C", "D" — null = no groups
+    group_label:   Optional[str]         = None  # "A", "B", "C", "D" â€” null = no groups
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Section 1 – Player resolution (API mode only)
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# Section 1 â€“ Player resolution (API mode only)
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 def _build_player_lookup(db: Session, tournament_id: int) -> dict[str, int]:
     """
-    Build a lookup dict for resolving PUBG API participants → Player.id.
+    Build a lookup dict for resolving PUBG API participants â†’ Player.id.
     Returns a dict keyed by both pubg_id and lowercase name:
         {"account.abc123": 7, "someplayername": 7, ...}
     Scoping:
@@ -76,8 +76,8 @@ def _build_player_lookup(db: Session, tournament_id: int) -> dict[str, int]:
     - Fallback: all players, in case tournament_id is NULL on seeded players
                 (logs a warning so you know name-matching is in effect)
     Resolution order in _resolve_player_id():
-        1. pubg_account_id  → Player.pubg_id  (exact)
-        2. pubg_name        → Player.name     (case-insensitive fallback)
+        1. pubg_account_id  â†’ Player.pubg_id  (exact)
+        2. pubg_name        â†’ Player.name     (case-insensitive fallback)
     """
     players = (
         db.query(Player)
@@ -123,23 +123,23 @@ def _resolve_player_id(
         return lookup[pubg_name.lower()]
     return None
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Section 2 – Core persistence (shared by both modes)
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# Section 2 â€“ Core persistence (shared by both modes)
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 def _compute_fantasy_points(stat: PlayerStatInput) -> tuple[float, int]:
     """
     Retorna (base_points, penalty_count).
-    base_points = pontos sem bônus late game
-    Fórmula XAMA de pontuação.
-    kill        × 10
-    assist      × 1
-    knock       × 1
-    damage      × 0.03
-    headshot    → 0 (não pontua)
-    survival    → 0 (não pontua)
-    morte precoce → -15 (se survival < 360s E kills == 0)
-    Bônus late game calculado separadamente por _compute_late_game_bonus().
-    Capitão aplica multiplicador 1.25x na camada de lineup scoring.
+    base_points = pontos sem bÃ´nus late game
+    FÃ³rmula XAMA de pontuaÃ§Ã£o.
+    kill        Ã— 10
+    assist      Ã— 1
+    knock       Ã— 1
+    damage      Ã— 0.03
+    headshot    â†’ 0 (nÃ£o pontua)
+    survival    â†’ 0 (nÃ£o pontua)
+    morte precoce â†’ -15 (se survival < 360s E kills == 0)
+    BÃ´nus late game calculado separadamente por _compute_late_game_bonus().
+    CapitÃ£o aplica multiplicador 1.25x na camada de lineup scoring.
     """
     kill_pts   = (stat.kills  or 0) * 10
     assist_pts = (stat.assists or 0) * 1
@@ -150,21 +150,21 @@ def _compute_fantasy_points(stat: PlayerStatInput) -> tuple[float, int]:
     early_death = -15.0 if is_early_death else 0.0
     penalty_count = 1 if is_early_death else 0
     base = kill_pts + assist_pts + knock_pts + dmg_pts + early_death
-    return base, penalty_count  # late_game_bonus é adicionado pelo _compute_late_game_bonus
+    return base, penalty_count  # late_game_bonus Ã© adicionado pelo _compute_late_game_bonus
 
 def _compute_late_game_bonus(all_stats: list) -> dict:
     """
-    Calcula o bônus late game por jogador para uma partida.
+    Calcula o bÃ´nus late game por jogador para uma partida.
     Regra:
       - Time vencedor (placement=1): sobreviventes = jogadores com
-        survival_secs >= duration_secs - 60s (aproximação de "estava vivo")
-      - N = número de sobreviventes do time vencedor
+        survival_secs >= duration_secs - 60s (aproximaÃ§Ã£o de "estava vivo")
+      - N = nÃºmero de sobreviventes do time vencedor
       - Os sobreviventes ganham +10 cada
-      - Os próximos a morrer (ordenados por survival_secs desc) ganham:
-          N=4: 4 jogadores → [2, 2, 1, 1]
-          N=3: 5 jogadores → [4, 2, 2, 1, 1]
-          N=2: 6 jogadores → [5, 4, 2, 2, 1, 1]
-          N=1: 7 jogadores → [6, 5, 4, 2, 2, 1, 1]
+      - Os prÃ³ximos a morrer (ordenados por survival_secs desc) ganham:
+          N=4: 4 jogadores â†’ [2, 2, 1, 1]
+          N=3: 5 jogadores â†’ [4, 2, 2, 1, 1]
+          N=2: 6 jogadores â†’ [5, 4, 2, 2, 1, 1]
+          N=1: 7 jogadores â†’ [6, 5, 4, 2, 2, 1, 1]
     Retorna dict {player_id: bonus_pts}
     """
     if not all_stats:
@@ -220,8 +220,8 @@ def import_matches(
     skipped = 0
     errors: list[str] = []
     for match_input in matches:
-        # ── Idempotency check ─────────────────────────────────────────────
-        existing = db.query(Match).filter(Match.pubg_match_id == match_input.pubg_match_id).first()
+        # â”€â”€ Idempotency check â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        existing = db.query(Match).filter(Match.pubg_match_id == match_input.pubg_match_id, Match.tournament_id == tournament_id).first()
         if existing:
             existing_stats = db.query(MatchPlayerStat).filter(MatchPlayerStat.match_id == existing.id).count()
             if existing_stats > 0:
@@ -229,7 +229,7 @@ def import_matches(
                 skipped += 1
                 continue
             else:
-                logger.info("Repairing match %s (exists but has 0 stats) — creating stats now", match_input.pubg_match_id)
+                logger.info("Repairing match %s (exists but has 0 stats) â€” creating stats now", match_input.pubg_match_id)
         try:
             if existing:
                 match = existing
@@ -247,7 +247,7 @@ def import_matches(
                 )
                 db.add(match)
                 db.flush()  # get match.id before committing
-            # ── Calcula bônus late game para toda a partida ──────────────
+            # â”€â”€ Calcula bÃ´nus late game para toda a partida â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             late_game_bonus = _compute_late_game_bonus(match_input.player_stats)
             for stat_input in match_input.player_stats:
                 player_exists = (
@@ -255,7 +255,7 @@ def import_matches(
                 )
                 if not player_exists:
                     logger.warning(
-                        "Player %s not found — skipping stat row for match %s",
+                        "Player %s not found â€” skipping stat row for match %s",
                         stat_input.player_id,
                         match_input.pubg_match_id,
                     )
@@ -283,7 +283,7 @@ def import_matches(
             db.commit()
             created += 1
             logger.info("Imported match %s (id=%s)", match_input.pubg_match_id, match.id)
-            # ── Score all lineups for this match ─────────────────────────
+            # â”€â”€ Score all lineups for this match â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             try:
                 from app.services.lineup_scoring import score_all_lineups_for_match
                 scoring_result = score_all_lineups_for_match(match.id, db)
@@ -304,15 +304,15 @@ def import_matches(
             logger.error(msg)
             errors.append(msg)
 
-    # ── Auto-lock: fecha lineup_open quando o primeiro match é importado ──
-    # Roda após o loop para garantir que pelo menos 1 match foi persistido.
+    # â”€â”€ Auto-lock: fecha lineup_open quando o primeiro match Ã© importado â”€â”€
+    # Roda apÃ³s o loop para garantir que pelo menos 1 match foi persistido.
     # Funciona tanto para import manual quanto para scheduler/API.
     if created > 0 and tournament.lineup_open:
         tournament.lineup_open = False
         db.add(tournament)
         db.commit()
         logger.info(
-            "[lineup-lock] Tournament %s lineup_open → False (%s match(es) imported)",
+            "[lineup-lock] Tournament %s lineup_open â†’ False (%s match(es) imported)",
             tournament_id,
             created,
         )
@@ -320,9 +320,9 @@ def import_matches(
     return {"created": created, "skipped": skipped, "errors": errors}
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Section 3 – API-driven import (fetch_from_pubg=True path)
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# Section 3 â€“ API-driven import (fetch_from_pubg=True path)
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 def import_matches_from_pubg(
     db: Session,
     tournament_id: int,
@@ -332,13 +332,13 @@ def import_matches_from_pubg(
     """
     Fetch all matches for pubg_tournament_id from the PUBG API and import them.
     Steps:
-        1. Call PubgClient.list_tournament_matches() → list of match IDs
-        2. For each ID call PubgClient.get_match()   → RawMatch DTO
-        3. Resolve RawPlayerStat.pubg_account_id / pubg_name → Player.id
+        1. Call PubgClient.list_tournament_matches() â†’ list of match IDs
+        2. For each ID call PubgClient.get_match()   â†’ RawMatch DTO
+        3. Resolve RawPlayerStat.pubg_account_id / pubg_name â†’ Player.id
         4. Build MatchInput objects and call import_matches() (same as body mode)
     Returns the same {"created", "skipped", "errors"} dict as import_matches().
 
-    match_group_map: optional dict mapping PUBG match UUID → group_label (e.g. "A").
+    match_group_map: optional dict mapping PUBG match UUID â†’ group_label (e.g. "A").
         When provided, each newly imported match gets its group_label set.
         Useful for scrims with groups (A/B/C/D) not encoded in the PUBG API response.
         Example: {"b951fa9e-6a6a-4b23-8ecf-fcf07e0eb208": "A", ...}
@@ -346,7 +346,7 @@ def import_matches_from_pubg(
     from app.core.config import settings
     from app.services.pubg_client import PubgApiError, PubgClient, RawMatch
     client = PubgClient(api_key=settings.PUBG_API_KEY, shard=settings.PUBG_SHARD)
-    # ── 1. Get match ID list ──────────────────────────────────────────────
+    # â”€â”€ 1. Get match ID list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     try:
         match_ids = client.list_tournament_matches(pubg_tournament_id)
     except PubgApiError as exc:
@@ -355,15 +355,15 @@ def import_matches_from_pubg(
         ) from exc
     if not match_ids:
         return {"created": 0, "skipped": 0, "errors": [], "match_ids_found": 0}
-    # ── 2. Build player lookup for this tournament ────────────────────────
+    # â”€â”€ 2. Build player lookup for this tournament â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     player_lookup = _build_player_lookup(db, tournament_id)
     if not player_lookup:
         logger.warning(
-            "No players found for tournament %s — stats will all be skipped. "
+            "No players found for tournament %s â€” stats will all be skipped. "
             "Make sure players are seeded before importing matches.",
             tournament_id,
         )
-    # ── 3. Fetch each match and convert to MatchInput ─────────────────────
+    # â”€â”€ 3. Fetch each match and convert to MatchInput â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     match_inputs: list[MatchInput] = []
     fetch_errors: list[str] = []
     for match_id in match_ids:
@@ -374,7 +374,7 @@ def import_matches_from_pubg(
             logger.error(msg)
             fetch_errors.append(msg)
             continue
-        # ── Resolve participants → Player.id ──────────────────────────────
+        # â”€â”€ Resolve participants â†’ Player.id â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         resolved_stats: list[PlayerStatInput] = []
         unresolved_names: list[str] = []
         for rps in raw.player_stats:
@@ -416,7 +416,7 @@ def import_matches_from_pubg(
                 group_label=group_lbl,
             )
         )
-    # ── 4. All fetches failed → surface as error ──────────────────────────
+    # â”€â”€ 4. All fetches failed â†’ surface as error â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if not match_inputs and fetch_errors:
         raise ValueError(
             {
@@ -424,12 +424,12 @@ def import_matches_from_pubg(
                 "errors": fetch_errors,
             }
         )
-    # ── 5. Reuse the same persistence core ───────────────────────────────
+    # â”€â”€ 5. Reuse the same persistence core â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     result = import_matches(db, tournament_id, match_inputs)
     result["errors"] = fetch_errors + result.get("errors", [])
     result["match_ids_found"] = len(match_ids)
 
-    # ── 6. Patch group_label on already-imported matches when map provided ─
+    # â”€â”€ 6. Patch group_label on already-imported matches when map provided â”€
     # If the scheduler already ran and created matches without group_label,
     # this ensures a subsequent call with match_group_map still labels them.
     if match_group_map:
@@ -455,9 +455,9 @@ def import_matches_from_pubg(
     return result
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Section 4 – Direct-UUID import (provide match IDs explicitly)
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# Section 4 â€“ Direct-UUID import (provide match IDs explicitly)
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 def import_matches_by_pubg_ids(
     db: Session,
     tournament_id: int,
@@ -470,7 +470,7 @@ def import_matches_by_pubg_ids(
     (e.g. scrim matches available via wasdefy but not yet in the API roster).
     Steps:
         1. For each supplied match UUID call PubgClient.get_match()
-        2. Resolve participants → Player.id
+        2. Resolve participants â†’ Player.id
         3. Call import_matches() (same persistence core)
     The `shard` parameter overrides settings.PUBG_SHARD. Use "steam" for Live Server matches.
     """
@@ -481,7 +481,7 @@ def import_matches_by_pubg_ids(
     player_lookup = _build_player_lookup(db, tournament_id)
     if not player_lookup:
         logger.warning(
-            "No players found for tournament %s — stats will all be skipped.",
+            "No players found for tournament %s â€” stats will all be skipped.",
             tournament_id,
         )
     match_inputs: list[MatchInput] = []
@@ -496,7 +496,7 @@ def import_matches_by_pubg_ids(
             logger.error(msg)
             fetch_errors.append(msg)
             continue
-        except Exception as exc:          # <-- ESTE É O FIX CRÍTICO
+        except Exception as exc:          # <-- ESTE Ã‰ O FIX CRÃTICO
             msg = f"Unexpected error fetching match {match_id}: {exc}"
             logger.error(msg)
             fetch_errors.append(msg)
@@ -544,9 +544,9 @@ def import_matches_by_pubg_ids(
     return result
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Section 4 – Pricing (unchanged)
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# Section 4 â€“ Pricing (unchanged)
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 def _last_n_stats_for_player(
     db: Session,
     player_id: int,
@@ -625,14 +625,14 @@ def recalculate_prices(
         stats_50 = _last_n_stats_for_player(db, player_id, tournament_id, n=50)
         stats_10 = stats_50[:10]
         if not stats_50:
-            logger.warning("Player %s has no stats — skipping", player_id)
+            logger.warning("Player %s has no stats â€” skipping", player_id)
             continue
         price_data = _compute_player_price(stats_50, stats_10)
         results.append({"player_id": player_id, **price_data})
         if not dry_run:
             player = db.query(Player).filter(Player.id == player_id).first()
             if player is None:
-                logger.warning("Player %s not found in players table — skipping", player_id)
+                logger.warning("Player %s not found in players table â€” skipping", player_id)
                 continue
             player.avg_kills_50     = price_data["avg_kills_50"]
             player.avg_damage_50    = price_data["avg_damage_50"]
