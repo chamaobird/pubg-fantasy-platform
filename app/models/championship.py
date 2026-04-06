@@ -1,9 +1,8 @@
 # app/models/championship.py
 from __future__ import annotations
-from decimal import Decimal
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, List
 
-from sqlalchemy import Boolean, DateTime, Integer, Numeric, String, text
+from sqlalchemy import Boolean, DateTime, Integer, String, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -20,17 +19,6 @@ class Championship(Base):
     short_name: Mapped[str] = mapped_column(String(30), nullable=False)
     shard: Mapped[str] = mapped_column(
         String(30), nullable=False, comment="steam | pc-tournament"
-    )
-    pricing_weight: Mapped[Decimal] = mapped_column(
-        Numeric(5, 4),
-        nullable=False,
-        server_default="1.0",
-        comment="Weight applied when this championship's stats feed future pricing",
-    )
-    pricing_cap_newcomer: Mapped[Optional[int]] = mapped_column(
-        Integer,
-        nullable=True,
-        comment="Max fantasy cost for players with newcomer_to_tier=true",
     )
     is_active: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default=text("true")

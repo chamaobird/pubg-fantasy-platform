@@ -5,12 +5,11 @@
 ### Auth (pendente)
 - [ ] #013 Confirmacao de email via Resend (aguardando conta Resend)
 
-### Pricing (Fase 5)
-- [ ] #050 Calculo de fantasy_cost com pesos por championship
-- [ ] #051 Suporte a newcomer_to_tier com cap configuravel
-- [ ] #052 cost_override manual com auditoria
-- [ ] #053 Recalculo automatico apos cada dia
-- [ ] #054 ROSTER_PRICE_HISTORY
+### Fase 6 — Frontend
+- [ ] #060 Tela de lineup builder com budget e validacao de reserva
+- [ ] #061 Exibicao de fantasy_cost e effective_cost por jogador
+- [ ] #062 Historico de precos por jogador (RosterPriceHistory)
+- [ ] #063 Painel admin de override de custo
 
 ## 🟢 Concluido
 
@@ -41,5 +40,12 @@
 ### Fase 4 — Lineup e jobs
 - [x] #040 Montagem de lineup por STAGE_DAY (06/04/2026)
 - [x] #041 APScheduler — abertura/fechamento automatico (06/04/2026)
-- [x] #042 Replicacao de lineup (validacao de budget e disponibilidade) (06/04/2026)
+- [x] #042 Replicacao de lineup (validacao de budget e reserva) (06/04/2026)
 - [x] #043 Botao manual de emergencia para override de lineup_status (06/04/2026)
+
+### Fase 5 — Pricing
+- [x] #050 Calculo de fantasy_cost com regua linear por stage (06/04/2026)
+- [x] #051 Suporte a newcomer_to_tier com custo fixo configuravel por stage (06/04/2026)
+- [x] #052 cost_override manual com auditoria via RosterPriceHistory (06/04/2026)
+- [x] #053 Recalculo automatico via APScheduler apos cada dia (06/04/2026)
+- [x] #054 ROSTER_PRICE_HISTORY — historico de precos com source auto|override (06/04/2026)
