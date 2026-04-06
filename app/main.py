@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from app.routers.auth import router as auth_router
 from app.routers.admin import router as admin_router
-from app.routers.admin import import_ as admin_import
+from app.routers import import_ as admin_import
 from app.routers.lineups import router as lineups_router
 from app.jobs.lineup_control import run_lineup_control
 
