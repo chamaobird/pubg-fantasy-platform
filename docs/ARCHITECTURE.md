@@ -11,8 +11,6 @@
 
 ### CHAMPIONSHIP
 Representa uma competição completa (ex: PAS1 2026, PGS 2026 Circuit 2).
-- pricing_weight: peso para calculos de pricing de campeonatos futuros
-- pricing_cap_newcomer: teto de preco para jogadores sem historico no nivel
 
 ### STAGE
 Fase dentro de um championship (ex: Week 1 Scrims, Winners Stage).
@@ -21,10 +19,15 @@ Fase dentro de um championship (ex: Week 1 Scrims, Winners Stage).
 - lineup_open_at / lineup_close_at: controle automatico via APScheduler
 - lineup_status: closed | open | locked (pode ser forcado manualmente em emergencia)
 - roster_source_stage_id: stage de onde copiar o roster base
+- lineup_size: numero de titulares por lineup (padrao: 4)
+- price_min / price_max: limites da regua de custo (padrao: 12 / 35)
+- pricing_distribution: modelo de distribuicao de custos (padrao: linear)
+- pricing_n_matches: quantas partidas recentes usar para calcular o custo (padrao: 20)
+- pricing_newcomer_cost: custo fixo para jogadores sem historico (padrao: 15)
 
 ### STAGE_DAY
 Dia de competicao dentro de uma stage.
-- Usuario monta UM lineup por dia
+- Usuario monta UM lineup por dia (4 titulares + 1 reserva)
 - lineup_close_at = horario da primeira partida do dia
 - Se usuario nao montar lineup, o dia anterior e replicado (se valido)
 
@@ -46,24 +49,30 @@ Identidades conhecidas de uma PERSON.
 
 ### ROSTER
 Jogador disponivel para fantasy em uma STAGE especifica.
-- fantasy_cost: calculado automaticamente
-- cost_override: valor manual (nao quebra calculos futuros)
-- newcomer_to_tier: true = sem historico nesse nivel, cap = championship.pricing_cap_newcomer
+- fantasy_cost: calculado automaticamente pelo pricing service
+- cost_override: valor manual para exibicao (nao bloqueia calculos futuros)
+- newcomer_to_tier: true = sem historico nesse nivel, recebe pricing_newcomer_cost fixo
 
 ### ROSTER_PRICE_HISTORY
-Historico de precos por stage/day para auditoria e visualizacao de evolucao.
+Historico de precos por roster para auditoria e visualizacao de evolucao.
+- source: auto (scheduler) | override (manual)
+- stage_day_id: dia associado ao recalculo (opcional)
 
 ### MATCH_STAT
 Performance de uma PERSON em um MATCH.
 - Vinculada a PERSON (nao a um player de torneio especifico)
 - account_id_used: rastreabilidade de qual conta foi usada
+- xama_points: pontos calculados pelo scoring service
 
 ### PERSON_STAGE_STAT
 Acumulado de Pontos XAMA por jogador por fase.
-- pts_per_match: metrica principal de performance
+- pts_per_match: metrica de referencia (nao usada no pricing atual)
 
 ### LINEUP
 Time montado por usuario para um STAGE_DAY.
+- 4 titulares + 1 reserva
+- Reserva deve custar no maximo o mesmo que o titular mais barato
+- Budget total: 100 tokens por lineup
 - is_auto_replicated: true se foi replicado automaticamente
 - is_valid: false se algum jogador foi removido apos submissao
 
@@ -80,12 +89,23 @@ Acumulado de pontos do usuario por fase e por dia para visualizacao de evolucao.
 2. Se nao encontrar, busca por alias (nome Steam)
 3. Se nao encontrar, loga warning e skipa (nunca quebra o import)
 
-### Pricing
-1. Busca MATCH_STAT das stages configuradas em carries_stats_from
-2. Aplica pricing_weight do championship de origem de cada stat
-3. Jogadores com newcomer_to_tier=true tem teto pricing_cap_newcomer
-4. cost_override trava o preco manualmente sem afetar calculos futuros
-5. Recalcula automaticamente apos cada dia de competicao
+### Pricing (Fase 5)
+1. Para cada Roster ativo da stage, busca as ultimas pricing_n_matches MatchStat
+   da Person (qualquer championship, ordenado por created_at DESC)
+2. Calcula pts_per_match_efetivo = media simples das ultimas N partidas
+3. Monta a regua somente com jogadores que tem historico e nao sao newcomers:
+   - melhor ppm -> price_max (padrao 35)
+   - pior ppm   -> price_min (padrao 12)
+   - demais     -> interpolacao linear entre os dois extremos
+4. Newcomers (newcomer_to_tier=true) ou jogadores sem nenhuma MatchStat
+   recebem pricing_newcomer_cost fixo (padrao 15), com possibilidade de
+   cost_override manual por jogador
+5. Se todo o elenco e de newcomers ou ninguem tem historico, todos recebem
+   pricing_newcomer_cost (comportamento esperado na primeira stage de um campeonato)
+6. cost_override trava o preco manualmente sem afetar calculos futuros
+7. Cada alteracao de preco grava um registro em ROSTER_PRICE_HISTORY
+8. Recalcula automaticamente a cada 30 minutos via APScheduler
+   (apenas stages com lineup_status != locked)
 
 ### Controle de lineup
 1. APScheduler verifica a cada minuto
@@ -93,6 +113,7 @@ Acumulado de pontos do usuario por fase e por dia para visualizacao de evolucao.
 3. Se agora >= lineup_close_at e status=open -> seta locked
 4. Admin pode forcar qualquer transicao manualmente
 5. Antes do lock: verifica usuarios sem lineup e replica o dia anterior se valido
+6. Regra do reserva: custo_reserva <= custo do titular mais barato (validacao no lineup)
 
 ### Shard por stage
 - Cada STAGE tem seu proprio shard configurado
@@ -102,20 +123,50 @@ Acumulado de pontos do usuario por fase e por dia para visualizacao de evolucao.
 
 ## Estrutura de Pastas
 app/
-models/         definicoes de tabelas SQLAlchemy
-schemas/        Pydantic (entrada/saida de API)
-services/
-identity.py   resolucao PERSON + PLAYER_ACCOUNT
-pricing.py    calculo de precos com pesos
-lineup.py     montagem, validacao, replicacao
-import.py     import de matches
-scoring.py    calculo de pontos XAMA
-routers/
-admin/        endpoints administrativos
-championships.py
-stages.py
-lineups.py
-players.py
-jobs/
-lineup_control.py   APScheduler: abertura/fechamento automatico
-pricing.py          APScheduler: recalculo de precos
+  models/
+    championship.py
+    stage.py
+    stage_day.py
+    match.py
+    match_stat.py
+    person.py
+    player_account.py
+    roster.py            (inclui RosterPriceHistory)
+    person_stage_stat.py
+    lineup.py            (inclui LineupPlayer)
+    user.py
+  schemas/
+    championship.py
+    stage.py
+    roster.py
+    ...
+  services/
+    identity.py          resolucao PERSON + PLAYER_ACCOUNT
+    pricing.py           calculo de precos com regua linear (Fase 5)
+    lineup.py            montagem, validacao, replicacao
+    scoring.py           calculo de pontos XAMA
+    scheduler.py         APScheduler: lineup_control (1min) + pricing (30min)
+  routers/
+    auth.py
+    admin/
+      __init__.py        agrega todos os routers admin
+      championships.py
+      stages.py
+      stage_days.py
+      persons.py
+      roster.py          CRUD de roster
+      rosters.py         endpoints de pricing (Fase 5)
+    import_.py
+    lineups.py
+  jobs/
+    lineup_control.py    APScheduler: abertura/fechamento automatico
+    pricing.py           APScheduler: recalculo de precos (Fase 5)
+  database.py
+  main.py
+
+alembic/
+  versions/
+    0001_initial_schema.py
+    0002_users.py
+    0003_pricing_fields.py   (Fase 5: campos de pricing na Stage, remocao de campos legados)
+    20260406_0129_4bfb4ef75223_fase3_match_stats.py
