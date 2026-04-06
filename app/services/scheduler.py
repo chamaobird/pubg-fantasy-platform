@@ -99,7 +99,8 @@ def _replicate_missing_lineups(db, stage, now: datetime) -> None:
 # ── Job 2: pricing ───────────────────────────────────────────────────────────
 
 def _pricing_job() -> None:
-    logger.debug("pricing_job: aguardando Fase 5 para implementação.")
+    from app.jobs.pricing import run_pricing_job
+    run_pricing_job()
 
 
 # ── Factory ──────────────────────────────────────────────────────────────────
