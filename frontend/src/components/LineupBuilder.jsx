@@ -50,7 +50,7 @@ async function httpJson(url, options) {
 const BUDGET_CAP = 100
 
 // ── Main component ─────────────────────────────────────────────────────────
-export default function LineupBuilder({ token = '', stageId }) {
+export default function LineupBuilder({ token = '', stageId, onPlayerInfoClick }) {
   // ── Dados da stage ──────────────────────────────────────────────────────
   const [stage,        setStage]        = useState(null)
   const [stageDays,    setStageDays]    = useState([])
@@ -518,6 +518,15 @@ export default function LineupBuilder({ token = '', stageId }) {
                         </td>
                         <td>
                           <div className="flex gap-1 justify-end">
+                            {onPlayerInfoClick && (
+                              <button
+                                className="xlb-action-btn"
+                                style={{ background: 'rgba(96,165,250,0.08)', borderColor: 'rgba(96,165,250,0.2)', color: '#60a5fa' }}
+                                onClick={() => onPlayerInfoClick(p)}
+                                title="Ver histórico de preços">
+                                📈
+                              </button>
+                            )}
                             <button
                               className={`xlb-action-btn${isConflicted ? ' xlb-action-btn--conflict' : ''}`}
                               disabled={btnDisabled || isSelected}

@@ -76,12 +76,13 @@ class StageDayOut(BaseModel):
 class RosterPlayerOut(BaseModel):
     """
     Versão pública do Roster — expõe effective_cost e nome do jogador.
-    Não expõe fantasy_cost/cost_override separados (detalhe interno de admin).
     """
     id: int                         # roster_id — usado na submissão de lineup
     person_id: int
     person_name: Optional[str]      # Person.display_name
     team_name: Optional[str]
+    fantasy_cost: Optional[int]     # Preço calculado automaticamente
+    cost_override: Optional[int]    # Override manual (se existir)
     effective_cost: Optional[int]   # cost_override ?? fantasy_cost
     newcomer_to_tier: bool
     is_available: bool
@@ -209,6 +210,8 @@ def list_stage_roster(
                 person_id=r.person_id,
                 person_name=r.person.display_name if r.person else None,
                 team_name=r.team_name,
+                fantasy_cost=r.fantasy_cost,
+                cost_override=r.cost_override,
                 effective_cost=r.effective_cost,
                 newcomer_to_tier=r.newcomer_to_tier,
                 is_available=r.is_available,

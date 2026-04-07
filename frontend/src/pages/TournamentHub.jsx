@@ -7,37 +7,35 @@ import TournamentLayout from '../components/TournamentLayout'
 import LineupBuilder from '../components/LineupBuilder'
 import TournamentLeaderboard from '../components/TournamentLeaderboard'
 import PlayerStatsPage from '../components/PlayerStatsPage'
+import AdminPricingPanel from '../components/AdminPricingPanel'
+import PriceHistoryModal from '../components/PriceHistoryModal'
 
 const TAB_LINEUP      = 'lineup'
 const TAB_LEADERBOARD = 'leaderboard'
 const TAB_STATS       = 'stats'
+const TAB_ADMIN       = 'admin'
 
-const ALL_TABS = [
-  { id: TAB_LINEUP,      label: 'Montar Lineup', icon: '⚔️' },
-  { id: TAB_LEADERBOARD, label: 'Leaderboard',   icon: '🏆' },
-  { id: TAB_STATS,       label: 'Stats',          icon: '📊' },
-]
+function decodeJwtPayload(token) {
+  try {
+    const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+    return JSON.parse(atob(base64))
+  } catch {
+    return {}
+  }
+}
 
 export default function TournamentHub() {
-  const { id } = useParams()          // stage_id na nova arquitetura
+  const { id } = useParams()
   const navigate = useNavigate()
   const { token, setToken } = useAuth()
 
   const [tab,   setTab]   = useState(TAB_LINEUP)
   const [stage, setStage] = useState(null)
   const [myRank, setMyRank] = useState(null)
-  const [userId, setUserId] = useState(null)
+  const [priceModalRoster, setPriceModalRoster] = useState(null)
 
-  // ── Usuário ────────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!token) return
-    fetch(`${API_BASE_URL}/users/me`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.ok ? r.json() : null)
-      .then(u => { if (u) setUserId(u.id) })
-      .catch(() => {})
-  }, [token])
+  const isAdmin = token ? decodeJwtPayload(token)?.is_admin === true : false
 
-  // ── Stage ──────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!id) return
     fetch(`${API_BASE_URL}/stages/${id}`)
@@ -46,17 +44,22 @@ export default function TournamentHub() {
       .catch(() => {})
   }, [id])
 
-  // ── Tabs (oculta Lineup quando stage não está open) ────────────────────
   const isFinished = stage ? (stage.lineup_status === 'locked' || !stage.is_active) : false
-  const TABS       = isFinished ? ALL_TABS.filter(t => t.id !== TAB_LINEUP) : ALL_TABS
-  const activeTab  = TABS.find(t => t.id === tab) ? tab : TABS[0]?.id ?? TAB_LEADERBOARD
+
+  const ALL_TABS = [
+    { id: TAB_LINEUP,      label: 'Montar Lineup', icon: '⚔️' },
+    { id: TAB_LEADERBOARD, label: 'Leaderboard',   icon: '🏆' },
+    { id: TAB_STATS,       label: 'Stats',          icon: '📊' },
+    ...(isAdmin ? [{ id: TAB_ADMIN, label: 'Admin', icon: '⚙️' }] : []),
+  ]
+
+  const TABS      = isFinished ? ALL_TABS.filter(t => t.id !== TAB_LINEUP) : ALL_TABS
+  const activeTab = TABS.find(t => t.id === tab) ? tab : TABS[0]?.id ?? TAB_LEADERBOARD
 
   useEffect(() => {
     if (isFinished) setTab(TAB_LEADERBOARD)
   }, [isFinished])
 
-  // Props legadas passadas para componentes que ainda usam o schema antigo
-  // (Leaderboard e Stats serão migrados em tarefas futuras)
   const legacySharedProps = {
     tournaments: [],
     tournamentsLoading: false,
@@ -69,33 +72,41 @@ export default function TournamentHub() {
   }
 
   return (
-    <TournamentLayout
-      tournament={stage ? { name: stage.name, status: stage.lineup_status } : null}
-      championship={null}
-      phaseLabel={stage?.short_name ?? null}
-      myRank={myRank}
-      tabs={TABS}
-      activeTab={activeTab}
-      onTabChange={setTab}
-    >
-      {activeTab === TAB_LINEUP && (
-        <LineupBuilder
-          token={token}
+    <>
+      <TournamentLayout
+        tournament={stage ? { name: stage.name, status: stage.lineup_status } : null}
+        championship={null}
+        phaseLabel={stage?.short_name ?? null}
+        myRank={myRank}
+        tabs={TABS}
+        activeTab={activeTab}
+        onTabChange={setTab}
+      >
+        {activeTab === TAB_LINEUP && (
+          <LineupBuilder
+            token={token}
+            stageId={Number(id)}
+            onPlayerInfoClick={(roster) => setPriceModalRoster(roster)}
+          />
+        )}
+        {activeTab === TAB_LEADERBOARD && (
+          <TournamentLeaderboard token={token} {...legacySharedProps} />
+        )}
+        {activeTab === TAB_STATS && (
+          <PlayerStatsPage token={token} {...legacySharedProps} />
+        )}
+        {activeTab === TAB_ADMIN && isAdmin && (
+          <AdminPricingPanel stageId={Number(id)} token={token} />
+        )}
+      </TournamentLayout>
+
+      {priceModalRoster && (
+        <PriceHistoryModal
           stageId={Number(id)}
+          roster={priceModalRoster}
+          onClose={() => setPriceModalRoster(null)}
         />
       )}
-      {activeTab === TAB_LEADERBOARD && (
-        <TournamentLeaderboard
-          token={token}
-          {...legacySharedProps}
-        />
-      )}
-      {activeTab === TAB_STATS && (
-        <PlayerStatsPage
-          token={token}
-          {...legacySharedProps}
-        />
-      )}
-    </TournamentLayout>
+    </>
   )
 }
