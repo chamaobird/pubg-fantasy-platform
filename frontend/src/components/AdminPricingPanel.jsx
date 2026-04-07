@@ -106,7 +106,7 @@ export default function AdminPricingPanel({ stageId, token }) {
   }
 
   return (
-    <div style={{ padding: '24px 0' }}>
+    <div className="xama-container" style={{ paddingTop: '24px', paddingBottom: '48px' }}>
 
       {/* Header do painel */}
       <div style={{
@@ -159,13 +159,13 @@ export default function AdminPricingPanel({ stageId, token }) {
         }}>
           {/* Cabeçalho da tabela */}
           <div style={{
-            display: 'grid', gridTemplateColumns: '1fr 80px 80px 80px 140px 80px',
-            padding: '10px 16px',
+            display: 'grid', gridTemplateColumns: '1fr 100px 80px 80px 160px 90px',
+            padding: '10px 20px',
             borderBottom: '1px solid var(--color-xama-border)',
             background: 'var(--surface-2)',
           }}>
             {['Jogador', 'Time', 'Auto', 'Override', 'Novo valor', ''].map(h => (
-              <span key={h} style={{ fontSize: '10px', fontWeight: 700, color: 'var(--color-xama-muted)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+              <span key={h} style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-xama-muted)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                 {h}
               </span>
             ))}
@@ -175,8 +175,8 @@ export default function AdminPricingPanel({ stageId, token }) {
             const fb = feedback[r.id]
             return (
               <div key={r.id} style={{
-                display: 'grid', gridTemplateColumns: '1fr 80px 80px 80px 140px 80px',
-                padding: '12px 16px', alignItems: 'center',
+                display: 'grid', gridTemplateColumns: '1fr 100px 80px 80px 160px 90px',
+                padding: '14px 20px', alignItems: 'center',
                 borderBottom: i < roster.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
                 background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)',
               }}>
@@ -210,16 +210,21 @@ export default function AdminPricingPanel({ stageId, token }) {
                 {/* Input novo valor */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <input
-                    type="number"
-                    min="1" max="999"
-                    placeholder={r.cost_override != null ? String(r.cost_override) : 'sem override'}
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    placeholder="—"
                     value={overrides[r.id] ?? ''}
-                    onChange={e => setOverrides(prev => ({ ...prev, [r.id]: e.target.value }))}
+                    onChange={e => {
+                      const val = e.target.value.replace(/[^0-9]/g, '')
+                      setOverrides(prev => ({ ...prev, [r.id]: val }))
+                    }}
                     style={{
                       width: '80px', padding: '5px 8px', borderRadius: '6px',
                       background: 'var(--surface-2)', border: '1px solid var(--color-xama-border)',
                       color: 'var(--color-xama-text)', fontSize: '13px',
                       fontFamily: "'JetBrains Mono', monospace",
+                      textAlign: 'center',
                     }}
                   />
                   {fb && (
