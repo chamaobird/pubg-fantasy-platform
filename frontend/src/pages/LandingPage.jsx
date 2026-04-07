@@ -169,7 +169,7 @@ function AuthCard({ redirectTo = '/tournaments' }) {
     e.preventDefault()
     setLoginLoading(true); setLoginError('')
     try {
-      const res = await fetch(`${API_BASE_URL}/users/login`, {
+      const res = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -186,7 +186,7 @@ function AuthCard({ redirectTo = '/tournaments' }) {
     e.preventDefault()
     setRegLoading(true); setRegError(''); setRegSuccess('')
     try {
-      const res = await fetch(`${API_BASE_URL}/users/register`, {
+      const res = await fetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: regEmail, username: regUsername, password: regPassword }),
@@ -194,7 +194,7 @@ function AuthCard({ redirectTo = '/tournaments' }) {
       const data = await res.json().catch(() => null)
       if (!res.ok) throw new Error(data?.detail || `HTTP ${res.status}`)
       setRegSuccess('Conta criada! Fazendo login…')
-      const loginRes = await fetch(`${API_BASE_URL}/users/login`, {
+      const loginRes = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: regEmail, password: regPassword }),
