@@ -9,6 +9,7 @@ from app.routers.admin import router as admin_router
 from app.routers import import_ as admin_import
 from app.routers.lineups import router as lineups_router
 from app.jobs.lineup_control import run_lineup_control
+from app.routers.stages import router as stages_router
 
 
 logging.basicConfig(
@@ -155,6 +156,7 @@ app.include_router(auth_router)
 app.include_router(admin_router)
 app.include_router(admin_import.router)
 app.include_router(lineups_router)
+app.include_router(stages_router)
 
 
 
