@@ -7,16 +7,17 @@ Responsável por:
   - #042: Replicar lineup do dia anterior (validação de budget e disponibilidade)
 
 Regras de negócio:
-  - 4 titulares + 2 reservas por lineup (6 jogadores total)
+  - 4 titulares + 1 reserva por lineup (5 jogadores total)
+  - Um dos 4 titulares é marcado como capitão (is_captain=True)
+    → multiplicador de pontos ×1.3 aplicado no scoring
   - Todos os jogadores devem estar no Roster da Stage do StageDay
   - Todos os jogadores devem ter is_available=True
-  - Budget cap: soma de effective_cost dos 6 jogadores <= stage.championship.budget_cap
-    (se budget_cap não existir no championship, não aplica cap)
+  - Budget cap fixo: soma de effective_cost dos titulares + reserva <= 100
   - Um usuário só pode ter UM lineup por stage_day (UniqueConstraint no modelo)
   - Lineup só pode ser submetido/editado enquanto stage.lineup_status == 'open'
   - Replicação automática: copia o lineup do dia anterior se válido
-    — valida budget e disponibilidade no momento da replicação
-    — jogadores indisponíveis são removidos, tornando o lineup inválido
+    – valida budget e disponibilidade no momento da replicação
+    – jogadores indisponíveis são removidos, tornando o lineup inválido
 """
 from __future__ import annotations
 
@@ -32,8 +33,10 @@ logger = logging.getLogger(__name__)
 
 # Configuração de slots
 TITULAR_COUNT = 4
-RESERVE_COUNT = 2
+RESERVE_COUNT = 1
 TOTAL_PLAYERS = TITULAR_COUNT + RESERVE_COUNT
+BUDGET_CAP    = 100
+CAPTAIN_MULTIPLIER = 1.3  # multiplicador de pontos do capitão
 
 
 # ---------------------------------------------------------------------------
@@ -45,17 +48,19 @@ def submit_lineup(
     user_id: str,
     stage_day_id: int,
     titular_roster_ids: list[int],
-    reserve_roster_ids: list[int],
+    reserve_roster_id: int,
+    captain_roster_id: int,
 ) -> Lineup:
     """
     Cria ou substitui o lineup de um usuário para um STAGE_DAY.
 
     Args:
-        db:                 sessão SQLAlchemy
-        user_id:            ID do usuário
-        stage_day_id:       ID do StageDay
-        titular_roster_ids: lista de 4 roster_ids para slots titulares
-        reserve_roster_ids: lista de 2 roster_ids para slots reservas
+        db:                  sessão SQLAlchemy
+        user_id:             ID do usuário
+        stage_day_id:        ID do StageDay
+        titular_roster_ids:  lista de 4 roster_ids para slots titulares
+        reserve_roster_id:   roster_id do jogador reserva
+        captain_roster_id:   roster_id do capitão (deve estar em titular_roster_ids)
 
     Returns:
         Lineup criado/atualizado
@@ -70,13 +75,19 @@ def submit_lineup(
     stage = stage_day.stage
     _assert_lineup_open(stage)
 
-    # Valida contagem de slots
+    # Valida contagem de titulares
     if len(titular_roster_ids) != TITULAR_COUNT:
         raise ValueError(f"São necessários exatamente {TITULAR_COUNT} titulares")
-    if len(reserve_roster_ids) != RESERVE_COUNT:
-        raise ValueError(f"São necessários exatamente {RESERVE_COUNT} reservas")
 
-    all_roster_ids = titular_roster_ids + reserve_roster_ids
+    # Capitão deve ser um dos titulares
+    if captain_roster_id not in titular_roster_ids:
+        raise ValueError("O capitão deve ser um dos jogadores titulares")
+
+    # Reserva não pode ser titular
+    if reserve_roster_id in titular_roster_ids:
+        raise ValueError("O jogador reserva não pode ser titular")
+
+    all_roster_ids = titular_roster_ids + [reserve_roster_id]
 
     # Sem duplicatas
     if len(set(all_roster_ids)) != len(all_roster_ids):
@@ -84,9 +95,15 @@ def submit_lineup(
 
     # Carrega e valida rosters
     rosters = _load_and_validate_rosters(db, all_roster_ids, stage.id)
+    roster_map = {r.id: r for r in rosters}
 
-    # Valida budget
-    total_cost = _validate_budget(rosters, stage)
+    # Valida custo da reserva <= menor custo dos titulares
+    titulares = [roster_map[rid] for rid in titular_roster_ids]
+    reserva   = roster_map[reserve_roster_id]
+    _validate_reserve_cost(reserva, titulares)
+
+    # Valida budget (apenas titulares + reserva)
+    total_cost = _validate_budget(rosters)
 
     # Upsert: remove lineup anterior se existir
     existing = (
@@ -100,40 +117,42 @@ def submit_lineup(
 
     # Cria novo lineup
     lineup = Lineup(
-        user_id             = user_id,
-        stage_day_id        = stage_day_id,
-        is_auto_replicated  = False,
-        is_valid            = True,
-        total_cost          = total_cost,
-        submitted_at        = datetime.now(timezone.utc),
+        user_id            = user_id,
+        stage_day_id       = stage_day_id,
+        is_auto_replicated = False,
+        is_valid           = True,
+        total_cost         = total_cost,
+        submitted_at       = datetime.now(timezone.utc),
     )
     db.add(lineup)
     db.flush()  # gera lineup.id
 
-    # Cria LineupPlayers
+    # Cria LineupPlayers — titulares
     for roster_id in titular_roster_ids:
-        roster = next(r for r in rosters if r.id == roster_id)
+        roster = roster_map[roster_id]
         db.add(LineupPlayer(
             lineup_id   = lineup.id,
             roster_id   = roster_id,
             slot_type   = "titular",
+            is_captain  = (roster_id == captain_roster_id),
             locked_cost = roster.effective_cost,
         ))
-    for roster_id in reserve_roster_ids:
-        roster = next(r for r in rosters if r.id == roster_id)
-        db.add(LineupPlayer(
-            lineup_id   = lineup.id,
-            roster_id   = roster_id,
-            slot_type   = "reserve",
-            locked_cost = roster.effective_cost,
-        ))
+
+    # Cria LineupPlayer — reserva
+    db.add(LineupPlayer(
+        lineup_id   = lineup.id,
+        roster_id   = reserve_roster_id,
+        slot_type   = "reserve",
+        is_captain  = False,
+        locked_cost = reserva.effective_cost,
+    ))
 
     db.commit()
     db.refresh(lineup)
 
     logger.info(
-        "[Lineup] user=%s stage_day=%s — lineup submetido (cost=%s)",
-        user_id, stage_day_id, total_cost,
+        "[Lineup] user=%s stage_day=%s — lineup submetido (cost=%s captain=%s)",
+        user_id, stage_day_id, total_cost, captain_roster_id,
     )
     return lineup
 
@@ -192,7 +211,7 @@ def replicate_lineup_for_day(
         .filter(
             Lineup.user_id      == user_id,
             Lineup.stage_day_id == prev_day.id,
-            Lineup.is_valid     == True,
+            Lineup.is_valid     == True,  # noqa: E712
         )
         .first()
     )
@@ -203,19 +222,15 @@ def replicate_lineup_for_day(
         )
         return None
 
-    stage = stage_day.stage
     prev_players = prev_lineup.players  # list[LineupPlayer]
 
     # Valida disponibilidade de cada jogador no dia atual
-    titular_roster_ids = []
-    reserve_roster_ids = []
+    titular_players: list[LineupPlayer] = []
+    reserve_player:  Optional[LineupPlayer] = None
     is_valid = True
 
     for lp in prev_players:
-        roster = db.query(Roster).filter(
-            Roster.id == lp.roster_id
-        ).first()
-
+        roster = db.query(Roster).filter(Roster.id == lp.roster_id).first()
         if not roster or not roster.is_available:
             logger.warning(
                 "[Lineup] replicate: user=%s — roster_id=%s indisponível, lineup marcado inválido",
@@ -225,19 +240,20 @@ def replicate_lineup_for_day(
             continue
 
         if lp.slot_type == "titular":
-            titular_roster_ids.append(lp.roster_id)
+            titular_players.append(lp)
         else:
-            reserve_roster_ids.append(lp.roster_id)
+            reserve_player = lp
 
-    # Calcula custo dos jogadores disponíveis
-    all_ids = titular_roster_ids + reserve_roster_ids
+    # Calcula custo
+    all_ids = [lp.roster_id for lp in titular_players]
+    if reserve_player:
+        all_ids.append(reserve_player.roster_id)
+
     rosters_available = (
         db.query(Roster).filter(Roster.id.in_(all_ids)).all()
         if all_ids else []
     )
-    total_cost = sum(
-        r.effective_cost or 0 for r in rosters_available
-    )
+    total_cost = sum(r.effective_cost or 0 for r in rosters_available)
 
     # Cria lineup replicado
     new_lineup = Lineup(
@@ -251,20 +267,25 @@ def replicate_lineup_for_day(
     db.add(new_lineup)
     db.flush()
 
-    for roster_id in titular_roster_ids:
-        roster = next((r for r in rosters_available if r.id == roster_id), None)
+    roster_map = {r.id: r for r in rosters_available}
+
+    for lp in titular_players:
+        roster = roster_map.get(lp.roster_id)
         db.add(LineupPlayer(
             lineup_id   = new_lineup.id,
-            roster_id   = roster_id,
+            roster_id   = lp.roster_id,
             slot_type   = "titular",
+            is_captain  = lp.is_captain,
             locked_cost = roster.effective_cost if roster else None,
         ))
-    for roster_id in reserve_roster_ids:
-        roster = next((r for r in rosters_available if r.id == roster_id), None)
+
+    if reserve_player:
+        roster = roster_map.get(reserve_player.roster_id)
         db.add(LineupPlayer(
             lineup_id   = new_lineup.id,
-            roster_id   = roster_id,
+            roster_id   = reserve_player.roster_id,
             slot_type   = "reserve",
+            is_captain  = False,
             locked_cost = roster.effective_cost if roster else None,
         ))
 
@@ -282,15 +303,11 @@ def replicate_all_missing_lineups(db: Session, stage_day_id: int) -> dict:
     """
     Replica o lineup do dia anterior para TODOS os usuários sem lineup no dia informado.
     Chamado pelo APScheduler antes do lock de cada StageDay.
-
-    Returns:
-        resumo com contadores
     """
     stage_day = db.query(StageDay).filter(StageDay.id == stage_day_id).first()
     if not stage_day:
         raise ValueError(f"StageDay {stage_day_id} não encontrado")
 
-    # Busca dia anterior
     prev_day = (
         db.query(StageDay)
         .filter(
@@ -302,10 +319,9 @@ def replicate_all_missing_lineups(db: Session, stage_day_id: int) -> dict:
     if not prev_day:
         return {"stage_day_id": stage_day_id, "replicated": 0, "reason": "sem dia anterior"}
 
-    # Usuários que têm lineup no dia anterior mas não no dia atual
     users_prev = (
         db.query(Lineup.user_id)
-        .filter(Lineup.stage_day_id == prev_day.id, Lineup.is_valid == True)
+        .filter(Lineup.stage_day_id == prev_day.id, Lineup.is_valid == True)  # noqa: E712
         .all()
     )
     users_with_prev = {row[0] for row in users_prev}
@@ -338,9 +354,9 @@ def replicate_all_missing_lineups(db: Session, stage_day_id: int) -> dict:
         stage_day_id, replicated, failed,
     )
     return {
-        "stage_day_id": stage_day_id,
-        "replicated":   replicated,
-        "failed":       failed,
+        "stage_day_id":     stage_day_id,
+        "replicated":       replicated,
+        "failed":           failed,
         "total_candidates": len(to_replicate),
     }
 
@@ -383,17 +399,24 @@ def _load_and_validate_rosters(
     return rosters
 
 
-def _validate_budget(rosters: list[Roster], stage: Stage) -> int:
-    """
-    Valida budget cap e retorna o total_cost do lineup.
-    Se o championship não tiver budget_cap, só retorna o custo sem validar.
-    """
-    total_cost = sum(r.effective_cost or 0 for r in rosters)
-
-    budget_cap = getattr(stage.championship, "budget_cap", None)
-    if budget_cap is not None and total_cost > budget_cap:
+def _validate_reserve_cost(reserva: Roster, titulares: list[Roster]) -> None:
+    """Reserva deve custar <= custo do titular mais barato."""
+    min_titular_cost = min(
+        (r.effective_cost or 0) for r in titulares
+    )
+    reserve_cost = reserva.effective_cost or 0
+    if reserve_cost > min_titular_cost:
         raise ValueError(
-            f"Budget excedido: custo total {total_cost} > cap {budget_cap}"
+            f"Reserva (custo {reserve_cost}) não pode custar mais que o "
+            f"titular mais barato (custo {min_titular_cost})"
         )
 
+
+def _validate_budget(rosters: list[Roster]) -> int:
+    """Valida budget cap fixo de {BUDGET_CAP} tokens e retorna total_cost."""
+    total_cost = sum(r.effective_cost or 0 for r in rosters)
+    if total_cost > BUDGET_CAP:
+        raise ValueError(
+            f"Budget excedido: custo total {total_cost} > cap {BUDGET_CAP}"
+        )
     return total_cost

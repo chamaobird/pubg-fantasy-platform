@@ -32,26 +32,20 @@ router = APIRouter(tags=["Lineups"])
 
 
 # ---------------------------------------------------------------------------
-# Schemas
+# Schemas de request
 # ---------------------------------------------------------------------------
 
 class SubmitLineupRequest(BaseModel):
     stage_day_id:       int
     titular_roster_ids: list[int]
-    reserve_roster_ids: list[int]
+    reserve_roster_id:  int
+    captain_roster_id:  int
 
     @field_validator("titular_roster_ids")
     @classmethod
     def validate_titulares(cls, v: list[int]) -> list[int]:
         if len(v) != 4:
             raise ValueError("São necessários exatamente 4 titulares")
-        return v
-
-    @field_validator("reserve_roster_ids")
-    @classmethod
-    def validate_reservas(cls, v: list[int]) -> list[int]:
-        if len(v) != 2:
-            raise ValueError("São necessários exatamente 2 reservas")
         return v
 
 
@@ -71,10 +65,11 @@ class ForceStatusRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 class LineupPlayerOut(BaseModel):
-    id:           int
-    roster_id:    int
-    slot_type:    str
-    locked_cost:  Optional[int]
+    id:            int
+    roster_id:     int
+    slot_type:     str
+    is_captain:    bool
+    locked_cost:   Optional[int]
     points_earned: Optional[float]
 
     model_config = {"from_attributes": True}
@@ -103,7 +98,9 @@ class LineupOut(BaseModel):
     summary="Submeter lineup",
     description=(
         "Cria ou substitui o lineup do usuário autenticado para o StageDay informado. "
-        "A stage deve estar com lineup_status='open'."
+        "A stage deve estar com lineup_status='open'. "
+        "O `captain_roster_id` deve ser um dos `titular_roster_ids`. "
+        "O capitão recebe multiplicador ×1.3 nos pontos."
     ),
 )
 def submit_lineup_endpoint(
@@ -117,7 +114,8 @@ def submit_lineup_endpoint(
             user_id            = str(current_user.id),
             stage_day_id       = body.stage_day_id,
             titular_roster_ids = body.titular_roster_ids,
-            reserve_roster_ids = body.reserve_roster_ids,
+            reserve_roster_id  = body.reserve_roster_id,
+            captain_roster_id  = body.captain_roster_id,
         )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
@@ -165,8 +163,8 @@ def get_my_lineups_for_stage(
         db.query(Lineup)
         .join(StageDay, Lineup.stage_day_id == StageDay.id)
         .filter(
-            StageDay.stage_id  == stage_id,
-            Lineup.user_id     == str(current_user.id),
+            StageDay.stage_id == stage_id,
+            Lineup.user_id    == str(current_user.id),
         )
         .order_by(StageDay.day_number)
         .all()
@@ -199,10 +197,10 @@ def force_status_endpoint(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
 
     return {
-        "stage_id":     stage.id,
-        "stage_name":   stage.name,
+        "stage_id":      stage.id,
+        "stage_name":    stage.name,
         "lineup_status": stage.lineup_status,
-        "message":      f"Status forçado para '{stage.lineup_status}' com sucesso",
+        "message":       f"Status forçado para '{stage.lineup_status}' com sucesso",
     }
 
 
