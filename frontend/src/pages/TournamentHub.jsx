@@ -1,5 +1,5 @@
 // frontend/src/pages/TournamentHub.jsx
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../App'
 import { API_BASE_URL } from '../config'
@@ -19,22 +19,16 @@ const ALL_TABS = [
 ]
 
 export default function TournamentHub() {
-  const { id } = useParams()
+  const { id } = useParams()          // stage_id na nova arquitetura
   const navigate = useNavigate()
   const { token, setToken } = useAuth()
 
-  // ── Estado principal ──────────────────────────────────────────────
-  const [tab,                  setTab]                  = useState(TAB_LINEUP)
-  const [tournament,           setTournament]           = useState(null)
-  const [tournaments,          setTournaments]          = useState([])
-  const [tournamentsLoading,   setTournamentsLoading]   = useState(true)
-  const [championships,        setChampionships]        = useState([])
-  const [championshipsLoading, setChampionshipsLoading] = useState(true)
-  const [myRank,               setMyRank]               = useState(null)
-  const [localChampId,         setLocalChampId]         = useState(null)
-
-  // ── Usuário (para buscar ranking) ─────────────────────────────────
+  const [tab,   setTab]   = useState(TAB_LINEUP)
+  const [stage, setStage] = useState(null)
+  const [myRank, setMyRank] = useState(null)
   const [userId, setUserId] = useState(null)
+
+  // ── Usuário ────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!token) return
     fetch(`${API_BASE_URL}/users/me`, { headers: { Authorization: `Bearer ${token}` } })
@@ -43,51 +37,17 @@ export default function TournamentHub() {
       .catch(() => {})
   }, [token])
 
-  // ── Torneios + campeonatos ────────────────────────────────────────
+  // ── Stage ──────────────────────────────────────────────────────────────
   useEffect(() => {
-    Promise.all([
-      fetch(`${API_BASE_URL}/tournaments/?skip=0&limit=50`).then(r => r.json()),
-      fetch(`${API_BASE_URL}/championship-phases/`).then(r => r.json()),
-    ])
-      .then(([tournsData, champsData]) => {
-        const list  = Array.isArray(tournsData) ? tournsData : []
-        const champs = Array.isArray(champsData) ? champsData : []
-        setTournaments(list)
-        setChampionships(champs)
-        setTournament(list.find(t => String(t.id) === String(id)) || null)
-        setTournamentsLoading(false)
-        setChampionshipsLoading(false)
-      })
-      .catch(() => { setTournamentsLoading(false); setChampionshipsLoading(false) })
+    if (!id) return
+    fetch(`${API_BASE_URL}/stages/${id}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(setStage)
+      .catch(() => {})
   }, [id])
 
-  // ── Ranking do usuário (para o header) ───────────────────────────
-  useEffect(() => {
-    if (!userId || !id) return
-    fetch(`${API_BASE_URL}/tournaments/${id}/rankings`)
-      .then(r => r.json())
-      .then(rank => {
-        const entry = rank.find(e => e.user_id === userId)
-        if (entry) setMyRank(entry)
-      })
-      .catch(() => {})
-  }, [userId, id])
-
-  // ── Campeonato da URL ─────────────────────────────────────────────
-  const urlChampId = useMemo(
-    () => championships.find(c => c.phases.some(p => p.tournament_id === Number(id)))?.id ?? null,
-    [championships, id]
-  )
-  useEffect(() => { if (urlChampId !== null) setLocalChampId(urlChampId) }, [urlChampId])
-  const selectedChampId = localChampId ?? urlChampId
-
-  // ── Dados derivados para o header ─────────────────────────────────
-  const championship = championships.find(c => c.phases.some(p => p.tournament_id === Number(id)))
-  const phase        = championship?.phases.find(p => p.tournament_id === Number(id))
-  const phaseLabel   = phase?.phase ?? null
-
-  // ── Tabs (Lineup oculta quando torneio finalizado) ────────────────
-  const isFinished = tournament?.status === 'finished'
+  // ── Tabs (oculta Lineup quando stage não está open) ────────────────────
+  const isFinished = stage ? (stage.lineup_status === 'locked' || !stage.is_active) : false
   const TABS       = isFinished ? ALL_TABS.filter(t => t.id !== TAB_LINEUP) : ALL_TABS
   const activeTab  = TABS.find(t => t.id === tab) ? tab : TABS[0]?.id ?? TAB_LEADERBOARD
 
@@ -95,27 +55,24 @@ export default function TournamentHub() {
     if (isFinished) setTab(TAB_LEADERBOARD)
   }, [isFinished])
 
-  // ── Handlers ─────────────────────────────────────────────────────
-  const handleChampChange      = (champId) => setLocalChampId(champId)
-  const handleTournamentChange = (newId)   => { if (newId) navigate(`/tournament/${newId}`) }
-
-  // Props compartilhadas entre os componentes filhos
-  const sharedProps = {
-    tournaments,
-    tournamentsLoading,
+  // Props legadas passadas para componentes que ainda usam o schema antigo
+  // (Leaderboard e Stats serão migrados em tarefas futuras)
+  const legacySharedProps = {
+    tournaments: [],
+    tournamentsLoading: false,
     selectedTournamentId: String(id),
-    onTournamentChange: handleTournamentChange,
-    championships,
-    championshipsLoading,
-    selectedChampId,
-    onChampChange: handleChampChange,
+    onTournamentChange: (newId) => { if (newId) navigate(`/tournament/${newId}`) },
+    championships: [],
+    championshipsLoading: false,
+    selectedChampId: null,
+    onChampChange: () => {},
   }
 
   return (
     <TournamentLayout
-      tournament={tournament}
-      championship={championship}
-      phaseLabel={phaseLabel}
+      tournament={stage ? { name: stage.name, status: stage.lineup_status } : null}
+      championship={null}
+      phaseLabel={stage?.short_name ?? null}
       myRank={myRank}
       tabs={TABS}
       activeTab={activeTab}
@@ -124,21 +81,19 @@ export default function TournamentHub() {
       {activeTab === TAB_LINEUP && (
         <LineupBuilder
           token={token}
-          setToken={setToken}
-          tournamentsError=""
-          {...sharedProps}
+          stageId={Number(id)}
         />
       )}
       {activeTab === TAB_LEADERBOARD && (
         <TournamentLeaderboard
           token={token}
-          {...sharedProps}
+          {...legacySharedProps}
         />
       )}
       {activeTab === TAB_STATS && (
         <PlayerStatsPage
           token={token}
-          {...sharedProps}
+          {...legacySharedProps}
         />
       )}
     </TournamentLayout>

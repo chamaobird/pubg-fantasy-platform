@@ -1,6 +1,6 @@
 // frontend/src/components/LineupBuilder.jsx
-// XAMA Fantasy — Lineup Builder
-// Tailwind v4 + tema XAMA
+// XAMA Fantasy — Lineup Builder (Fase 6)
+// Consome os novos endpoints: /stages/, /stages/{id}/roster, /stages/{id}/days, /lineups/
 
 import { useEffect, useMemo, useState } from 'react'
 import { API_BASE_URL } from '../config'
@@ -27,7 +27,11 @@ function parseErrorMessage(err) {
 async function httpJson(url, options) {
   const res = await fetch(url, {
     ...options,
-    headers: { Accept: 'application/json', 'Content-Type': 'application/json', ...(options?.headers ?? {}) },
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      ...(options?.headers ?? {}),
+    },
   })
   const contentType = res.headers.get('content-type') || ''
   const isJson = contentType.includes('application/json')
@@ -36,141 +40,96 @@ async function httpJson(url, options) {
     const detail = data && typeof data === 'object' && 'detail' in data ? data.detail : null
     const message = detail || `HTTP ${res.status}`
     const error = new Error(typeof message === 'string' ? message : JSON.stringify(message))
-    error.status = res.status; error.data = data
+    error.status = res.status
+    error.data = data
     throw error
   }
   return data
 }
-const placementColorHex = (val) => {
-  if (val == null) return '#6b7280'
-  if (val <= 5)    return '#4ade80'
-  if (val <= 12)   return '#facc15'
-  return '#f87171'
-}
-const fmtMin = (secs) => secs != null ? Math.round(Number(secs) / 60) : '—'
+
+const BUDGET_CAP = 100
 
 // ── Main component ─────────────────────────────────────────────────────────
-export default function LineupBuilder({
-  token = '',
-  setToken,
-  tournaments = [],
-  tournamentsLoading = false,
-  tournamentsError = '',
-  selectedTournamentId = '',
-  onTournamentChange,
-  championships = [],
-  championshipsLoading = false,
-  selectedChampId = null,
-  onChampChange,
-}) {
-  const [loginEmail,    setLoginEmail]    = useState('')
-  const [loginPassword, setLoginPassword] = useState('')
-  const [loginLoading,  setLoginLoading]  = useState(false)
-  const [loginError,    setLoginError]    = useState('')
-
-  const [authMode,         setAuthMode]         = useState('login')
-  const [registerEmail,    setRegisterEmail]    = useState('')
-  const [registerUsername, setRegisterUsername] = useState('')
-  const [registerPassword, setRegisterPassword] = useState('')
-  const [registerLoading,  setRegisterLoading]  = useState(false)
-  const [registerError,    setRegisterError]    = useState('')
-  const [registerSuccess,  setRegisterSuccess]  = useState('')
-
-  const [players,        setPlayers]        = useState([])
+export default function LineupBuilder({ token = '', stageId }) {
+  // ── Dados da stage ──────────────────────────────────────────────────────
+  const [stage,        setStage]        = useState(null)
+  const [stageDays,    setStageDays]    = useState([])
+  const [players,      setPlayers]      = useState([])
   const [playersLoading, setPlayersLoading] = useState(false)
   const [playersError,   setPlayersError]   = useState('')
-  const [searchName,     setSearchName]     = useState('')
 
-  const [champStats, setChampStats] = useState({})
+  // ── Lineup do usuário (lineups já submetidos) ───────────────────────────
+  const [myLineups,  setMyLineups]  = useState([])   // list[LineupOut]
+  const [myLineupsLoaded, setMyLineupsLoaded] = useState(false)
 
-  const [selectedPlayers, setSelectedPlayers] = useState([])
+  // ── Seleção ─────────────────────────────────────────────────────────────
+  const [selectedPlayers, setSelectedPlayers] = useState([])  // max 4 (roster objects)
   const [reservePlayer,   setReservePlayer]   = useState(null)
-  const [captainId,       setCaptainId]       = useState(null)
+  const [captainId,       setCaptainId]       = useState(null) // roster_id do capitão
 
+  // ── UI ──────────────────────────────────────────────────────────────────
+  const [searchName, setSearchName] = useState('')
+  const [sortKey,    setSortKey]    = useState('effective_cost')
+  const [sortDir,    setSortDir]    = useState('desc')
   const [saveLoading, setSaveLoading] = useState(false)
   const [saveError,   setSaveError]   = useState('')
   const [saveSuccess, setSaveSuccess] = useState(null)
 
-  // ── Lineups já submetidas pelo usuário (multi-dia) ──────────────────────
-  const [myLineups, setMyLineups] = useState([])
+  // ── Stage day ativo ─────────────────────────────────────────────────────
+  // Usa o primeiro day ativo ou o último day disponível
+  const activeStageDayId = useMemo(() => {
+    if (stageDays.length === 0) return null
+    const active = stageDays.find(d => d.is_active)
+    return active ? active.id : stageDays[stageDays.length - 1].id
+  }, [stageDays])
 
-  const [sortKey, setSortKey] = useState('fantasy_cost')
-  const [sortDir, setSortDir] = useState('desc')
-
-  // ── Derived ────────────────────────────────────────────────────────────
-  // Mostra todos os torneios no dropdown (não só os abertos),
-  // o estado LOCKED é exibido via banner quando lineup_open=false
-  const openTournaments = useMemo(
-    () => tournaments.filter((t) => t.lineup_open),
-    [tournaments]
-  )
-
-  const selectedTournament = useMemo(() => {
-    const idNum = Number(selectedTournamentId)
-    return tournaments.find((t) => t.id === idNum) || null
-  }, [selectedTournamentId, tournaments])
-
-  // Dia atual do torneio (1 por default)
-  const currentDay = selectedTournament?.current_day ?? 1
-
-  // Lineup já submetida para o dia atual (se houver)
+  // Lineup já submetido para o day ativo
   const currentDayLineup = useMemo(
-    () => myLineups.find((l) => l.day === currentDay) || null,
-    [myLineups, currentDay]
+    () => myLineups.find(l => l.stage_day_id === activeStageDayId) || null,
+    [myLineups, activeStageDayId]
   )
 
-  // true quando o torneio selecionado tem lineup_open=false OU user já submeteu para o dia atual
-  const isLocked = selectedTournament
-    ? !selectedTournament.lineup_open || !!currentDayLineup
-    : false
+  // Stage está fechada para submissão?
+  const isLocked = !stage?.lineup_open || !!currentDayLineup
 
-  // true especificamente porque o torneio fechou (vs. user já submeteu)
-  const isTournamentClosed = selectedTournament ? !selectedTournament.lineup_open : false
-
-  const budgetLimit = useMemo(() => {
-    const val = selectedTournament?.budget_limit
-    const num = typeof val === 'number' ? val : val ? Number(val) : NaN
-    return Number.isFinite(num) ? num : 100
-  }, [selectedTournament])
-
+  // ── Derived — budget ────────────────────────────────────────────────────
   const totalCost = useMemo(
-    () => selectedPlayers.reduce((acc, p) => acc + (Number(p.fantasy_cost) || 0), 0),
-    [selectedPlayers],
+    () => selectedPlayers.reduce((acc, p) => acc + (Number(p.effective_cost) || 0), 0),
+    [selectedPlayers]
   )
   const minStarterCost = useMemo(() => {
     if (selectedPlayers.length === 0) return Infinity
-    return Math.min(...selectedPlayers.map((p) => Number(p.fantasy_cost) || 0))
+    return Math.min(...selectedPlayers.map(p => Number(p.effective_cost) || 0))
   }, [selectedPlayers])
 
-  const reserveCost     = reservePlayer ? Number(reservePlayer.fantasy_cost) || 0 : 0
+  const reserveCost     = reservePlayer ? Number(reservePlayer.effective_cost) || 0 : 0
   const reserveEligible = reservePlayer == null || reserveCost <= minStarterCost
-  const isOverBudget    = totalCost > budgetLimit
+  const isOverBudget    = totalCost > BUDGET_CAP
 
-  const playersWithStats = useMemo(() => {
-    return players.map((p) => ({
-      ...p,
-      _cs: (champStats.byId?.[p.id] || champStats.byName?.[p.name]) ?? null
-    }))
-  }, [players, champStats])
+  // ── Derived — conflict detection ────────────────────────────────────────
+  const conflictedTeams = useMemo(() => {
+    const teams = new Set()
+    selectedPlayers.forEach(p => teams.add(formatTeamTag(p.person_name, p.team_name)))
+    if (reservePlayer) teams.add(formatTeamTag(reservePlayer.person_name, reservePlayer.team_name))
+    return teams
+  }, [selectedPlayers, reservePlayer])
 
+  // ── Derived — tabela filtrada e ordenada ────────────────────────────────
   const filteredPlayers = useMemo(() => {
     const q = searchName.trim().toLowerCase()
-    if (!q) return playersWithStats
-    return playersWithStats.filter((p) => String(p.name || '').toLowerCase().includes(q))
-  }, [playersWithStats, searchName])
+    if (!q) return players
+    return players.filter(p =>
+      String(p.person_name || '').toLowerCase().includes(q) ||
+      String(p.team_name || '').toLowerCase().includes(q)
+    )
+  }, [players, searchName])
 
   const sortedPlayers = useMemo(() => {
     return [...filteredPlayers].sort((a, b) => {
       let aVal, bVal
-      if (sortKey === 'name')                       { aVal = formatPlayerName(a.name);       bVal = formatPlayerName(b.name) }
-      else if (sortKey === 'team')                  { aVal = formatTeamTag(a.name, a.team);  bVal = formatTeamTag(b.name, b.team) }
-      else if (sortKey === 'total_fantasy_points')  { aVal = a._cs?.total_fantasy_points;    bVal = b._cs?.total_fantasy_points }
-      else if (sortKey === 'total_kills')           { aVal = a._cs?.total_kills;             bVal = b._cs?.total_kills }
-      else if (sortKey === 'total_assists')         { aVal = a._cs?.total_assists;           bVal = b._cs?.total_assists }
-      else if (sortKey === 'surv_total_secs')       { aVal = a._cs?.surv_total_secs;         bVal = b._cs?.surv_total_secs }
-      else if (sortKey === 'total_late_game_bonus') { aVal = a._cs?.total_late_game_bonus;   bVal = b._cs?.total_late_game_bonus }
-      else if (sortKey === 'total_penalty_count')   { aVal = a._cs?.total_penalty_count;     bVal = b._cs?.total_penalty_count }
-      else { aVal = a[sortKey]; bVal = b[sortKey] }
+      if (sortKey === 'name')           { aVal = formatPlayerName(a.person_name); bVal = formatPlayerName(b.person_name) }
+      else if (sortKey === 'team')      { aVal = a.team_name; bVal = b.team_name }
+      else                              { aVal = a[sortKey]; bVal = b[sortKey] }
       if (aVal == null && bVal == null) return 0
       if (aVal == null) return 1
       if (bVal == null) return -1
@@ -179,143 +138,67 @@ export default function LineupBuilder({
     })
   }, [filteredPlayers, sortKey, sortDir])
 
-  // ── Conflict detection: times já com jogador escalado (titular ou reserva) ─
-  const conflictedTeams = useMemo(() => {
-    const teams = new Set()
-    selectedPlayers.forEach((p) => teams.add(formatTeamTag(p.name, p.team)))
-    if (reservePlayer) teams.add(formatTeamTag(reservePlayer.name, reservePlayer.team))
-    return teams
-  }, [selectedPlayers, reservePlayer])
-
-  // ── Effects ────────────────────────────────────────────────────────────
+  // ── Effects — carregar dados da stage ───────────────────────────────────
   useEffect(() => {
-    let mounted = true
-    if (!selectedTournamentId) { setPlayers([]); setChampStats({ byId: {}, byName: {} }); return }
-    setPlayersLoading(true); setPlayersError('')
+    if (!stageId) return
+    setPlayersLoading(true)
+    setPlayersError('')
+    setSelectedPlayers([])
+    setReservePlayer(null)
+    setCaptainId(null)
+    setSaveError('')
+    setSaveSuccess(null)
 
-    const playersPromise = httpJson(
-      `${API_BASE_URL}/tournaments/${selectedTournamentId}/players?skip=0&limit=200`,
-      { method: 'GET' }
-    )
-
-    const champPromise = httpJson(`${API_BASE_URL}/championship-phases/`, { method: 'GET' })
-      .then((champs) => {
-        const champ = champs.find((c) =>
-          c.phases.some((ph) => ph.tournament_id === Number(selectedTournamentId))
-        )
-        if (!champ) return {}
-        return httpJson(
-          `${API_BASE_URL}/championship-phases/${champ.id}/player-stats?limit=500`,
-          { method: 'GET' }
-        ).then((stats) => {
-           const byId = {}
-           const byName = {}
-          stats.forEach((s) => {
-            byId[s.player_id] = s
-            byName[s.name] = s
-          })
-          return { byId, byName }
-        })
+    Promise.all([
+      httpJson(`${API_BASE_URL}/stages/${stageId}`),
+      httpJson(`${API_BASE_URL}/stages/${stageId}/days`),
+      httpJson(`${API_BASE_URL}/stages/${stageId}/roster`),
+    ])
+      .then(([stageData, daysData, rosterData]) => {
+        setStage(stageData)
+        setStageDays(Array.isArray(daysData) ? daysData : [])
+        setPlayers(Array.isArray(rosterData) ? rosterData : [])
       })
-      .catch(() => ({}))
+      .catch(e => setPlayersError(parseErrorMessage(e)))
+      .finally(() => setPlayersLoading(false))
+  }, [stageId])
 
-    Promise.all([playersPromise, champPromise])
-      .then(([pData, csMap]) => {
-        if (!mounted) return
-        setPlayers(Array.isArray(pData) ? pData : [])
-        setChampStats(csMap)
-      })
-      .catch((e) => { if (mounted) { setPlayersError(parseErrorMessage(e)); setPlayers([]) } })
-      .finally(() => { if (mounted) setPlayersLoading(false) })
-
-    setSelectedPlayers([]); setReservePlayer(null); setCaptainId(null)
-    setSaveError(''); setSaveSuccess(null); setMyLineups([])
-    return () => { mounted = false }
-  }, [selectedTournamentId])
-
-  // ── Busca lineups submetidas pelo usuário para o torneio selecionado ───
+  // ── Effects — carregar lineups do usuário ───────────────────────────────
   useEffect(() => {
-    if (!token || !selectedTournamentId) { setMyLineups([]); return }
-    httpJson(`${API_BASE_URL}/tournaments/${selectedTournamentId}/lineups/me`, {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${token.trim()}` },
+    if (!token || !stageId) { setMyLineups([]); return }
+    httpJson(`${API_BASE_URL}/lineups/stage/${stageId}`, {
+      headers: { Authorization: `Bearer ${token}` },
     })
-      .then((data) => setMyLineups(Array.isArray(data) ? data : []))
+      .then(data => setMyLineups(Array.isArray(data) ? data : []))
       .catch(() => setMyLineups([]))
-  }, [token, selectedTournamentId, saveSuccess])
+      .finally(() => setMyLineupsLoaded(true))
+  }, [token, stageId, saveSuccess])
 
-  // ── Keep-alive: ping backend a cada 10min para evitar spin-down do Render ─
+  // ── Effects — keep-alive ────────────────────────────────────────────────
   useEffect(() => {
-    const ping = () => {
-      fetch(`${API_BASE_URL}/tournaments`, { method: 'GET' }).catch(() => {})
-    }
-    const interval = setInterval(ping, 10 * 60 * 1000) // 10 minutos
+    const ping = () => fetch(`${API_BASE_URL}/health`).catch(() => {})
+    const interval = setInterval(ping, 10 * 60 * 1000)
     return () => clearInterval(interval)
   }, [])
 
-  // ── Actions ────────────────────────────────────────────────────────────
-  async function doLogin() {
-    setLoginLoading(true); setLoginError('')
-    try {
-      const body = new URLSearchParams({ username: loginEmail, password: loginPassword })
-      const res  = await fetch(`${API_BASE_URL}/users/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
-        body,
-      })
-      const data = await res.json().catch(() => null)
-      if (!res.ok) throw new Error(typeof data?.detail === 'string' ? data.detail : `HTTP ${res.status}`)
-      const t = data?.access_token
-      if (!t) throw new Error('Resposta sem access_token')
-      setToken?.(t)
-    } catch (e) {
-      setLoginError(parseErrorMessage(e))
-    } finally {
-      setLoginLoading(false)
-    }
-  }
-
-  async function doRegister() {
-    setRegisterLoading(true); setRegisterError(''); setRegisterSuccess('')
-    try {
-      if (!registerEmail.trim())    throw new Error('E-mail obrigatorio')
-      if (!registerUsername.trim()) throw new Error('Username obrigatorio')
-      if (!registerPassword.trim()) throw new Error('Senha obrigatoria')
-      const res = await fetch(`${API_BASE_URL}/users/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ email: registerEmail.trim(), username: registerUsername.trim(), password: registerPassword }),
-      })
-      const data = await res.json().catch(() => null)
-      if (!res.ok) throw new Error(typeof data?.detail === 'string' ? data.detail : `HTTP ${res.status}`)
-      setRegisterSuccess('Conta criada! Faca login para continuar.')
-      setRegisterEmail(''); setRegisterUsername(''); setRegisterPassword('')
-      setTimeout(() => setAuthMode('login'), 1500)
-    } catch (e) {
-      setRegisterError(parseErrorMessage(e))
-    } finally {
-      setRegisterLoading(false)
-    }
-  }
-
+  // ── Actions ─────────────────────────────────────────────────────────────
   function addPlayer(player) {
     setSaveError(''); setSaveSuccess(null)
-    if (reservePlayer?.id === player.id)                 { setSaveError('Jogador ja e reserva'); return }
-    if (selectedPlayers.some((p) => p.id === player.id)) { setSaveError('Jogador ja no lineup'); return }
-    if (selectedPlayers.length >= 4)                     { setSaveError('Lineup ja tem 4 jogadores'); return }
+    if (reservePlayer?.id === player.id)                  { setSaveError('Jogador já é reserva'); return }
+    if (selectedPlayers.some(p => p.id === player.id))    { setSaveError('Jogador já no lineup'); return }
+    if (selectedPlayers.length >= 4)                      { setSaveError('Lineup já tem 4 titulares'); return }
     const next = [...selectedPlayers, player]
-    if (next.reduce((a, p) => a + (Number(p.fantasy_cost) || 0), 0) > budgetLimit) {
-      setSaveError('Adicionar este jogador estoura o budget'); return
-    }
+    const nextCost = next.reduce((a, p) => a + (Number(p.effective_cost) || 0), 0)
+    if (nextCost > BUDGET_CAP) { setSaveError('Adicionar este jogador estoura o budget'); return }
     setSelectedPlayers(next)
     if (next.length === 1) setCaptainId(player.id)
   }
 
   function setAsReserve(player) {
     setSaveError(''); setSaveSuccess(null)
-    if (selectedPlayers.some((p) => p.id === player.id)) { setSaveError('Reserva nao pode ser titular'); return }
+    if (selectedPlayers.some(p => p.id === player.id)) { setSaveError('Reserva não pode ser titular'); return }
     setReservePlayer(player)
-    const playerCost = Number(player.fantasy_cost) || 0
+    const playerCost = Number(player.effective_cost) || 0
     if (selectedPlayers.length > 0 && playerCost > minStarterCost) {
       setSaveError('Reserva mais caro que o titular mais barato')
     }
@@ -325,30 +208,37 @@ export default function LineupBuilder({
 
   function removePlayer(pid) {
     setSaveError(''); setSaveSuccess(null)
-    const next = selectedPlayers.filter((p) => p.id !== pid)
+    const next = selectedPlayers.filter(p => p.id !== pid)
     setSelectedPlayers(next)
     if (captainId === pid) setCaptainId(next.length > 0 ? next[0].id : null)
+  }
+
+  function toggleCaptain(pid) {
+    if (!selectedPlayers.some(p => p.id === pid)) return
+    setCaptainId(pid)
   }
 
   async function saveLineup() {
     setSaveLoading(true); setSaveError(''); setSaveSuccess(null)
     try {
-      if (!selectedTournamentId)        throw new Error('Selecione um torneio')
-      if (isLocked)                     throw new Error('Lineup fechado para este torneio')
-      if (selectedPlayers.length !== 4) throw new Error('Selecione exatamente 4 jogadores')
-      if (!reservePlayer)               throw new Error('Selecione o reserva')
-      if (!captainId)                   throw new Error('Selecione o capitao')
-      if (!token.trim())                throw new Error('Faca login primeiro')
-      if (totalCost > budgetLimit)      throw new Error('Total excede o budget')
-      if (!reserveEligible)             throw new Error('Reserva mais caro que o titular mais barato')
-      const data = await httpJson(`${API_BASE_URL}/tournaments/${selectedTournamentId}/lineups`, {
+      if (!stageId)                      throw new Error('Stage não identificada')
+      if (isLocked)                      throw new Error('Lineup fechado para esta stage')
+      if (!activeStageDayId)             throw new Error('Nenhum dia ativo encontrado')
+      if (selectedPlayers.length !== 4)  throw new Error('Selecione exatamente 4 titulares')
+      if (!reservePlayer)                throw new Error('Selecione o reserva')
+      if (!captainId)                    throw new Error('Selecione o capitão')
+      if (!token.trim())                 throw new Error('Faça login primeiro')
+      if (isOverBudget)                  throw new Error('Total excede o budget de 100')
+      if (!reserveEligible)              throw new Error('Reserva mais caro que o titular mais barato')
+
+      const data = await httpJson(`${API_BASE_URL}/lineups/`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token.trim()}` },
         body: JSON.stringify({
-          name: 'Lineup',
-          player_ids: selectedPlayers.map((p) => p.id),
-          captain_id: captainId,
-          reserve_player_id: reservePlayer.id,
+          stage_day_id:       activeStageDayId,
+          titular_roster_ids: selectedPlayers.map(p => p.id),
+          reserve_roster_id:  reservePlayer.id,
+          captain_roster_id:  captainId,
         }),
       })
       setSaveSuccess(data)
@@ -359,291 +249,207 @@ export default function LineupBuilder({
     }
   }
 
-  // isLocked bloqueia o save mesmo que todos os outros campos estejam preenchidos
-  const canSave = !isLocked && selectedTournamentId && selectedPlayers.length === 4 &&
-    reservePlayer && captainId && token.trim() && totalCost <= budgetLimit && reserveEligible
+  const canSave = !isLocked && stageId && selectedPlayers.length === 4 &&
+    reservePlayer && captainId && token.trim() && !isOverBudget && reserveEligible
 
   function handleSort(key) {
-    if (sortKey === key) setSortDir((d) => d === 'asc' ? 'desc' : 'asc')
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
     else { setSortKey(key); setSortDir('desc') }
   }
 
-  const budgetUsedPct  = Math.min((totalCost / budgetLimit) * 100, 100)
-  const budgetBarColor = isOverBudget ? '#f87171' : totalCost / budgetLimit > 0.85 ? 'var(--color-xama-gold)' : 'var(--color-xama-orange)'
+  const budgetUsedPct  = Math.min((totalCost / BUDGET_CAP) * 100, 100)
+  const budgetBarColor = isOverBudget ? '#f87171' : totalCost / BUDGET_CAP > 0.85
+    ? 'var(--color-xama-gold)' : 'var(--color-xama-orange)'
 
   const COLS = [
-    { key: 'team',                  label: 'Time',      right: false },
-    { key: 'name',                  label: 'Jogador',   right: false },
-    { key: 'fantasy_cost',          label: 'Preco',     right: true  },
-    { key: 'total_fantasy_points',  label: 'PTS XAMA',  right: true  },
-    { key: 'total_kills',           label: 'K Total',   right: true  },
-    { key: 'total_assists',         label: 'ASS Total', right: true  },
-    { key: 'surv_total_secs',       label: 'Surv(min)', right: true  },
-    { key: 'total_late_game_bonus', label: 'Late Game', right: true  },
-    { key: 'total_penalty_count',   label: 'Punicao',   right: true  },
+    { key: 'team',           label: 'Time',    right: false },
+    { key: 'name',           label: 'Jogador', right: false },
+    { key: 'effective_cost', label: 'Preço',   right: true  },
   ]
 
+  // ── Render ──────────────────────────────────────────────────────────────
   return (
     <div className="xlb-page">
       <div className="xama-container">
 
-        {/* ── Login / Cadastro ───────────────────────────────────────────── */}
-        {!token && (
-          <div className="xlb-panel" style={{ marginBottom: 20 }}>
-            <div className="xlb-panel-head">
-              <div className="flex gap-1 p-1 rounded-lg" style={{ background: '#0a0c11', width: 'fit-content' }}>
-                {['login', 'register'].map((mode) => (
-                  <button key={mode}
-                    onClick={() => { setAuthMode(mode); setLoginError(''); setRegisterError(''); setRegisterSuccess('') }}
-                    style={{
-                      fontFamily: "'Rajdhani', sans-serif",
-                      padding: '6px 16px',
-                      borderRadius: 6,
-                      fontSize: 12,
-                      fontWeight: 700,
-                      letterSpacing: '0.06em',
-                      textTransform: 'uppercase',
-                      cursor: 'pointer',
-                      background: authMode === mode ? 'var(--color-xama-surface)' : 'transparent',
-                      color: authMode === mode ? 'var(--color-xama-orange)' : 'var(--color-xama-muted)',
-                      border: authMode === mode ? '1px solid var(--color-xama-border)' : '1px solid transparent',
-                    }}>
-                    {mode === 'login' ? 'Login' : 'Cadastro'}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="xlb-panel-body">
-              {authMode === 'login' && (
-                <>
-                  <div className="grid gap-3" style={{ gridTemplateColumns: '1fr 1fr auto' }}>
-                    <input className="dark-input" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} placeholder="E-mail" style={{ fontFamily: "'Rajdhani', sans-serif" }} />
-                    <input className="dark-input" type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} placeholder="Senha" style={{ fontFamily: "'Rajdhani', sans-serif" }} onKeyDown={(e) => e.key === 'Enter' && doLogin()} />
-                    <button className="dark-btn" onClick={doLogin} disabled={loginLoading} style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 600 }}>
-                      {loginLoading ? 'Entrando...' : 'Entrar'}
-                    </button>
-                  </div>
-                  {loginError && <div className="msg-error" style={{ marginTop: 10 }}>{loginError}</div>}
-                </>
-              )}
-              {authMode === 'register' && (
-                <>
-                  <div className="grid gap-3" style={{ gridTemplateColumns: '1fr 1fr 1fr auto' }}>
-                    <input className="dark-input" value={registerEmail} onChange={(e) => setRegisterEmail(e.target.value)} placeholder="E-mail" style={{ fontFamily: "'Rajdhani', sans-serif" }} />
-                    <input className="dark-input" value={registerUsername} onChange={(e) => setRegisterUsername(e.target.value)} placeholder="Username" style={{ fontFamily: "'Rajdhani', sans-serif" }} />
-                    <input className="dark-input" type="password" value={registerPassword} onChange={(e) => setRegisterPassword(e.target.value)} placeholder="Senha" style={{ fontFamily: "'Rajdhani', sans-serif" }} />
-                    <button className="dark-btn" onClick={doRegister} disabled={registerLoading} style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 600 }}>
-                      {registerLoading ? 'Criando...' : 'Criar conta'}
-                    </button>
-                  </div>
-                  {registerError   && <div className="msg-error"   style={{ marginTop: 10 }}>{registerError}</div>}
-                  {registerSuccess && <div className="msg-success" style={{ marginTop: 10 }}>{registerSuccess}</div>}
-                </>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* ── Banner de dia de competição (quando multi-dia) ─────────────── */}
-        {selectedTournament && selectedTournament.lineup_open && (
-          <div style={{
-            marginBottom: 16, padding: '10px 16px', borderRadius: 8,
-            background: 'rgba(96,165,250,0.06)', border: '1px solid rgba(96,165,250,0.2)',
-            display: 'flex', alignItems: 'center', gap: 10,
-          }}>
-            <span style={{ fontSize: 18, lineHeight: 1 }}>📅</span>
-            <div>
-              <p style={{ margin: 0, fontSize: 13, fontWeight: 700, letterSpacing: '0.05em', color: '#60a5fa', fontFamily: "'Rajdhani', sans-serif" }}>
-                Dia {currentDay} — Lineup Aberta
-              </p>
-              {myLineups.length > 0 && (
-                <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--color-xama-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
-                  Submetidas: {myLineups.map((l) => `Dia ${l.day}`).join(' · ')}
-                </p>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* ── Banner lineup fechado ──────────────────────────────────────── */}
-        {isTournamentClosed && (
-          <div className="xlb-locked" style={{ marginBottom: 20 }}>
-            <span style={{ fontSize: 20, lineHeight: 1 }}>🔒</span>
-            <div>
-              <p className="xlb-locked-title">Lineup Fechado</p>
-              <p className="xlb-locked-sub">As submissões encerraram quando o primeiro match foi importado.</p>
-            </div>
-          </div>
-        )}
-
-        {/* ── Banner lineup já submetida para o dia atual ─────────────────── */}
-        {!isTournamentClosed && currentDayLineup && (
-          <div className="xlb-locked" style={{ marginBottom: 20, background: 'rgba(34,197,94,0.05)', borderColor: 'rgba(34,197,94,0.2)' }}>
-            <span style={{ fontSize: 20, lineHeight: 1 }}>✅</span>
-            <div>
-              <p className="xlb-locked-title" style={{ color: '#4ade80' }}>Lineup Dia {currentDay} Submetida</p>
-              <p className="xlb-locked-sub">
-                Sua lineup foi salva para o Dia {currentDay}.
-                {myLineups.length > 1
-                  ? ` Você tem lineups nos dias: ${myLineups.map((l) => l.day).join(', ')}.`
-                  : ' Aguarde a abertura do próximo dia.'
-                }
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* ── Painel MEU LINEUP sticky (topo) ──────────────────────────── */}
+        {/* ── Cabeçalho sticky com lineup montado ──────────────────────── */}
         <div className="xlb-sticky-header">
 
-          {/* Linha 1: título · budget bar · stats · botão salvar */}
-          <div className="xlb-sticky-top">
-
-            {/* Título + badge DIA */}
-            <p className="xlb-sticky-title">
-              Meu Lineup
-              {selectedTournament?.lineup_open && (
-                <span style={{
-                  marginLeft: 8, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
-                  padding: '2px 7px', borderRadius: 4, background: 'rgba(96,165,250,0.12)',
-                  border: '1px solid rgba(96,165,250,0.3)', color: '#60a5fa',
-                  fontFamily: "'Rajdhani', sans-serif", verticalAlign: 'middle',
-                }}>
-                  DIA {currentDay}
-                </span>
-              )}
-            </p>
-
-            {/* Budget: barra + stats */}
-            <div className="xlb-sticky-budget">
-              <div className="xlb-budget-bar-track-h">
-                <div className="xlb-budget-bar-fill" style={{ width: `${budgetUsedPct}%`, background: budgetBarColor }} />
-              </div>
-              <div className="xlb-sticky-stats">
-                <div className="xlb-sticky-stat">
-                  <span className="xlb-sticky-stat-label">Total</span>
-                  <span className="xlb-sticky-stat-value">{budgetLimit}</span>
-                </div>
-                <div className="xlb-sticky-stat">
-                  <span className="xlb-sticky-stat-label">Usado</span>
-                  <span className={`xlb-sticky-stat-value ${isOverBudget ? 'danger' : totalCost / budgetLimit > 0.85 ? 'warn' : ''}`}>
-                    {totalCost.toFixed(2)}
-                  </span>
-                </div>
-                <div className="xlb-sticky-stat">
-                  <span className="xlb-sticky-stat-label">Restante</span>
-                  <span className={`xlb-sticky-stat-value ${isOverBudget ? 'danger' : totalCost > 0 ? 'ok' : ''}`}>
-                    {(budgetLimit - totalCost).toFixed(2)}
-                  </span>
-                </div>
-              </div>
+          {/* Banner de stage fechada */}
+          {stage && !stage.lineup_open && (
+            <div style={{
+              background: 'rgba(248,113,113,0.08)',
+              border: '1px solid rgba(248,113,113,0.3)',
+              borderRadius: 8, padding: '10px 16px', marginBottom: 12,
+              color: '#f87171', fontSize: 13, fontWeight: 600, textAlign: 'center',
+            }}>
+              🔒 Lineup fechado — submissões não são aceitas no momento
             </div>
+          )}
 
-            {/* Botão salvar / status */}
-            <div style={{ flexShrink: 0 }}>
-              {isTournamentClosed ? (
-                <span style={{
-                  fontSize: 11, fontWeight: 700, letterSpacing: '0.05em',
-                  color: '#f87171', fontFamily: "'Rajdhani', sans-serif",
-                }}>🔒 FECHADO</span>
-              ) : currentDayLineup ? (
-                <span style={{
-                  fontSize: 11, fontWeight: 700, letterSpacing: '0.05em',
-                  color: '#4ade80', fontFamily: "'Rajdhani', sans-serif",
-                }}>✅ DIA {currentDay} SALVO</span>
-              ) : (
-                <button
-                  className={`xlb-save-btn-compact ${saveLoading ? 'loading' : canSave ? 'ready' : 'idle'}`}
-                  onClick={saveLineup}
-                  disabled={!canSave || saveLoading}>
-                  {saveLoading ? 'Salvando...' : `SALVAR — DIA ${currentDay}`}
-                </button>
-              )}
+          {/* Banner de lineup já submetido */}
+          {currentDayLineup && (
+            <div style={{
+              background: 'rgba(74,222,128,0.08)',
+              border: '1px solid rgba(74,222,128,0.25)',
+              borderRadius: 8, padding: '10px 16px', marginBottom: 12,
+              color: '#4ade80', fontSize: 13, fontWeight: 600, textAlign: 'center',
+            }}>
+              ✅ Lineup já submetido para hoje
+            </div>
+          )}
+
+          {/* Budget bar */}
+          <div style={{ padding: '12px 16px 0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+              <span style={{ fontSize: 11, color: 'var(--color-xama-muted)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                Budget
+              </span>
+              <span style={{
+                fontSize: 13, fontWeight: 700,
+                fontFamily: "'JetBrains Mono', monospace",
+                color: isOverBudget ? '#f87171' : 'var(--color-xama-text)',
+              }}>
+                {totalCost} / {BUDGET_CAP}
+              </span>
+            </div>
+            <div style={{ height: 6, borderRadius: 3, background: 'var(--surface-3)', overflow: 'hidden' }}>
+              <div style={{
+                height: '100%', borderRadius: 3,
+                width: `${budgetUsedPct}%`,
+                background: budgetBarColor,
+                transition: 'width 0.2s ease, background 0.2s ease',
+              }} />
             </div>
           </div>
 
-          {/* Linha 2: slots horizontais (4 titulares + reserva) */}
-          <div className="xlb-hslots">
-
-            {/* Titulares */}
-            {Array.from({ length: 4 }).map((_, idx) => {
-              const p = selectedPlayers[idx]
-              if (!p) return (
-                <div key={`empty-${idx}`} className="xlb-hslot empty">
-                  <span className="xlb-hslot-num">{idx + 1}</span>
-                  <span style={{ fontSize: 11, color: '#2d3548', fontStyle: 'italic' }}>— vazio —</span>
+          {/* Slots de titulares */}
+          <div className="xlb-hslots-row" style={{ padding: '12px 16px 0', display: 'flex', gap: 8 }}>
+            {Array.from({ length: 4 }).map((_, i) => {
+              const p = selectedPlayers[i]
+              const isCap = p && p.id === captainId
+              return p ? (
+                <div key={p.id} className="xlb-hslot" style={{
+                  flex: 1, background: 'var(--surface-2)',
+                  border: `1px solid ${isCap ? 'var(--color-xama-gold)' : 'var(--color-xama-border)'}`,
+                  borderRadius: 8, padding: '8px 10px', position: 'relative',
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <span style={{
+                      fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
+                      color: isCap ? 'var(--color-xama-gold)' : 'var(--color-xama-muted)',
+                      textTransform: 'uppercase',
+                    }}>
+                      {isCap ? '⭐ CAP' : `T${i + 1}`}
+                    </span>
+                    <button
+                      className="xlb-remove-btn"
+                      onClick={() => removePlayer(p.id)}
+                      title="Remover">×</button>
+                  </div>
+                  <div className="xlb-hslot-name" style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-xama-text)', marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {formatPlayerName(p.person_name)}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: 10, color: 'var(--color-xama-muted)' }}>
+                      {formatTeamTag(p.person_name, p.team_name)}
+                    </span>
+                    <span style={{ fontSize: 10, fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-gold)', fontWeight: 700 }}>
+                      {Number(p.effective_cost || 0)}
+                    </span>
+                  </div>
+                  {/* Botão de capitão */}
+                  {!isCap && (
+                    <button
+                      onClick={() => toggleCaptain(p.id)}
+                      title="Definir como capitão"
+                      style={{
+                        marginTop: 6, width: '100%', fontSize: 9, fontWeight: 700,
+                        letterSpacing: '0.06em', textTransform: 'uppercase',
+                        background: 'rgba(250,204,21,0.08)',
+                        border: '1px solid rgba(250,204,21,0.2)',
+                        borderRadius: 4, padding: '3px 0',
+                        color: 'var(--color-xama-gold)', cursor: 'pointer',
+                      }}>
+                      CAP
+                    </button>
+                  )}
                 </div>
-              )
-              const isCap = captainId === p.id
-              return (
-                <div key={p.id} className="xlb-hslot">
-                  <div className="xlb-hslot-top">
-                    <span className="xlb-hslot-num">{idx + 1}</span>
-                    {isCap && (
-                      <span className="xlb-captain-badge" style={{ fontSize: 9, padding: '1px 5px' }}>CAP</span>
-                    )}
-                    <div style={{ display: 'flex', gap: 3, marginLeft: 'auto' }}>
-                      <button
-                        className={`xlb-captain-btn${isCap ? ' active' : ''}`}
-                        onClick={() => setCaptainId(p.id)}
-                        title="Capitão">♛</button>
-                      <button
-                        className="xlb-remove-btn"
-                        onClick={() => removePlayer(p.id)}
-                        title="Remover">×</button>
-                    </div>
-                  </div>
-                  <div className="xlb-hslot-name">{formatPlayerName(p.name)}</div>
-                  <div className="xlb-hslot-meta">
-                    <TeamLogo teamName={formatTeamTag(p.name, p.team)} logoUrl={p.team_logo} size={12} />
-                    <span>{formatTeamTag(p.name, p.team)}</span>
-                    <span className="xlb-slot-cost">${Number(p.fantasy_cost || 0).toFixed(2)}</span>
-                  </div>
+              ) : (
+                <div key={i} className="xlb-hslot empty" style={{
+                  flex: 1, background: 'var(--surface-1)',
+                  border: '1px dashed var(--color-xama-border)',
+                  borderRadius: 8, padding: '8px 10px',
+                  display: 'flex', flexDirection: 'column',
+                  alignItems: 'center', justifyContent: 'center', gap: 4, minHeight: 80,
+                }}>
+                  <span style={{ fontSize: 9, color: 'var(--color-xama-muted)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>T{i + 1}</span>
+                  <span style={{ fontSize: 10, color: 'var(--color-xama-muted)', fontStyle: 'italic' }}>— vazio —</span>
                 </div>
               )
             })}
+          </div>
 
-            {/* Divisor visual */}
-            <div className="xlb-hslot-divider" />
-
-            {/* Reserva */}
+          {/* Divider + slot de reserva */}
+          <div style={{ padding: '10px 16px 0' }}>
+            <div style={{ height: 1, background: 'var(--color-xama-border)', marginBottom: 10 }} />
             {reservePlayer ? (
-              <div className="xlb-hslot reserve">
-                <div className="xlb-hslot-top">
-                  <span className="xlb-hslot-num" style={{ color: '#60a5fa', fontSize: 9, fontStyle: 'italic' }}>RES</span>
-                  <button
-                    className="xlb-remove-btn"
-                    onClick={removeReserve}
-                    style={{ marginLeft: 'auto' }}
-                    title="Remover reserva">×</button>
-                </div>
-                <div className="xlb-hslot-name">{formatPlayerName(reservePlayer.name)}</div>
-                <div className="xlb-hslot-meta">
-                  <TeamLogo teamName={formatTeamTag(reservePlayer.name, reservePlayer.team)} logoUrl={reservePlayer.team_logo} size={12} />
-                  <span>{formatTeamTag(reservePlayer.name, reservePlayer.team)}</span>
-                  <span style={{ color: reserveEligible ? '#4ade80' : '#f87171' }}>
-                    ${Number(reservePlayer.fantasy_cost || 0).toFixed(2)}{!reserveEligible && ' ⚠'}
-                  </span>
-                </div>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                background: 'var(--surface-2)',
+                border: '1px solid rgba(96,165,250,0.3)',
+                borderRadius: 8, padding: '8px 12px',
+              }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: '#60a5fa', letterSpacing: '0.06em', flexShrink: 0 }}>RES</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-xama-text)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {formatPlayerName(reservePlayer.person_name)}
+                </span>
+                <span style={{ fontSize: 11, color: 'var(--color-xama-muted)', flexShrink: 0 }}>
+                  {formatTeamTag(reservePlayer.person_name, reservePlayer.team_name)}
+                </span>
+                <span style={{
+                  fontSize: 11, fontFamily: "'JetBrains Mono', monospace",
+                  color: reserveEligible ? '#4ade80' : '#f87171', fontWeight: 700, flexShrink: 0,
+                }}>
+                  {Number(reservePlayer.effective_cost || 0)}{!reserveEligible && ' ⚠'}
+                </span>
+                <button className="xlb-remove-btn" onClick={removeReserve} title="Remover reserva">×</button>
               </div>
             ) : (
-              <div className="xlb-hslot empty reserve">
-                <span className="xlb-hslot-num" style={{ color: '#60a5fa', fontSize: 9, fontStyle: 'italic' }}>RES</span>
-                <span style={{ fontSize: 11, color: '#2d3548', fontStyle: 'italic' }}>— reserva —</span>
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'var(--surface-1)',
+                border: '1px dashed rgba(96,165,250,0.25)',
+                borderRadius: 8, padding: '10px 12px',
+                color: 'rgba(96,165,250,0.5)', fontSize: 11, fontStyle: 'italic',
+              }}>
+                RES — reserva vazia
               </div>
             )}
           </div>
 
-          {/* Mensagens de feedback */}
-          {(saveError || saveSuccess) && (
-            <div style={{ padding: '0 16px 10px' }}>
-              {saveError   && <div className="msg-error">{saveError}</div>}
-              {saveSuccess && <div className="msg-success">Lineup Dia {currentDay} salva com sucesso!</div>}
-            </div>
-          )}
-        </div>{/* fim xlb-sticky-header */}
+          {/* Feedback + botão salvar */}
+          <div style={{ padding: '10px 16px 14px' }}>
+            {saveError   && <div className="msg-error"   style={{ marginBottom: 8 }}>{saveError}</div>}
+            {saveSuccess && <div className="msg-success" style={{ marginBottom: 8 }}>Lineup salvo com sucesso!</div>}
+            <button
+              onClick={saveLineup}
+              disabled={!canSave || saveLoading}
+              style={{
+                width: '100%', padding: '11px 0',
+                fontFamily: "'Rajdhani', sans-serif",
+                fontSize: 15, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+                borderRadius: 8, border: 'none', cursor: canSave && !saveLoading ? 'pointer' : 'not-allowed',
+                background: canSave && !saveLoading ? 'var(--color-xama-orange)' : 'var(--surface-3)',
+                color: canSave && !saveLoading ? '#fff' : 'var(--color-xama-muted)',
+                transition: 'background 0.15s',
+              }}>
+              {saveLoading ? 'Salvando...' : isLocked ? '🔒 Fechado' : 'Salvar Lineup'}
+            </button>
+          </div>
+        </div>{/* fim sticky header */}
 
-        {/* ── Pool de jogadores (largura total) ────────────────────────── */}
+        {/* ── Pool de jogadores ──────────────────────────────────────── */}
         <div className="xlb-panel">
 
           {/* Barra de busca */}
@@ -651,27 +457,17 @@ export default function LineupBuilder({
             <input
               className="xlb-search-input"
               value={searchName}
-              onChange={(e) => setSearchName(e.target.value)}
-              placeholder="Buscar jogador..."
+              onChange={e => setSearchName(e.target.value)}
+              placeholder="Buscar jogador ou time..."
             />
             <span className="xlb-count">{filteredPlayers.length}/{players.length}</span>
-            {Object.keys(champStats.byId || {}).length > 0 && (
-              <span style={{
-                fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
-                padding: '2px 8px', borderRadius: 4, whiteSpace: 'nowrap', flexShrink: 0,
-                background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.25)', color: '#60a5fa',
-                fontFamily: "'Rajdhani', sans-serif",
-              }}>
-                STATS CAMP.
-              </span>
-            )}
           </div>
 
-          {/* Estados de carregamento */}
+          {/* Estados */}
           {playersLoading && <p className="xama-loading" style={{ padding: '24px 18px' }}>Carregando jogadores...</p>}
           {playersError   && <p className="xama-error"   style={{ padding: '16px 18px' }}>{playersError}</p>}
 
-          {/* Tabela de jogadores */}
+          {/* Tabela */}
           {!playersLoading && !playersError && (
             <div style={{ overflowX: 'auto' }}>
               <table className="xlb-table">
@@ -691,70 +487,47 @@ export default function LineupBuilder({
                   </tr>
                 </thead>
                 <tbody>
-                  {sortedPlayers.map((p) => {
-                    const cs = p._cs
-                    const playerTag  = formatTeamTag(p.name, p.team)
-                    const isSelected = selectedPlayers.some((sp) => sp.id === p.id) || reservePlayer?.id === p.id
+                  {sortedPlayers.map(p => {
+                    const playerTag   = formatTeamTag(p.person_name, p.team_name)
+                    const isSelected  = selectedPlayers.some(sp => sp.id === p.id) || reservePlayer?.id === p.id
                     const isConflicted = !isSelected && conflictedTeams.has(playerTag) && conflictedTeams.size > 0
-                    const rowClass   = isConflicted ? 'xlb-row--dimmed' : ''
+                    const isCap       = p.id === captainId
                     const btnDisabled = isLocked || isConflicted
                     return (
-                      <tr key={p.id} className={rowClass}>
+                      <tr key={p.id} className={isConflicted ? 'xlb-row--dimmed' : ''}>
                         <td>
                           <div className="flex items-center gap-1.5">
-                            <TeamLogo teamName={playerTag} logoUrl={p.team_logo} size={20} />
+                            <TeamLogo teamName={playerTag} size={20} />
                             <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--color-xama-muted)' }}>
                               {playerTag || '—'}
                             </span>
                           </div>
                         </td>
                         <td className="font-semibold whitespace-nowrap" style={{ color: 'var(--color-xama-text)' }}>
-                          {formatPlayerName(p.name)}
+                          <span>{formatPlayerName(p.person_name)}</span>
+                          {isCap && (
+                            <span style={{ marginLeft: 4, fontSize: 9, color: 'var(--color-xama-gold)', fontWeight: 700 }}>⭐CAP</span>
+                          )}
+                          {p.newcomer_to_tier && (
+                            <span style={{ marginLeft: 4, fontSize: 9, color: '#60a5fa', fontWeight: 700 }}>NEW</span>
+                          )}
                         </td>
                         <td className="right tabular-nums font-bold"
                           style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-gold)' }}>
-                          ${Number(p.fantasy_cost || 0).toFixed(2)}
-                        </td>
-                        <td className="right tabular-nums"
-                          style={{ fontFamily: "'JetBrains Mono', monospace", color: cs ? 'var(--color-xama-orange)' : 'var(--color-xama-muted)' }}>
-                          {cs ? Number(cs.total_fantasy_points).toFixed(1) : '—'}
-                        </td>
-                        <td className="right tabular-nums"
-                          style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-text)' }}>
-                          {cs ? cs.total_kills : '—'}
-                        </td>
-                        <td className="right tabular-nums"
-                          style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-text)' }}>
-                          {cs ? cs.total_assists : '—'}
-                        </td>
-                        <td className="right tabular-nums"
-                          style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-text)' }}>
-                          {cs ? fmtMin(cs.surv_total_secs) : '—'}
-                        </td>
-                        <td className="right tabular-nums"
-                          style={{ fontFamily: "'JetBrains Mono', monospace", color: cs?.total_late_game_bonus > 0 ? '#4ade80' : 'var(--color-xama-muted)' }}>
-                          {cs ? (cs.total_late_game_bonus > 0 ? cs.total_late_game_bonus.toFixed(0) : '0') : '—'}
-                        </td>
-                        <td className="right tabular-nums"
-                          style={{ fontFamily: "'JetBrains Mono', monospace", color: cs?.total_penalty_count > 0 ? '#f87171' : 'var(--color-xama-muted)' }}>
-                          {cs
-                            ? cs.total_penalty_count > 0
-                              ? `${cs.total_penalty_count}(${cs.total_penalty_count * -15})`
-                              : '0'
-                            : '—'}
+                          {Number(p.effective_cost || 0)}
                         </td>
                         <td>
                           <div className="flex gap-1 justify-end">
                             <button
                               className={`xlb-action-btn${isConflicted ? ' xlb-action-btn--conflict' : ''}`}
-                              disabled={btnDisabled}
-                              onClick={() => !btnDisabled && addPlayer(p)}>
+                              disabled={btnDisabled || isSelected}
+                              onClick={() => !btnDisabled && !isSelected && addPlayer(p)}>
                               Titular
                             </button>
                             <button
                               className={`xlb-action-btn${isConflicted ? ' xlb-action-btn--conflict' : ''}`}
-                              disabled={btnDisabled}
-                              onClick={() => !btnDisabled && setAsReserve(p)}>
+                              disabled={btnDisabled || isSelected}
+                              onClick={() => !btnDisabled && !isSelected && setAsReserve(p)}>
                               Reserva
                             </button>
                           </div>
@@ -766,7 +539,8 @@ export default function LineupBuilder({
               </table>
             </div>
           )}
-        </div>{/* fim xlb-panel (pool) */}
+        </div>{/* fim xlb-panel */}
+
       </div>{/* fim xama-container */}
     </div>
   )
