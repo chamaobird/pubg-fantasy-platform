@@ -11,11 +11,19 @@ from pydantic import BaseModel, field_validator, model_validator
 class StageCreate(BaseModel):
     championship_id: int
     name: str
+    short_name: str
     shard: str
-    lineup_open_at: datetime
+    lineup_open_at: Optional[datetime] = None
     lineup_close_at: Optional[datetime] = None
+    lineup_status: str = "closed"
+    lineup_size: int = 4
     carries_stats_from: Optional[List[int]] = None
     roster_source_stage_id: Optional[int] = None
+    price_min: int = 12
+    price_max: int = 35
+    pricing_distribution: str = "linear"
+    pricing_n_matches: int = 20
+    pricing_newcomer_cost: int = 15
 
     @field_validator("shard")
     @classmethod
@@ -33,6 +41,14 @@ class StageCreate(BaseModel):
             raise ValueError("name cannot be empty")
         return v
 
+    @field_validator("lineup_status")
+    @classmethod
+    def valid_status(cls, v: str) -> str:
+        allowed = {"closed", "open", "locked"}
+        if v not in allowed:
+            raise ValueError(f"lineup_status must be one of: {', '.join(sorted(allowed))}")
+        return v
+
     @model_validator(mode="after")
     def close_after_open(self) -> "StageCreate":
         if self.lineup_close_at and self.lineup_open_at:
@@ -45,12 +61,20 @@ class StageCreate(BaseModel):
 
 class StageUpdate(BaseModel):
     name: Optional[str] = None
+    short_name: Optional[str] = None
     shard: Optional[str] = None
     lineup_open_at: Optional[datetime] = None
     lineup_close_at: Optional[datetime] = None
     lineup_status: Optional[str] = None
+    lineup_size: Optional[int] = None
     carries_stats_from: Optional[List[int]] = None
     roster_source_stage_id: Optional[int] = None
+    price_min: Optional[int] = None
+    price_max: Optional[int] = None
+    pricing_distribution: Optional[str] = None
+    pricing_n_matches: Optional[int] = None
+    pricing_newcomer_cost: Optional[int] = None
+    is_active: Optional[bool] = None
 
     @field_validator("shard")
     @classmethod
@@ -79,12 +103,20 @@ class StageResponse(BaseModel):
     id: int
     championship_id: int
     name: str
+    short_name: str
     shard: str
     lineup_open_at: Optional[datetime]
     lineup_close_at: Optional[datetime]
     lineup_status: str
+    lineup_size: int
     carries_stats_from: Optional[List[int]]
     roster_source_stage_id: Optional[int]
+    price_min: int
+    price_max: int
+    pricing_distribution: str
+    pricing_n_matches: int
+    pricing_newcomer_cost: int
+    is_active: bool
     created_at: datetime
 
     model_config = {"from_attributes": True}

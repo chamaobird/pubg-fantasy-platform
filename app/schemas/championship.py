@@ -1,6 +1,5 @@
 # app/schemas/championship.py
 from __future__ import annotations
-from decimal import Decimal
 from typing import Optional
 from datetime import datetime
 
@@ -13,8 +12,6 @@ class ChampionshipCreate(BaseModel):
     name: str
     short_name: str
     shard: str
-    pricing_weight: Decimal = Decimal("1.0")
-    pricing_cap_newcomer: Optional[int] = None
 
     @field_validator("shard")
     @classmethod
@@ -32,20 +29,6 @@ class ChampionshipCreate(BaseModel):
             raise ValueError("short_name must be at least 2 characters")
         return v
 
-    @field_validator("pricing_weight")
-    @classmethod
-    def weight_range(cls, v: Decimal) -> Decimal:
-        if v <= 0:
-            raise ValueError("pricing_weight must be greater than 0")
-        return v
-
-    @field_validator("pricing_cap_newcomer")
-    @classmethod
-    def cap_positive(cls, v: Optional[int]) -> Optional[int]:
-        if v is not None and v <= 0:
-            raise ValueError("pricing_cap_newcomer must be greater than 0")
-        return v
-
 
 # ── Update ────────────────────────────────────────────────────────────────────
 
@@ -53,8 +36,6 @@ class ChampionshipUpdate(BaseModel):
     name: Optional[str] = None
     short_name: Optional[str] = None
     shard: Optional[str] = None
-    pricing_weight: Optional[Decimal] = None
-    pricing_cap_newcomer: Optional[int] = None
     is_active: Optional[bool] = None
 
     @field_validator("shard")
@@ -67,20 +48,6 @@ class ChampionshipUpdate(BaseModel):
             raise ValueError(f"shard must be one of: {', '.join(sorted(allowed))}")
         return v
 
-    @field_validator("pricing_weight")
-    @classmethod
-    def weight_range(cls, v: Optional[Decimal]) -> Optional[Decimal]:
-        if v is not None and v <= 0:
-            raise ValueError("pricing_weight must be greater than 0")
-        return v
-
-    @field_validator("pricing_cap_newcomer")
-    @classmethod
-    def cap_positive(cls, v: Optional[int]) -> Optional[int]:
-        if v is not None and v <= 0:
-            raise ValueError("pricing_cap_newcomer must be greater than 0")
-        return v
-
 
 # ── Response ──────────────────────────────────────────────────────────────────
 
@@ -89,8 +56,6 @@ class ChampionshipResponse(BaseModel):
     name: str
     short_name: str
     shard: str
-    pricing_weight: Decimal
-    pricing_cap_newcomer: Optional[int]
     is_active: bool
     created_at: datetime
 

@@ -38,7 +38,7 @@ class UserStageStat(Base):
     )
 
     # relationships
-    stage: Mapped["Stage"] = relationship("Stage", back_populates="user_stats")
+    stage: Mapped["Stage"] = relationship("Stage")
 
     def __repr__(self) -> str:
         return (
