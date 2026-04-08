@@ -1,6 +1,6 @@
 # app/services/scheduler.py
 """
-APScheduler — dois jobs para o XAMA Fantasy.
+APScheduler — três jobs para o XAMA Fantasy.
 
 lineup_control (a cada 1 minuto)
 ─────────────────────────────────
@@ -9,9 +9,15 @@ Verifica todos os stages com lineup_status != 'locked' e aplica as transições:
   open   → locked se agora >= lineup_close_at
       └─ antes do lock: replica o dia anterior para usuários sem lineup (#042)
 
+scoring (a cada 1 minuto)
+──────────────────────────
+Detecta StageDays com lineup_status == 'locked' que ainda não foram pontuados
+e executa o scoring de lineup (LineupPlayer.points_earned, Lineup.total_points,
+UserDayStat, UserStageStat) após confirmar que há MatchStats importados (#070-#072).
+
 pricing (a cada 30 minutos)
 ────────────────────────────
-Placeholder para o recálculo automático de fantasy_cost (Fase 5).
+Recálculo automático de fantasy_cost (Fase 5).
 """
 from __future__ import annotations
 
@@ -23,7 +29,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 logger = logging.getLogger(__name__)
 
 
-# ── Job 1: lineup_control ────────────────────────────────────────────────────
+# ── Job 1: lineup_control ─────────────────────────────────────────────────────
 
 def _lineup_control_job() -> None:
     from app.database import SessionLocal
@@ -96,14 +102,21 @@ def _replicate_missing_lineups(db, stage, now: datetime) -> None:
             )
 
 
-# ── Job 2: pricing ───────────────────────────────────────────────────────────
+# ── Job 2: scoring ────────────────────────────────────────────────────────────
+
+def _scoring_job() -> None:
+    from app.jobs.scoring_job import run_scoring_job
+    run_scoring_job()
+
+
+# ── Job 3: pricing ────────────────────────────────────────────────────────────
 
 def _pricing_job() -> None:
     from app.jobs.pricing import run_pricing_job
     run_pricing_job()
 
 
-# ── Factory ──────────────────────────────────────────────────────────────────
+# ── Factory ───────────────────────────────────────────────────────────────────
 
 def create_scheduler() -> BackgroundScheduler:
     scheduler = BackgroundScheduler(timezone="UTC")
@@ -114,6 +127,16 @@ def create_scheduler() -> BackgroundScheduler:
         minutes=1,
         id="lineup_control",
         name="Lineup status control (closed→open→locked)",
+        max_instances=1,
+        misfire_grace_time=30,
+    )
+
+    scheduler.add_job(
+        _scoring_job,
+        trigger="interval",
+        minutes=1,
+        id="scoring",
+        name="Daily lineup scoring (Fase 7)",
         max_instances=1,
         misfire_grace_time=30,
     )

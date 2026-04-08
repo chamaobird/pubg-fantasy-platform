@@ -1,9 +1,10 @@
 # app/models/stage.py
 from __future__ import annotations
 from typing import TYPE_CHECKING, List, Optional
+from decimal import Decimal
 
 from sqlalchemy import (
-    Boolean, DateTime, ForeignKey, Integer, SmallInteger,
+    Boolean, DateTime, ForeignKey, Integer, Numeric, SmallInteger,
     String, text, ARRAY
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -15,7 +16,6 @@ if TYPE_CHECKING:
     from app.models.stage_day import StageDay
     from app.models.roster import Roster
     from app.models.person_stage_stat import PersonStageStat
-    from app.models.lineup import Lineup
 
 
 class Stage(Base):
@@ -62,6 +62,14 @@ class Stage(Base):
         nullable=False,
         server_default="4",
         comment="Number of starters per lineup (reserves excluded)",
+    )
+
+    # Captain multiplier — configurável por torneio
+    captain_multiplier: Mapped[Decimal] = mapped_column(
+        Numeric(4, 2),
+        nullable=False,
+        server_default="1.30",
+        comment="Points multiplier applied to the captain's score (e.g. 1.3 = ×1.3)",
     )
 
     # Pricing configuration
@@ -115,9 +123,6 @@ class Stage(Base):
     )
     person_stats: Mapped[List["PersonStageStat"]] = relationship(
         "PersonStageStat", back_populates="stage", lazy="select"
-    )
-    lineups: Mapped[List["Lineup"]] = relationship(
-        "Lineup", back_populates="stage", lazy="select"
     )
 
     def __repr__(self) -> str:

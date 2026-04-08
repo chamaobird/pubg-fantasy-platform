@@ -5,11 +5,17 @@
 ### Auth (pendente)
 - [ ] #013 Confirmacao de email via Resend (aguardando conta Resend)
 
-### Fase 6 — Frontend
-- [ ] #060 Tela de lineup builder com budget e validacao de reserva
-- [ ] #061 Exibicao de fantasy_cost e effective_cost por jogador
-- [ ] #062 Historico de precos por jogador (RosterPriceHistory)
-- [ ] #063 Painel admin de override de custo
+### Fase 7 — Scoring e resultados
+- [ ] #070 Calcular points_earned por LineupPlayer apos cada dia (aplicar multiplicador ×1.3 para capitao)
+- [ ] #071 Atualizar total_points no Lineup apos scoring
+- [ ] #072 Calcular UserDayStat e UserStageStat apos cada dia
+- [ ] #073 Leaderboard publico por stage (/stages/{id}/leaderboard)
+- [ ] #074 Migrar TournamentLeaderboard e PlayerStatsPage para novos endpoints
+
+### Melhorias pendentes
+- [ ] #080 Documentar `python -m uvicorn app.main:app --reload` no CONTEXT.md
+- [ ] #081 TournamentSelect page — adaptar para novo backend (/stages/)
+- [ ] #082 Perfil do usuario — verificar endpoints
 
 ## 🟢 Concluido
 
@@ -49,3 +55,18 @@
 - [x] #052 cost_override manual com auditoria via RosterPriceHistory (06/04/2026)
 - [x] #053 Recalculo automatico via APScheduler apos cada dia (06/04/2026)
 - [x] #054 ROSTER_PRICE_HISTORY — historico de precos com source auto|override (06/04/2026)
+
+### Fase 6 — Frontend
+- [x] #060 LineupBuilder reescrito para novo backend — 4 titulares + 1 reserva + capitao (07/04/2026)
+- [x] #061 Exibicao de effective_cost por jogador com badge newcomer (07/04/2026)
+- [x] #062 Historico de precos por jogador — modal PriceHistoryModal (07/04/2026)
+- [x] #063 Painel admin de override de custo — AdminPricingPanel com recalculo manual (07/04/2026)
+
+### Correccoes e infra (Fase 6)
+- [x] Endpoints publicos /stages/ — list, detail, days, roster, price-history (07/04/2026)
+- [x] Migration 0004 — is_captain em lineup_player (07/04/2026)
+- [x] Migration 0005 — short_name e is_active em stage (07/04/2026)
+- [x] Lineup service corrigido — RESERVE_COUNT=1, capitao com multiplicador x1.3 (07/04/2026)
+- [x] Dashboard reescrito para /stages/ (07/04/2026)
+- [x] LandingPage corrigida — endpoints /auth/login e /auth/register (07/04/2026)
+- [x] Schemas championship e stage corrigidos para refletir models reais (07/04/2026)
