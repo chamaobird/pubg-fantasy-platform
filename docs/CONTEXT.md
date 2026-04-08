@@ -4,7 +4,7 @@
 - Backend: FastAPI + Python 3.11 + PostgreSQL + Render
 - Frontend: React + Vite (localhost:5173)
 - Auth: JWT + Google OAuth
-- Scheduler: APScheduler (lineup_control 1min, pricing 30min)
+- Scheduler: APScheduler (lineup_control 1min, scoring 1min, pricing 30min)
 - ORM: SQLAlchemy síncrono (Session, não AsyncSession)
 
 ## Comandos essenciais
@@ -17,31 +17,44 @@
 CHAMPIONSHIP → STAGE → STAGE_DAY → MATCH
 PERSON / PLAYER_ACCOUNT (identidade multi-shard)
 ROSTER (person × stage, com fantasy_cost e cost_override)
-LINEUP → LINEUP_PLAYER (4 titulares + 1 reserva, 1 capitão com ×1.3)
+LINEUP → LINEUP_PLAYER (4 titulares + 1 reserva, 1 capitão com ×captain_multiplier)
+USER_DAY_STAT / USER_STAGE_STAT (ranking por dia e acumulado)
 
 ## Regras de negócio críticas
 - Budget: 100 tokens fixo por lineup
 - Lineup: 4 titulares + 1 reserva. Reserva custa <= titular mais barato
-- Capitão: um dos 4 titulares, multiplicador de pontos ×1.3
+- Capitão: um dos 4 titulares, multiplicador configurável por Stage (campo captain_multiplier, default 1.30)
 - Pricing: régua linear ppm → [price_min..price_max], newcomers → pricing_newcomer_cost
 - Replicação: APScheduler replica lineup do dia anterior se usuário não submeter
+- Scoring: APScheduler detecta StageDays locked com MatchStats e calcula points_earned
 
 ## Endpoints públicos principais
 - GET /stages/ — stages ativas (open_only=true filtra abertas)
 - GET /stages/{id}/roster — jogadores com effective_cost, fantasy_cost, cost_override
 - GET /stages/{id}/days — stage days
+- GET /stages/{id}/days/{day_id}/matches — partidas de um dia
+- GET /stages/{id}/player-stats — stats agregados (?stage_day_id, ?match_id)
+- GET /stages/{id}/leaderboard — ranking acumulado da stage
+- GET /stages/{id}/days/{day_id}/leaderboard — ranking do dia
 - GET /stages/{id}/roster/{rid}/price-history — histórico de preços
-- POST /lineups/ — submeter lineup {stage_day_id, titular_roster_ids[4], reserve_roster_id, captain_roster_id}
+- POST /lineups/ — {stage_day_id, titular_roster_ids[4], reserve_roster_id, captain_roster_id}
 - GET /lineups/stage/{id} — lineups do usuário na stage
 - GET /auth/me — usuário autenticado
-- POST /auth/login — login {email, password}
-- POST /auth/register — registro {email, username, password}
+- POST /auth/login / POST /auth/register
 
 ## Endpoints admin
-- PATCH /admin/pricing/rosters/{id}/cost-override — override manual de custo
-- POST /admin/pricing/stages/{id}/recalculate-pricing — recálculo manual
+- PATCH /admin/pricing/rosters/{id}/cost-override
+- POST /admin/pricing/stages/{id}/recalculate-pricing
+- POST /admin/stages/{id}/import-matches
+- POST /admin/stages/{id}/reprocess-match
 
 ## Migrations (ordem)
-0001_initial_schema → 0002_users → 4bfb4ef75223_fase3 → 0003_pricing_fields → 0004_lineup_captain → 0005_stage_short_name_is_active
+0001_initial_schema → 0002_users → 4bfb4ef75223_fase3 → 0003_pricing_fields → 0004_lineup_captain → 0005_stage_short_name_is_active → 0006_stage_captain_multiplier
 
-## Fase atual: 6 concluída — próxima: Fase 7 (Scoring e resultados)
+## Logos de times
+- Ficam em frontend/public/logos/{PASTA}/{tag}.png
+- PASTA = PAS ou PGS (derivado do short_name da stage)
+- Times com .jpeg: afi, op (pasta PAS)
+- TeamLogo.jsx resolve pasta automaticamente via prop shortName
+
+## Fase atual: 7 concluída — próxima: Fase 8 (melhorias admin + UX de resultados)

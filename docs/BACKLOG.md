@@ -5,17 +5,16 @@
 ### Auth (pendente)
 - [ ] #013 Confirmacao de email via Resend (aguardando conta Resend)
 
-### Fase 7 — Scoring e resultados
-- [ ] #070 Calcular points_earned por LineupPlayer apos cada dia (aplicar multiplicador ×1.3 para capitao)
-- [ ] #071 Atualizar total_points no Lineup apos scoring
-- [ ] #072 Calcular UserDayStat e UserStageStat apos cada dia
-- [ ] #073 Leaderboard publico por stage (/stages/{id}/leaderboard)
-- [ ] #074 Migrar TournamentLeaderboard e PlayerStatsPage para novos endpoints
-
 ### Melhorias pendentes
-- [ ] #080 Documentar `python -m uvicorn app.main:app --reload` no CONTEXT.md
 - [ ] #081 TournamentSelect page — adaptar para novo backend (/stages/)
 - [ ] #082 Perfil do usuario — verificar endpoints
+- [ ] #083 TeamLogo — passar shortName da stage nos componentes que usam <TeamLogo /> para resolucao correta de pasta
+
+### Fase 8 — Melhorias de UX e admin
+- [ ] #090 Admin: endpoint para disparar scoring manual de um StageDay
+- [ ] #091 Admin: endpoint para rescore_stage completo
+- [ ] #092 Frontend: pagina de resultados por lineup (ver pontos de cada jogador apos o dia)
+- [ ] #093 Frontend: exibir captain_multiplier configurado na stage no LineupBuilder
 
 ## 🟢 Concluido
 
@@ -70,3 +69,16 @@
 - [x] Dashboard reescrito para /stages/ (07/04/2026)
 - [x] LandingPage corrigida — endpoints /auth/login e /auth/register (07/04/2026)
 - [x] Schemas championship e stage corrigidos para refletir models reais (07/04/2026)
+
+### Fase 7 — Scoring e resultados (08/04/2026)
+- [x] #070 Calcular points_earned por LineupPlayer apos cada dia (captain_multiplier por stage)
+- [x] #071 Atualizar total_points no Lineup apos scoring
+- [x] #072 Calcular UserDayStat e UserStageStat apos cada dia
+- [x] #073 Leaderboard publico por stage (/stages/{id}/leaderboard e /days/{id}/leaderboard)
+- [x] #074 Migrar TournamentLeaderboard e PlayerStatsPage para novos endpoints
+- [x] Migration 0006 — captain_multiplier em stage (default 1.30, configuravel por torneio)
+- [x] GET /stages/{id}/days/{day_id}/matches — endpoint publico de partidas por dia
+- [x] GET /stages/{id}/player-stats — stats agregados com filtros stage/dia/partida
+- [x] PlayerStatsPage — sparkline de pts por dia + badge melhor partida
+- [x] TeamLogo — resolucao de pasta por campeonato (PAS/ PGS/) com fallback em cascata
+- [x] scoring_job adicionado ao APScheduler (1min, detecta StageDays prontos para pontuar)
