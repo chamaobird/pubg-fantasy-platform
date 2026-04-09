@@ -1,12 +1,14 @@
 # app/routers/auth.py
 """
 Auth endpoints:
-  POST /auth/register         — email + password
-  POST /auth/login            — returns JWT
-  GET  /auth/google           — redirect to Google consent screen
-  GET  /auth/google/callback  — OAuth callback
-  GET  /auth/me               — current user info
-  PATCH /auth/me              — update username / avatar_url
+  POST /auth/register              — email + password
+  POST /auth/login                 — returns JWT
+  GET  /auth/verify                — confirma email via token
+  POST /auth/resend-verification   — reenvia email de confirmação
+  GET  /auth/google                — redirect to Google consent screen
+  GET  /auth/google/callback       — OAuth callback
+  GET  /auth/me                    — current user info
+  PATCH /auth/me                   — update username / avatar_url
 """
 from __future__ import annotations
 
@@ -35,23 +37,30 @@ from app.services.auth import (
     exchange_google_code,
     get_or_create_google_user,
     get_user_by_email,
+    verify_email_token,
 )
+from app.services.email import send_verification_email
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
+
 # ── Register ──────────────────────────────────────────────────────────────────
 
-@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
-def register(body: RegisterRequest, db: Session = Depends(get_db)) -> TokenResponse:
+@router.post("/register", status_code=status.HTTP_201_CREATED)
+def register(body: RegisterRequest, db: Session = Depends(get_db)) -> dict:
     if get_user_by_email(db, body.email):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Email already registered",
         )
     user = create_user(db, email=body.email, password=body.password, username=body.username)
-    token = create_access_token(user.id, user.is_admin)
-    return TokenResponse(access_token=token)
+
+    sent = send_verification_email(user.email, user.email_verify_token)
+    if not sent:
+        logger.warning("Failed to send verification email to %s", user.email)
+
+    return {"detail": "Conta criada. Verifique seu email para ativar o acesso."}
 
 
 # ── Login ─────────────────────────────────────────────────────────────────────
@@ -62,22 +71,63 @@ def login(body: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse:
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password",
+            detail="Email ou senha inválidos",
         )
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Account is inactive",
+            detail="Conta inativa",
+        )
+    if not user.email_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Email não verificado. Verifique sua caixa de entrada.",
         )
     token = create_access_token(user.id, user.is_admin)
     return TokenResponse(access_token=token)
+
+
+# ── Verify email ──────────────────────────────────────────────────────────────
+
+@router.get("/verify")
+def verify_email(token: str, db: Session = Depends(get_db)):
+    user = verify_email_token(db, token)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Token inválido ou já utilizado",
+        )
+    # Redireciona para o frontend com flag de sucesso
+    return RedirectResponse(f"{settings.FRONTEND_URL}/auth/verified")
+
+
+# ── Resend verification ───────────────────────────────────────────────────────
+
+@router.post("/resend-verification")
+def resend_verification(body: LoginRequest, db: Session = Depends(get_db)) -> dict:
+    """Reenvia email de verificação. Requer email + senha para evitar enumeração."""
+    user = authenticate_user(db, body.email, body.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Email ou senha inválidos",
+        )
+    if user.email_verified:
+        return {"detail": "Email já verificado."}
+
+    sent = send_verification_email(user.email, user.email_verify_token)
+    if not sent:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Falha ao enviar email. Tente novamente.",
+        )
+    return {"detail": "Email de verificação reenviado."}
 
 
 # ── Google OAuth ──────────────────────────────────────────────────────────────
 
 @router.get("/google", include_in_schema=False)
 def google_login(request: Request) -> RedirectResponse:
-    """Redirect user to Google consent screen."""
     redirect_uri = str(request.url_for("google_callback"))
     params = urllib.parse.urlencode({
         "client_id": settings.GOOGLE_CLIENT_ID,
@@ -93,7 +143,6 @@ def google_login(request: Request) -> RedirectResponse:
 async def google_callback(
     code: str, request: Request, db: Session = Depends(get_db)
 ) -> RedirectResponse:
-    """Receive Google OAuth callback, issue JWT and redirect to frontend."""
     redirect_uri = str(request.url_for("google_callback"))
     google_info = await exchange_google_code(code, redirect_uri)
 
@@ -105,9 +154,6 @@ async def google_callback(
 
     user = get_or_create_google_user(db, google_info)
     token = create_access_token(user.id, user.is_admin)
-
-    # Redirect to frontend with token in query string
-    # Frontend stores it in localStorage and redirects to dashboard
     frontend_url = f"{settings.FRONTEND_URL}/auth/callback?token={token}"
     return RedirectResponse(frontend_url)
 
@@ -126,7 +172,6 @@ def update_me(
     current_user: User = Depends(get_current_user),
 ) -> User:
     if body.username is not None:
-        # Check uniqueness
         existing = db.query(User).filter(
             User.username == body.username,
             User.id != current_user.id,

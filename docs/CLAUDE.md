@@ -2,6 +2,12 @@
 
 Fantasy league for PUBG esports. Users pick pro players, earn points from real match stats, compete on leaderboards.
 
+## RTK / Shell output (token saving)
+
+- Sempre que precisar rodar comandos de terminal que geram muita saída (git status, git diff, logs, pytest etc.), use `rtk` na frente (ex.: `rtk git status`, `rtk git diff`).
+- Ao mostrar resultados de comandos, prefira o output resumido do RTK em vez da saída completa do comando.
+- Evite colar ou manter no contexto histórico saídas completas de testes ou logs; resuma em bullets.
+
 ## Stack
 
 | Layer    | Tech                                        |

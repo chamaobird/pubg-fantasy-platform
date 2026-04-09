@@ -22,8 +22,10 @@ class StageCreate(BaseModel):
     price_min: int = 12
     price_max: int = 35
     pricing_distribution: str = "linear"
-    pricing_n_matches: int = 20
     pricing_newcomer_cost: int = 15
+    captain_multiplier: float = 1.30
+    # pricing_n_matches removido — substituído por MAX_MATCHES=50 global
+    # em app/services/pricing.py (Bloco B). Coluna existe no banco mas não é lida.
 
     @field_validator("shard")
     @classmethod
@@ -72,9 +74,10 @@ class StageUpdate(BaseModel):
     price_min: Optional[int] = None
     price_max: Optional[int] = None
     pricing_distribution: Optional[str] = None
-    pricing_n_matches: Optional[int] = None
     pricing_newcomer_cost: Optional[int] = None
+    captain_multiplier: Optional[float] = None
     is_active: Optional[bool] = None
+    # pricing_n_matches removido — não aceita mais atualização via API
 
     @field_validator("shard")
     @classmethod
@@ -109,14 +112,15 @@ class StageResponse(BaseModel):
     lineup_close_at: Optional[datetime]
     lineup_status: str
     lineup_size: int
+    captain_multiplier: float
     carries_stats_from: Optional[List[int]]
     roster_source_stage_id: Optional[int]
     price_min: int
     price_max: int
     pricing_distribution: str
-    pricing_n_matches: int
     pricing_newcomer_cost: int
     is_active: bool
     created_at: datetime
+    # pricing_n_matches excluído da resposta — campo deprecated
 
     model_config = {"from_attributes": True}

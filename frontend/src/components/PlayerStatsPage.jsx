@@ -6,7 +6,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { API_BASE_URL as API_BASE } from '../config'
 import TeamLogo from './TeamLogo'
-import ChampionshipSelector from './ChampionshipSelector'
 
 if (!document.getElementById('xama-fonts')) {
   const link = document.createElement('link')
@@ -138,15 +137,9 @@ const selectStyle = {
 
 // ── Componente principal ───────────────────────────────────────────────────
 
-export default function PlayerStatsPage({
-  championships, championshipsLoading,
-  selectedChampId: propChampId, onChampChange,
-  tournaments, tournamentsLoading,
-  selectedTournamentId: propTournId, onTournamentChange,
-}) {
-  const [stageId, setStageId] = useState(propTournId ? Number(propTournId) : null)
-
-  useEffect(() => { setStageId(propTournId ? Number(propTournId) : null) }, [propTournId])
+export default function PlayerStatsPage({ stageId: propStageId = null, shortName = '' }) {
+  const [stageId, setStageId] = useState(propStageId ? Number(propStageId) : null)
+  useEffect(() => { setStageId(propStageId ? Number(propStageId) : null) }, [propStageId])
 
   // ── Hierarquia de filtros ─────────────────────────────────────────────────
   const [stageDays, setStageDays]             = useState([])
@@ -242,7 +235,6 @@ export default function PlayerStatsPage({
   // ── Labels de contexto ────────────────────────────────────────────────────
   const selectedDay   = stageDays.find((d) => d.id === selectedDayId)
   const selectedMatch = matches.find((m) => m.id === selectedMatchId)
-  const selectedTournament = tournaments?.find((t) => t.id === stageId)
 
   const filterLabel = useMemo(() => {
     if (selectedMatch) return `Partida ${selectedMatch.match_number} — ${new Date(selectedMatch.played_at || '').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}`
@@ -286,29 +278,13 @@ export default function PlayerStatsPage({
                 )}
               </div>
               <p className="text-[12px] tracking-[0.1em] uppercase" style={{ color: 'var(--color-xama-muted)' }}>
-                {selectedTournament?.name ?? (stageId ? `Stage #${stageId}` : 'Selecione um torneio')}
+                {stageId ? `Stage #${stageId}` : '—'}
               </p>
             </div>
           </div>
 
           {/* ── Filtros ───────────────────────────────────────────────────── */}
           <div className="flex flex-wrap items-center gap-3">
-
-            {/* Seletor de stage */}
-            <ChampionshipSelector
-              championships={championships || []}
-              loading={championshipsLoading}
-              selectedChampId={propChampId ? Number(propChampId) : null}
-              onChampChange={onChampChange}
-              selectedTournId={stageId}
-              onTournChange={(tid) => {
-                setStageId(tid ? Number(tid) : null)
-                setSelectedDayId(null); setSelectedMatchId(null)
-                if (tid) onTournamentChange?.(tid)
-              }}
-              tournaments={tournaments || []}
-              allowAggregated={false}
-            />
 
             {/* Chips de dia */}
             {stageDays.length > 0 && (
@@ -443,7 +419,7 @@ export default function PlayerStatsPage({
                         </td>
                         <td style={{ padding: '10px 12px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <TeamLogo teamName={teamTag} size={28} />
+                            <TeamLogo teamName={teamTag} shortName={shortName} size={28} />
                             <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.06em', color: 'var(--color-xama-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
                               {teamTag}
                             </span>

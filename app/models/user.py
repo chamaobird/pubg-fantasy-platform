@@ -28,8 +28,10 @@ class User(Base):
         Boolean, nullable=False, server_default=text("true")
     )
     email_verified: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, server_default=text("false"),
-        comment="Reserved for task #013 - email confirmation"
+        Boolean, nullable=False, server_default=text("false")
+    )
+    email_verify_token: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True, index=True
     )
     created_at: Mapped[DateTime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=text("now()")

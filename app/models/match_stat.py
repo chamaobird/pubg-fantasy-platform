@@ -39,8 +39,14 @@ class MatchStat(Base):
     )
     knocks: Mapped[int] = mapped_column(SmallInteger, nullable=False, server_default="0")
     # computed
+    base_points: Mapped[Optional[Decimal]] = mapped_column(
+        Numeric(8, 2), nullable=True, comment="Base points before late game bonus"
+    )
+    late_game_bonus: Mapped[Optional[Decimal]] = mapped_column(
+        Numeric(8, 2), nullable=True, comment="Late game bonus points"
+    )
     xama_points: Mapped[Optional[Decimal]] = mapped_column(
-        Numeric(8, 2), nullable=True, comment="Points calculated by scoring service"
+        Numeric(8, 2), nullable=True, comment="Total points (base + late game bonus)"
     )
     created_at: Mapped[DateTime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=text("now()")

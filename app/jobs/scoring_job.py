@@ -23,7 +23,8 @@ from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app.models import Stage, StageDay
 from app.models.lineup import Lineup
-from app.models.match import Match, MatchStat
+from app.models.match import Match
+from app.models.match_stat import MatchStat
 from app.services.lineup_scoring import calculate_day_ranks, score_stage_day
 
 logger = logging.getLogger(__name__)

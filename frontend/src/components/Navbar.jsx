@@ -76,7 +76,7 @@ export default function Navbar({ tournament = null }) {
         {/* Nav links */}
         <nav style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
           {[
-            { label: '← Torneios', path: '/tournaments' },
+          { label: 'Campeonatos', path: '/championships' },
             { label: 'Dashboard',  path: '/dashboard'   },
             { label: '👤 Perfil',  path: '/profile'     },
           ].map(({ label, path }) => {

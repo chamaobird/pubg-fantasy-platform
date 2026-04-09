@@ -4,6 +4,7 @@ Auth service — JWT, password hashing, Google OAuth token verification.
 """
 from __future__ import annotations
 
+import secrets
 import uuid
 import logging
 from datetime import datetime, timedelta, timezone
@@ -63,6 +64,10 @@ def get_user_by_id(db: Session, user_id: str) -> Optional[User]:
     return db.query(User).filter(User.id == user_id).first()
 
 
+def generate_verify_token() -> str:
+    return secrets.token_urlsafe(32)
+
+
 def create_user(
     db: Session,
     email: str,
@@ -70,18 +75,20 @@ def create_user(
     username: Optional[str] = None,
     google_id: Optional[str] = None,
 ) -> User:
+    is_google = google_id is not None
     user = User(
         id=str(uuid.uuid4()),
         email=email,
         username=username,
         password_hash=hash_password(password) if password else None,
         google_id=google_id,
-        email_verified=google_id is not None,  # Google accounts are pre-verified
+        email_verified=is_google,
+        email_verify_token=None if is_google else generate_verify_token(),
     )
     db.add(user)
     db.commit()
     db.refresh(user)
-    logger.info("New user created: %s (google=%s)", user.id, google_id is not None)
+    logger.info("New user created: %s (google=%s)", user.id, is_google)
     return user
 
 
@@ -90,9 +97,21 @@ def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
     if not user:
         return None
     if not user.password_hash:
-        return None  # Google-only account, no password set
+        return None  # Google-only account
     if not verify_password(password, user.password_hash):
         return None
+    return user
+
+
+def verify_email_token(db: Session, token: str) -> Optional[User]:
+    """Marca o usuário como verificado. Retorna o user ou None se token inválido."""
+    user = db.query(User).filter(User.email_verify_token == token).first()
+    if not user:
+        return None
+    user.email_verified = True
+    user.email_verify_token = None
+    db.commit()
+    db.refresh(user)
     return user
 
 
@@ -103,9 +122,7 @@ GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
 
 
 async def exchange_google_code(code: str, redirect_uri: str) -> Optional[dict]:
-    """Exchange OAuth code for Google user info. Returns user info dict or None."""
     async with httpx.AsyncClient() as client:
-        # Exchange code for tokens
         token_resp = await client.post(
             GOOGLE_TOKEN_URL,
             data={
@@ -125,7 +142,6 @@ async def exchange_google_code(code: str, redirect_uri: str) -> Optional[dict]:
         if not access_token:
             return None
 
-        # Fetch user info
         userinfo_resp = await client.get(
             GOOGLE_USERINFO_URL,
             headers={"Authorization": f"Bearer {access_token}"},
@@ -138,20 +154,18 @@ async def exchange_google_code(code: str, redirect_uri: str) -> Optional[dict]:
 
 
 def get_or_create_google_user(db: Session, google_info: dict) -> User:
-    """Find existing user by google_id or email, or create new one."""
     google_id = google_info.get("id")
     email = google_info.get("email")
 
-    # Try by google_id first
     user = db.query(User).filter(User.google_id == google_id).first()
     if user:
         return user
 
-    # Try by email (account exists but hasn't linked Google yet)
     user = get_user_by_email(db, email)
     if user:
         user.google_id = google_id
         user.email_verified = True
+        user.email_verify_token = None
         if not user.avatar_url and google_info.get("picture"):
             user.avatar_url = google_info.get("picture")
         db.commit()
@@ -159,10 +173,4 @@ def get_or_create_google_user(db: Session, google_info: dict) -> User:
         logger.info("Linked Google account to existing user: %s", user.id)
         return user
 
-    # Create new user
-    return create_user(
-        db,
-        email=email,
-        google_id=google_id,
-        username=None,  # user can set later
-    )
+    return create_user(db, email=email, google_id=google_id)

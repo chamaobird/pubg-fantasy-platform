@@ -73,7 +73,7 @@ _LATE_GAME_NEXT_BONUSES: dict[int, list[float]] = {
 class PlayerStatInput:
     """Dados de um jogador em uma partida, já normalizados."""
     person_id:          int
-    player_account_id:  int           # rastreabilidade (account_id_used)
+    account_id_used:    str   = ""    # rastreabilidade — account_id da PUBG API
     kills:              int   = 0
     assists:            int   = 0
     damage_dealt:       float = 0.0
@@ -248,34 +248,32 @@ def process_match_stats(
         if existing:
             # Reprocess: desconta pontos antigos do PERSON_STAGE_STAT
             if stage_id:
-                _adjust_person_stage_stat(db, stat.person_id, stage_id, -existing.fantasy_points, reprocess=True)
+                _adjust_person_stage_stat(db, stat.person_id, stage_id, -float(existing.xama_points or 0), reprocess=True)
 
-            existing.player_account_id = stat.player_account_id
-            existing.kills             = stat.kills
-            existing.assists           = stat.assists
-            existing.damage_dealt      = stat.damage_dealt
-            existing.placement         = stat.placement
-            existing.survival_secs     = stat.survival_secs
-            existing.knocks            = stat.knocks
-            existing.headshots         = stat.headshots
-            existing.base_points       = base
-            existing.late_game_bonus   = late
-            existing.fantasy_points    = pts
+            existing.account_id_used = stat.account_id_used
+            existing.kills           = stat.kills
+            existing.assists         = stat.assists
+            existing.damage          = stat.damage_dealt
+            existing.placement       = stat.placement
+            existing.survival_time   = stat.survival_secs
+            existing.knocks          = stat.knocks
+            existing.base_points     = base
+            existing.late_game_bonus = late
+            existing.xama_points     = pts
         else:
             new_stat = MatchStat(
-                match_id          = match.id,
-                person_id         = stat.person_id,
-                player_account_id = stat.player_account_id,
-                kills             = stat.kills,
-                assists           = stat.assists,
-                damage_dealt      = stat.damage_dealt,
-                placement         = stat.placement,
-                survival_secs     = stat.survival_secs,
-                knocks            = stat.knocks,
-                headshots         = stat.headshots,
-                base_points       = base,
-                late_game_bonus   = late,
-                fantasy_points    = pts,
+                match_id         = match.id,
+                person_id        = stat.person_id,
+                account_id_used  = stat.account_id_used,
+                kills            = stat.kills,
+                assists          = stat.assists,
+                damage           = stat.damage_dealt,
+                placement        = stat.placement,
+                survival_time    = stat.survival_secs,
+                knocks           = stat.knocks,
+                base_points      = base,
+                late_game_bonus  = late,
+                xama_points      = pts,
             )
             db.add(new_stat)
 
@@ -336,23 +334,21 @@ def _adjust_person_stage_stat(
     )
 
     if pss:
-        pss.total_points = max(0.0, round(pss.total_points + delta_pts, 4))
+        pss.total_xama_points = max(0.0, round(float(pss.total_xama_points) + delta_pts, 4))
         if not reprocess:
             pss.matches_played += 1
-        # Recalcula pts_per_match para evitar drift acumulado
         if pss.matches_played > 0:
-            pss.pts_per_match = round(pss.total_points / pss.matches_played, 4)
+            pss.pts_per_match = round(float(pss.total_xama_points) / pss.matches_played, 4)
         pss.updated_at = datetime.now(timezone.utc)
     else:
         if delta_pts < 0:
-            # Não cria registro negativo
             return
         pss = PersonStageStat(
-            person_id     = person_id,
-            stage_id      = stage_id,
-            total_points  = round(delta_pts, 4),
-            matches_played= 0 if reprocess else 1,
-            pts_per_match = round(delta_pts, 4) if not reprocess else 0.0,
+            person_id          = person_id,
+            stage_id           = stage_id,
+            total_xama_points  = round(delta_pts, 4),
+            matches_played     = 0 if reprocess else 1,
+            pts_per_match      = round(delta_pts, 4) if not reprocess else 0.0,
         )
         db.add(pss)
 
@@ -382,8 +378,8 @@ def recalculate_person_stage_stat(
     accum: dict[int, dict] = {}  # person_id → {total_pts, matches}
     for s in stats:
         if s.person_id not in accum:
-            accum[s.person_id] = {"total_points": 0.0, "matches": 0}
-        accum[s.person_id]["total_points"] += s.fantasy_points
+            accum[s.person_id] = {"total_xama_points": 0.0, "matches": 0}
+        accum[s.person_id]["total_xama_points"] += float(s.xama_points or 0)
         accum[s.person_id]["matches"]      += 1
 
     # Deleta registros existentes da stage
@@ -393,14 +389,14 @@ def recalculate_person_stage_stat(
 
     # Recria
     for person_id, data in accum.items():
-        total = round(data["total_points"], 4)
+        total   = round(data["total_xama_points"], 4)
         matches = data["matches"]
         db.add(PersonStageStat(
-            person_id      = person_id,
-            stage_id       = stage_id,
-            total_points   = total,
-            matches_played = matches,
-            pts_per_match  = round(total / matches, 4) if matches > 0 else 0.0,
+            person_id         = person_id,
+            stage_id          = stage_id,
+            total_xama_points = total,
+            matches_played    = matches,
+            pts_per_match     = round(total / matches, 4) if matches > 0 else 0.0,
         ))
 
     db.flush()

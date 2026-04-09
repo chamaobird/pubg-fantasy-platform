@@ -18,8 +18,12 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
 
-    # Frontend URL (used for OAuth redirect)
+    # Frontend URL (used for OAuth redirect and email links)
     FRONTEND_URL: str = "http://localhost:5173"
+
+    # Email — Resend
+    RESEND_API_KEY: str = ""
+    EMAIL_FROM: str = "onboarding@resend.dev"
 
     class Config:
         env_file = ".env"

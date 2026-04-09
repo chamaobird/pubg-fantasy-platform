@@ -1,6 +1,12 @@
 # app/main.py
 import logging
 from contextlib import asynccontextmanager
+
+# Carrega .env antes de qualquer import da app — garante que os.getenv()
+# funcione corretamente em todos os módulos (ex: PubgClient, database)
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
@@ -10,6 +16,7 @@ from app.routers import import_ as admin_import
 from app.routers.lineups import router as lineups_router
 from app.jobs.lineup_control import run_lineup_control
 from app.routers.stages import router as stages_router
+from app.routers.championships import router as championships_router
 
 
 logging.basicConfig(
@@ -157,6 +164,7 @@ app.include_router(admin_router)
 app.include_router(admin_import.router)
 app.include_router(lineups_router)
 app.include_router(stages_router)
+app.include_router(championships_router)
 
 
 

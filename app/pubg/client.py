@@ -27,7 +27,6 @@ from app.services.import_ import RawMatch, RawPlayerStat
 logger = logging.getLogger(__name__)
 
 PUBG_API_BASE = "https://api.pubg.com"
-PUBG_API_KEY  = os.getenv("PUBG_API_KEY", "")
 
 # Rate limiting simples (sem Redis — suficiente para uso admin)
 _last_request_at: float = 0.0
@@ -44,8 +43,18 @@ class PubgClient:
         if shard not in ("steam", "pc-tournament"):
             raise ValueError(f"Shard inválido: {shard!r}. Use 'steam' ou 'pc-tournament'.")
         self.shard = shard
+
+        # Lido aqui (não no topo do módulo) para garantir que
+        # load_dotenv() já foi executado pelo bootstrap do FastAPI
+        api_key = os.getenv("PUBG_API_KEY", "")
+        if not api_key:
+            raise RuntimeError(
+                "PUBG_API_KEY não encontrada no ambiente. "
+                "Verifique o arquivo .env na raiz do projeto."
+            )
+
         self._headers = {
-            "Authorization": f"Bearer {PUBG_API_KEY}",
+            "Authorization": f"Bearer {api_key}",
             "Accept": "application/vnd.api+json",
         }
 

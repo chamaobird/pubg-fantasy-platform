@@ -1,45 +1,140 @@
 # app/services/pricing.py
 """
-Pricing service — Fase 5
+Pricing service — Fase 5 + Bloco B (refatoração)
 
-Algoritmo:
-  1. Para cada Roster da stage, busca as últimas pricing_n_matches MatchStat da Person
-     (qualquer championship, ordenado por created_at DESC)
-  2. Calcula pts_per_match_efetivo = média simples das últimas N partidas
-  3. Coleta o valor de todos os jogadores com histórico e monta a régua
-     [price_min .. price_max] com distribuição configurável (atualmente: linear)
-  4. Newcomers (newcomer_to_tier=True) ou jogadores sem nenhuma MatchStat
-     recebem pricing_newcomer_cost
-  5. Grava fantasy_cost no Roster e registra RosterPriceHistory
+Algoritmo novo (exponential decay + tier_weight):
+  Para cada jogador, busca as últimas 50 partidas globais (qualquer championship),
+  filtra as com mais de 150 dias, e descarta jogadores com menos de 20 partidas válidas.
+
+  Para cada partida válida:
+    decay = e^(-0.02 × dias_atras)
+    score = xama_points × tier_weight × decay
+
+  ppm_ponderado = Σ(score) / Σ(tier_weight × decay)
+
+  Régua linear: ppm_ponderado → [price_min .. price_max]
+  Pisos: price_min (hard floor), pricing_newcomer_cost (para histórico insuficiente)
+
+Parâmetros globais configuráveis:
+  DECAY_LAMBDA      = 0.02   (velocidade de queda exponencial)
+  MAX_DAYS          = 150    (corte hard de antiguidade em dias)
+  MAX_MATCHES       = 50     (máximo de partidas consideradas)
+  MIN_VALID_MATCHES = 20     (mínimo para não ser tratado como newcomer)
 """
 from __future__ import annotations
 
 import logging
+import math
 from datetime import datetime, timezone
 from typing import Optional
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.models.championship import Championship
+from app.models.match import Match
+from app.models.match_stat import MatchStat
 from app.models.roster import Roster, RosterPriceHistory
 from app.models.stage import Stage
-from app.models.match_stat import MatchStat
+from app.models.stage_day import StageDay
 
 logger = logging.getLogger(__name__)
 
+# ── Parâmetros globais do algoritmo ───────────────────────────────────────────
 
-# ── distribuição ──────────────────────────────────────────────────────────────
+DECAY_LAMBDA      = 0.02   # λ da curva e^(-λ × dias)
+MAX_DAYS          = 150    # corte hard: partidas mais antigas são ignoradas
+MAX_MATCHES       = 50     # máximo de partidas no histórico
+MIN_VALID_MATCHES = 20     # mínimo de partidas válidas para calcular preço
 
-def _interpolate(value: float, v_min: float, v_max: float, p_min: int, p_max: int) -> int:
+
+# ── Cálculo de ppm ponderado ──────────────────────────────────────────────────
+
+def _get_weighted_ppm(
+    person_id: int,
+    db: Session,
+    now: datetime,
+) -> Optional[float]:
+    """
+    Calcula o ppm ponderado de um jogador usando o algoritmo exponencial
+    com tier_weight por championship.
+
+    Retorna None se o jogador tiver menos de MIN_VALID_MATCHES partidas válidas.
+    """
+    # Busca as últimas MAX_MATCHES partidas com dados de data e championship
+    rows = (
+        db.query(
+            MatchStat.xama_points,
+            Match.played_at,
+            Championship.tier_weight,
+        )
+        .join(Match, MatchStat.match_id == Match.id)
+        .join(StageDay, Match.stage_day_id == StageDay.id)
+        .join(Stage, StageDay.stage_id == Stage.id)
+        .join(Championship, Stage.championship_id == Championship.id)
+        .filter(
+            MatchStat.person_id == person_id,
+            MatchStat.xama_points.isnot(None),
+            Match.played_at.isnot(None),
+        )
+        .order_by(Match.played_at.desc())
+        .limit(MAX_MATCHES)
+        .all()
+    )
+
+    if not rows:
+        return None
+
+    weighted_sum = 0.0
+    weight_sum   = 0.0
+    valid_count  = 0
+
+    for xama_points, played_at, tier_weight in rows:
+        # Normaliza timezone
+        if played_at.tzinfo is None:
+            played_at = played_at.replace(tzinfo=timezone.utc)
+
+        days_ago = (now - played_at).total_seconds() / 86400.0
+
+        # Corte hard: ignora partidas muito antigas
+        if days_ago > MAX_DAYS:
+            continue
+
+        decay      = math.exp(-DECAY_LAMBDA * days_ago)
+        tw         = float(tier_weight or 1.0)
+        pts        = float(xama_points)
+
+        weighted_sum += pts * tw * decay
+        weight_sum   += tw * decay
+        valid_count  += 1
+
+    # Histórico insuficiente → tratado como newcomer
+    if valid_count < MIN_VALID_MATCHES:
+        return None
+
+    if weight_sum == 0:
+        return None
+
+    return weighted_sum / weight_sum
+
+
+# ── Distribuição ──────────────────────────────────────────────────────────────
+
+def _interpolate(
+    value: float,
+    v_min: float,
+    v_max: float,
+    p_min: int,
+    p_max: int,
+) -> int:
     """
     Interpola linearmente `value` no intervalo [v_min, v_max]
-    e retorna o custo correspondente em [p_min, p_max].
-
-    Se v_min == v_max (todos os jogadores têm a mesma performance),
-    retorna o ponto médio da régua.
+    retornando custo em [p_min, p_max].
+    Se v_min == v_max retorna ponto médio.
     """
     if v_max == v_min:
         return round((p_min + p_max) / 2)
-    t = (value - v_min) / (v_max - v_min)  # 0.0 .. 1.0
+    t = (value - v_min) / (v_max - v_min)
     return round(p_min + t * (p_max - p_min))
 
 
@@ -51,44 +146,13 @@ def _apply_distribution(
     p_max: int,
     distribution: str,
 ) -> int:
-    """
-    Ponto de extensão: adicione novos modelos de distribuição aqui no futuro.
-    Hoje apenas 'linear' está implementado.
-    """
     if distribution == "linear":
         return _interpolate(value, v_min, v_max, p_min, p_max)
-
-    logger.warning(
-        "pricing_distribution=%r não implementado, usando 'linear'.", distribution
-    )
+    logger.warning("pricing_distribution=%r não implementado, usando linear.", distribution)
     return _interpolate(value, v_min, v_max, p_min, p_max)
 
 
-# ── helpers de banco ──────────────────────────────────────────────────────────
-
-def _get_effective_ppm(person_id: int, n_matches: int, db: Session) -> Optional[float]:
-    """
-    Retorna a média de xama_points das últimas `n_matches` partidas da Person,
-    independente de championship ou stage.
-    Retorna None se não houver nenhuma partida ou todos os valores forem nulos.
-    """
-    rows = (
-        db.query(MatchStat.xama_points)
-        .filter(
-            MatchStat.person_id == person_id,
-            MatchStat.xama_points.isnot(None),
-        )
-        .order_by(MatchStat.created_at.desc())
-        .limit(n_matches)
-        .all()
-    )
-
-    if not rows:
-        return None
-
-    values = [float(r.xama_points) for r in rows]
-    return sum(values) / len(values)
-
+# ── Histórico de preços ───────────────────────────────────────────────────────
 
 def _record_price_history(
     roster_id: int,
@@ -97,14 +161,13 @@ def _record_price_history(
     stage_day_id: Optional[int],
     db: Session,
 ) -> None:
-    history = RosterPriceHistory(
-        roster_id=roster_id,
-        stage_day_id=stage_day_id,
-        cost=cost,
-        source=source,
-        recorded_at=datetime.now(timezone.utc),
-    )
-    db.add(history)
+    db.add(RosterPriceHistory(
+        roster_id    = roster_id,
+        stage_day_id = stage_day_id,
+        cost         = cost,
+        source       = source,
+        recorded_at  = datetime.now(timezone.utc),
+    ))
 
 
 # ── API pública ───────────────────────────────────────────────────────────────
@@ -117,23 +180,15 @@ def calculate_stage_pricing(
     source: str = "auto",
 ) -> dict:
     """
-    Recalcula fantasy_cost de todos os Roster ativos da stage.
+    Recalcula fantasy_cost de todos os Roster ativos da stage
+    usando o algoritmo de decay exponencial com tier_weight.
 
-    Parâmetros:
-        stage_id     — ID da Stage a recalcular
-        db           — sessão SQLAlchemy Session
-        stage_day_id — se fornecido, associa o RosterPriceHistory ao dia
-        source       — 'auto' (scheduler) ou 'manual'
-
-    Retorna:
-        {"updated": int, "skipped": int, "newcomers": int}
+    Retorna: {"updated": int, "skipped": int, "newcomers": int}
     """
-    # 1. Carrega a stage com configurações de pricing
     stage: Optional[Stage] = db.get(Stage, stage_id)
     if stage is None:
         raise ValueError(f"Stage {stage_id} não encontrada.")
 
-    # 2. Carrega todos os Roster ativos da stage
     rosters: list[Roster] = (
         db.query(Roster)
         .filter(Roster.stage_id == stage_id, Roster.is_available == True)  # noqa: E712
@@ -144,13 +199,15 @@ def calculate_stage_pricing(
         logger.info("Stage %d: nenhum roster ativo encontrado.", stage_id)
         return {"updated": 0, "skipped": 0, "newcomers": 0}
 
-    # 3. Calcula pts_per_match_efetivo para cada jogador
+    now = datetime.now(timezone.utc)
+
+    # Calcula ppm ponderado para cada jogador
     ppm_map: dict[int, Optional[float]] = {
-        roster.id: _get_effective_ppm(roster.person_id, stage.pricing_n_matches, db)
+        roster.id: _get_weighted_ppm(roster.person_id, db, now)
         for roster in rosters
     }
 
-    # 4. Monta a régua apenas com jogadores que têm histórico E não são newcomers
+    # Monta a régua apenas com jogadores elegíveis (têm histórico, não são newcomers)
     eligible_ppms = [
         ppm_map[r.id]
         for r in rosters
@@ -161,27 +218,31 @@ def calculate_stage_pricing(
     v_max = max(eligible_ppms) if eligible_ppms else 0.0
 
     logger.info(
-        "Stage %d: régua ppm [%.2f .. %.2f] → custo [%d .. %d] (%s)",
-        stage_id, v_min, v_max, stage.price_min, stage.price_max, stage.pricing_distribution,
+        "Stage %d: régua ppm [%.2f .. %.2f] → custo [%d .. %d] (%s) | λ=%.2f max_days=%d",
+        stage_id, v_min, v_max,
+        stage.price_min, stage.price_max,
+        stage.pricing_distribution,
+        DECAY_LAMBDA, MAX_DAYS,
     )
 
-    # 5. Aplica custo a cada roster
     updated = skipped = newcomers = 0
 
     for roster in rosters:
         ppm = ppm_map[roster.id]
 
-        # Newcomer ou sem histórico → custo fixo
+        # Newcomer explícito ou histórico insuficiente → custo fixo
         if roster.newcomer_to_tier or ppm is None:
             new_cost = stage.pricing_newcomer_cost
             newcomers += 1
         else:
             new_cost = _apply_distribution(
-                ppm, v_min, v_max, stage.price_min, stage.price_max,
+                ppm, v_min, v_max,
+                stage.price_min, stage.price_max,
                 stage.pricing_distribution,
             )
+            # Garante piso absoluto
+            new_cost = max(stage.price_min, new_cost)
 
-        # Não grava se não houve mudança
         if roster.fantasy_cost == new_cost:
             skipped += 1
             continue
@@ -207,9 +268,7 @@ def apply_cost_override(
 ) -> Roster:
     """
     Seta (ou remove) cost_override de um Roster e grava auditoria.
-
-    cost=None → remove o override (volta a exibir fantasy_cost calculado).
-    Não dispara recálculo de pricing — cost_override é independente.
+    cost=None → remove o override.
     """
     roster: Optional[Roster] = db.get(Roster, roster_id)
     if roster is None:

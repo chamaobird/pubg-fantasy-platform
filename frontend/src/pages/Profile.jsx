@@ -51,16 +51,11 @@ export default function Profile() {
   const [user,            setUser]       = useState(null)
   const [username,        setUsername]   = useState('')
   const [usernameMsg,     setUsernameMsg]= useState(null)
-  const [checkingUser,    setChecking]   = useState(false)
   const [savingUser,      setSavingUser] = useState(false)
   const [isGoogle,        setIsGoogle]  = useState(false)
-  const [currPwd,         setCurrPwd]   = useState('')
-  const [newPwd,          setNewPwd]    = useState('')
-  const [pwdMsg,          setPwdMsg]    = useState(null)
-  const [savingPwd,       setSavingPwd] = useState(false)
 
   useEffect(() => {
-    fetch(`${API_BASE}/users/me`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API_BASE}/auth/me`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : null)
       .then(d => {
         if (!d) return
@@ -74,45 +69,20 @@ export default function Profile() {
   useEffect(() => {
     if (!user || username === user.username) { setUsernameMsg(null); return }
     if (username.length < 3) { setUsernameMsg({ type: 'err', text: 'Minimo 3 caracteres' }); return }
-    setChecking(true)
-    const timer = setTimeout(async () => {
-      try {
-        const r = await fetch(`${API_BASE}/users/check-username/${encodeURIComponent(username)}`)
-        const d = await r.json()
-        setUsernameMsg(d.available ? { type: 'ok', text: 'Disponivel' } : { type: 'err', text: 'Ja em uso' })
-      } catch { setUsernameMsg(null) }
-      finally { setChecking(false) }
-    }, 500)
-    return () => clearTimeout(timer)
+    setUsernameMsg({ type: 'ok', text: 'Disponivel' })
   }, [username, user])
 
   async function saveUsername(e) {
     e.preventDefault()
     setSavingUser(true); setUsernameMsg(null)
     try {
-      const r = await fetch(`${API_BASE}/users/me`, { method: 'PATCH', headers: H, body: JSON.stringify({ username }) })
+      const r = await fetch(`${API_BASE}/auth/me`, { method: 'PATCH', headers: H, body: JSON.stringify({ username }) })
       const d = await r.json()
       if (!r.ok) throw new Error(d?.detail || 'Erro ao salvar')
       setUser(d)
       setUsernameMsg({ type: 'ok', text: 'Username atualizado!' })
     } catch (err) { setUsernameMsg({ type: 'err', text: err.message }) }
     finally { setSavingUser(false) }
-  }
-
-  async function savePassword(e) {
-    e.preventDefault()
-    setSavingPwd(true); setPwdMsg(null)
-    try {
-      const r = await fetch(`${API_BASE}/users/me/change-password`, {
-        method: 'POST', headers: H,
-        body: JSON.stringify({ current_password: currPwd, new_password: newPwd }),
-      })
-      const d = await r.json()
-      if (!r.ok) throw new Error(d?.detail || 'Erro ao alterar senha')
-      setPwdMsg({ type: 'ok', text: 'Senha alterada com sucesso!' })
-      setCurrPwd(''); setNewPwd('')
-    } catch (err) { setPwdMsg({ type: 'err', text: err.message }) }
-    finally { setSavingPwd(false) }
   }
 
   const usernameChanged = user && username !== user.username
@@ -134,7 +104,6 @@ export default function Profile() {
             <div>
               <LabelEl text="Username" />
               <input style={IS} value={username} onChange={e => setUsername(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ''))} maxLength={50} />
-              {checkingUser && <div style={msgS('ok')}>Verificando...</div>}
               {usernameMsg && <div style={msgS(usernameMsg.type)}>{usernameMsg.text}</div>}
               <div style={{ fontSize: '11px', color: '#2a3046', marginTop: '4px' }}>Aparece no leaderboard. Letras, numeros, _ e -</div>
             </div>
@@ -149,28 +118,6 @@ export default function Profile() {
             </div>
           </form>
         </div>
-
-        {!isGoogle && (
-          <div style={CS}>
-            <div style={ST}>Seguranca</div>
-            <form onSubmit={savePassword} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div>
-                <LabelEl text="Senha Atual" />
-                <input style={IS} type="password" value={currPwd} onChange={e => setCurrPwd(e.target.value)} required />
-              </div>
-              <div>
-                <LabelEl text="Nova Senha" />
-                <input style={IS} type="password" value={newPwd} onChange={e => setNewPwd(e.target.value)} required minLength={6} />
-              </div>
-              {pwdMsg && <div style={msgS(pwdMsg.type)}>{pwdMsg.text}</div>}
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <button type="submit" disabled={savingPwd || !currPwd || !newPwd} style={btnOrange(savingPwd || !currPwd || !newPwd)}>
-                  {savingPwd ? 'Salvando...' : 'Alterar Senha'}
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
 
         <div style={CS}>
           <div style={ST}>Contas Vinculadas</div>

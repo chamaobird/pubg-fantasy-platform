@@ -3,7 +3,6 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import { API_BASE_URL } from '../config'
-import ChampionshipSelector from './ChampionshipSelector'
 
 const selectStyle = {
   background: '#0d0f14',
@@ -28,17 +27,8 @@ const ownerLabel = (entry) => entry.username || `#${entry.user_id.slice(0, 8)}`
 
 export default function TournamentLeaderboard({
   token = '',
-  tournaments = [],
-  tournamentsLoading = false,
-  selectedTournamentId = '',
-  onTournamentChange,
-  championships = [],
-  championshipsLoading = false,
-  selectedChampId = null,
-  onChampChange,
+  stageId = '',
 }) {
-  // stageId = selectedTournamentId no novo modelo (stage ≡ tournament)
-  const stageId = selectedTournamentId
 
   // ── Dados de dias e partidas ───────────────────────────────────────────────
   const [stageDays, setStageDays]     = useState([])   // [{id, day_number, date}]
@@ -120,7 +110,6 @@ export default function TournamentLeaderboard({
   // ── Computed ───────────────────────────────────────────────────────────────
   const hasMultipleDays   = stageDays.length > 1
   const selectedDay       = stageDays.find((d) => d.id === selectedDayId)
-  const selectedTournament = tournaments.find((t) => String(t.id) === String(stageId))
   const anyPoints         = rankings.some((r) => (r.total_points ?? r.points ?? 0) > 0)
 
   return (
@@ -135,22 +124,10 @@ export default function TournamentLeaderboard({
               <h1 className="text-[28px] font-bold tracking-tight" style={{ color: 'var(--color-xama-text)', letterSpacing: '-0.01em' }}>LEADERBOARD</h1>
             </div>
             <p className="text-[11px] tracking-[0.1em] uppercase" style={{ color: 'var(--color-xama-muted)' }}>
-              {selectedTournament ? selectedTournament.name : stageId ? `Stage #${stageId}` : '—'}
+              {stageId ? `Stage #${stageId}` : '—'}
             </p>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
-            {championships.length > 0 && (
-              <ChampionshipSelector
-                championships={championships}
-                loading={championshipsLoading}
-                selectedChampId={selectedChampId ? Number(selectedChampId) : null}
-                onChampChange={onChampChange}
-                selectedTournId={stageId ? Number(stageId) : null}
-                onTournChange={(tid) => onTournamentChange?.(tid)}
-                tournaments={tournaments}
-                allowAggregated={false}
-              />
-            )}
             <button
               className="dark-btn flex items-center gap-2"
               onClick={() => fetchLeaderboard(selectedDayId, selectedMatchId)}

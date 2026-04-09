@@ -298,17 +298,14 @@ def _import_single_match(
     # Cria ou reutiliza Match
     if existing_match:
         match = existing_match
-        match.map_name      = raw.map_name
-        match.played_at     = raw.played_at
-        match.duration_secs = raw.duration_secs
+        match.played_at = raw.played_at
         status = "reprocessed"
     else:
         match = Match(
-            pubg_match_id  = pubg_match_id,
-            stage_day_id   = effective_stage_day_id,
-            map_name       = raw.map_name,
-            played_at      = raw.played_at,
-            duration_secs  = raw.duration_secs,
+            pubg_match_id = pubg_match_id,
+            stage_day_id  = effective_stage_day_id,
+            shard         = stage.shard,
+            played_at     = raw.played_at,
         )
         db.add(match)
         db.flush()  # garante match.id antes do scoring
@@ -324,17 +321,17 @@ def _import_single_match(
             unresolved.append(rps.alias)
             continue
 
-        person_id, player_account_id = identity
+        person_id, _player_account_id = identity
         player_stats.append(PlayerStatInput(
-            person_id         = person_id,
-            player_account_id = player_account_id,
-            kills             = rps.kills,
-            assists           = rps.assists,
-            damage_dealt      = rps.damage_dealt,
-            placement         = rps.placement,
-            survival_secs     = rps.survival_secs,
-            knocks            = rps.knocks,
-            headshots         = rps.headshots,
+            person_id        = person_id,
+            account_id_used  = rps.account_id,
+            kills            = rps.kills,
+            assists          = rps.assists,
+            damage_dealt     = rps.damage_dealt,
+            placement        = rps.placement,
+            survival_secs    = rps.survival_secs,
+            knocks           = rps.knocks,
+            headshots        = rps.headshots,
         ))
 
     if unresolved:

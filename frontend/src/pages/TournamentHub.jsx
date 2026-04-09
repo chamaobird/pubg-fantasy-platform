@@ -60,17 +60,6 @@ export default function TournamentHub() {
     if (isFinished) setTab(TAB_LEADERBOARD)
   }, [isFinished])
 
-  const legacySharedProps = {
-    tournaments: [],
-    tournamentsLoading: false,
-    selectedTournamentId: String(id),
-    onTournamentChange: (newId) => { if (newId) navigate(`/tournament/${newId}`) },
-    championships: [],
-    championshipsLoading: false,
-    selectedChampId: null,
-    onChampChange: () => {},
-  }
-
   return (
     <>
       <TournamentLayout
@@ -90,10 +79,10 @@ export default function TournamentHub() {
           />
         )}
         {activeTab === TAB_LEADERBOARD && (
-          <TournamentLeaderboard token={token} {...legacySharedProps} />
+          <TournamentLeaderboard token={token} stageId={Number(id)} />
         )}
         {activeTab === TAB_STATS && (
-          <PlayerStatsPage token={token} {...legacySharedProps} />
+          <PlayerStatsPage stageId={Number(id)} shortName={stage?.short_name ?? ''} />
         )}
         {activeTab === TAB_ADMIN && isAdmin && (
           <AdminPricingPanel stageId={Number(id)} token={token} />

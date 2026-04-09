@@ -37,7 +37,8 @@ from sqlalchemy.orm import Session
 
 from app.models import Stage, StageDay
 from app.models.lineup import Lineup, LineupPlayer
-from app.models.match import Match, MatchStat
+from app.models.match import Match
+from app.models.match_stat import MatchStat
 from app.models.user_stat import UserDayStat, UserStageStat
 
 logger = logging.getLogger(__name__)

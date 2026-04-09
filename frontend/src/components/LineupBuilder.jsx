@@ -301,10 +301,25 @@ export default function LineupBuilder({ token = '', stageId, onPlayerInfoClick }
 
           {/* Budget bar */}
           <div style={{ padding: '12px 16px 0' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-              <span style={{ fontSize: 11, color: 'var(--color-xama-muted)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                Budget
-              </span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 11, color: 'var(--color-xama-muted)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                  Budget
+                </span>
+                {stage?.captain_multiplier && (
+                  <span title={`Capitão recebe ×${Number(stage.captain_multiplier).toFixed(2)} nos pontos`} style={{
+                    fontSize: 10, fontWeight: 700, letterSpacing: '0.05em',
+                    color: 'var(--color-xama-gold)',
+                    background: 'rgba(250,204,21,0.10)',
+                    border: '1px solid rgba(250,204,21,0.25)',
+                    borderRadius: 4, padding: '1px 5px',
+                    fontFamily: "'JetBrains Mono', monospace",
+                    cursor: 'default',
+                  }}>
+                    ⭐ CAP ×{Number(stage.captain_multiplier).toFixed(2)}
+                  </span>
+                )}
+              </div>
               <span style={{
                 fontSize: 13, fontWeight: 700,
                 fontFamily: "'JetBrains Mono', monospace",
@@ -358,8 +373,19 @@ export default function LineupBuilder({ token = '', stageId, onPlayerInfoClick }
                       {Number(p.effective_cost || 0)}
                     </span>
                   </div>
-                  {/* Botão de capitão */}
-                  {!isCap && (
+                  {/* Botão de capitão / badge multiplicador */}
+                  {isCap ? (
+                    stage?.captain_multiplier && (
+                      <div style={{
+                        marginTop: 5, textAlign: 'center',
+                        fontSize: 9, fontWeight: 700, letterSpacing: '0.06em',
+                        color: 'var(--color-xama-gold)',
+                        fontFamily: "'JetBrains Mono', monospace",
+                      }}>
+                        ×{Number(stage.captain_multiplier).toFixed(2)}
+                      </div>
+                    )
+                  ) : (
                     <button
                       onClick={() => toggleCaptain(p.id)}
                       title="Definir como capitão"

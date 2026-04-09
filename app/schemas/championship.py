@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Optional
 from datetime import datetime
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 
 # ── Create ────────────────────────────────────────────────────────────────────
@@ -12,6 +12,12 @@ class ChampionshipCreate(BaseModel):
     name: str
     short_name: str
     shard: str
+    tier_weight: float = Field(
+        default=1.0,
+        ge=0.1,
+        le=2.0,
+        description="Pricing weight: PGS/PGC=1.00, regional (PAS)=0.70, etc.",
+    )
 
     @field_validator("shard")
     @classmethod
@@ -37,6 +43,12 @@ class ChampionshipUpdate(BaseModel):
     short_name: Optional[str] = None
     shard: Optional[str] = None
     is_active: Optional[bool] = None
+    tier_weight: Optional[float] = Field(
+        default=None,
+        ge=0.1,
+        le=2.0,
+        description="Pricing weight: PGS/PGC=1.00, regional (PAS)=0.70, etc.",
+    )
 
     @field_validator("shard")
     @classmethod
@@ -57,6 +69,7 @@ class ChampionshipResponse(BaseModel):
     short_name: str
     shard: str
     is_active: bool
+    tier_weight: float
     created_at: datetime
 
     model_config = {"from_attributes": True}

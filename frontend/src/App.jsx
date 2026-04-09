@@ -2,10 +2,12 @@
 import { useState, createContext, useContext } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import LandingPage from './pages/LandingPage'
-import TournamentSelect from './pages/TournamentSelect'
+import Championships from './pages/Championships'
 import TournamentHub from './pages/TournamentHub'
 import Profile from './pages/Profile'
 import Dashboard from './pages/Dashboard'
+import LineupResultsPage from './pages/LineupResultsPage'
+import AuthVerified from './pages/AuthVerified'
 
 export const AuthContext = createContext(null)
 export const useAuth = () => useContext(AuthContext)
@@ -63,13 +65,24 @@ export default function App() {
             <RequireAuth><Profile /></RequireAuth>
           } />
 
-          {/* Torneios */}
-          <Route path="/tournaments" element={
-            <RequireAuth><TournamentSelect /></RequireAuth>
+          {/* Campeonatos */}
+          <Route path="/championships" element={
+            <RequireAuth><Championships /></RequireAuth>
           } />
+
+          {/* Redirect legado */}
+          <Route path="/tournaments" element={<Navigate to="/championships" replace />} />
 
           <Route path="/tournament/:id" element={
             <RequireAuth><TournamentHub /></RequireAuth>
+          } />
+
+          <Route path="/stages/:stageId/results" element={
+            <LineupResultsPage token={token} />
+          } />
+
+          <Route path="/auth/verified" element={
+            <AuthVerified />
           } />
 
           {/* Fallback */}

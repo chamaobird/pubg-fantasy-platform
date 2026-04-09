@@ -95,7 +95,9 @@ class Stage(Base):
         SmallInteger,
         nullable=False,
         server_default="20",
-        comment="How many recent MatchStats to average for pts_per_match_effective",
+        comment="DEPRECATED — não é mais lido pelo pricing service. "
+                "Substituído por MAX_MATCHES=50 global em app/services/pricing.py. "
+                "Coluna mantida no banco para compatibilidade.",
     )
     pricing_newcomer_cost: Mapped[int] = mapped_column(
         SmallInteger,
