@@ -193,15 +193,8 @@ function AuthCard({ redirectTo = '/tournaments' }) {
       })
       const data = await res.json().catch(() => null)
       if (!res.ok) throw new Error(data?.detail || `HTTP ${res.status}`)
-      setRegSuccess('Conta criada! Fazendo login…')
-      const loginRes = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: regEmail, password: regPassword }),
-      })
-      const loginData = await loginRes.json().catch(() => null)
-      if (loginRes.ok && loginData?.access_token) finish(loginData.access_token)
-      else setMode('login')
+      setRegSuccess('Conta criada! Verifique seu email para ativar o acesso.')
+      setRegEmail(''); setRegUsername(''); setRegPassword('')
     } catch (err) { setRegError(parseError(err)) }
     finally { setRegLoading(false) }
   }
