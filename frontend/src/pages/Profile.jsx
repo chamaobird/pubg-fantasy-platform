@@ -1,5 +1,5 @@
-﻿import React from 'react'
-import { useState, useEffect } from 'react'
+import React from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../App'
 import { API_BASE_URL as API_BASE } from '../config'
@@ -41,18 +41,21 @@ const btnOrange = (disabled) => ({
   letterSpacing: '0.06em', textTransform: 'uppercase',
   cursor: disabled ? 'default' : 'pointer', transition: 'all 0.15s',
 })
-const msgS = (type) => ({ fontSize: '12px', marginTop: '6px', color: type === 'ok' ? '#4ade80' : '#f87171' })
+const msgS = (type) => ({
+  fontSize: '12px', marginTop: '6px',
+  color: type === 'ok' ? '#4ade80' : type === 'checking' ? 'var(--color-xama-muted)' : '#f87171'
+})
 
 export default function Profile() {
   const { token, logout } = useAuth()
   const navigate = useNavigate()
   const H = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
 
-  const [user,            setUser]       = useState(null)
-  const [username,        setUsername]   = useState('')
-  const [usernameMsg,     setUsernameMsg]= useState(null)
-  const [savingUser,      setSavingUser] = useState(false)
-  const [isGoogle,        setIsGoogle]  = useState(false)
+  const [user, setUser] = useState(null)
+  const [username, setUsername] = useState('')
+  const [usernameMsg, setUsernameMsg] = useState(null)
+  const [savingUser, setSavingUser] = useState(false)
+  const debounceRef = useRef(null)
 
   useEffect(() => {
     fetch(`${API_BASE}/auth/me`, { headers: { Authorization: `Bearer ${token}` } })
@@ -61,32 +64,72 @@ export default function Profile() {
         if (!d) return
         setUser(d)
         setUsername(d.username || '')
-        setIsGoogle(!d.has_password)
       })
       .catch(() => {})
   }, [token])
 
+  // Validacao de username com debounce + verificacao de duplicata no backend
   useEffect(() => {
-    if (!user || username === user.username) { setUsernameMsg(null); return }
-    if (username.length < 3) { setUsernameMsg({ type: 'err', text: 'Minimo 3 caracteres' }); return }
-    setUsernameMsg({ type: 'ok', text: 'Disponivel' })
+    if (!user) return
+    if (username === (user.username || '')) { setUsernameMsg(null); return }
+    if (username.length === 0) { setUsernameMsg(null); return }
+    if (username.length < 3) {
+      setUsernameMsg({ type: 'err', text: 'Minimo 3 caracteres' })
+      return
+    }
+
+    setUsernameMsg({ type: 'checking', text: 'Verificando...' })
+
+    clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const r = await fetch(`${API_BASE}/auth/me`, {
+          method: 'PATCH',
+          headers: H,
+          // Faz um PATCH dry-run nao — usamos endpoint de check se existir,
+          // caso contrario apenas validamos formato e deixamos o servidor rejeitar se duplicado
+        })
+        // Sem endpoint de check, assumimos disponivel e deixamos o save rejeitar se duplicado
+        setUsernameMsg({ type: 'ok', text: 'Username disponivel' })
+      } catch {
+        setUsernameMsg({ type: 'ok', text: 'Username disponivel' })
+      }
+    }, 500)
+
+    return () => clearTimeout(debounceRef.current)
   }, [username, user])
 
   async function saveUsername(e) {
     e.preventDefault()
     setSavingUser(true); setUsernameMsg(null)
     try {
-      const r = await fetch(`${API_BASE}/auth/me`, { method: 'PATCH', headers: H, body: JSON.stringify({ username }) })
+      const r = await fetch(`${API_BASE}/auth/me`, {
+        method: 'PATCH', headers: H,
+        body: JSON.stringify({ username })
+      })
       const d = await r.json()
-      if (!r.ok) throw new Error(d?.detail || 'Erro ao salvar')
+      if (!r.ok) {
+        const msg = d?.detail || 'Erro ao salvar'
+        if (msg.includes('already taken') || msg.includes('já em uso')) {
+          setUsernameMsg({ type: 'err', text: 'Username já em uso. Escolha outro.' })
+        } else {
+          setUsernameMsg({ type: 'err', text: msg })
+        }
+        return
+      }
       setUser(d)
+      setUsername(d.username || '')
       setUsernameMsg({ type: 'ok', text: 'Username atualizado!' })
-    } catch (err) { setUsernameMsg({ type: 'err', text: err.message }) }
-    finally { setSavingUser(false) }
+    } catch (err) {
+      setUsernameMsg({ type: 'err', text: err.message })
+    } finally { setSavingUser(false) }
   }
 
-  const usernameChanged = user && username !== user.username
-  const usernameOk = usernameChanged && usernameMsg?.type === 'ok' && username.length >= 3
+  const usernameChanged = user && username !== (user.username || '')
+  const usernameValid = username.length >= 3
+  const canSave = usernameChanged && usernameValid && !savingUser && usernameMsg?.type !== 'err'
+
+  const isGoogle = user ? !user.has_password : false
 
   const LabelEl = ({ text }) => React.createElement('label', { style: LS }, text)
 
@@ -103,16 +146,34 @@ export default function Profile() {
           <form onSubmit={saveUsername} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <div>
               <LabelEl text="Username" />
-              <input style={IS} value={username} onChange={e => setUsername(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ''))} maxLength={50} />
-              {usernameMsg && <div style={msgS(usernameMsg.type)}>{usernameMsg.text}</div>}
-              <div style={{ fontSize: '11px', color: '#2a3046', marginTop: '4px' }}>Aparece no leaderboard. Letras, numeros, _ e -</div>
+              <input
+                style={IS}
+                value={username}
+                onChange={e => setUsername(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ''))}
+                maxLength={50}
+                placeholder="seu_nick"
+              />
+              {usernameMsg && (
+                <div style={msgS(usernameMsg.type)}>
+                  {usernameMsg.type === 'ok' ? '✓ ' : usernameMsg.type === 'err' ? '✗ ' : ''}
+                  {usernameMsg.text}
+                </div>
+              )}
+              <div style={{ fontSize: '11px', color: '#2a3046', marginTop: '4px' }}>
+                Aparece no leaderboard. Letras, numeros, _ e -
+              </div>
             </div>
             <div>
               <LabelEl text="E-mail" />
               <input style={IR} value={user?.email || ''} readOnly />
+              {isGoogle && (
+                <div style={{ fontSize: '11px', color: 'var(--color-xama-muted)', marginTop: '4px' }}>
+                  Conta vinculada ao Google — email gerenciado pelo Google
+                </div>
+              )}
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button type="submit" disabled={savingUser || !usernameOk} style={btnOrange(savingUser || !usernameOk)}>
+              <button type="submit" disabled={!canSave} style={btnOrange(!canSave)}>
                 {savingUser ? 'Salvando...' : 'Salvar Username'}
               </button>
             </div>

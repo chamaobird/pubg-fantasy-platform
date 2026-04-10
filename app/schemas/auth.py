@@ -5,7 +5,7 @@ from typing import Optional
 from pydantic import BaseModel, EmailStr, field_validator
 
 
-# ── Register ──────────────────────────────────────────────────────────────────
+# -- Register ------------------------------------------------------------------
 
 class RegisterRequest(BaseModel):
     email: EmailStr
@@ -32,21 +32,21 @@ class RegisterRequest(BaseModel):
         return v
 
 
-# ── Login ─────────────────────────────────────────────────────────────────────
+# -- Login ---------------------------------------------------------------------
 
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
 
 
-# ── Token ─────────────────────────────────────────────────────────────────────
+# -- Token ---------------------------------------------------------------------
 
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
 
 
-# ── User responses ────────────────────────────────────────────────────────────
+# -- User responses ------------------------------------------------------------
 
 class UserResponse(BaseModel):
     id: str
@@ -55,6 +55,19 @@ class UserResponse(BaseModel):
     avatar_url: Optional[str]
     is_admin: bool
     email_verified: bool
+    has_password: bool = False  # True se conta tem senha definida (nao Google-only)
+
+    @classmethod
+    def from_orm(cls, obj):
+        return cls(
+            id=obj.id,
+            email=obj.email,
+            username=obj.username,
+            avatar_url=obj.avatar_url,
+            is_admin=obj.is_admin,
+            email_verified=obj.email_verified,
+            has_password=bool(obj.password_hash),
+        )
 
     model_config = {"from_attributes": True}
 
