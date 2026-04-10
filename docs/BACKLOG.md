@@ -2,16 +2,16 @@
 
 ## 🟡 Próximas tarefas (priorizadas)
 
-### Fase 9 — Filtros e correções de UX
-- [ ] #094 PlayerStats: filtros por dia, por partida e fix do dropdown de times (shortName não propagado → tags aparecem como "—")
-- [ ] #095 TournamentHub: passar shortName da stage como prop para PlayerStatsPage e TeamLogo
+### Infra — pendente domínio
+- [ ] #120 Configurar domínio próprio no Resend para envio de email para qualquer destinatário
+- [ ] #121 Desabilitar click tracking do Resend (disponível após domínio verificado)
 
-### Auth (pendente)
-- [ ] #013 Confirmação de email via Resend (aguardando conta Resend)
-
-### Pricing — próximas melhorias (Bloco C)
+### Pricing — Bloco C
 - [ ] #101 Job de polling de partidas ao vivo — detecta novas partidas durante torneio e importa automaticamente
 - [ ] #103 Suporte a upload de jogadores via planilha (CSV) para casos de shard steam
+
+### Auth
+- [ ] #013b Google OAuth em produção — aguardando propagação DNS do Google Cloud Console (pode levar horas)
 
 ## 🟢 Concluído
 
@@ -102,16 +102,18 @@
 - [x] #081 Championships page — nova página /championships consumindo novo backend
 - [x] #082 Profile — endpoints corrigidos /users/me → /auth/me, estados mortos removidos
 - [x] #083 Navbar — link Torneios → Campeonatos (/championships)
-- [x] #100 tier_weight validado no Swagger (campo presente em Championship create/update)
-- [x] #102 pricing_n_matches deprecated — removido de StageCreate/Update/Response
-- [x] #110 distribute_matches_by_day — reescrita com divmod, robusta para N dias
-- [x] #111 pgs_match_ids.json — path atualizado para scripts/pubg/data/ com fallback legado
+- [x] #100 tier_weight validado no Swagger
+- [x] #102 pricing_n_matches deprecated
+- [x] #110 distribute_matches_by_day reescrita com divmod
+- [x] #111 pgs_match_ids.json movido para scripts/pubg/data/
 
-### Limpeza de legado (09/04/2026)
-- [x] TournamentSelect.jsx arquivado — substituído por Championships.jsx
-- [x] TournamentHub.jsx — legacySharedProps removidos
-- [x] TournamentLeaderboard.jsx — props legadas removidas, recebe só token + stageId
-- [x] PlayerStatsPage.jsx — props legadas removidas, ChampionshipSelector removido
-- [x] App.jsx — rota /tournaments → redirect para /championships
-- [x] Correção de ImportError: MatchStat em lineup_scoring.py e scoring_job.py
-- [x] Migration 0007 commitada no repositório (estava untracked)
+### Fase 9 — Filtros UX + Auth (09/04/2026)
+- [x] #094 PlayerStats: shortName propagado → TeamLogo mostra logos corretamente
+- [x] #095 TournamentHub: shortName passado como prop para PlayerStatsPage
+- [x] #013 Email verification — Resend integrado, migration 0008, /auth/verify + /auth/resend-verification
+- [x] AuthVerified.jsx — tela de confirmação pós-verificação
+- [x] LandingPage — feedback visual pós-cadastro ("Verifique seu email")
+- [x] Google OAuth client ID corrigido (client deletado → novo ID configurado)
+- [x] bcrypt==4.0.1 + passlib==1.7.4 fixados no requirements.txt
+- [x] Credenciais do banco rotacionadas (incidente GitGuardian)
+- [x] *.sql adicionado ao .gitignore

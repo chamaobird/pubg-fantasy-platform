@@ -3,25 +3,32 @@
 ## Stack
 - Backend: FastAPI + Python 3.11 + PostgreSQL + Render
 - Frontend: React + Vite (localhost:5173)
-- Auth: JWT + Google OAuth
+- Auth: JWT + Google OAuth + email verification (Resend)
 - Scheduler: APScheduler (lineup_control 1min, scoring 1min, pricing 30min)
 - ORM: SQLAlchemy síncrono (Session, não AsyncSession)
 
 ## Comandos essenciais
 - Rodar backend: `python -m uvicorn app.main:app --reload` (sem .venv, Python global, rodar da raiz do projeto)
-- Rodar frontend: `cd frontend ; npm run dev`
+- Rodar frontend: `cd C:\Users\lgpas\PROJECTS\pubg-fantasy-platform\frontend` depois `npm run dev`
 - Migration: `$env:DATABASE_URL="..." ; python -m alembic upgrade head`
 - PowerShell: usar `;` em vez de `&&` para encadear comandos
-- psql Render: `& "C:\Program Files\PostgreSQL\18\bin\psql.exe" "postgresql://pubgfantasydb_b478_user:XTomgiAI5eaPRpoe8NbdVz3rroHHSC1y@dpg-d6ke3plm5p6s73domdmg-a.oregon-postgres.render.com/pubg_fantasy_db?sslmode=require"`
+- psql Render: usar arquivo .sql com encoding ASCII (ver nota abaixo)
+
+## psql no PowerShell — nota crítica
+Nunca passar SQL inline com -c no PowerShell — escaping de aspas duplas é problemático.
+Sempre usar arquivo intermediário:
+  `'SQL aqui com ''aspas simples'' escapadas assim' | Out-File -FilePath ".\query.sql" -Encoding ascii`
+  `& "C:\Program Files\PostgreSQL\18\bin\psql.exe" "CONNECTION_STRING" -f ".\query.sql"`
+A connection string atual do Render está nas env vars do backend (DATABASE_URL).
 
 ## Alembic — regras críticas
 - Sempre rodar `python -m alembic` da raiz do projeto
 - O campo `revision` dentro do arquivo é o ID que o Alembic usa — NÃO o nome do arquivo
-- O `down_revision` deve referenciar o valor do campo `revision` da migration anterior, não o nome do arquivo
-- Cadeia atual: 0001 → 0002 → 4bfb4ef75223 → 0003 → 0004 → 0005 → 0006 → 0007
-- Próxima migration deve ter `revision = "0008"` e `down_revision = "0007"`
+- O `down_revision` deve referenciar o valor do campo `revision` da migration anterior
+- Cadeia atual: 0001 → 0002 → 4bfb4ef75223 → 0003 → 0004 → 0005 → 0006 → 0007 → 0008
+- Próxima migration deve ter `revision = "0009"` e `down_revision = "0008"`
 - Sempre verificar o `revision` real antes de criar nova migration:
-  `Get-Content alembic\versions\0007_championship_tier_weight.py | Select-Object -First 15`
+  `Get-Content alembic\versions\0008_user_email_verification.py | Select-Object -First 15`
 
 ## Estrutura de entidades
 CHAMPIONSHIP → STAGE → STAGE_DAY → MATCH → MATCH_STAT
@@ -42,12 +49,22 @@ PERSON_STAGE_STAT (ppm por jogador por stage, usado no pricing)
 - Replicação: APScheduler replica lineup do dia anterior se usuário não submeter
 - Scoring: APScheduler detecta StageDays locked com MatchStats e calcula points_earned
 
+## Auth — email verification
+- Cadastro via email/senha exige verificação de email antes do login
+- Resend API usada para envio (RESEND_API_KEY + EMAIL_FROM nas env vars do Render)
+- EMAIL_FROM=onboarding@resend.dev (sem domínio verificado — só envia para lgpassarini@gmail.com)
+- Quando tiver domínio próprio: verificar em resend.com/domains e atualizar EMAIL_FROM
+- Google OAuth: email_verified=True automaticamente
+- Endpoints: GET /auth/verify?token=... e POST /auth/resend-verification
+- Frontend: /auth/verified → AuthVerified.jsx (tela de confirmação)
+
 ## Rotas do frontend
 - /                  → LandingPage (redirect para /dashboard se logado)
 - /dashboard         → Dashboard (stages abertas + histórico do usuário)
 - /championships     → Championships (lista todos os championships com stages)
 - /tournament/:id    → TournamentHub (lineup + leaderboard + stats + admin)
 - /stages/:id/results → LineupResultsPage (pontuação por jogador por dia)
+- /auth/verified     → AuthVerified (tela pós-verificação de email)
 - /profile           → Profile
 - /tournaments       → redirect para /championships (legado)
 
@@ -67,6 +84,8 @@ PERSON_STAGE_STAT (ppm por jogador por stage, usado no pricing)
 - GET /auth/me — usuário autenticado
 - PATCH /auth/me — atualizar username/avatar
 - POST /auth/login / POST /auth/register
+- GET /auth/verify?token=... — verificação de email
+- POST /auth/resend-verification — reenvio de email
 
 ## Endpoints admin
 - PATCH /admin/pricing/rosters/{id}/cost-override
@@ -84,7 +103,8 @@ PERSON_STAGE_STAT (ppm por jogador por stage, usado no pricing)
 → 0004_lineup_captain (revision="0004")
 → 0005_stage_short_name_is_active (revision="0005")
 → 0006_stage_captain_multiplier (revision="0006")
-→ 0007_championship_tier_weight (revision="0007")  ← ATUAL HEAD
+→ 0007_championship_tier_weight (revision="0007")
+→ 0008_user_email_verification (revision="0008")  ← ATUAL HEAD
 
 ## Dados reais no banco (PGS 2026)
 - Championship: PUBG Global Series 2026 (id=2, tier_weight=1.00)
@@ -99,7 +119,7 @@ PERSON_STAGE_STAT (ppm por jogador por stage, usado no pricing)
 - populate_pgs2026.py — cria estrutura + importa matches (idempotente)
 - populate_players.py — cria Person + PlayerAccount da PGS 2026
 - populate_rosters.py — cria Rosters baseado nos MatchStats existentes
-- scripts/pubg/data/pgs_match_ids.json — match IDs salvos por tournament ID (movido da raiz)
+- scripts/pubg/data/pgs_match_ids.json — match IDs salvos por tournament ID
 
 ## Logos de times
 - Ficam em frontend/public/logos/{PASTA}/{tag}.png
@@ -109,10 +129,11 @@ PERSON_STAGE_STAT (ppm por jogador por stage, usado no pricing)
 
 ## Notas de implementação importantes
 - pricing_n_matches: campo DEPRECATED no modelo Stage — existe no banco mas não é lido
-  pelo pricing service (substituído por MAX_MATCHES=50 global em app/services/pricing.py)
 - MatchStat está em app/models/match_stat.py — NÃO em app/models/match.py
 - Profile usa /auth/me (GET/PATCH) — não existe /users/me
 - TournamentSelect.jsx arquivado — substituído por Championships.jsx
-- ChampionshipSelector removido de TournamentLeaderboard e PlayerStatsPage
+- bcrypt==4.0.1 + passlib==1.7.4 fixados no requirements.txt (incompatibilidade com versões superiores no Render)
+- *.sql adicionado ao .gitignore (evitar exposição de credenciais)
+- Google OAuth client ID: 697343070083-au4k11q2j8s0kr0q41e1lbsjkv73k4ni.apps.googleusercontent.com
 
-## Fase atual: 8 concluída — próxima: Fase 9
+## Fase atual: 9 concluída — próxima: Bloco C (Pricing) ou domínio

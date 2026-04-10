@@ -14,9 +14,11 @@ Estou desenvolvendo a XAMA Fantasy, uma plataforma de fantasy sports para PUBG e
 ## Comandos essenciais
 
 - Backend: `python -m uvicorn app.main:app --reload` (rodar da raiz do projeto)
-- Frontend: `cd frontend ; npm run dev`
+- Frontend: `cd C:\Users\lgpas\PROJECTS\pubg-fantasy-platform\frontend` depois `npm run dev`
 - Migration: `$env:DATABASE_URL="..." ; python -m alembic upgrade head`
-- psql Render: `& "C:\Program Files\PostgreSQL\18\bin\psql.exe" "postgresql://pubgfantasydb_b478_user:XTomgiAI5eaPRpoe8NbdVz3rroHHSC1y@dpg-d6ke3plm5p6s73domdmg-a.oregon-postgres.render.com/pubg_fantasy_db?sslmode=require"`
+- psql Render: SEMPRE usar arquivo .sql com encoding ASCII — nunca -c inline no PowerShell:
+  `'SQL;' | Out-File -FilePath ".\q.sql" -Encoding ascii`
+  `& "C:\Program Files\PostgreSQL\18\bin\psql.exe" "CONNECTION_STRING" -f ".\q.sql"`
 
 ## Regra crítica do Alembic (problema recorrente)
 
@@ -24,38 +26,46 @@ O Alembic usa o valor do campo `revision = "XXXX"` DENTRO do arquivo .py, não o
 O `down_revision` deve referenciar o valor EXATO do campo `revision` da migration anterior.
 
 Cadeia atual de migrations (valores reais dos campos `revision`):
-  "0001" → "0002" → "4bfb4ef75223" → "0003" → "0004" → "0005" → "0006" → "0007"
+  "0001" → "0002" → "4bfb4ef75223" → "0003" → "0004" → "0005" → "0006" → "0007" → "0008"
 
 A próxima migration deve ter:
-  revision = "0008"
-  down_revision = "0007"
+  revision = "0009"
+  down_revision = "0008"
 
 Antes de criar qualquer nova migration, verificar o revision real da última:
-  `Get-Content alembic\versions\0007_championship_tier_weight.py | Select-Object -First 15`
+  `Get-Content alembic\versions\0008_user_email_verification.py | Select-Object -First 15`
 
-## Status atual — Fases 1 a 8 + Blocos A e B concluídos + Deploy no ar
+## Status atual — Fases 1–9 + Blocos A e B concluídos + Deploy no ar
 
-### Fase 8 (admin scoring + UX + limpeza de legado)
-- Endpoints admin: POST /admin/stages/{id}/score-day e /rescore
-- LineupResultsPage: pontuação por jogador por dia com acumulado da stage
-- LineupBuilder: badge ⭐ CAP ×1.30 no header e multiplicador no slot do capitão
-- Championships page: nova página /championships consumindo GET /championships/
-- Profile corrigido: /users/me → /auth/me, bloco de senha removido (endpoint não existe)
-- Navbar: link Torneios → Campeonatos (/championships)
-- Limpeza de legado: TournamentSelect arquivado, ChampionshipSelector removido,
-  legacySharedProps removidos do TournamentHub
-- Bug fix: MatchStat importado de app.models.match_stat (não app.models.match)
-- Migration 0007 commitada no repositório (estava untracked — causava falha no deploy)
-- pricing_n_matches deprecated nos schemas (campo existe no banco mas não é lido)
-- distribute_matches_by_day reescrita com divmod (robusta para N dias)
-- pgs_match_ids.json movido para scripts/pubg/data/
+### Fase 9 (filtros UX + auth — 09/04/2026)
+- #094 + #095: shortName propagado TournamentHub → PlayerStatsPage → TeamLogo
+- #013: Email verification completo — Resend integrado, migration 0008
+  - GET /auth/verify?token=... e POST /auth/resend-verification
+  - AuthVerified.jsx — tela pós-verificação (/auth/verified)
+  - Login bloqueia não verificados com mensagem clara
+  - Google OAuth: email_verified=True automaticamente
+- LandingPage: feedback visual pós-cadastro ("Verifique seu email")
+- Google OAuth client ID corrigido: 697343070083-au4k11q2j8s0kr0q41e1lbsjkv73k4ni
+- bcrypt==4.0.1 + passlib==1.7.4 fixados no requirements.txt
+- Incidente de segurança resolvido: credenciais rotacionadas, *.sql no .gitignore
+
+### Limitação atual do Resend
+- EMAIL_FROM=onboarding@resend.dev (sem domínio verificado)
+- Só envia para lgpassarini@gmail.com em produção
+- Para enviar para qualquer email: verificar domínio em resend.com/domains
+
+### Google OAuth em produção
+- Configurado e funcionando localmente
+- Em produção aguardando propagação do Google Cloud Console (pode levar horas)
+- JavaScript origin adicionada: https://pubg-fantasy-frontend.onrender.com
 
 ### Rotas do frontend (estado atual)
 - /                  → LandingPage
-- /dashboard         → Dashboard (stages abertas + histórico)
-- /championships     → Championships (todos os campeonatos com stages)
-- /tournament/:id    → TournamentHub (lineup + leaderboard + stats + admin)
+- /dashboard         → Dashboard
+- /championships     → Championships
+- /tournament/:id    → TournamentHub
 - /stages/:id/results → LineupResultsPage
+- /auth/verified     → AuthVerified
 - /profile           → Profile
 - /tournaments       → redirect para /championships
 
@@ -85,12 +95,8 @@ Antes de criar qualquer nova migration, verificar o revision real da última:
 - < 20 partidas válidas → newcomer_cost (default 15)
 - price_min=12, price_max=35 (configurável por stage)
 
-### Identity resolution (PUBG pc-tournament)
-- Uma Person pode ter N PlayerAccounts todos com o mesmo alias
-- Agrupamento feito por alias.lower() no populate_players.py
-
 ## Endpoints públicos principais
-- GET /championships/ — championships com stages aninhadas (?include_inactive=true)
+- GET /championships/ — championships com stages aninhadas
 - GET /stages/ — stages ativas (?open_only=true)
 - GET /stages/{id}/roster — jogadores com effective_cost
 - GET /stages/{id}/days — stage days
@@ -103,20 +109,20 @@ Antes de criar qualquer nova migration, verificar o revision real da última:
 - GET /lineups/stage/{id} — lineups do usuário na stage
 - GET /auth/me / PATCH /auth/me — perfil do usuário
 - POST /auth/login / POST /auth/register
+- GET /auth/verify?token=... / POST /auth/resend-verification
 
 ## Endpoints admin
 - PATCH /admin/pricing/rosters/{id}/cost-override
 - POST /admin/pricing/stages/{id}/recalculate-pricing
-- POST /admin/stages/{id}/import-matches  ← {pubg_match_ids: [...], stage_day_id: N}
+- POST /admin/stages/{id}/import-matches ← {pubg_match_ids: [...], stage_day_id: N}
 - POST /admin/stages/{id}/reprocess-match
-- POST /admin/stages/{id}/score-day  ← {stage_day_id: N}
+- POST /admin/stages/{id}/score-day ← {stage_day_id: N}
 - POST /admin/stages/{id}/rescore
 
-## Próxima fase: Fase 9 — Filtros e correções de UX
-
-- [ ] #094 PlayerStats: filtros por dia e por partida (chips de dia + seletor de partida)
-- [ ] #095 PlayerStats + TeamLogo: shortName não propagado → tags de time aparecem como "—"
-        TournamentHub precisa passar stage.short_name como prop para PlayerStatsPage
+## Próximas tarefas
+- [ ] #120 Domínio próprio no Resend (desbloqueio de envio para qualquer email)
+- [ ] #101 Job de polling de partidas ao vivo
+- [ ] #103 Upload de jogadores via CSV (shard steam)
 
 Backlog completo em BACKLOG.md.
 Contexto técnico completo em CONTEXT.md.
@@ -126,9 +132,4 @@ Contexto técnico completo em CONTEXT.md.
 Obrigatórios:
 1. BACKLOG.md
 2. CONTEXT.md
-3. frontend/src/components/PlayerStatsPage.jsx
-4. frontend/src/pages/TournamentHub.jsx
-
-Se a tarefa envolver outros componentes:
-5. frontend/src/components/TeamLogo.jsx
-6. frontend/src/components/TournamentLeaderboard.jsx
+3. PROMPT_RETOMADA.md (este arquivo)

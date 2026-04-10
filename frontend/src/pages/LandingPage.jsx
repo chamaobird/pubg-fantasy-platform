@@ -8,7 +8,7 @@ import { useAuth } from '../App'
 import { API_BASE_URL } from '../config'
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google'
 
-const GOOGLE_CLIENT_ID = '697343070083-p1aunrkhcnjrq8qafqc1iice7g6in262.apps.googleusercontent.com'
+const GOOGLE_CLIENT_ID = '697343070083-au4k11q2j8s0kr0q41e1lbsjkv73k4ni.apps.googleusercontent.com'
 
 if (!document.getElementById('xama-fonts')) {
   const link = document.createElement('link')
@@ -19,7 +19,14 @@ if (!document.getElementById('xama-fonts')) {
 
 function parseError(err) {
   if (typeof err === 'string') return err
-  if (err?.message) return err.message
+  if (err?.message) {
+    // Tenta extrair detail de JSON embutido na mensagem
+    try {
+      const parsed = JSON.parse(err.message)
+      if (typeof parsed?.detail === 'string') return parsed.detail
+    } catch {}
+    return err.message
+  }
   return 'Erro inesperado'
 }
 
