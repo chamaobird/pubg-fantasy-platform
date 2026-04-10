@@ -5,6 +5,8 @@ Auth endpoints:
   POST /auth/login                 - returns JWT
   GET  /auth/verify                - confirma email via token
   POST /auth/resend-verification   - reenvia email de confirmacao
+  POST /auth/forgot-password       - solicita reset de senha
+  POST /auth/reset-password        - aplica nova senha via token
   GET  /auth/google                - redirect to Google consent screen
   GET  /auth/google/callback       - OAuth callback
   GET  /auth/me                    - current user info
@@ -17,6 +19,7 @@ import urllib.parse
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -33,16 +36,28 @@ from app.schemas.auth import (
 from app.services.auth import (
     authenticate_user,
     create_access_token,
+    create_password_reset_token,
     create_user,
     exchange_google_code,
     get_or_create_google_user,
     get_user_by_email,
+    reset_password,
     verify_email_token,
 )
-from app.services.email import send_verification_email
+from app.services.email import send_verification_email, send_password_reset_email
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["Auth"])
+
+
+# -- Schemas locais ------------------------------------------------------------
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
 
 
 # -- Register ------------------------------------------------------------------
@@ -104,7 +119,6 @@ def verify_email(token: str, db: Session = Depends(get_db)):
 
 @router.post("/resend-verification")
 def resend_verification(body: LoginRequest, db: Session = Depends(get_db)) -> dict:
-    """Reenvia email de verificacao. Requer email + senha para evitar enumeracao."""
     user = authenticate_user(db, body.email, body.password)
     if not user:
         raise HTTPException(
@@ -121,6 +135,35 @@ def resend_verification(body: LoginRequest, db: Session = Depends(get_db)) -> di
             detail="Falha ao enviar email. Tente novamente.",
         )
     return {"detail": "Email de verificacao reenviado."}
+
+
+# -- Forgot password -----------------------------------------------------------
+
+@router.post("/forgot-password")
+def forgot_password(body: ForgotPasswordRequest, db: Session = Depends(get_db)) -> dict:
+    """
+    Envia email de reset se o email existir.
+    Sempre retorna 200 para nao revelar se email esta cadastrado.
+    """
+    token = create_password_reset_token(db, body.email)
+    if token:
+        sent = send_password_reset_email(body.email, token)
+        if not sent:
+            logger.warning("Failed to send password reset email to %s", body.email)
+    return {"detail": "Se o email estiver cadastrado, voce recebera as instrucoes de reset."}
+
+
+# -- Reset password ------------------------------------------------------------
+
+@router.post("/reset-password")
+def do_reset_password(body: ResetPasswordRequest, db: Session = Depends(get_db)) -> dict:
+    success = reset_password(db, body.token, body.new_password)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Token invalido ou expirado.",
+        )
+    return {"detail": "Senha atualizada com sucesso."}
 
 
 # -- Google OAuth --------------------------------------------------------------

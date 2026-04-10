@@ -71,7 +71,12 @@ function AuthCard({ redirectTo = '/dashboard' }) {
   const { setToken } = useAuth()
   const navigate = useNavigate()
 
-  const [mode, setMode] = useState('login') // 'login' | 'register'
+  const [mode, setMode] = useState('login') // 'login' | 'register' | 'forgot'
+
+  const [forgotEmail, setForgotEmail] = useState('')
+  const [forgotLoading, setForgotLoading] = useState(false)
+  const [forgotMsg, setForgotMsg] = useState('')
+  const [forgotError, setForgotError] = useState('')
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -156,6 +161,23 @@ function AuthCard({ redirectTo = '/dashboard' }) {
     } finally { setResendLoading(false) }
   }
 
+  // ── Forgot password ────────────────────────────────────────────────────────
+  async function doForgot(e) {
+    e.preventDefault()
+    setForgotLoading(true); setForgotError(''); setForgotMsg('')
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail }),
+      })
+      const data = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(data?.detail || `HTTP ${res.status}`)
+      setForgotMsg('Se o email estiver cadastrado, você receberá as instruções em breve.')
+    } catch (err) { setForgotError(parseError(err)) }
+    finally { setForgotLoading(false) }
+  }
+
   // ── Google OAuth ───────────────────────────────────────────────────────────
   function handleGoogleLogin() {
     window.location.href = `${API_BASE_URL}/auth/google`
@@ -184,19 +206,22 @@ function AuthCard({ redirectTo = '/dashboard' }) {
           <div style={{ flex: 1, height: '1px', background: 'var(--color-xama-border)' }} />
         </div>
 
-        {/* Toggle */}
-        <div style={{ display: 'flex', gap: '4px', marginBottom: '20px', background: '#0a0c11', borderRadius: '8px', padding: '4px' }}>
-          {['login', 'register'].map(m => (
-            <button key={m} onClick={() => {
-              setMode(m)
-              setLoginError(''); setRegError(''); setRegSuccess('')
-              setShowResend(false); setResendMsg('')
-            }}
-              style={{ flex: 1, padding: '8px', borderRadius: '6px', fontSize: '13px', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', fontFamily: "'Rajdhani', sans-serif", cursor: 'pointer', border: 'none', background: mode === m ? 'var(--color-xama-surface)' : 'none', color: mode === m ? 'var(--color-xama-orange)' : 'var(--color-xama-muted)', transition: 'all 0.15s' }}>
-              {m === 'login' ? 'Entrar' : 'Cadastrar'}
-            </button>
-          ))}
-        </div>
+        {/* Toggle — só mostra em login/register */}
+        {mode !== 'forgot' && (
+          <div style={{ display: 'flex', gap: '4px', marginBottom: '20px', background: '#0a0c11', borderRadius: '8px', padding: '4px' }}>
+            {['login', 'register'].map(m => (
+              <button key={m} onClick={() => {
+                setMode(m)
+                setLoginError(''); setRegError(''); setRegSuccess('')
+                setShowResend(false); setResendMsg('')
+                setForgotMsg(''); setForgotError('')
+              }}
+                style={{ flex: 1, padding: '8px', borderRadius: '6px', fontSize: '13px', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', fontFamily: "'Rajdhani', sans-serif", cursor: 'pointer', border: 'none', background: mode === m ? 'var(--color-xama-surface)' : 'none', color: mode === m ? 'var(--color-xama-orange)' : 'var(--color-xama-muted)', transition: 'all 0.15s' }}>
+                {m === 'login' ? 'Entrar' : 'Cadastrar'}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Login form */}
         {mode === 'login' && (
@@ -213,10 +238,44 @@ function AuthCard({ redirectTo = '/dashboard' }) {
             <button type="submit" disabled={loginLoading} style={btnStyle(loginLoading)}>
               {loginLoading ? 'Entrando…' : 'Entrar →'}
             </button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <p style={{ fontSize: '12px', color: 'var(--color-xama-muted)', margin: 0 }}>
+                Não tem conta?{' '}
+                <span onClick={() => setMode('register')} style={{ color: 'var(--color-xama-orange)', cursor: 'pointer', fontWeight: 700 }}>
+                  Cadastre-se
+                </span>
+              </p>
+              <span onClick={() => { setMode('forgot'); setForgotEmail(email); setForgotMsg(''); setForgotError('') }}
+                style={{ fontSize: '12px', color: 'var(--color-xama-muted)', cursor: 'pointer', textDecoration: 'underline' }}>
+                Esqueci minha senha
+              </span>
+            </div>
+          </form>
+        )}
+
+        {/* Forgot password form */}
+        {mode === 'forgot' && (
+          <form onSubmit={doForgot} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div style={{ textAlign: 'center', marginBottom: '4px' }}>
+              <div style={{ fontSize: '24px', marginBottom: '6px' }}>🔑</div>
+              <p style={{ fontSize: '13px', color: 'var(--color-xama-muted)', margin: 0 }}>
+                Digite seu email e enviaremos as instruções para redefinir sua senha.
+              </p>
+            </div>
+            <div>
+              <label style={labelStyle}>E-mail</label>
+              <input className="dark-input" type="email" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} placeholder="seu@email.com" required style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: '15px' }} />
+            </div>
+            {forgotError && <div className="msg-error">{forgotError}</div>}
+            {forgotMsg && <div className="msg-success">{forgotMsg}</div>}
+            {!forgotMsg && (
+              <button type="submit" disabled={forgotLoading} style={btnStyle(forgotLoading)}>
+                {forgotLoading ? 'Enviando…' : 'Enviar instruções →'}
+              </button>
+            )}
             <p style={{ textAlign: 'center', fontSize: '12px', color: 'var(--color-xama-muted)', margin: 0 }}>
-              Não tem conta?{' '}
-              <span onClick={() => setMode('register')} style={{ color: 'var(--color-xama-orange)', cursor: 'pointer', fontWeight: 700 }}>
-                Cadastre-se
+              <span onClick={() => setMode('login')} style={{ color: 'var(--color-xama-orange)', cursor: 'pointer', fontWeight: 700 }}>
+                ← Voltar para o login
               </span>
             </p>
           </form>

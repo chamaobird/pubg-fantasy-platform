@@ -9,6 +9,7 @@ import Dashboard from './pages/Dashboard'
 import LineupResultsPage from './pages/LineupResultsPage'
 import AuthVerified from './pages/AuthVerified'
 import AuthCallback from './pages/AuthCallback'
+import ResetPasswordPage from './pages/ResetPasswordPage'
 
 export const AuthContext = createContext(null)
 export const useAuth = () => useContext(AuthContext)
@@ -88,6 +89,10 @@ export default function App() {
 
           <Route path="/auth/callback" element={
             <AuthCallback />
+          } />
+
+          <Route path="/auth/reset-password" element={
+            <ResetPasswordPage />
           } />
 
           {/* Fallback */}

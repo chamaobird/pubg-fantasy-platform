@@ -20,7 +20,7 @@ from app.models.user import User
 
 logger = logging.getLogger(__name__)
 
-# ── Password hashing ──────────────────────────────────────────────────────────
+# -- Password hashing ----------------------------------------------------------
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -33,7 +33,7 @@ def verify_password(plain: str, hashed: str) -> bool:
     return pwd_context.verify(plain[:72], hashed)
 
 
-# ── JWT ───────────────────────────────────────────────────────────────────────
+# -- JWT -----------------------------------------------------------------------
 
 def create_access_token(user_id: str, is_admin: bool) -> str:
     expire = datetime.now(tz=timezone.utc) + timedelta(
@@ -54,7 +54,7 @@ def decode_access_token(token: str) -> Optional[dict]:
         return None
 
 
-# ── User operations ───────────────────────────────────────────────────────────
+# -- User operations -----------------------------------------------------------
 
 def get_user_by_email(db: Session, email: str) -> Optional[User]:
     return db.query(User).filter(User.email == email).first()
@@ -104,7 +104,6 @@ def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
 
 
 def verify_email_token(db: Session, token: str) -> Optional[User]:
-    """Marca o usuário como verificado. Retorna o user ou None se token inválido."""
     user = db.query(User).filter(User.email_verify_token == token).first()
     if not user:
         return None
@@ -115,7 +114,60 @@ def verify_email_token(db: Session, token: str) -> Optional[User]:
     return user
 
 
-# ── Google OAuth ──────────────────────────────────────────────────────────────
+# -- Password reset ------------------------------------------------------------
+
+PASSWORD_RESET_EXPIRE_MINUTES = 30
+
+
+def create_password_reset_token(db: Session, email: str) -> Optional[str]:
+    """
+    Gera token de reset para o email informado.
+    Retorna o token ou None se email nao encontrado.
+    Nao revela se o email existe (seguranca anti-enumeracao).
+    """
+    user = get_user_by_email(db, email)
+    if not user:
+        return None
+    if not user.password_hash:
+        # Conta Google-only — nao tem senha para resetar
+        return None
+
+    token = secrets.token_urlsafe(32)
+    user.password_reset_token = token
+    user.password_reset_expires_at = datetime.now(tz=timezone.utc) + timedelta(
+        minutes=PASSWORD_RESET_EXPIRE_MINUTES
+    )
+    db.commit()
+    return token
+
+
+def reset_password(db: Session, token: str, new_password: str) -> bool:
+    """
+    Aplica nova senha se token valido e nao expirado.
+    Retorna True se sucesso, False caso contrario.
+    """
+    user = db.query(User).filter(User.password_reset_token == token).first()
+    if not user:
+        return False
+    if not user.password_reset_expires_at:
+        return False
+
+    now = datetime.now(tz=timezone.utc)
+    expires = user.password_reset_expires_at
+    # Garante que ambos sao offset-aware para comparacao
+    if expires.tzinfo is None:
+        expires = expires.replace(tzinfo=timezone.utc)
+    if now > expires:
+        return False
+
+    user.password_hash = hash_password(new_password)
+    user.password_reset_token = None
+    user.password_reset_expires_at = None
+    db.commit()
+    return True
+
+
+# -- Google OAuth --------------------------------------------------------------
 
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
