@@ -6,6 +6,9 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "postgresql://user:password@localhost/xama_fantasy"
 
+    # Backend public URL (used for OAuth redirect URI)
+    BACKEND_URL: str = "http://localhost:8000"
+
     # PUBG API
     PUBG_API_KEY: str = ""
 

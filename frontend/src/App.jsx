@@ -8,6 +8,7 @@ import Profile from './pages/Profile'
 import Dashboard from './pages/Dashboard'
 import LineupResultsPage from './pages/LineupResultsPage'
 import AuthVerified from './pages/AuthVerified'
+import AuthCallback from './pages/AuthCallback'
 
 export const AuthContext = createContext(null)
 export const useAuth = () => useContext(AuthContext)
@@ -83,6 +84,10 @@ export default function App() {
 
           <Route path="/auth/verified" element={
             <AuthVerified />
+          } />
+
+          <Route path="/auth/callback" element={
+            <AuthCallback />
           } />
 
           {/* Fallback */}
