@@ -20,7 +20,7 @@ def send_verification_email(to_email: str, token: str) -> bool:
     Envia email de confirmação de conta.
     Retorna True se enviado com sucesso, False caso contrário.
     """
-    verify_url = f"{settings.FRONTEND_URL}/auth/verify?token={token}"
+    verify_url = f"{settings.BACKEND_URL}/auth/verify?token={token}"
 
     html = f"""
     <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 32px;">
