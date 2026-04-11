@@ -1,5 +1,5 @@
 // components/TournamentHeader.jsx
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { StatusBadge } from './ui/Badge'
 
@@ -7,15 +7,23 @@ import { StatusBadge } from './ui/Badge'
 function ChampionshipLogo({ shortName, size = 32 }) {
   const upper = (shortName || '').toUpperCase()
   const folder = upper.startsWith('PGS') ? 'PGS' : upper.startsWith('PAS') ? 'PAS' : null
+  const candidates = folder ? [
+    `/logos/Tournaments/${folder}.webp`,
+    `/logos/Tournaments/${folder}.png`,
+  ] : []
+  const [idx, setIdx] = useState(0)
   const [failed, setFailed] = useState(false)
 
-  if (!folder || failed) return null
+  // Reset quando shortName muda (ex: carrega de null para PGS3GF)
+  useEffect(() => { setIdx(0); setFailed(false) }, [folder])
+
+  if (!folder || failed || candidates.length === 0) return null
 
   return (
     <img
-      src={`/logos/Tournaments/${folder}.webp`}
+      src={candidates[idx]}
       alt=""
-      onError={() => setFailed(true)}
+      onError={() => idx + 1 < candidates.length ? setIdx(i => i + 1) : setFailed(true)}
       style={{ width: size, height: size, objectFit: 'contain', flexShrink: 0 }}
     />
   )

@@ -4,30 +4,28 @@
 
 ### UX — Stats (PlayerStatsPage)
 - [ ] #UX-17 Seletor de partida — exibir timezone do usuário ao lado do horário (ex: "06:00 BRT")
-- [ ] #UX-18 Logo e tag dos times nas páginas de Stats e Lineup (atualmente sem logo)
+- [ ] #UX-18 Logo e tag dos times na página de Lineup (LineupBuilder)
 
 ### Pricing
-- [ ] #PRICE-01 Preços saindo como inteiros ($30, $22) — revisar fórmula para gerar valores com 2 casas decimais (ex: $28.47). Pode ser arredondamento no serviço ou ao salvar no banco.
+- [ ] #PRICE-01 Preços saindo como inteiros ($30, $22) — revisar fórmula para 2 casas decimais
 
 ### UX — Landing/Auth
-- [ ] #UX-01 Background temático voltado para fantasy league (não só PUBG raw)
-- [ ] #UX-02 Formulário de auth centralizado flutuante (não colado à direita)
+- [ ] #UX-01 Background temático voltado para fantasy league
+- [ ] #UX-02 Formulário de auth centralizado flutuante
 - [ ] #UX-03 Título explícito dentro do card (ENTRAR / CADASTRAR)
 - [ ] #UX-04 Campo de confirmação de senha no cadastro
-- [ ] #UX-06 Stats da landing (262+ jogadores etc.) — repensar copy e posicionamento
+- [ ] #UX-06 Stats da landing — repensar copy e posicionamento
 
 ### UX — Dashboard
-- [ ] #UX-08 Adicionar datas dos eventos — requer campos start_date/end_date na API (não retornados ainda)
-- [ ] #UX-09 Nos stages encerrados, exibir nº de dias e nº de partidas — requer days_count/matches_count na API
+- [ ] #UX-08 Datas dos eventos — requer start_date/end_date na API
+- [ ] #UX-09 Nº de dias e partidas nos stages encerrados — requer days_count/matches_count na API
 
 ### UX — Championships
-- [ ] #UX-11 Logo do campeonato no lugar do badge PUB ID
-- [ ] #UX-12 Datas e nº de partidas por stage
-- [ ] #UX-13 Ordenar stages do mais recente para o mais antigo
+- [ ] #UX-12 Datas e nº de partidas por stage — requer campos na API
 
 ### Infra
-- [ ] #120 Desabilitar click tracking do Resend (domínio já verificado — executar)
-- [ ] #121 BIMI record DNS para ícone do remetente no email (opcional, cosmético)
+- [ ] #120 Desabilitar click tracking do Resend (domínio já verificado)
+- [ ] #121 BIMI record DNS (cosmético)
 
 ### Pricing — Bloco C
 - [ ] #101 Job de polling de partidas ao vivo
@@ -37,30 +35,35 @@
 
 ## 🟢 Concluído
 
-### Sessão de UX + Bugs (11/04/2026)
-- [x] BUG Google OAuth redirecionava para localhost em produção → FRONTEND_URL criada no Render
-- [x] BUG GET /stages/{id}/days retornava 500 → StageDayOut.is_active com default True
-- [x] UX-07 Usuário sem username aparece como "JOGADOR" → fallback usa prefixo do email
-- [x] UX-10 Badge short_name muito proeminente → removido das rows de Dashboard
-- [x] Badge de status corrigido: locked→ENCERRADO, open→ABERTA, closed→EM BREVE (Badge.jsx + Navbar.jsx)
-- [x] Navbar: "LOCKED" e "FINISHED" corrigidos para PT-BR
-- [x] PlayerStatsPage: botão "Stage" renomeado para "TOTAL", escondido quando há 1 dia
-- [x] PlayerStatsPage: preço com 3 casas decimais
-- [x] PlayerStatsPage: estrela BEST removida — só valor numérico
-- [x] PlayerStatsPage: seletor de partida com ícone e nome do mapa (P1 🌿 Erangel — 06:00)
-- [x] PlayerStatsPage: horário das partidas convertido para fuso do navegador do usuário
-- [x] Backend: coluna map_name adicionada ao modelo Match (migration 0010)
-- [x] Backend: import_.py salva map_name ao importar/reprocessar matches
-- [x] Backend: MatchOut inclui map_name
-- [x] Backfill: 60 partidas existentes com map_name populado via scripts/backfill_map_names.py
+### Sessão 11/04/2026 (parte 2)
+- [x] Team logos nas Player Stats — team_name vinha null do endpoint, corrigido via team_map dos Rosters
+- [x] TeamLogo.jsx e teamLogo.js — adicionado .webp como tentativa antes de .png
+- [x] TournamentHeader: logo do campeonato à esquerda do nome
+- [x] TournamentHeader: dropdown de stages com busca, scroll e stage atual destacada
+- [x] TournamentHub: busca siblingStages via GET /stages/?championship_id=N
+- [x] TournamentLayout: repassando novas props para TournamentHeader
+- [x] UX-11: logo do campeonato em Championships (PGS.webp, PAS.png)
+- [x] UX-13: stages ordenadas do mais recente para o mais antigo
+- [x] short_name nas rows de Championships: movido para direita, sem background
+- [x] Championship renomeado: "PUBG Global Series 2026 - Circuito 1"
+- [x] app/routers/stages.py: team_map corrige team_name null no player-stats
 
-### Sessão de UX + Auth (10/04/2026)
-- [x] BUG-01 a BUG-06 corrigidos
-- [x] UX-05, UX-14, UX-15, UX-16 implementados
-- [x] Google OAuth, forgot/reset password, email templates, domínio Resend
-- [x] Migration 0009: password_reset_token + password_reset_expires_at
+### Sessão 11/04/2026 (parte 1)
+- [x] BUG: Google OAuth localhost em produção → FRONTEND_URL no Render
+- [x] BUG: GET /stages/{id}/days 500 → StageDayOut.is_active default True
+- [x] UX-07: fallback username → prefixo do email
+- [x] UX-10: badge short_name removido das rows do Dashboard
+- [x] Badge.jsx + Navbar.jsx: locked→ENCERRADO, open→ABERTA, closed→EM BREVE
+- [x] PlayerStatsPage: botão TOTAL, preço 3 casas, estrela BEST removida
+- [x] PlayerStatsPage: seletor com ícone de mapa e fuso do navegador
+- [x] map_name: migration 0010, import_.py, MatchOut, backfill 60 partidas
 
-### Fase 0–9 + Blocos A e B
+### Sessão 10/04/2026
+- [x] BUG-01 a BUG-06, UX-05, UX-14, UX-15, UX-16
+- [x] Google OAuth, forgot/reset password, email templates, Resend
+- [x] Migration 0009: password_reset
+
+### Fases 0–9 + Blocos A e B
 - [x] Fases 1–9 completas
 - [x] Bloco A — Populate PGS 2026
 - [x] Bloco B — Pricing refatorado

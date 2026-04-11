@@ -4,7 +4,7 @@ Pricing service — Fase 5 + Bloco B (refatoração)
 
 Algoritmo novo (exponential decay + tier_weight):
   Para cada jogador, busca as últimas 50 partidas globais (qualquer championship),
-  filtra as com mais de 150 dias, e descarta jogadores com menos de 20 partidas válidas.
+  filtra as com mais de 150 dias, e descarta jogadores com menos de 5 partidas válidas.
 
   Para cada partida válida:
     decay = e^(-0.02 × dias_atras)
@@ -45,7 +45,7 @@ logger = logging.getLogger(__name__)
 DECAY_LAMBDA      = 0.02   # λ da curva e^(-λ × dias)
 MAX_DAYS          = 150    # corte hard: partidas mais antigas são ignoradas
 MAX_MATCHES       = 50     # máximo de partidas no histórico
-MIN_VALID_MATCHES = 20     # mínimo de partidas válidas para calcular preço
+MIN_VALID_MATCHES = 5      # mínimo de partidas válidas (= 1 dia completo de competição)
 
 
 # ── Cálculo de ppm ponderado ──────────────────────────────────────────────────
