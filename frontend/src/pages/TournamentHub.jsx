@@ -31,6 +31,7 @@ export default function TournamentHub() {
 
   const [tab,   setTab]   = useState(TAB_LINEUP)
   const [stage, setStage] = useState(null)
+  const [siblingStages, setSiblingStages] = useState([])
   const [myRank, setMyRank] = useState(null)
   const [priceModalRoster, setPriceModalRoster] = useState(null)
 
@@ -40,7 +41,16 @@ export default function TournamentHub() {
     if (!id) return
     fetch(`${API_BASE_URL}/stages/${id}`)
       .then(r => r.ok ? r.json() : null)
-      .then(setStage)
+      .then(data => {
+        setStage(data)
+        // Busca todas as stages do mesmo championship para o dropdown
+        if (data?.championship_id) {
+          fetch(`${API_BASE_URL}/stages/?championship_id=${data.championship_id}`)
+            .then(r => r.ok ? r.json() : [])
+            .then(setSiblingStages)
+            .catch(() => {})
+        }
+      })
       .catch(() => {})
   }, [id])
 
@@ -65,6 +75,9 @@ export default function TournamentHub() {
       <TournamentLayout
         tournament={stage ? { name: stage.name, status: stage.lineup_status } : null}
         championship={null}
+        championshipName={stage?.championship_id ? siblingStages[0]?.championship_name ?? null : null}
+        siblingStages={siblingStages}
+        currentStageId={Number(id)}
         phaseLabel={stage?.short_name ?? null}
         myRank={myRank}
         tabs={TABS}

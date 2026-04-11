@@ -437,6 +437,7 @@ def get_player_stats(
         .all()
     )
     cost_map = {r.person_id: r.effective_cost for r in rosters}
+    team_map = {r.person_id: r.team_name for r in rosters if r.team_name}
 
     is_full_stage = match_id is None and stage_day_id is None
 
@@ -456,7 +457,7 @@ def get_player_stats(
         result.append(PlayerStatOut(
             person_id=person_id,
             person_name=person.display_name if person else None,
-            team_name=_resolve_team(person),
+            team_name=team_map.get(person_id) or _resolve_team(person),
             matches_played=matches,
             total_xama_points=total_pts,
             pts_per_match=round(total_pts / matches, 2) if matches > 0 else 0.0,

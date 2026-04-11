@@ -78,6 +78,8 @@ function _folderFromShortName(shortName) {
 
 function _buildUrl(folder, tag) {
   const isJpeg = (JPEG_TEAMS[folder] ?? new Set()).has(tag)
-  const ext = isJpeg ? 'jpeg' : 'png'
-  return `/logos/${folder}/${tag}.${ext}`
+  // Preferir .webp quando disponível, senão .png, exceto times com .jpeg
+  if (isJpeg) return `/logos/${folder}/${tag}.jpeg`
+  // Retorna .webp como preferência — TeamLogo.jsx faz cascading automático
+  return `/logos/${folder}/${tag}.webp`
 }

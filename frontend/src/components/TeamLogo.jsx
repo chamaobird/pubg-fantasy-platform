@@ -32,12 +32,14 @@ function buildCandidates(teamName, shortName, logoUrlProp) {
   if (logoUrlProp) candidates.push(logoUrlProp)
 
   if (primaryFolder) {
+    candidates.push(`/logos/${primaryFolder}/${tag}.webp`)
     candidates.push(`/logos/${primaryFolder}/${tag}.${ext(primaryFolder)}`)
   }
 
   // Fallbacks nas outras pastas
   for (const folder of ['PAS', 'PGS']) {
     if (folder === primaryFolder) continue
+    candidates.push(`/logos/${folder}/${tag}.webp`)
     candidates.push(`/logos/${folder}/${tag}.${ext(folder)}`)
   }
 

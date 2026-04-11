@@ -18,6 +18,9 @@ import Tabs from './Tabs'
 export default function TournamentLayout({
   tournament,
   championship,
+  championshipName,
+  siblingStages,
+  currentStageId,
   phaseLabel,
   myRank,
   tabs,
@@ -32,6 +35,9 @@ export default function TournamentLayout({
       <TournamentHeader
         tournament={tournament}
         championship={championship}
+        championshipName={championshipName}
+        siblingStages={siblingStages}
+        currentStageId={currentStageId}
         phaseLabel={phaseLabel}
         myRank={myRank}
       />
