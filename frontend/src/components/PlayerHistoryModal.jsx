@@ -29,13 +29,17 @@ function BarChart({ data }) {
 
   const BAR_W    = 36
   const BAR_GAP  = 8
-  const POS_H    = 120
-  const NEG_H    = hasNeg ? 36 : 0
-  const ZERO_Y   = POS_H
-  const CHART_H  = POS_H + NEG_H
+  // Escala unificada — mesma proporção px/pt para positivo e negativo
+  const TOTAL_RANGE   = maxPts + Math.abs(minPts)
+  const CHART_H_TOTAL = 160
+  const PX_PER_PT     = CHART_H_TOTAL / TOTAL_RANGE
+  const POS_H         = Math.round(maxPts * PX_PER_PT)
+  const NEG_H         = Math.round(Math.abs(minPts) * PX_PER_PT)
+  const ZERO_Y        = POS_H
+  const CHART_H       = POS_H + NEG_H
   const LABEL_H  = 64
   const totalW   = data.length * (BAR_W + BAR_GAP) - BAR_GAP
-  const TOOLTIP_W = 134
+  const TOOLTIP_W = 150
   const TOOLTIP_H = 64
 
   return (
@@ -69,18 +73,17 @@ function BarChart({ data }) {
           const isTop = pts === maxPts
           const isHov = hovered === i
 
-          const barH = isPos
-            ? Math.max(4, (pts / maxPts) * POS_H)
-            : Math.max(4, (Math.abs(pts) / Math.abs(minPts)) * NEG_H)
+          const barH    = Math.max(4, Math.abs(pts) * PX_PER_PT)
           const barY    = isPos ? ZERO_Y - barH : ZERO_Y
-          const barFill = isTop ? '#f0c040' : isPos ? (isHov ? '#fb923c' : '#f97316') : '#f87171'
+          const barFill = isTop ? '#f0c040' : isPos ? (isHov ? '#fb923c' : '#f97316') : (isHov ? '#fca5a5' : '#f87171')
 
           const map  = d.map_name ? (MAP_DISPLAY[d.map_name] ?? { icon: '🗺️' }) : { icon: '🗺️' }
 
           const tipX = x + BAR_W / 2 + TOOLTIP_W > totalW
             ? x + BAR_W / 2 - TOOLTIP_W - 4
             : x + BAR_W / 2 + 4
-          const tipY = Math.max(0, barY - TOOLTIP_H - 8)
+          // Tooltip sempre aparece acima da linha do zero
+          const tipY = Math.max(0, ZERO_Y - TOOLTIP_H - 8)
 
           return (
             <g key={d.match_id}
