@@ -2,7 +2,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, List, Optional
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, UniqueConstraint, text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Numeric, String, UniqueConstraint, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -30,11 +30,11 @@ class Roster(Base):
     team_name: Mapped[Optional[str]] = mapped_column(
         String(80), nullable=True, comment="Team name at the time of this stage"
     )
-    fantasy_cost: Mapped[Optional[int]] = mapped_column(
-        Integer, nullable=True, comment="Calculated automatically by pricing service"
+    fantasy_cost: Mapped[Optional[float]] = mapped_column(
+        Numeric(6, 2), nullable=True, comment="Calculated automatically by pricing service"
     )
-    cost_override: Mapped[Optional[int]] = mapped_column(
-        Integer,
+    cost_override: Mapped[Optional[float]] = mapped_column(
+        Numeric(6, 2),
         nullable=True,
         comment="Manual override — used for display, does not block future calcs",
     )
@@ -62,7 +62,7 @@ class Roster(Base):
     )
 
     @property
-    def effective_cost(self) -> Optional[int]:
+    def effective_cost(self) -> Optional[float]:
         """Returns cost_override if set, otherwise fantasy_cost."""
         return self.cost_override if self.cost_override is not None else self.fantasy_cost
 
@@ -83,7 +83,7 @@ class RosterPriceHistory(Base):
     stage_day_id: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey("stage_day.id", ondelete="SET NULL"), nullable=True
     )
-    cost: Mapped[int] = mapped_column(Integer, nullable=False)
+    cost: Mapped[float] = mapped_column(Numeric(6, 2), nullable=False)
     source: Mapped[str] = mapped_column(
         String(20), nullable=False, comment="auto | override"
     )

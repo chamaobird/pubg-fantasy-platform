@@ -126,16 +126,16 @@ def _interpolate(
     v_max: float,
     p_min: int,
     p_max: int,
-) -> int:
+) -> float:
     """
     Interpola linearmente `value` no intervalo [v_min, v_max]
-    retornando custo em [p_min, p_max].
+    retornando custo em [p_min, p_max] com 2 casas decimais.
     Se v_min == v_max retorna ponto médio.
     """
     if v_max == v_min:
-        return round((p_min + p_max) / 2)
+        return round((p_min + p_max) / 2, 2)
     t = (value - v_min) / (v_max - v_min)
-    return round(p_min + t * (p_max - p_min))
+    return round(p_min + t * (p_max - p_min), 2)
 
 
 def _apply_distribution(
@@ -145,7 +145,7 @@ def _apply_distribution(
     p_min: int,
     p_max: int,
     distribution: str,
-) -> int:
+) -> float:
     if distribution == "linear":
         return _interpolate(value, v_min, v_max, p_min, p_max)
     logger.warning("pricing_distribution=%r não implementado, usando linear.", distribution)
@@ -232,7 +232,7 @@ def calculate_stage_pricing(
 
         # Newcomer explícito ou histórico insuficiente → custo fixo
         if roster.newcomer_to_tier or ppm is None:
-            new_cost = stage.pricing_newcomer_cost
+            new_cost = float(stage.pricing_newcomer_cost)
             newcomers += 1
         else:
             new_cost = _apply_distribution(
@@ -241,7 +241,7 @@ def calculate_stage_pricing(
                 stage.pricing_distribution,
             )
             # Garante piso absoluto
-            new_cost = max(stage.price_min, new_cost)
+            new_cost = max(float(stage.price_min), new_cost)
 
         if roster.fantasy_cost == new_cost:
             skipped += 1
