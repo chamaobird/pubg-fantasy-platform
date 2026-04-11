@@ -26,6 +26,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.database import get_db
 from app.models.match import Match
 from app.models.match_stat import MatchStat
+from app.models.person import Person
 from app.models.roster import Roster, RosterPriceHistory
 from app.models.stage import Stage
 from app.models.stage_day import StageDay
@@ -544,4 +545,73 @@ def get_day_leaderboard(
             points=float(s.points),
         )
         for s in stats
+    ]
+
+
+# ── Histórico de partidas por jogador ─────────────────────────────────────────
+
+class MatchHistoryEntry(BaseModel):
+    match_id: int
+    played_at: Optional[datetime]
+    xama_points: float
+    kills: int
+    assists: int
+    damage: float
+    placement: Optional[int]
+    map_name: Optional[str]
+    stage_name: str
+    stage_short_name: str
+    day_number: int
+
+    model_config = {"from_attributes": True}
+
+
+@router.get(
+    "/persons/{person_id}/match-history",
+    response_model=list[MatchHistoryEntry],
+    summary="Histórico de partidas de um jogador",
+)
+def get_person_match_history(
+    person_id: int,
+    limit: int = Query(15, ge=1, le=50),
+    db: Session = Depends(get_db),
+) -> list[MatchHistoryEntry]:
+    """
+    Retorna as últimas N partidas de um jogador com pontos, stats e contexto
+    (stage, dia, mapa) — usado para o gráfico de histórico no frontend.
+    """
+    person = db.get(Person, person_id)
+    if person is None:
+        raise HTTPException(status_code=404, detail=f"Person {person_id} não encontrada.")
+
+    rows = (
+        db.query(MatchStat, Match, StageDay, Stage)
+        .join(Match, MatchStat.match_id == Match.id)
+        .join(StageDay, Match.stage_day_id == StageDay.id)
+        .join(Stage, StageDay.stage_id == Stage.id)
+        .filter(
+            MatchStat.person_id == person_id,
+            MatchStat.xama_points.isnot(None),
+            Match.played_at.isnot(None),
+        )
+        .order_by(Match.played_at.desc())
+        .limit(limit)
+        .all()
+    )
+
+    return [
+        MatchHistoryEntry(
+            match_id=ms.id,
+            played_at=m.played_at,
+            xama_points=float(ms.xama_points),
+            kills=int(ms.kills or 0),
+            assists=int(ms.assists or 0),
+            damage=float(ms.damage or 0),
+            placement=ms.placement,
+            map_name=m.map_name,
+            stage_name=s.name,
+            stage_short_name=s.short_name,
+            day_number=sd.day_number,
+        )
+        for ms, m, sd, s in rows
     ]

@@ -6,6 +6,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { API_BASE_URL as API_BASE } from '../config'
 import TeamLogo from './TeamLogo'
+import PlayerHistoryModal from './PlayerHistoryModal'
 
 if (!document.getElementById('xama-fonts')) {
   const link = document.createElement('link')
@@ -162,6 +163,7 @@ export default function PlayerStatsPage({ stageId: propStageId = null, shortName
   const [teamFilter, setTeamFilter] = useState('')
   const [sortKey, setSortKey]       = useState('total_xama_points')
   const [sortDir, setSortDir]       = useState('desc')
+  const [historyPlayer, setHistoryPlayer] = useState(null)
 
   // ── Reset ao trocar stage ─────────────────────────────────────────────────
   useEffect(() => {
@@ -441,7 +443,11 @@ export default function PlayerStatsPage({ stageId: propStageId = null, shortName
                           </div>
                         </td>
                         <td style={{ padding: '10px 12px' }}>
-                          <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-xama-text)' }}>
+                          <span
+                            onClick={() => setHistoryPlayer({ person_id: p.person_id, person_name: formatPlayerName(p.person_name), team_name: formatTeamTag(p.person_name, p.team_name) })}
+                            style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-xama-text)', cursor: 'pointer', borderBottom: '1px dashed rgba(249,115,22,0.4)', paddingBottom: '1px' }}
+                            title="Ver histórico de partidas"
+                          >
                             {formatPlayerName(p.person_name)}
                           </span>
                         </td>
@@ -471,6 +477,15 @@ export default function PlayerStatsPage({ stageId: propStageId = null, shortName
           </div>
         )}
       </div>
+
+      {historyPlayer && (
+        <PlayerHistoryModal
+          personId={historyPlayer.person_id}
+          personName={historyPlayer.person_name}
+          teamName={historyPlayer.team_name}
+          onClose={() => setHistoryPlayer(null)}
+        />
+      )}
     </div>
   )
 }

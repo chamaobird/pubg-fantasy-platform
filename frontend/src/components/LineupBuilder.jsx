@@ -5,6 +5,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { API_BASE_URL } from '../config'
 import TeamLogo from './TeamLogo'
+import PlayerHistoryModal from './PlayerHistoryModal'
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function formatPlayerName(name) {
@@ -74,6 +75,7 @@ export default function LineupBuilder({ token = '', stageId, onPlayerInfoClick }
   const [saveLoading, setSaveLoading] = useState(false)
   const [saveError,   setSaveError]   = useState('')
   const [saveSuccess, setSaveSuccess] = useState(null)
+  const [historyPlayer, setHistoryPlayer] = useState(null) // { person_id, person_name, team_name }
 
   // ── Stage day ativo ─────────────────────────────────────────────────────
   // Usa o primeiro day ativo ou o último day disponível
@@ -530,7 +532,13 @@ export default function LineupBuilder({ token = '', stageId, onPlayerInfoClick }
                           </div>
                         </td>
                         <td className="font-semibold whitespace-nowrap" style={{ color: 'var(--color-xama-text)' }}>
-                          <span>{formatPlayerName(p.person_name)}</span>
+                          <span
+                            onClick={() => setHistoryPlayer({ person_id: p.person_id, person_name: formatPlayerName(p.person_name), team_name: playerTag })}
+                            style={{ cursor: 'pointer', borderBottom: '1px dashed rgba(249,115,22,0.4)', paddingBottom: '1px' }}
+                            title="Ver histórico de partidas"
+                          >
+                            {formatPlayerName(p.person_name)}
+                          </span>
                           {isCap && (
                             <span style={{ marginLeft: 4, fontSize: 9, color: 'var(--color-xama-gold)', fontWeight: 700 }}>⭐CAP</span>
                           )}
@@ -577,6 +585,15 @@ export default function LineupBuilder({ token = '', stageId, onPlayerInfoClick }
         </div>{/* fim xlb-panel */}
 
       </div>{/* fim xama-container */}
+
+      {historyPlayer && (
+        <PlayerHistoryModal
+          personId={historyPlayer.person_id}
+          personName={historyPlayer.person_name}
+          teamName={historyPlayer.team_name}
+          onClose={() => setHistoryPlayer(null)}
+        />
+      )}
     </div>
   )
 }
