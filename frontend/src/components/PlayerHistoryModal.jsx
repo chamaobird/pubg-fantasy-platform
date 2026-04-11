@@ -1,9 +1,7 @@
 // frontend/src/components/PlayerHistoryModal.jsx
-// Modal com gráfico de barras mostrando histórico de pontos por partida de um jogador
-// Usado no LineupBuilder e PlayerStatsPage
-
 import { useState, useEffect, useRef } from 'react'
 import { API_BASE_URL } from '../config'
+import TeamLogo from './TeamLogo'
 
 const MAP_DISPLAY = {
   Baltic_Main:  { icon: '🌿', name: 'Erangel' },
@@ -15,30 +13,31 @@ const MAP_DISPLAY = {
   Savage_Main:  { icon: '🌴', name: 'Sanhok' },
 }
 
-const placementColor = (p) => {
-  if (!p) return '#6b7280'
-  if (p === 1) return '#f0c040'
-  if (p <= 5) return '#4ade80'
-  if (p <= 12) return '#f97316'
-  return '#f87171'
+function fmtDate(iso) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
 }
 
 function BarChart({ data }) {
+  const [hovered, setHovered] = useState(null) // index da barra hovered
   if (!data || data.length === 0) return null
 
   const max = Math.max(...data.map(d => d.xama_points), 0.01)
-  const BAR_W = 36
+  const BAR_W   = 36
   const BAR_GAP = 8
   const CHART_H = 140
-  const LABEL_H = 52
-  const totalW = data.length * (BAR_W + BAR_GAP) - BAR_GAP
+  const LABEL_H = 64   // maior para caber a data
+  const totalW  = data.length * (BAR_W + BAR_GAP) - BAR_GAP
+  const TOOLTIP_W = 130
+  const TOOLTIP_H = 70
 
   return (
     <div style={{ overflowX: 'auto', paddingBottom: '4px' }}>
       <svg
         width={Math.max(totalW, 300)}
         height={CHART_H + LABEL_H}
-        style={{ display: 'block', minWidth: totalW }}
+        style={{ display: 'block', minWidth: totalW, overflow: 'visible' }}
       >
         {/* Grid lines */}
         {[0.25, 0.5, 0.75, 1].map(t => {
@@ -46,7 +45,7 @@ function BarChart({ data }) {
           return (
             <g key={t}>
               <line x1={0} y1={y} x2={totalW} y2={y} stroke="#1e2330" strokeWidth={1} />
-              <text x={0} y={y - 3} fontSize={9} fill="#4b5563" fontFamily="JetBrains Mono, monospace">
+              <text x={2} y={y - 3} fontSize={9} fill="#4b5563" fontFamily="JetBrains Mono, monospace">
                 {Math.round(max * t)}
               </text>
             </g>
@@ -55,23 +54,39 @@ function BarChart({ data }) {
 
         {/* Bars */}
         {data.map((d, i) => {
-          const x = i * (BAR_W + BAR_GAP)
+          const x    = i * (BAR_W + BAR_GAP)
           const barH = Math.max(4, (d.xama_points / max) * CHART_H)
-          const y = CHART_H - barH
-          const map = d.map_name ? (MAP_DISPLAY[d.map_name] ?? { icon: '🗺️', name: d.map_name.replace('_Main', '') }) : null
+          const y    = CHART_H - barH
+          const map  = d.map_name ? (MAP_DISPLAY[d.map_name] ?? { icon: '🗺️' }) : { icon: '🗺️' }
           const isTop = d.xama_points === max
+          const isHov = hovered === i
+
+          // Posição do tooltip — inverte se barra estiver perto da borda direita
+          const tipX = x + BAR_W / 2 + TOOLTIP_W > totalW
+            ? x + BAR_W / 2 - TOOLTIP_W - 4
+            : x + BAR_W / 2 + 4
+          const tipY = Math.max(0, y - TOOLTIP_H - 8)
 
           return (
-            <g key={d.match_id}>
+            <g
+              key={d.match_id}
+              onMouseEnter={() => setHovered(i)}
+              onMouseLeave={() => setHovered(null)}
+              style={{ cursor: 'default' }}
+            >
+              {/* Bar hover area */}
+              <rect x={x} y={0} width={BAR_W} height={CHART_H + LABEL_H}
+                fill="transparent" />
+
               {/* Bar */}
               <rect
                 x={x} y={y} width={BAR_W} height={barH}
                 rx={4}
-                fill={isTop ? '#f0c040' : 'var(--color-xama-orange, #f97316)'}
-                opacity={isTop ? 1 : 0.75}
+                fill={isTop ? '#f0c040' : isHov ? '#fb923c' : '#f97316'}
+                opacity={isTop ? 1 : isHov ? 1 : 0.75}
               />
 
-              {/* Points label on bar */}
+              {/* Points label */}
               <text
                 x={x + BAR_W / 2} y={y - 5}
                 textAnchor="middle" fontSize={10} fontWeight={700}
@@ -82,30 +97,57 @@ function BarChart({ data }) {
               </text>
 
               {/* Map icon */}
-              <text
-                x={x + BAR_W / 2} y={CHART_H + 16}
-                textAnchor="middle" fontSize={14}
-              >
-                {map?.icon ?? '🗺️'}
+              <text x={x + BAR_W / 2} y={CHART_H + 16} textAnchor="middle" fontSize={13}>
+                {map.icon}
               </text>
 
               {/* Stage short name */}
-              <text
-                x={x + BAR_W / 2} y={CHART_H + 32}
-                textAnchor="middle" fontSize={9} fontWeight={700}
-                fill="#6b7280" fontFamily="JetBrains Mono, monospace"
-              >
+              <text x={x + BAR_W / 2} y={CHART_H + 30} textAnchor="middle"
+                fontSize={9} fontWeight={700} fill="#6b7280"
+                fontFamily="JetBrains Mono, monospace">
                 {d.stage_short_name}
               </text>
 
-              {/* Day number */}
-              <text
-                x={x + BAR_W / 2} y={CHART_H + 46}
-                textAnchor="middle" fontSize={9}
-                fill="#4b5563" fontFamily="JetBrains Mono, monospace"
-              >
+              {/* Day */}
+              <text x={x + BAR_W / 2} y={CHART_H + 43} textAnchor="middle"
+                fontSize={9} fill="#4b5563" fontFamily="JetBrains Mono, monospace">
                 D{d.day_number}
               </text>
+
+              {/* Date */}
+              <text x={x + BAR_W / 2} y={CHART_H + 57} textAnchor="middle"
+                fontSize={8} fill="#374151" fontFamily="JetBrains Mono, monospace">
+                {fmtDate(d.played_at)}
+              </text>
+
+              {/* Tooltip ao hover */}
+              {isHov && (
+                <g>
+                  <rect x={tipX} y={tipY} width={TOOLTIP_W} height={TOOLTIP_H}
+                    rx={6} fill="#0f1219" stroke="#1e2330" strokeWidth={1} />
+                  {/* Kills */}
+                  <text x={tipX + 8} y={tipY + 16} fontSize={10} fill="#dce1ea"
+                    fontFamily="JetBrains Mono, monospace">
+                    🗡 {d.kills}k  {d.assists}a  {d.knocks ?? 0}kd
+                  </text>
+                  {/* Damage */}
+                  <text x={tipX + 8} y={tipY + 30} fontSize={10} fill="#dce1ea"
+                    fontFamily="JetBrains Mono, monospace">
+                    💥 {Math.round(d.damage)} dmg
+                  </text>
+                  {/* Placement */}
+                  <text x={tipX + 8} y={tipY + 44} fontSize={10}
+                    fill={d.placement === 1 ? '#f0c040' : d.placement <= 5 ? '#4ade80' : '#dce1ea'}
+                    fontFamily="JetBrains Mono, monospace">
+                    🏁 #{d.placement ?? '—'}
+                  </text>
+                  {/* Map name */}
+                  <text x={tipX + 8} y={tipY + 58} fontSize={9} fill="#6b7280"
+                    fontFamily="JetBrains Mono, monospace">
+                    {d.map_name ? (MAP_DISPLAY[d.map_name]?.name ?? d.map_name.replace('_Main','')) : '—'}
+                  </text>
+                </g>
+              )}
             </g>
           )
         })}
@@ -114,50 +156,54 @@ function BarChart({ data }) {
   )
 }
 
-export default function PlayerHistoryModal({ personId, personName, teamName, onClose }) {
-  const [data, setData] = useState([])
+export default function PlayerHistoryModal({
+  personId,
+  personName,
+  teamName,
+  shortName,      // shortName da stage atual (para TeamLogo)
+  beforeDate,     // ISO string — mostrar histórico até esta data
+  onClose,
+}) {
+  const [data, setData]       = useState([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const overlayRef = useRef(null)
+  const [error, setError]     = useState(null)
+  const overlayRef            = useRef(null)
 
   useEffect(() => {
     if (!personId) return
     setLoading(true)
     setError(null)
-    fetch(`${API_BASE_URL}/stages/persons/${personId}/match-history?limit=15`)
+    const params = new URLSearchParams({ limit: 15 })
+    if (beforeDate) params.set('before_date', beforeDate)
+    fetch(`${API_BASE_URL}/stages/persons/${personId}/match-history?${params}`)
       .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() })
-      .then(d => { setData(d.reverse()); setLoading(false) })  // reverso = cronológico
+      .then(d => { setData([...d].reverse()); setLoading(false) })
       .catch(e => { setError(e.message); setLoading(false) })
-  }, [personId])
+  }, [personId, beforeDate])
 
-  // Fechar ao clicar fora
-  const handleOverlayClick = (e) => {
-    if (e.target === overlayRef.current) onClose()
-  }
-
-  // Fechar com ESC
   useEffect(() => {
-    const handler = (e) => { if (e.key === 'Escape') onClose() }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
+    const h = (e) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', h)
+    return () => window.removeEventListener('keydown', h)
   }, [onClose])
 
-  // Stats resumidas
-  const avgPts = data.length > 0
-    ? (data.reduce((s, d) => s + d.xama_points, 0) / data.length).toFixed(1)
-    : '—'
-  const bestPts = data.length > 0
-    ? Math.max(...data.map(d => d.xama_points)).toFixed(1)
-    : '—'
-  const totalKills = data.reduce((s, d) => s + d.kills, 0)
+  const handleOverlay = (e) => { if (e.target === overlayRef.current) onClose() }
+
+  const avgPts    = data.length ? (data.reduce((s,d) => s + d.xama_points, 0) / data.length).toFixed(1) : '—'
+  const bestPts   = data.length ? Math.max(...data.map(d => d.xama_points)).toFixed(1) : '—'
+  const totalKills = data.reduce((s,d) => s + d.kills, 0)
+
+  const contextLabel = beforeDate
+    ? `até ${new Date(beforeDate).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })}`
+    : 'últimas partidas registradas'
 
   return (
     <div
       ref={overlayRef}
-      onClick={handleOverlayClick}
+      onClick={handleOverlay}
       style={{
         position: 'fixed', inset: 0, zIndex: 1000,
-        background: 'rgba(0,0,0,0.7)',
+        background: 'rgba(0,0,0,0.72)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: '24px',
       }}
@@ -166,49 +212,52 @@ export default function PlayerHistoryModal({ personId, personName, teamName, onC
         background: 'var(--color-xama-surface)',
         border: '1px solid var(--color-xama-border)',
         borderRadius: '14px',
-        width: '100%', maxWidth: '720px',
+        width: '100%', maxWidth: '740px',
         maxHeight: '90vh', overflow: 'hidden',
         display: 'flex', flexDirection: 'column',
         boxShadow: '0 24px 64px rgba(0,0,0,0.6)',
       }}>
         {/* Header */}
         <div style={{
-          padding: '20px 24px 16px',
+          padding: '18px 24px 14px',
           borderBottom: '1px solid var(--color-xama-border)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              {teamName && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            {/* Logo do time */}
+            <TeamLogo teamName={teamName} shortName={shortName || ''} size={36} />
+
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {teamName && (
+                  <span style={{
+                    fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em',
+                    color: 'var(--color-xama-muted)', fontFamily: "'JetBrains Mono', monospace",
+                    background: 'var(--surface-3)', padding: '2px 8px', borderRadius: '4px',
+                  }}>
+                    {teamName}
+                  </span>
+                )}
                 <span style={{
-                  fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em',
-                  color: 'var(--color-xama-muted)',
-                  fontFamily: "'JetBrains Mono', monospace",
-                  background: 'var(--surface-3)',
-                  padding: '2px 8px', borderRadius: '4px',
+                  fontSize: '22px', fontWeight: 700,
+                  color: 'var(--color-xama-text)',
+                  fontFamily: "'Rajdhani', sans-serif",
                 }}>
-                  {teamName}
+                  {personName}
                 </span>
-              )}
-              <span style={{
-                fontSize: '22px', fontWeight: 700,
-                color: 'var(--color-xama-text)',
-                fontFamily: "'Rajdhani', sans-serif",
-              }}>
-                {personName}
-              </span>
-            </div>
-            <div style={{ fontSize: '12px', color: 'var(--color-xama-muted)', marginTop: '4px' }}>
-              Últimas {data.length} partidas registradas
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--color-xama-muted)', marginTop: '3px' }}>
+                {data.length} partidas · {contextLabel}
+              </div>
             </div>
           </div>
+
           <button
             onClick={onClose}
             style={{
               background: 'none', border: 'none', cursor: 'pointer',
               color: 'var(--color-xama-muted)', fontSize: '22px', lineHeight: 1,
               padding: '4px 8px', borderRadius: '6px',
-              transition: 'color 0.15s',
             }}
             onMouseEnter={e => e.currentTarget.style.color = 'var(--color-xama-text)'}
             onMouseLeave={e => e.currentTarget.style.color = 'var(--color-xama-muted)'}
@@ -220,18 +269,18 @@ export default function PlayerHistoryModal({ personId, personName, teamName, onC
         {/* Stats resumidas */}
         {!loading && !error && data.length > 0 && (
           <div style={{
-            padding: '12px 24px',
-            display: 'flex', gap: '24px',
+            padding: '10px 24px',
+            display: 'flex', gap: '28px',
             borderBottom: '1px solid var(--color-xama-border)',
             background: 'var(--surface-2)',
           }}>
             {[
-              { label: 'Média pts', value: avgPts, color: 'var(--color-xama-orange)' },
-              { label: 'Melhor partida', value: bestPts, color: '#f0c040' },
-              { label: 'Total kills', value: totalKills, color: 'var(--color-xama-text)' },
+              { label: 'Média pts',      value: avgPts,     color: 'var(--color-xama-orange)' },
+              { label: 'Melhor partida', value: bestPts,    color: '#f0c040' },
+              { label: 'Total kills',    value: totalKills, color: 'var(--color-xama-text)' },
             ].map(({ label, value, color }) => (
               <div key={label}>
-                <div style={{ fontSize: '11px', color: 'var(--color-xama-muted)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                <div style={{ fontSize: '10px', color: 'var(--color-xama-muted)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
                   {label}
                 </div>
                 <div style={{ fontSize: '20px', fontWeight: 700, color, fontFamily: "'JetBrains Mono', monospace" }}>
@@ -242,7 +291,7 @@ export default function PlayerHistoryModal({ personId, personName, teamName, onC
           </div>
         )}
 
-        {/* Conteúdo */}
+        {/* Gráfico */}
         <div style={{ padding: '20px 24px', overflowY: 'auto', flex: 1 }}>
           {loading && (
             <div style={{ textAlign: 'center', padding: '40px', color: 'var(--color-xama-muted)' }}>
@@ -256,12 +305,10 @@ export default function PlayerHistoryModal({ personId, personName, teamName, onC
           )}
           {!loading && !error && data.length === 0 && (
             <div style={{ textAlign: 'center', padding: '40px', color: 'var(--color-xama-muted)' }}>
-              Nenhuma partida registrada para este jogador.
+              Nenhuma partida registrada para este jogador{beforeDate ? ' até esta data' : ''}.
             </div>
           )}
-          {!loading && !error && data.length > 0 && (
-            <BarChart data={data} />
-          )}
+          {!loading && !error && data.length > 0 && <BarChart data={data} />}
         </div>
       </div>
     </div>

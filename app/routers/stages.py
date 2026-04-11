@@ -574,17 +574,19 @@ class MatchHistoryEntry(BaseModel):
 def get_person_match_history(
     person_id: int,
     limit: int = Query(15, ge=1, le=50),
+    before_date: Optional[datetime] = Query(None, description="Filtrar partidas até esta data (ISO 8601)"),
     db: Session = Depends(get_db),
 ) -> list[MatchHistoryEntry]:
     """
     Retorna as últimas N partidas de um jogador com pontos, stats e contexto
     (stage, dia, mapa) — usado para o gráfico de histórico no frontend.
+    Se before_date for informado, retorna apenas partidas até aquela data.
     """
     person = db.get(Person, person_id)
     if person is None:
         raise HTTPException(status_code=404, detail=f"Person {person_id} não encontrada.")
 
-    rows = (
+    q = (
         db.query(MatchStat, Match, StageDay, Stage)
         .join(Match, MatchStat.match_id == Match.id)
         .join(StageDay, Match.stage_day_id == StageDay.id)
@@ -594,10 +596,15 @@ def get_person_match_history(
             MatchStat.xama_points.isnot(None),
             Match.played_at.isnot(None),
         )
-        .order_by(Match.played_at.desc())
-        .limit(limit)
-        .all()
     )
+
+    if before_date is not None:
+        from datetime import timezone as tz
+        if before_date.tzinfo is None:
+            before_date = before_date.replace(tzinfo=tz.utc)
+        q = q.filter(Match.played_at <= before_date)
+
+    rows = q.order_by(Match.played_at.desc()).limit(limit).all()
 
     return [
         MatchHistoryEntry(

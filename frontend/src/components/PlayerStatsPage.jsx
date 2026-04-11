@@ -444,7 +444,14 @@ export default function PlayerStatsPage({ stageId: propStageId = null, shortName
                         </td>
                         <td style={{ padding: '10px 12px' }}>
                           <span
-                            onClick={() => setHistoryPlayer({ person_id: p.person_id, person_name: formatPlayerName(p.person_name), team_name: formatTeamTag(p.person_name, p.team_name) })}
+                            onClick={() => setHistoryPlayer({
+                              person_id: p.person_id,
+                              person_name: formatPlayerName(p.person_name),
+                              team_name: formatTeamTag(p.person_name, p.team_name),
+                              before_date: selectedDay?.date
+                                ? new Date(selectedDay.date).toISOString()
+                                : selectedMatch?.played_at || null,
+                            })}
                             style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-xama-text)', cursor: 'pointer', borderBottom: '1px dashed rgba(249,115,22,0.4)', paddingBottom: '1px' }}
                             title="Ver histórico de partidas"
                           >
@@ -483,6 +490,8 @@ export default function PlayerStatsPage({ stageId: propStageId = null, shortName
           personId={historyPlayer.person_id}
           personName={historyPlayer.person_name}
           teamName={historyPlayer.team_name}
+          shortName={shortName}
+          beforeDate={historyPlayer.before_date}
           onClose={() => setHistoryPlayer(null)}
         />
       )}

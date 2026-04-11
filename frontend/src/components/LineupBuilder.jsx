@@ -533,7 +533,12 @@ export default function LineupBuilder({ token = '', stageId, onPlayerInfoClick }
                         </td>
                         <td className="font-semibold whitespace-nowrap" style={{ color: 'var(--color-xama-text)' }}>
                           <span
-                            onClick={() => setHistoryPlayer({ person_id: p.person_id, person_name: formatPlayerName(p.person_name), team_name: playerTag })}
+                            onClick={() => setHistoryPlayer({
+                              person_id: p.person_id,
+                              person_name: formatPlayerName(p.person_name),
+                              team_name: playerTag,
+                              before_date: stageDays.find(d => d.id === activeStageDayId)?.lineup_close_at || null,
+                            })}
                             style={{ cursor: 'pointer', borderBottom: '1px dashed rgba(249,115,22,0.4)', paddingBottom: '1px' }}
                             title="Ver histórico de partidas"
                           >
@@ -591,6 +596,8 @@ export default function LineupBuilder({ token = '', stageId, onPlayerInfoClick }
           personId={historyPlayer.person_id}
           personName={historyPlayer.person_name}
           teamName={historyPlayer.team_name}
+          shortName={stage?.short_name || ''}
+          beforeDate={historyPlayer.before_date}
           onClose={() => setHistoryPlayer(null)}
         />
       )}
