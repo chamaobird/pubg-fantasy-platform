@@ -4,102 +4,76 @@
 
 ---
 
-## Estado Atual — 11/04/2026 (fim da sessão completa)
+## Estado Atual — 11/04/2026 (fim de sessão)
 
-### Próximas tarefas (UX backlog)
+### Próximas tarefas
 Ver BACKLOG.md para lista completa. Principais pendentes:
 
-**Stats:** UX-17 (timezone no seletor de partida), UX-18 (logo/tag nas páginas de Lineup)
-
-**Pricing:** PRICE-01 (preços saindo como inteiros — revisar fórmula para 2 casas decimais)
-
-**Landing/Auth:** UX-01 a UX-04, UX-06
-
-**Dashboard:** UX-08 (datas — requer campos na API), UX-09 (nº de dias/partidas — requer campos na API)
-
-**Championships:** UX-12 (datas e partidas por stage — requer campos na API)
-
-**Infra:** #120 (click tracking Resend), #121 (BIMI DNS)
+**UX-18** — logos e tags dos times no LineupBuilder
+**UX-01 a UX-06** — melhorias na Landing/Auth
+**UX-08/09** — datas e nº de partidas no Dashboard (requer campos na API)
+**UX-12** — datas por stage em Championships (requer campos na API)
+**#120** — desabilitar click tracking Resend
+**PlayerHistoryModal** — tooltip com comportamento errático em SVG (conhecido, baixa prioridade)
 
 ### Stack e migrations
-- Migrations aplicadas até 0010 (map_name na tabela match)
-- Próxima migration: revision = "0011", down_revision = "0010"
-- 60 partidas com map_name populado via backfill
-- cron-job.org configurado para pingar /stages/ a cada 14 min (evitar sleep do Render free tier)
+- Migrations aplicadas até 0011 (roster cost Numeric 6,2)
+- Próxima migration: revision = "0012", down_revision = "0011"
+- 60 partidas com map_name populado
+- Pricing recalculado nas stages 2-8 com decimais
 
 ---
 
-## Sessão de UX + Features — 11/04/2026 (parte 2)
+## Sessão 11/04/2026 — parte 3
 
-### Features implementadas
+### Pricing corrigido
+- MIN_VALID_MATCHES: 20 → 5 (1 dia completo de competição)
+- fantasy_cost, cost_override, cost: Integer → Numeric(6,2) — migration 0011
+- _interpolate retorna float com 2 casas
+- Schemas RosterPlayerOut, PriceHistoryOut, PlayerStatOut: int → float
+- Recalculo rodado nas stages 2-8 via Swagger
 
-**Team logos nas Player Stats**
-- Backend: player-stats retornava team_name: null — corrigido criando team_map a partir dos Rosters já carregados
-- TeamLogo.jsx: adicionado .webp como tentativa antes de .png (todos os times PGS estão em .webp)
-- teamLogo.js: mesmo ajuste no utilitário
+### PlayerHistoryModal — novo componente
+- Modal com gráfico de barras SVG ao clicar no nome de qualquer jogador
+- Endpoint: GET /stages/persons/{person_id}/match-history?limit=15&before_date=...
+- Logo do time no header do modal
+- Barras negativas (early death penalty) crescem para baixo com escala unificada
+- Eixo X: ícone de mapa + stage + dia + data DD/MM
+- Tooltip ao hover: kills/assists/knocks, dano, colocação, mapa (comportamento errático em bordas — conhecido)
+- before_date: filtro por contexto do clique (stage/dia atual)
+- Integrado em PlayerStatsPage e LineupBuilder
 
-**Logo do campeonato + dropdown de stages (TournamentHeader)**
-- Logo do campeonato aparece à esquerda do nome (carrega /logos/Tournaments/PGS.webp)
-- Nome da stage vira botão clicável com dropdown de todas as stages do mesmo championship
-- Dropdown com maxHeight 320px + scroll
-- Campo de busca aparece automaticamente quando há mais de 6 stages
-- Stage atual destacada em laranja com borda esquerda
+### Team logos corrigidos
+- app/routers/stages.py: team_name vinha null no player-stats → corrigido via team_map dos Rosters
+- TeamLogo.jsx + teamLogo.js: .webp adicionado antes de .png na cadeia de fallback
+
+### TournamentHeader
+- Logo do campeonato à esquerda do nome
+- Dropdown de stages com busca (aparece quando >6 stages), scroll, stage atual destacada
 - TournamentHub busca siblingStages via GET /stages/?championship_id=N
-- TournamentLayout atualizado para repassar novas props
 
-**Championships (UX-11, UX-13)**
-- Logo do campeonato carregando de /logos/Tournaments/ (PGS.webp, PGS.png, PAS.png)
-- Detecção corrigida para "PUBG Global Series" (não só "PGS")
-- Stages ordenadas do mais recente para o mais antigo (id desc)
-- short_name movido para direita, sem background — só texto discreto muted
-- Championship renomeado no banco: "PUBG Global Series 2026 - Circuito 1"
-
-**Decisões de modelagem confirmadas**
-- Um Championship por circuito do PGS
-- PAS será Championship separado
-- Estrutura atual suporta múltiplos campeonatos em paralelo
+### Championships
+- Logo carregando de /logos/Tournaments/ (PGS.webp, PAS.png)
+- Stages ordenadas do mais recente para o mais antigo
+- short_name movido para direita, discreto
+- Championship renomeado: "PUBG Global Series 2026 - Circuito 1"
 
 ---
 
-## Sessão de UX + Bugs — 11/04/2026 (parte 1)
+## Sessão 11/04/2026 — partes 1 e 2
 
-### Bugs corrigidos
-- Google OAuth redirecionava para localhost → FRONTEND_URL criada no Render
-- GET /stages/{id}/days 500 → StageDayOut.is_active com default True
-
-### Features implementadas
-- UX-07: fallback username usa prefixo do email
-- UX-10: badge short_name removido das rows do Dashboard
-- Badge de status: locked→ENCERRADO, open→ABERTA, closed→EM BREVE (Badge.jsx + Navbar.jsx)
-- PlayerStatsPage: botão TOTAL, preço 3 casas, estrela BEST removida
-- PlayerStatsPage: seletor de partida com ícone e nome do mapa + fuso do navegador
-- Backend: coluna map_name no Match (migration 0010), salvo no import, retornado no MatchOut
-- Backfill: 60 partidas com map_name populado
+- Google OAuth localhost fix, StageDayOut.is_active fix
+- UX-07, UX-10, Badge status, Navbar PT-BR
+- PlayerStatsPage: TOTAL, preço 3 casas, estrela BEST removida, seletor com mapa+fuso
+- map_name: migration 0010, import, MatchOut, backfill 60 partidas
 
 ---
 
-## Sessão de UX + Auth — 10/04/2026
-- BUG-01 a BUG-06 corrigidos
-- UX-05, UX-14, UX-15, UX-16 implementados
-- Google OAuth, forgot/reset password, email templates, domínio Resend
-- Migration 0009: password_reset_token + password_reset_expires_at
+## Sessão 10/04/2026
+- BUG-01 a BUG-06, UX-05, UX-14, UX-15, UX-16
+- Google OAuth, forgot/reset password, Resend, migration 0009
 
 ---
 
 ## Fases anteriores
-- Fase 7: scoring, leaderboard, sparklines, TeamLogo cascading fallbacks
-- Fase 5: pricing linear (migration 0003)
-- Fases 3-4: import, scoring XAMA, lineup, replicação (migration 4bfb4ef75223)
-- Fase 0-2: full reset, schema 14 tabelas (0001, 0002), JWT + Google OAuth
-- Bloco A: 8 Stages PGS, 97 Persons, 197 PlayerAccounts, 512 Rosters, 60 matches, 3840 match_stats
-
----
-
-## Aprendizados permanentes
-- Torneios oficiais: shard pc-tournament; scrims/PAS: steam
-- bcrypt==4.0.1 + passlib==1.7.4 fixados
-- Google OAuth no Render: BACKEND_URL fixo, nunca request.url_for
-- Render free tier dorme após inatividade — cron-job.org a cada 14 min
-- psql: sempre arquivo .sql com encoding ASCII, nunca -c inline
-- team_name vem do Roster, não da Person — player-stats precisava de team_map
-- Logos de times PGS estão em .webp — TeamLogo deve tentar .webp antes de .png
+- Fases 0-9, Blocos A e B — ver histórico completo na versão anterior do CHANGELOG
