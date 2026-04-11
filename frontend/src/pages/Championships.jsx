@@ -23,22 +23,24 @@ function statusStyle(lineup_status) {
 // ── Tournament Logo ───────────────────────────────────────────────────────────
 
 const LOGO_CANDIDATES = {
-  PGS: ['/logos/PGS/PGS.png', '/logos/Tournaments/PGS.png'],
-  PAS: ['/logos/PAS/PAS.png', '/logos/Tournaments/PAS.png'],
+  PGS: ['/logos/Tournaments/PGS.webp', '/logos/Tournaments/PGS.png'],
+  PAS: ['/logos/Tournaments/PAS.png'],
 }
 
 function ChampLogo({ name = '', size = 48 }) {
   const upper = name.toUpperCase()
-  const key = upper.includes('PGS') ? 'PGS' : upper.includes('PAS') ? 'PAS' : null
+  const key = upper.includes('PGS') || upper.includes('PGC') || upper.includes('PUBG') || upper.includes('GLOBAL SERIES') ? 'PGS'
+    : upper.includes('PAS') ? 'PAS'
+    : null
   const candidates = key ? LOGO_CANDIDATES[key] : []
   const [idx, setIdx] = useState(0)
   const [failed, setFailed] = useState(false)
 
+  const fallbackEmoji = upper.includes('PGS') || upper.includes('PGC') ? '🏆' : '🥇'
+
   if (!key || failed || candidates.length === 0) {
     return (
-      <span style={{ fontSize: size * 0.7, lineHeight: 1 }}>
-        {upper.includes('PGS') || upper.includes('PGC') ? '🌍🏆' : '🏆'}
-      </span>
+      <span style={{ fontSize: size * 0.7, lineHeight: 1 }}>{fallbackEmoji}</span>
     )
   }
 
@@ -85,29 +87,24 @@ function StageRow({ stage, navigate }) {
         e.currentTarget.style.background = isOpen ? 'rgba(74,222,128,0.03)' : 'rgba(255,255,255,0.01)'
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <span style={{
+        fontSize: 15, fontWeight: 600,
+        color: 'var(--color-xama-text)',
+        fontFamily: "'Rajdhani', sans-serif",
+      }}>
+        {stage.name}
+      </span>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
         {stage.short_name && (
           <span style={{
-            fontSize: 10, fontWeight: 700, letterSpacing: '0.08em',
+            fontSize: 10, fontWeight: 600, letterSpacing: '0.06em',
             fontFamily: "'JetBrains Mono', monospace",
             color: 'var(--color-xama-muted)',
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid var(--color-xama-border)',
-            borderRadius: 4, padding: '2px 6px', flexShrink: 0,
           }}>
             {stage.short_name}
           </span>
         )}
-        <span style={{
-          fontSize: 15, fontWeight: 600,
-          color: 'var(--color-xama-text)',
-          fontFamily: "'Rajdhani', sans-serif",
-        }}>
-          {stage.name}
-        </span>
-      </div>
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
         <span style={{
           fontSize: 11, fontWeight: 700, letterSpacing: '0.08em',
           padding: '3px 8px', borderRadius: 4,
@@ -128,11 +125,13 @@ function ChampionshipCard({ championship, navigate }) {
   const hasOpen = championship.stages.some(s => s.lineup_status === 'open')
   const allLocked = championship.stages.every(s => s.lineup_status === 'locked')
 
-  // Ordena: open primeiro, depois closed, depois locked
+  // Ordena: open primeiro, depois por id decrescente (mais recente primeiro)
   const stageOrder = { open: 0, closed: 1, locked: 2 }
-  const sortedStages = [...championship.stages].sort(
-    (a, b) => (stageOrder[a.lineup_status] ?? 3) - (stageOrder[b.lineup_status] ?? 3)
-  )
+  const sortedStages = [...championship.stages].sort((a, b) => {
+    const statusDiff = (stageOrder[a.lineup_status] ?? 3) - (stageOrder[b.lineup_status] ?? 3)
+    if (statusDiff !== 0) return statusDiff
+    return b.id - a.id  // mais recente primeiro dentro do mesmo status
+  })
 
   return (
     <div style={{
