@@ -20,17 +20,23 @@ function fmtDate(iso) {
 }
 
 function BarChart({ data }) {
-  const [hovered, setHovered] = useState(null) // index da barra hovered
+  const [hovered, setHovered] = useState(null)
   if (!data || data.length === 0) return null
 
-  const max = Math.max(...data.map(d => d.xama_points), 0.01)
-  const BAR_W   = 36
-  const BAR_GAP = 8
-  const CHART_H = 140
-  const LABEL_H = 64   // maior para caber a data
-  const totalW  = data.length * (BAR_W + BAR_GAP) - BAR_GAP
-  const TOOLTIP_W = 130
-  const TOOLTIP_H = 70
+  const maxPts = Math.max(...data.map(d => d.xama_points), 0.01)
+  const minPts = Math.min(...data.map(d => d.xama_points), 0)
+  const hasNeg = minPts < 0
+
+  const BAR_W    = 36
+  const BAR_GAP  = 8
+  const POS_H    = 120
+  const NEG_H    = hasNeg ? 36 : 0
+  const ZERO_Y   = POS_H
+  const CHART_H  = POS_H + NEG_H
+  const LABEL_H  = 64
+  const totalW   = data.length * (BAR_W + BAR_GAP) - BAR_GAP
+  const TOOLTIP_W = 134
+  const TOOLTIP_H = 64
 
   return (
     <div style={{ overflowX: 'auto', paddingBottom: '4px' }}>
@@ -39,109 +45,98 @@ function BarChart({ data }) {
         height={CHART_H + LABEL_H}
         style={{ display: 'block', minWidth: totalW, overflow: 'visible' }}
       >
-        {/* Grid lines */}
+        {/* Grid positivo */}
         {[0.25, 0.5, 0.75, 1].map(t => {
-          const y = CHART_H - t * CHART_H
+          const y = ZERO_Y - t * POS_H
           return (
             <g key={t}>
               <line x1={0} y1={y} x2={totalW} y2={y} stroke="#1e2330" strokeWidth={1} />
               <text x={2} y={y - 3} fontSize={9} fill="#4b5563" fontFamily="JetBrains Mono, monospace">
-                {Math.round(max * t)}
+                {Math.round(maxPts * t)}
               </text>
             </g>
           )
         })}
 
+        {/* Linha do zero */}
+        <line x1={0} y1={ZERO_Y} x2={totalW} y2={ZERO_Y} stroke="#374151" strokeWidth={1.5} />
+
         {/* Bars */}
         {data.map((d, i) => {
-          const x    = i * (BAR_W + BAR_GAP)
-          const barH = Math.max(4, (d.xama_points / max) * CHART_H)
-          const y    = CHART_H - barH
-          const map  = d.map_name ? (MAP_DISPLAY[d.map_name] ?? { icon: '🗺️' }) : { icon: '🗺️' }
-          const isTop = d.xama_points === max
+          const x     = i * (BAR_W + BAR_GAP)
+          const pts   = d.xama_points
+          const isPos = pts >= 0
+          const isTop = pts === maxPts
           const isHov = hovered === i
 
-          // Posição do tooltip — inverte se barra estiver perto da borda direita
+          const barH = isPos
+            ? Math.max(4, (pts / maxPts) * POS_H)
+            : Math.max(4, (Math.abs(pts) / Math.abs(minPts)) * NEG_H)
+          const barY    = isPos ? ZERO_Y - barH : ZERO_Y
+          const barFill = isTop ? '#f0c040' : isPos ? (isHov ? '#fb923c' : '#f97316') : '#f87171'
+
+          const map  = d.map_name ? (MAP_DISPLAY[d.map_name] ?? { icon: '🗺️' }) : { icon: '🗺️' }
+
           const tipX = x + BAR_W / 2 + TOOLTIP_W > totalW
             ? x + BAR_W / 2 - TOOLTIP_W - 4
             : x + BAR_W / 2 + 4
-          const tipY = Math.max(0, y - TOOLTIP_H - 8)
+          const tipY = Math.max(0, barY - TOOLTIP_H - 8)
 
           return (
-            <g
-              key={d.match_id}
+            <g key={d.match_id}
               onMouseEnter={() => setHovered(i)}
               onMouseLeave={() => setHovered(null)}
               style={{ cursor: 'default' }}
             >
-              {/* Bar hover area */}
-              <rect x={x} y={0} width={BAR_W} height={CHART_H + LABEL_H}
-                fill="transparent" />
+              <rect x={x} y={0} width={BAR_W} height={CHART_H + LABEL_H} fill="transparent" />
 
-              {/* Bar */}
-              <rect
-                x={x} y={y} width={BAR_W} height={barH}
-                rx={4}
-                fill={isTop ? '#f0c040' : isHov ? '#fb923c' : '#f97316'}
-                opacity={isTop ? 1 : isHov ? 1 : 0.75}
-              />
+              <rect x={x} y={barY} width={BAR_W} height={barH} rx={4}
+                fill={barFill} opacity={isTop ? 1 : isHov ? 1 : 0.75} />
 
-              {/* Points label */}
+              {/* Label acima de barras positivas, abaixo de negativas */}
               <text
-                x={x + BAR_W / 2} y={y - 5}
+                x={x + BAR_W / 2}
+                y={isPos ? barY - 5 : ZERO_Y + barH + 12}
                 textAnchor="middle" fontSize={10} fontWeight={700}
-                fill={isTop ? '#f0c040' : '#f97316'}
+                fill={isPos ? (isTop ? '#f0c040' : '#f97316') : '#f87171'}
                 fontFamily="JetBrains Mono, monospace"
               >
-                {d.xama_points.toFixed(1)}
+                {pts.toFixed(1)}
               </text>
 
-              {/* Map icon */}
               <text x={x + BAR_W / 2} y={CHART_H + 16} textAnchor="middle" fontSize={13}>
                 {map.icon}
               </text>
-
-              {/* Stage short name */}
               <text x={x + BAR_W / 2} y={CHART_H + 30} textAnchor="middle"
-                fontSize={9} fontWeight={700} fill="#6b7280"
-                fontFamily="JetBrains Mono, monospace">
+                fontSize={9} fontWeight={700} fill="#6b7280" fontFamily="JetBrains Mono, monospace">
                 {d.stage_short_name}
               </text>
-
-              {/* Day */}
               <text x={x + BAR_W / 2} y={CHART_H + 43} textAnchor="middle"
                 fontSize={9} fill="#4b5563" fontFamily="JetBrains Mono, monospace">
                 D{d.day_number}
               </text>
-
-              {/* Date */}
               <text x={x + BAR_W / 2} y={CHART_H + 57} textAnchor="middle"
                 fontSize={8} fill="#374151" fontFamily="JetBrains Mono, monospace">
                 {fmtDate(d.played_at)}
               </text>
 
-              {/* Tooltip ao hover */}
               {isHov && (
                 <g>
                   <rect x={tipX} y={tipY} width={TOOLTIP_W} height={TOOLTIP_H}
                     rx={6} fill="#0f1219" stroke="#1e2330" strokeWidth={1} />
-                  {/* Kills */}
                   <text x={tipX + 8} y={tipY + 16} fontSize={10} fill="#dce1ea"
                     fontFamily="JetBrains Mono, monospace">
-                    🗡 {d.kills}k  {d.assists}a  {d.knocks ?? 0}kd
+                    {d.kills}k {d.assists}a {d.knocks ?? 0}kd
                   </text>
-                  {/* Damage */}
                   <text x={tipX + 8} y={tipY + 30} fontSize={10} fill="#dce1ea"
                     fontFamily="JetBrains Mono, monospace">
-                    💥 {Math.round(d.damage)} dmg
+                    {Math.round(d.damage)} dmg
                   </text>
-                  {/* Placement */}
                   <text x={tipX + 8} y={tipY + 44} fontSize={10}
                     fill={d.placement === 1 ? '#f0c040' : d.placement <= 5 ? '#4ade80' : '#dce1ea'}
                     fontFamily="JetBrains Mono, monospace">
-                    🏁 #{d.placement ?? '—'}
+                    {d.placement ? `#${d.placement} lugar` : '—'}
                   </text>
-                  {/* Map name */}
                   <text x={tipX + 8} y={tipY + 58} fontSize={9} fill="#6b7280"
                     fontFamily="JetBrains Mono, monospace">
                     {d.map_name ? (MAP_DISPLAY[d.map_name]?.name ?? d.map_name.replace('_Main','')) : '—'}
