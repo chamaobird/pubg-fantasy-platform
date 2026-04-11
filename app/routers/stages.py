@@ -98,9 +98,9 @@ class RosterPlayerOut(BaseModel):
     person_id: int
     person_name: Optional[str]
     team_name: Optional[str]
-    fantasy_cost: Optional[int]
-    cost_override: Optional[int]
-    effective_cost: Optional[int]
+    fantasy_cost: Optional[float]
+    cost_override: Optional[float]
+    effective_cost: Optional[float]
     newcomer_to_tier: bool
     is_available: bool
 
@@ -111,7 +111,7 @@ class PriceHistoryOut(BaseModel):
     id: int
     roster_id: int
     stage_day_id: Optional[int]
-    cost: int
+    cost: float
     source: str
     recorded_at: datetime
 
@@ -144,7 +144,7 @@ class PlayerStatOut(BaseModel):
     best_match_id: Optional[int]
 
     # Preço atual na stage (sempre corrente, não histórico)
-    fantasy_cost: Optional[int]
+    fantasy_cost: Optional[float]
 
     # Sparkline: evolução diária — preenchida apenas no escopo completo da stage
     pts_by_day: list[dict]  # [{"day": 1, "pts": 42.5}, ...]
