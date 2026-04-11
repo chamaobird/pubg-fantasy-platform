@@ -37,7 +37,16 @@ const fmt2   = (v) => v != null ? Number(v).toFixed(2) : '—'
 const fmtInt = (v) => v != null ? Math.round(v) : '—'
 const fmtMin = (secs) => secs != null ? Math.round(Number(secs) / 60) : '—'
 
-const MAP_ICONS = { Erangel: '🌿', Miramar: '🏜️', Taego: '🌾', Rondo: '❄️', Vikendi: '❄️', Deston: '🌊' }
+const MAP_DISPLAY = {
+  Baltic_Main:  { icon: '🌿', name: 'Erangel' },
+  Desert_Main:  { icon: '🏜️', name: 'Miramar' },
+  Tiger_Main:   { icon: '🌾', name: 'Taego' },
+  Neon_Main:    { icon: '🌀', name: 'Rondo' },
+  Vikendi_Main: { icon: '❄️', name: 'Vikendi' },
+  Kiki_Main:    { icon: '🌊', name: 'Deston' },
+  Savage_Main:  { icon: '🌴', name: 'Sanhok' },
+  Heaven_Main:  { icon: '🏙️', name: 'Haven' },
+}
 
 // ── Sparkline SVG inline ───────────────────────────────────────────────────
 // Recebe pts_by_day: [{day, pts}] e renderiza barrinhas verticais
@@ -93,11 +102,7 @@ const COLUMNS = [
   { key: 'best_match_pts',      label: 'BEST',       title: 'Melhor partida individual', right: true,
     render: (p) => {
       if (!p.best_match_pts) return '—'
-      return (
-        <span style={{ color: '#f0c040', fontWeight: 600 }}>
-          ★ {fmt2(p.best_match_pts)}
-        </span>
-      )
+      return <span style={{ color: '#f0c040', fontWeight: 600 }}>{fmt2(p.best_match_pts)}</span>
     },
     sortVal: (p) => p.best_match_pts || 0 },
   { key: 'total_kills',         label: 'K Total',    title: 'Total de kills',             right: true,
@@ -115,7 +120,7 @@ const COLUMNS = [
     render: (p) => fmtMin(p.avg_survival_secs),
     sortVal: (p) => p.avg_survival_secs || 0 },
   { key: 'fantasy_cost',        label: 'PREÇO',      title: 'Preço fantasy atual',        right: true,
-    render: (p) => <span style={{ color: 'var(--color-xama-gold)' }}>${Number(p.fantasy_cost || 0).toFixed(0)}</span> },
+    render: (p) => <span style={{ color: 'var(--color-xama-gold)' }}>${Number(p.fantasy_cost || 0).toFixed(3)}</span> },
 ]
 
 function SortIcon({ active, dir }) {
@@ -232,6 +237,8 @@ export default function PlayerStatsPage({ stageId: propStageId = null, shortName
     else { setSortKey(key); setSortDir('desc') }
   }
 
+  // Estrela BEST removida — valor numérico apenas
+
   // ── Labels de contexto ────────────────────────────────────────────────────
   const selectedDay   = stageDays.find((d) => d.id === selectedDayId)
   const selectedMatch = matches.find((m) => m.id === selectedMatchId)
@@ -242,7 +249,7 @@ export default function PlayerStatsPage({ stageId: propStageId = null, shortName
       const date = selectedDay.date ? new Date(selectedDay.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : ''
       return `Dia ${selectedDay.day_number}${date ? ` · ${date}` : ''}`
     }
-    return 'Stage completa'
+    return stageDays.length > 1 ? 'Total' : (stageDays[0] ? `Dia ${stageDays[0].day_number}` : 'Total')
   }, [selectedMatch, selectedDay])
 
   const thStyle = (col) => ({
@@ -286,19 +293,21 @@ export default function PlayerStatsPage({ stageId: propStageId = null, shortName
           {/* ── Filtros ───────────────────────────────────────────────────── */}
           <div className="flex flex-wrap items-center gap-3">
 
-            {/* Chips de dia */}
+            {/* Chips de dia — esconde botão TOTAL quando há só 1 dia */}
             {stageDays.length > 0 && (
               <div className="flex items-center gap-1">
-                <button
-                  onClick={() => { setSelectedDayId(null); setSelectedMatchId(null) }}
-                  style={{
-                    ...selectStyle, padding: '4px 10px', fontWeight: 600,
-                    background: !selectedDayId ? 'rgba(240,192,64,0.12)' : '#0d0f14',
-                    borderColor: !selectedDayId ? 'rgba(240,192,64,0.5)' : 'var(--color-xama-border)',
-                    color: !selectedDayId ? '#f0c040' : 'var(--color-xama-muted)',
-                  }}>
-                  Stage
-                </button>
+                {stageDays.length > 1 && (
+                  <button
+                    onClick={() => { setSelectedDayId(null); setSelectedMatchId(null) }}
+                    style={{
+                      ...selectStyle, padding: '4px 10px', fontWeight: 600,
+                      background: !selectedDayId ? 'rgba(240,192,64,0.12)' : '#0d0f14',
+                      borderColor: !selectedDayId ? 'rgba(240,192,64,0.5)' : 'var(--color-xama-border)',
+                      color: !selectedDayId ? '#f0c040' : 'var(--color-xama-muted)',
+                    }}>
+                    TOTAL
+                  </button>
+                )}
                 {stageDays.map((d) => (
                   <button
                     key={d.id}
@@ -320,13 +329,19 @@ export default function PlayerStatsPage({ stageId: propStageId = null, shortName
               <select
                 value={selectedMatchId ?? ''}
                 onChange={(e) => setSelectedMatchId(e.target.value ? Number(e.target.value) : null)}
-                style={{ ...selectStyle, minWidth: '160px' }}>
+                style={{ ...selectStyle, minWidth: '180px' }}>
                 <option value="">Dia inteiro</option>
-                {matches.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    P{m.match_number} — {m.played_at ? new Date(m.played_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : `#${m.id}`}
-                  </option>
-                ))}
+                {matches.map((m) => {
+                  const map = m.map_name ? (MAP_DISPLAY[m.map_name] ?? { icon: '🗺️', name: m.map_name }) : null
+                  const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Sao_Paulo'
+                  const time = m.played_at
+                    ? new Date(m.played_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: userTz })
+                    : `#${m.id}`
+                  const label = map
+                    ? `P${m.match_number} ${map.icon} ${map.name} — ${time}`
+                    : `P${m.match_number} — ${time}`
+                  return <option key={m.id} value={m.id}>{label}</option>
+                })}
               </select>
             )}
 

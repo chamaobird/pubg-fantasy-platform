@@ -2,118 +2,57 @@
 
 ## 🟡 Próximas tarefas (priorizadas)
 
+### UX — Landing/Auth
+- [ ] #UX-01 Background temático voltado para fantasy league (não só PUBG raw)
+- [ ] #UX-02 Formulário de auth centralizado flutuante (não colado à direita)
+- [ ] #UX-03 Título explícito dentro do card (ENTRAR / CADASTRAR)
+- [ ] #UX-04 Campo de confirmação de senha no cadastro
+- [ ] #UX-06 Stats da landing (262+ jogadores etc.) — repensar copy e posicionamento
+
+### UX — Dashboard
+- [ ] #UX-07 Usuário sem username aparece como "JOGADOR" — usar prefixo do email como fallback
+- [ ] #UX-08 Adicionar datas dos eventos (início e fim para encerrados, próximos dias para futuros)
+- [ ] #UX-09 Nos stages encerrados com resultados, exibir nº de dias e nº de partidas
+- [ ] #UX-10 Badge short_name (PGS3GF etc.) muito proeminente — remover ou tornar mais sutil
+
+### UX — Championships
+- [ ] #UX-11 Logo do campeonato no lugar do badge PUB ID
+- [ ] #UX-12 Datas e nº de partidas por stage
+- [ ] #UX-13 Ordenar stages do mais recente para o mais antigo
+
 ### Infra — pendente domínio
-- [ ] #120 Configurar domínio próprio no Resend para envio de email para qualquer destinatário
-- [ ] #121 Desabilitar click tracking do Resend (disponível após domínio verificado)
+- [ ] #120 Desabilitar click tracking do Resend (disponível após domínio verificado) — já tem domínio, executar
+- [ ] #121 BIMI record DNS para ícone do remetente no email (opcional, cosmético)
 
 ### Pricing — Bloco C
-- [ ] #101 Job de polling de partidas ao vivo — detecta novas partidas durante torneio e importa automaticamente
-- [ ] #103 Suporte a upload de jogadores via planilha (CSV) para casos de shard steam
+- [ ] #101 Job de polling de partidas ao vivo
+- [ ] #103 Suporte a upload de jogadores via planilha CSV
 
 ### Auth
-- [ ] #013b Google OAuth em produção — aguardando propagação DNS do Google Cloud Console (pode levar horas)
+- [ ] #013b Google OAuth em produção — aguardando propagação DNS ✅ RESOLVIDO — verificar se ainda pendente
 
 ## 🟢 Concluído
 
-### Fase 0 — Setup
-- [x] #000 Diagnóstico estrutural e desenho do novo modelo (05/04/2026)
-- [x] #000 Projeto movido para C:\Users\lgpas\PROJECTS\pubg-fantasy-platform (05/04/2026)
-- [x] #000 Schema antigo movido para _legacy/, projeto resetado (05/04/2026)
+### Sessão de UX + Auth (10/04/2026)
+- [x] BUG-01 Mensagens de erro em inglês no formulário → traduzidas para PT-BR
+- [x] BUG-02 Sem caminho para reenvio de verificação → link "Reenviar verificação" no erro
+- [x] BUG-03 Google OAuth "Not Found" em produção → corrigido via BACKEND_URL + redirect flow
+- [x] BUG-04 Sem fluxo de recuperação de senha → forgot/reset password completo implementado
+- [x] BUG-05 Botão "Salvar Username" desabilitado para usuários Google → corrigido
+- [x] BUG-06 Campo email vazio para usuários Google → corrigido via has_password no UserResponse
+- [x] UX-05 Links "Já tem conta? Entrar" e "Não tem conta? Cadastre-se" → implementados
+- [x] UX-14 Validação de username duplicado no perfil → mensagem de erro no save
+- [x] UX-15 Tipografia pequena no Perfil → aumentada para padrão das outras páginas
+- [x] UX-16 Hint "Aparece no leaderboard..." com contraste muito baixo → aumentado
+- [x] Email verification link apontava para frontend → corrigido para backend
+- [x] Templates de email on-brand → fundo escuro, identidade XAMA completa
+- [x] Domínio chamaobird.xyz verificado no Resend → emails para qualquer destinatário
+- [x] DMARC configurado no DNS do chamaobird.xyz
+- [x] Migration 0009 — password_reset_token + password_reset_expires_at
+- [x] AuthCallback.jsx criado para receber token do Google OAuth
+- [x] ResetPasswordPage.jsx criado
 
-### Fase 1 — Fundação
-- [x] #010 Migration 0001 — schema completo (14 tabelas) (05/04/2026)
-- [x] #011 Swagger dark mode — CSS inline, tema roxo/escuro (05/04/2026)
-- [x] #012 APScheduler — lineup_control (1min) + pricing placeholder (30min) (05/04/2026)
-- [x] #014 Auth — tabela user, JWT, Google OAuth, /auth/register /login /me /google (05/04/2026)
-
-### Fase 2 — Admin core
-- [x] #020 CRUD Championship (05/04/2026)
-- [x] #021 CRUD Stage com validações de shard, lineup_open_at e carries_stats_from (05/04/2026)
-- [x] #022 CRUD Stage Day (05/04/2026)
-- [x] #023 CRUD Person + PlayerAccount (05/04/2026)
-- [x] #024 Roster — add/list/update/remove player from stage (05/04/2026)
-
-### Fase 3 — Import e stats
-- [x] #030 Import de matches com shard herdado da Stage (06/04/2026)
-- [x] #031 Resolução de identidade via PERSON + PLAYER_ACCOUNT (06/04/2026)
-- [x] #032 Cálculo de MATCH_STAT e PERSON_STAGE_STAT (06/04/2026)
-- [x] #033 Reprocess funcional para qualquer shard (06/04/2026)
-
-### Fase 4 — Lineup e jobs
-- [x] #040 Montagem de lineup por STAGE_DAY (06/04/2026)
-- [x] #041 APScheduler — abertura/fechamento automático (06/04/2026)
-- [x] #042 Replicação de lineup (validação de budget e reserva) (06/04/2026)
-- [x] #043 Botão manual de emergência para override de lineup_status (06/04/2026)
-
-### Fase 5 — Pricing
-- [x] #050 Cálculo de fantasy_cost com régua linear por stage (06/04/2026)
-- [x] #051 Suporte a newcomer_to_tier com custo fixo configurável por stage (06/04/2026)
-- [x] #052 cost_override manual com auditoria via RosterPriceHistory (06/04/2026)
-- [x] #053 Recálculo automático via APScheduler após cada dia (06/04/2026)
-- [x] #054 ROSTER_PRICE_HISTORY — histórico de preços com source auto|override (06/04/2026)
-
-### Fase 6 — Frontend
-- [x] #060 LineupBuilder reescrito para novo backend — 4 titulares + 1 reserva + capitão (07/04/2026)
-- [x] #061 Exibição de effective_cost por jogador com badge newcomer (07/04/2026)
-- [x] #062 Histórico de preços por jogador — modal PriceHistoryModal (07/04/2026)
-- [x] #063 Painel admin de override de custo — AdminPricingPanel com recálculo manual (07/04/2026)
-
-### Correções e infra (Fase 6)
-- [x] Endpoints públicos /stages/ — list, detail, days, roster, price-history (07/04/2026)
-- [x] Migration 0004 — is_captain em lineup_player (07/04/2026)
-- [x] Migration 0005 — short_name e is_active em stage (07/04/2026)
-- [x] Lineup service corrigido — RESERVE_COUNT=1, capitão com multiplicador x1.3 (07/04/2026)
-- [x] Dashboard reescrito para /stages/ (07/04/2026)
-- [x] LandingPage corrigida — endpoints /auth/login e /auth/register (07/04/2026)
-
-### Fase 7 — Scoring e resultados (08/04/2026)
-- [x] #070 Calcular points_earned por LineupPlayer após cada dia (captain_multiplier por stage)
-- [x] #071 Atualizar total_points no Lineup após scoring
-- [x] #072 Calcular UserDayStat e UserStageStat após cada dia
-- [x] #073 Leaderboard público por stage (/stages/{id}/leaderboard e /days/{id}/leaderboard)
-- [x] #074 Migrar TournamentLeaderboard e PlayerStatsPage para novos endpoints
-- [x] Migration 0006 — captain_multiplier em stage (default 1.30, configurável por torneio)
-- [x] GET /stages/{id}/days/{day_id}/matches — endpoint público de partidas por dia
-- [x] GET /stages/{id}/player-stats — stats agregados com filtros stage/dia/partida
-- [x] PlayerStatsPage — sparkline de pts por dia + badge melhor partida
-- [x] TeamLogo — resolução de pasta por campeonato (PAS/ PGS/) com fallback em cascata
-- [x] scoring_job adicionado ao APScheduler (1min, detecta StageDays prontos para pontuar)
-
-### Bloco A — Populate PGS 2026 (08/04/2026)
-- [x] Diagnóstico de dados disponíveis na PUBG API (60 matches em 8 stages)
-- [x] scripts/pubg/check_pgs_data.py + check_pgs_retry.py
-- [x] scripts/pubg/populate_pgs2026.py — Championship + 8 Stages + 12 StageDays + 60 matches
-- [x] scripts/pubg/populate_players.py — 97 Persons + 197 PlayerAccounts (agrupamento por alias)
-- [x] scripts/pubg/populate_rosters.py — 512 Rosters (64 por stage)
-- [x] Correções em client.py (load_dotenv), import_.py, scoring.py, match_stat.py, main.py
-- [x] 3840 match_stats com xama_points calculados por dados reais
-
-### Bloco B — Pricing refatorado (08/04/2026)
-- [x] Migration 0007 — tier_weight em championship (default 1.00)
-- [x] app/services/pricing.py — algoritmo exponencial (λ=0.02, max_days=150, min_valid=20)
-- [x] app/models/championship.py + app/schemas/championship.py atualizados
-- [x] Pricing validado com dados reais: régua 12–35, Hakatory(NAVI) topo com 35
-
-### Fase 8 — Admin scoring + UX + limpeza de legado (09/04/2026)
-- [x] #090 Admin: endpoint POST /admin/stages/{id}/score-day (scoring manual de um StageDay)
-- [x] #091 Admin: endpoint POST /admin/stages/{id}/rescore (rescore completo da stage)
-- [x] #092 Frontend: LineupResultsPage — pontuação por jogador por dia com acumulado
-- [x] #093 Frontend: exibir captain_multiplier no LineupBuilder (badge + slot do capitão)
-- [x] #081 Championships page — nova página /championships consumindo novo backend
-- [x] #082 Profile — endpoints corrigidos /users/me → /auth/me, estados mortos removidos
-- [x] #083 Navbar — link Torneios → Campeonatos (/championships)
-- [x] #100 tier_weight validado no Swagger
-- [x] #102 pricing_n_matches deprecated
-- [x] #110 distribute_matches_by_day reescrita com divmod
-- [x] #111 pgs_match_ids.json movido para scripts/pubg/data/
-
-### Fase 9 — Filtros UX + Auth (09/04/2026)
-- [x] #094 PlayerStats: shortName propagado → TeamLogo mostra logos corretamente
-- [x] #095 TournamentHub: shortName passado como prop para PlayerStatsPage
-- [x] #013 Email verification — Resend integrado, migration 0008, /auth/verify + /auth/resend-verification
-- [x] AuthVerified.jsx — tela de confirmação pós-verificação
-- [x] LandingPage — feedback visual pós-cadastro ("Verifique seu email")
-- [x] Google OAuth client ID corrigido (client deletado → novo ID configurado)
-- [x] bcrypt==4.0.1 + passlib==1.7.4 fixados no requirements.txt
-- [x] Credenciais do banco rotacionadas (incidente GitGuardian)
-- [x] *.sql adicionado ao .gitignore
+### Fase 0–9 + Blocos A e B (ver histórico anterior)
+- [x] Fases 1–9 completas — ver CONTEXT.md para detalhes
+- [x] Bloco A — Populate PGS 2026
+- [x] Bloco B — Pricing refatorado

@@ -31,6 +31,9 @@ class Match(Base):
     played_at: Mapped[Optional[DateTime]] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    map_name: Mapped[Optional[str]] = mapped_column(
+        String(60), nullable=True, comment="Map name from PUBG API (e.g. Baltic_Main)"
+    )
     created_at: Mapped[DateTime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=text("now()")
     )

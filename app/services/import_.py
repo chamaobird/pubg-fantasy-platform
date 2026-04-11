@@ -299,6 +299,7 @@ def _import_single_match(
     if existing_match:
         match = existing_match
         match.played_at = raw.played_at
+        match.map_name  = raw.map_name
         status = "reprocessed"
     else:
         match = Match(
@@ -306,6 +307,7 @@ def _import_single_match(
             stage_day_id  = effective_stage_day_id,
             shard         = stage.shard,
             played_at     = raw.played_at,
+            map_name      = raw.map_name,
         )
         db.add(match)
         db.flush()  # garante match.id antes do scoring

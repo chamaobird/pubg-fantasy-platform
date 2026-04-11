@@ -115,7 +115,8 @@ export default function Dashboard() {
   const closedStages  = useMemo(() => stages.filter(s => s.lineup_status === 'closed'), [stages])
   const lockedStages  = useMemo(() => stages.filter(s => s.lineup_status === 'locked'), [stages])
 
-  const displayName = user?.display_name || user?.username || 'jogador'
+  const displayName = user?.display_name || user?.username
+    || (user?.email ? user.email.split('@')[0] : 'jogador')
 
   if (loading) return (
     <div className="xama-page">
@@ -189,10 +190,11 @@ export default function Dashboard() {
                         <span className="xama-pulse" style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--color-xama-orange)', display: 'inline-block' }} />
                         <span style={{ fontSize: '16px', fontWeight: 700, letterSpacing: '0.06em', color: 'var(--color-xama-orange)', textTransform: 'uppercase' }}>ABERTA</span>
                       </span>
-                      <span style={{
-                        fontSize: '13px', fontWeight: 600, color: 'var(--color-xama-muted)',
-                        background: 'var(--surface-3)', padding: '4px 10px', borderRadius: '4px',
-                      }}>{s.short_name}</span>
+                      {s.lineup_close_at && (
+                        <span style={{ fontSize: '13px', color: 'var(--color-xama-muted)' }}>
+                          Fecha {new Date(s.lineup_close_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                        </span>
+                      )}
                     </div>
 
                     <div style={{
@@ -256,13 +258,11 @@ export default function Dashboard() {
                       fontFamily: 'Rajdhani, sans-serif',
                     }}>{s.name}</div>
                     <div style={{ fontSize: '16px', color: 'var(--color-xama-muted)', marginTop: '2px' }}>
-                      Lineup será liberada em breve
+                      {s.lineup_open_at
+                        ? `Abre ${new Date(s.lineup_open_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}`
+                        : 'Lineup será liberada em breve'}
                     </div>
                   </div>
-                  <span style={{
-                    fontSize: '13px', fontWeight: 600, color: 'var(--color-xama-muted)',
-                    background: 'var(--surface-3)', padding: '4px 10px', borderRadius: '4px', flexShrink: 0,
-                  }}>{s.short_name}</span>
                   <span style={{ fontSize: '16px', color: 'var(--color-xama-muted)', fontWeight: 600 }}>⏳ EM BREVE</span>
                 </div>
               ))}
@@ -286,12 +286,18 @@ export default function Dashboard() {
                       whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                       fontFamily: 'Rajdhani, sans-serif',
                     }}>{s.name}</div>
-                    <div style={{ fontSize: '16px', color: 'var(--color-xama-muted)', marginTop: '2px' }}>Encerrado</div>
+                    <div style={{ fontSize: '16px', color: 'var(--color-xama-muted)', marginTop: '2px', display: 'flex', gap: '12px' }}>
+                      {(s.start_date || s.lineup_open_at) && (
+                        <span>
+                          {new Date(s.start_date || s.lineup_open_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                          {(s.end_date || s.lineup_close_at) && ` – ${new Date(s.end_date || s.lineup_close_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}`}
+                        </span>
+                      )}
+                      {s.days_count != null && <span>{s.days_count} dias</span>}
+                      {s.matches_count != null && <span>{s.matches_count} partidas</span>}
+                      {!(s.start_date || s.lineup_open_at) && !(s.days_count) && <span>Encerrado</span>}
+                    </div>
                   </div>
-                  <span style={{
-                    fontSize: '13px', fontWeight: 600, color: 'var(--color-xama-muted)',
-                    background: 'var(--surface-3)', padding: '4px 10px', borderRadius: '4px', flexShrink: 0,
-                  }}>{s.short_name}</span>
                   <span style={{ color: 'var(--color-xama-muted)', fontSize: '20px' }}>›</span>
                 </div>
               ))}

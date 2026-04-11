@@ -77,7 +77,7 @@ class StageDayOut(BaseModel):
     stage_id: int
     day_number: int
     date: Optional[datetime]
-    is_active: bool
+    is_active: bool = True
 
     model_config = {"from_attributes": True}
 
@@ -86,6 +86,7 @@ class MatchOut(BaseModel):
     id: int
     pubg_match_id: str
     played_at: Optional[datetime]
+    map_name: Optional[str]
     match_number: int
     total_players: int
 
@@ -279,6 +280,7 @@ def list_day_matches(
             id=m.id,
             pubg_match_id=m.pubg_match_id,
             played_at=m.played_at,
+            map_name=m.map_name,
             match_number=idx + 1,
             total_players=counts.get(m.id, 0),
         )

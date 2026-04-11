@@ -2,8 +2,14 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../App'
 
-const STATUS_COLOR = { active: '#4ade80', upcoming: '#f97316', finished: '#6b7280' }
-const STATUS_LABEL = { active: 'AO VIVO', upcoming: 'EM BREVE', finished: 'FINISHED' }
+const STATUS_COLOR = {
+  active: '#4ade80', upcoming: '#f97316', finished: '#6b7280',
+  open: '#4ade80', closed: '#f97316', locked: '#6b7280',
+}
+const STATUS_LABEL = {
+  active: 'AO VIVO', upcoming: 'EM BREVE', finished: 'ENCERRADO',
+  open: 'ABERTA', closed: 'EM BREVE', locked: 'ENCERRADO',
+}
 
 export default function Navbar({ tournament = null }) {
   const navigate = useNavigate()

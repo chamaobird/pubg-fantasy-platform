@@ -23,14 +23,19 @@ export function Badge({ children, preset, dot = false, style, className = '' }) 
   )
 }
 
-/** Badge de status do torneio (active/upcoming/finished) */
+/** Badge de status do torneio — suporta lineup_status e tournament status */
 export function StatusBadge({ status }) {
   const MAP = {
-    active:   { preset: 'live',  label: 'AO VIVO',  dot: true },
-    upcoming: { preset: 'soon',  label: 'EM BREVE', dot: false },
-    finished: { preset: 'done',  label: 'ENCERRADO',dot: false },
+    // tournament status
+    active:   { preset: 'live',  label: 'AO VIVO',   dot: true  },
+    upcoming: { preset: 'soon',  label: 'EM BREVE',  dot: false },
+    finished: { preset: 'done',  label: 'ENCERRADO', dot: false },
+    // lineup_status
+    open:     { preset: 'live',  label: 'ABERTA',    dot: true  },
+    closed:   { preset: 'soon',  label: 'EM BREVE',  dot: false },
+    locked:   { preset: 'done',  label: 'ENCERRADO', dot: false },
   }
-  const cfg = MAP[status] ?? MAP.upcoming
+  const cfg = MAP[status] ?? { preset: 'soon', label: 'EM BREVE', dot: false }
   return <Badge preset={cfg.preset} dot={cfg.dot}>{cfg.label}</Badge>
 }
 
