@@ -7,7 +7,9 @@
 - [ ] #UX-18 Logo e tag dos times na página de Lineup (LineupBuilder)
 
 ### Pricing
-- [ ] #PRICE-01 Preços saindo como inteiros ($30, $22) — revisar fórmula para 2 casas decimais
+- [x] #PRICE-01a MIN_VALID_MATCHES corrigido de 20 para 5 (1 dia completo de competição)
+- [ ] #PRICE-01b Preços saindo como inteiros ($30, $22) — fantasy_cost salvo como int, revisar para float com 2 decimais
+- [ ] #PRICE-02 Rodar recalculo nas stages 2-8 após deploy (fantasy_cost está null)
 
 ### UX — Landing/Auth
 - [ ] #UX-01 Background temático voltado para fantasy league
