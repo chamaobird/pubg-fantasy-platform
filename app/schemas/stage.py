@@ -46,7 +46,7 @@ class StageCreate(BaseModel):
     @field_validator("lineup_status")
     @classmethod
     def valid_status(cls, v: str) -> str:
-        allowed = {"closed", "open", "locked"}
+        allowed = {"closed", "open", "locked", "preview"}
         if v not in allowed:
             raise ValueError(f"lineup_status must be one of: {', '.join(sorted(allowed))}")
         return v
@@ -94,7 +94,7 @@ class StageUpdate(BaseModel):
     def valid_status(cls, v: Optional[str]) -> Optional[str]:
         if v is None:
             return v
-        allowed = {"closed", "open", "locked"}
+        allowed = {"closed", "open", "locked", "preview"}
         if v not in allowed:
             raise ValueError(f"lineup_status must be one of: {', '.join(sorted(allowed))}")
         return v

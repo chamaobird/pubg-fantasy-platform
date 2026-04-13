@@ -10,6 +10,12 @@ Endpoints de usuário:
 Endpoints admin:
   POST /admin/stages/{stage_id}/force-status   Override manual de lineup_status (#043)
   GET  /admin/stages/{stage_id}/lineups        Todos os lineups de uma stage (admin)
+
+Status válidos para lineup_status:
+  closed  — padrão; lineup não visível nem editável
+  preview — stage visível com roster/stats mas lineup desabilitado (aguardando confirmação)
+  open    — lineup aberto para montagem
+  locked  — stage encerrada; lineup visível mas não editável
 """
 from __future__ import annotations
 
@@ -29,6 +35,8 @@ from app.services.lineup import submit_lineup
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Lineups"])
+
+VALID_STATUSES = {"closed", "open", "locked", "preview"}
 
 
 # ---------------------------------------------------------------------------
@@ -55,8 +63,8 @@ class ForceStatusRequest(BaseModel):
     @field_validator("status")
     @classmethod
     def validate_status(cls, v: str) -> str:
-        if v not in ("closed", "open", "locked"):
-            raise ValueError("Status deve ser 'closed', 'open' ou 'locked'")
+        if v not in VALID_STATUSES:
+            raise ValueError(f"Status deve ser um de: {', '.join(sorted(VALID_STATUSES))}")
         return v
 
 
@@ -99,6 +107,7 @@ class LineupOut(BaseModel):
     description=(
         "Cria ou substitui o lineup do usuário autenticado para o StageDay informado. "
         "A stage deve estar com lineup_status='open'. "
+        "Status 'preview' não permite submissão. "
         "O `captain_roster_id` deve ser um dos `titular_roster_ids`. "
         "O capitão recebe multiplicador ×1.3 nos pontos."
     ),
@@ -181,6 +190,8 @@ def get_my_lineups_for_stage(
     summary="[Admin] Override manual de lineup_status",
     description=(
         "Força a transição de lineup_status para qualquer valor válido. "
+        "Valores aceitos: closed, open, locked, preview. "
+        "Use 'preview' para abrir a visualização do roster/stats sem permitir montagem de lineup. "
         "Use em emergências quando o APScheduler falhar ou o horário precisar "
         "ser ajustado manualmente. Ação é logada como OVERRIDE MANUAL."
     ),
