@@ -15,7 +15,7 @@ Fórmula XAMA (todas as constantes documentadas abaixo):
   │  Damage        × 0.03   pts por ponto de dano                  │
   │  Morte precoce → −15    se survival < 600s E kills == 0        │
   │  Late game     → bônus por sobreviver até o final (ver abaixo) │
-  │  Capitão       → ×1.25  aplicado na camada de lineup scoring   │
+  │  Capitão       → ×1.30  aplicado na camada de lineup scoring   │
   └─────────────────────────────────────────────────────────────────┘
 
 Late game bonus (por partida, calculado sobre o conjunto completo):
