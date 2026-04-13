@@ -37,14 +37,12 @@ if (!document.getElementById('xama-dash-anim')) {
 
 const fmt1 = (v) => v != null ? Number(v).toFixed(1) : '—'
 
-// ── Helpers de data ──────────────────────────────────────────────────────────
-
 function fmtDate(iso) {
   if (!iso) return null
   return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
 }
 
-// ── ChampLogo — logo do campeonato para cada row de stage ────────────────────
+// ── ChampLogo ────────────────────────────────────────────────────────────────
 
 const LOGO_CANDIDATES = {
   PGS: ['/logos/Tournaments/PGS.webp', '/logos/Tournaments/PGS.png'],
@@ -107,11 +105,11 @@ function CollapseSection({ title, icon, count, defaultOpen = false, children }) 
   )
 }
 
-// ── StageRow — item usado nas seções Aguardando e Resultados ─────────────────
+// ── StageRow ─────────────────────────────────────────────────────────────────
 
 function StageRow({ stage, onClick, champName }) {
   const dateStr = (() => {
-    const open = stage.lineup_open_at || stage.start_date
+    const open  = stage.lineup_open_at || stage.start_date
     const close = stage.lineup_close_at || stage.end_date
     if (open && close) return `${fmtDate(open)} – ${fmtDate(close)}`
     if (open) return fmtDate(open)
@@ -123,11 +121,9 @@ function StageRow({ stage, onClick, champName }) {
       className={onClick ? 'xama-row-item xama-row-item-clickable' : 'xama-row-item'}
       onClick={onClick}
     >
-      {/* Logo do campeonato */}
       <div style={{ flexShrink: 0, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <StageChampLogo champName={champName} size={28} />
       </div>
-
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{
           fontSize: '22px', fontWeight: 600, color: 'var(--color-xama-text)',
@@ -135,16 +131,12 @@ function StageRow({ stage, onClick, champName }) {
           fontFamily: 'Rajdhani, sans-serif',
         }}>{stage.name}</div>
         <div style={{ fontSize: '13px', color: 'var(--color-xama-muted)', marginTop: '2px', display: 'flex', gap: '10px', alignItems: 'center' }}>
-          {dateStr && (
-            <span style={{ fontFamily: 'JetBrains Mono, monospace' }}>{dateStr}</span>
-          )}
+          {dateStr && <span style={{ fontFamily: 'JetBrains Mono, monospace' }}>{dateStr}</span>}
           {!dateStr && <span>Lineup será liberada em breve</span>}
           {stage.days_count != null && <span>{stage.days_count} dias</span>}
           {stage.matches_count != null && <span>{stage.matches_count} partidas</span>}
         </div>
       </div>
-
-      {/* Badge de status */}
       {onClick ? (
         <span style={{ color: 'var(--color-xama-muted)', fontSize: '20px', flexShrink: 0 }}>›</span>
       ) : (
@@ -159,6 +151,133 @@ function StageRow({ stage, onClick, champName }) {
   )
 }
 
+// ── ActiveCard — card de destaque para open e preview ────────────────────────
+
+function ActiveCard({ s, isPreview, lineup, champMap, navigate }) {
+  const hasLineup = !!lineup
+  const champ = champMap[s.id]
+
+  const dateStr = (() => {
+    const open  = s.lineup_open_at || s.start_date
+    const close = s.lineup_close_at || s.end_date
+    if (open && close) return `${fmtDate(open)} – ${fmtDate(close)}`
+    if (open) return fmtDate(open)
+    return null
+  })()
+
+  const borderColor = isPreview
+    ? 'rgba(249,115,22,0.3)'
+    : hasLineup ? 'rgba(74,222,128,0.25)' : 'rgba(249,115,22,0.35)'
+
+  const glowBg = isPreview
+    ? 'radial-gradient(circle, rgba(249,115,22,0.06) 0%, transparent 70%)'
+    : hasLineup
+      ? 'radial-gradient(circle, rgba(74,222,128,0.06) 0%, transparent 70%)'
+      : 'radial-gradient(circle, rgba(249,115,22,0.08) 0%, transparent 70%)'
+
+  return (
+    <div className="xama-open-card" style={{
+      background: 'var(--surface-1)',
+      border: `1px solid ${borderColor}`,
+      borderRadius: 'var(--radius-card)',
+      padding: '28px 24px 24px',
+      display: 'flex', flexDirection: 'column', alignItems: 'center',
+      position: 'relative', overflow: 'hidden',
+    }}>
+      <div style={{
+        position: 'absolute', top: 0, right: 0,
+        width: '200px', height: '200px',
+        background: glowBg, pointerEvents: 'none',
+      }} />
+
+      {/* Badge de status + data */}
+      <div style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+        {isPreview ? (
+          <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '15px' }}>⏳</span>
+            <span style={{ fontSize: '15px', fontWeight: 700, letterSpacing: '0.06em', color: 'var(--color-xama-orange)', textTransform: 'uppercase' }}>
+              EM PREVIEW
+            </span>
+          </span>
+        ) : (
+          <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span className="xama-pulse" style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--color-xama-orange)', display: 'inline-block' }} />
+            <span style={{ fontSize: '16px', fontWeight: 700, letterSpacing: '0.06em', color: 'var(--color-xama-orange)', textTransform: 'uppercase' }}>ABERTA</span>
+          </span>
+        )}
+        {dateStr && (
+          <span style={{ fontSize: '13px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace' }}>
+            {dateStr}
+          </span>
+        )}
+      </div>
+
+      {/* Logo + nome do campeonato */}
+      {champ && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', width: '100%', justifyContent: 'center' }}>
+          <StageChampLogo champName={champ.name} size={22} />
+          <span style={{ fontSize: '11px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.06em' }}>
+            {champ.name}
+          </span>
+        </div>
+      )}
+
+      {/* Nome da stage */}
+      <div style={{
+        fontSize: '30px', fontWeight: 700, color: 'var(--color-xama-text)',
+        lineHeight: 1.2, marginBottom: '20px',
+        fontFamily: 'Rajdhani, sans-serif', letterSpacing: '-0.01em',
+        textAlign: 'center', width: '100%',
+      }}>{s.name}</div>
+
+      {/* Corpo */}
+      {isPreview ? (
+        <div style={{ width: '100%' }}>
+          <p style={{ fontSize: '15px', color: 'var(--color-xama-muted)', margin: '0 0 18px', lineHeight: 1.5, textAlign: 'center' }}>
+            Roster em validação. Montagem de lineup será liberada em breve.
+          </p>
+          <Button variant="primary" size="md" full onClick={() => navigate(`/tournament/${s.id}`)}>
+            VER LOBBY
+          </Button>
+        </div>
+      ) : hasLineup ? (
+        <div style={{ width: '100%' }}>
+          <div style={{
+            background: 'var(--surface-2)', borderRadius: 'var(--radius-inner)',
+            padding: '16px 18px', display: 'flex', flexDirection: 'column',
+            gap: '12px', marginBottom: '18px',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '19px', color: 'var(--color-xama-muted)' }}>Lineup</span>
+              <span style={{ fontSize: '19px', color: 'var(--color-xama-green)', fontWeight: 600 }}>✅ Montada</span>
+            </div>
+            {lineup.total_points != null && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '19px', color: 'var(--color-xama-muted)' }}>Pontos totais</span>
+                <span style={{ fontSize: '24px', color: 'var(--color-xama-orange)', fontWeight: 700, fontFamily: 'JetBrains Mono, monospace' }}>
+                  {fmt1(lineup.total_points)} pts
+                </span>
+              </div>
+            )}
+          </div>
+          <Button variant="primary" size="md" full onClick={() => navigate(`/tournament/${s.id}`)}>
+            VER TORNEIO
+          </Button>
+        </div>
+      ) : (
+        <div style={{ width: '100%' }}>
+          <p style={{ fontSize: '19px', color: 'var(--color-xama-muted)', margin: '0 0 18px', lineHeight: 1.5, textAlign: 'center' }}>
+            Lineup ainda não montada.
+          </p>
+          <Button variant="primary" size="md" full onClick={() => navigate(`/tournament/${s.id}`)}>
+            MONTAR LINEUP
+          </Button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Main ─────────────────────────────────────────────────────────────────────
 
 export default function Dashboard() {
@@ -168,12 +287,10 @@ export default function Dashboard() {
 
   const [user,      setUser]      = useState(null)
   const [stages,    setStages]    = useState([])
-  // Mapa stageId → championship { id, name }
   const [champMap,  setChampMap]  = useState({})
   const [myLineups, setMyLineups] = useState({})
   const [loading,   setLoading]   = useState(true)
 
-  // ── Usuário ────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!token) return
     fetch(`${API_BASE_URL}/auth/me`, { headers: H })
@@ -182,7 +299,6 @@ export default function Dashboard() {
       .catch(() => {})
   }, [token])
 
-  // ── Stages + Championships ─────────────────────────────────────────────────
   useEffect(() => {
     Promise.all([
       fetch(`${API_BASE_URL}/stages/`).then(r => r.json()),
@@ -190,7 +306,6 @@ export default function Dashboard() {
     ])
       .then(([stagesData, champsData]) => {
         setStages(Array.isArray(stagesData) ? stagesData : [])
-        // Montar mapa stageId → championship
         const map = {}
         if (Array.isArray(champsData)) {
           champsData.forEach(c => {
@@ -205,7 +320,6 @@ export default function Dashboard() {
       .finally(() => setLoading(false))
   }, [])
 
-  // ── Meus lineups (stages abertas) ──────────────────────────────────────────
   useEffect(() => {
     if (!token) return
     const openStages = stages.filter(s => s.lineup_status === 'open')
@@ -220,16 +334,14 @@ export default function Dashboard() {
     })
   }, [stages, token])
 
-  // ── Derived ────────────────────────────────────────────────────────────────
-  // Ordena por data de abertura, do mais próximo/recente para o mais distante.
-  // Dentro das seções, usamos mesma lógica: a partida mais cedo fica no topo.
   const sortByDate = (arr) => [...arr].sort((a, b) => {
     const da = new Date(a.lineup_open_at || a.start_date || '9999').getTime()
     const db = new Date(b.lineup_open_at || b.start_date || '9999').getTime()
-    return da - db  // cronológico: menor data primeiro (mais próximo no topo)
+    return da - db
   })
 
-  const openStages   = useMemo(() => sortByDate(stages.filter(s => s.lineup_status === 'open')),   [stages])
+  // open + preview entram na mesma seção de destaque
+  const activeStages = useMemo(() => sortByDate(stages.filter(s => s.lineup_status === 'open' || s.lineup_status === 'preview')), [stages])
   const closedStages = useMemo(() => sortByDate(stages.filter(s => s.lineup_status === 'closed')), [stages])
   const lockedStages = useMemo(() => sortByDate(stages.filter(s => s.lineup_status === 'locked')), [stages])
 
@@ -248,7 +360,6 @@ export default function Dashboard() {
       <Navbar />
       <div className="xama-container" style={{ flex: 1, paddingTop: '36px', paddingBottom: '64px' }}>
 
-        {/* Saudação */}
         <div style={{ marginBottom: '44px' }}>
           <h1 style={{
             fontSize: '42px', fontWeight: 800, color: '#fff',
@@ -262,8 +373,8 @@ export default function Dashboard() {
           </p>
         </div>
 
-        {/* ── SEÇÃO 1 — LINEUP ABERTA ── */}
-        {openStages.length > 0 && (
+        {/* ── SEÇÃO 1 — LINEUP ABERTA / EM PREVIEW ── */}
+        {activeStages.length > 0 && (
           <div style={{ marginBottom: '48px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px' }}>
               <span style={{ fontSize: '20px' }}>⚡</span>
@@ -274,104 +385,19 @@ export default function Dashboard() {
                 fontSize: '16px', fontWeight: 700, padding: '2px 10px',
                 borderRadius: '20px', background: 'rgba(249,115,22,0.15)',
                 color: 'var(--color-xama-orange)', fontFamily: 'JetBrains Mono, monospace',
-              }}>{openStages.length}</span>
+              }}>{activeStages.length}</span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
-              {openStages.map(s => {
-                const lineup    = myLineups[s.id]
-                const hasLineup = !!lineup
-                const champ     = champMap[s.id]
-                const dateStr   = (() => {
-                  const open  = s.lineup_open_at || s.start_date
-                  const close = s.lineup_close_at || s.end_date
-                  if (open && close) return `${fmtDate(open)} – ${fmtDate(close)}`
-                  if (open) return fmtDate(open)
-                  return null
-                })()
-                return (
-                  <div key={s.id} className="xama-open-card" style={{
-                    background: 'var(--surface-1)',
-                    border: `1px solid ${hasLineup ? 'rgba(74,222,128,0.25)' : 'rgba(249,115,22,0.35)'}`,
-                    borderRadius: 'var(--radius-card)',
-                    padding: '28px 24px 24px',
-                    display: 'flex', flexDirection: 'column', alignItems: 'center',
-                    position: 'relative', overflow: 'hidden',
-                  }}>
-                    <div style={{
-                      position: 'absolute', top: 0, right: 0,
-                      width: '200px', height: '200px',
-                      background: hasLineup
-                        ? 'radial-gradient(circle, rgba(74,222,128,0.06) 0%, transparent 70%)'
-                        : 'radial-gradient(circle, rgba(249,115,22,0.08) 0%, transparent 70%)',
-                      pointerEvents: 'none',
-                    }} />
-
-                    <div style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span className="xama-pulse" style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--color-xama-orange)', display: 'inline-block' }} />
-                        <span style={{ fontSize: '16px', fontWeight: 700, letterSpacing: '0.06em', color: 'var(--color-xama-orange)', textTransform: 'uppercase' }}>ABERTA</span>
-                      </span>
-                      {dateStr && (
-                        <span style={{ fontSize: '13px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace' }}>
-                          {dateStr}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Logo + nome do campeonato acima do nome da stage */}
-                    {champ && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', width: '100%', justifyContent: 'center' }}>
-                        <StageChampLogo champName={champ.name} size={22} />
-                        <span style={{ fontSize: '11px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.06em' }}>
-                          {champ.name}
-                        </span>
-                      </div>
-                    )}
-
-                    <div style={{
-                      fontSize: '30px', fontWeight: 700, color: 'var(--color-xama-text)',
-                      lineHeight: 1.2, marginBottom: '20px',
-                      fontFamily: 'Rajdhani, sans-serif', letterSpacing: '-0.01em',
-                      textAlign: 'center', width: '100%',
-                    }}>{s.name}</div>
-
-                    {hasLineup ? (
-                      <div style={{ width: '100%' }}>
-                        <div style={{
-                          background: 'var(--surface-2)', borderRadius: 'var(--radius-inner)',
-                          padding: '16px 18px', display: 'flex', flexDirection: 'column',
-                          gap: '12px', marginBottom: '18px',
-                        }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontSize: '19px', color: 'var(--color-xama-muted)' }}>Lineup</span>
-                            <span style={{ fontSize: '19px', color: 'var(--color-xama-green)', fontWeight: 600 }}>✅ Montada</span>
-                          </div>
-                          {lineup.total_points != null && (
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span style={{ fontSize: '19px', color: 'var(--color-xama-muted)' }}>Pontos totais</span>
-                              <span style={{ fontSize: '24px', color: 'var(--color-xama-orange)', fontWeight: 700, fontFamily: 'JetBrains Mono, monospace' }}>
-                                {fmt1(lineup.total_points)} pts
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        <Button variant="primary" size="md" full onClick={() => navigate(`/tournament/${s.id}`)}>
-                          VER TORNEIO
-                        </Button>
-                      </div>
-                    ) : (
-                      <div style={{ width: '100%' }}>
-                        <p style={{ fontSize: '19px', color: 'var(--color-xama-muted)', margin: '0 0 18px', lineHeight: 1.5, textAlign: 'center' }}>
-                          Lineup ainda não montada.
-                        </p>
-                        <Button variant="primary" size="md" full onClick={() => navigate(`/tournament/${s.id}`)}>
-                          MONTAR LINEUP
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
+              {activeStages.map(s => (
+                <ActiveCard
+                  key={s.id}
+                  s={s}
+                  isPreview={s.lineup_status === 'preview'}
+                  lineup={myLineups[s.id]}
+                  champMap={champMap}
+                  navigate={navigate}
+                />
+              ))}
             </div>
           </div>
         )}
@@ -408,7 +434,6 @@ export default function Dashboard() {
           </CollapseSection>
         )}
 
-        {/* Empty state */}
         {stages.length === 0 && (
           <Card variant="ghost" style={{ textAlign: 'center', padding: '48px 24px' }}>
             <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎮</div>
