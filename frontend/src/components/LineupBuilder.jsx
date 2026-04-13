@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { API_BASE_URL } from '../config'
 import TeamLogo from './TeamLogo'
 import PlayerHistoryModal from './PlayerHistoryModal'
+import ScoringRulesModal from './ScoringRulesModal'
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function formatPlayerName(name) {
@@ -83,6 +84,7 @@ export default function LineupBuilder({
   const [saveError,    setSaveError]    = useState('')
   const [saveSuccess,  setSaveSuccess]  = useState(null)
   const [historyPlayer, setHistoryPlayer] = useState(null)
+  const [showScoringRules, setShowScoringRules] = useState(false)
 
   // ── Stage day ativo ─────────────────────────────────────────────────────
   const activeStageDayId = useMemo(() => {
@@ -349,6 +351,17 @@ export default function LineupBuilder({
                 <span style={{ fontSize: 11, color: 'var(--color-xama-muted)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
                   Budget
                 </span>
+                <button
+                  onClick={() => setShowScoringRules(true)}
+                  title="Como funciona a pontuação?"
+                  style={{
+                    fontSize: 10, fontWeight: 700, color: 'var(--color-xama-muted)',
+                    background: 'none', border: '1px solid var(--color-xama-border)',
+                    borderRadius: 4, padding: '1px 6px', cursor: 'pointer',
+                    fontFamily: "'JetBrains Mono', monospace", lineHeight: 1.4,
+                  }}>
+                  ?
+                </button>
                 {stage?.captain_multiplier && (
                   <span title={`Capitão recebe ×${Number(stage.captain_multiplier).toFixed(2)} nos pontos`} style={{
                     fontSize: 10, fontWeight: 700, letterSpacing: '0.05em',
@@ -667,6 +680,13 @@ export default function LineupBuilder({
           shortName={stage?.short_name || ''}
           beforeDate={historyPlayer.before_date}
           onClose={() => setHistoryPlayer(null)}
+        />
+      )}
+
+      {showScoringRules && (
+        <ScoringRulesModal
+          captainMultiplier={stage?.captain_multiplier ?? 1.30}
+          onClose={() => setShowScoringRules(false)}
         />
       )}
     </div>
