@@ -113,7 +113,7 @@ export default function TournamentLeaderboard({
   const anyPoints         = rankings.some((r) => (r.total_points ?? r.points ?? 0) > 0)
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--color-xama-black)', fontFamily: "'Rajdhani', sans-serif" }}>
+    <div className="min-h-screen" style={{ background: 'transparent', fontFamily: "'Rajdhani', sans-serif" }}>
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="px-6 py-5 border-b" style={{ background: 'var(--color-xama-surface)', borderColor: 'var(--color-xama-border)' }}>

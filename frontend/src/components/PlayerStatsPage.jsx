@@ -87,7 +87,7 @@ const COLUMNS = [
     label: 'PREÇO',      title: 'Preço fantasy atual',        right: true,
     render: (p) => (
       <span style={{ color: 'var(--color-xama-gold)', fontWeight: 700 }}>
-        {Number(p.fantasy_cost || 0).toFixed(0)}
+        {Number(p.fantasy_cost || 0).toFixed(2)}
       </span>
     ),
     sortVal: (p) => Number(p.fantasy_cost || 0) },
@@ -192,9 +192,8 @@ export default function PlayerStatsPage({ stageId: propStageId = null, shortName
   // ── Filtros de tabela ─────────────────────────────────────────────────────
   const [search, setSearch]         = useState('')
   const [teamFilter, setTeamFilter] = useState('')
-  // sortKey default: 'team' para ordenação inicial por time
-  const [sortKey, setSortKey]       = useState('total_xama_points')
-  const [sortDir, setSortDir]       = useState('desc')
+  const [sortKey, setSortKey]       = useState('team')
+  const [sortDir, setSortDir]       = useState('asc')
   const [historyPlayer, setHistoryPlayer] = useState(null)
 
   // ── Reset ao trocar stage ─────────────────────────────────────────────────
@@ -311,7 +310,7 @@ export default function PlayerStatsPage({ stageId: propStageId = null, shortName
   })
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--color-xama-black)', fontFamily: "'Rajdhani', sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: 'transparent', fontFamily: "'Rajdhani', sans-serif" }}>
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="px-6 py-5 border-b" style={{ background: 'var(--color-xama-surface)', borderColor: 'var(--color-xama-border)' }}>

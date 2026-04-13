@@ -13,6 +13,28 @@ export default function AdminPricingPanel({ stageId, token }) {
   const [feedback,     setFeedback]     = useState({})   // { [roster_id]: {ok, msg} }
   const [recalcLoading, setRecalcLoading] = useState(false)
   const [recalcMsg,    setRecalcMsg]    = useState('')
+  const [sortKey,      setSortKey]      = useState('team')
+  const [sortDir,      setSortDir]      = useState('asc')
+
+  function handleSort(key) {
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortKey(key); setSortDir(key === 'name' || key === 'team' ? 'asc' : 'desc') }
+  }
+
+  const sortedRoster = [...roster].sort((a, b) => {
+    let av, bv
+    if (sortKey === 'name') {
+      const fmt = n => { if (!n) return ''; const i = n.indexOf('_'); return i !== -1 ? n.slice(i + 1) : n }
+      av = fmt(a.person_name); bv = fmt(b.person_name)
+    } else if (sortKey === 'team') {
+      av = a.team_name || ''; bv = b.team_name || ''
+    } else {
+      av = Number(a.effective_cost ?? a.fantasy_cost ?? 0)
+      bv = Number(b.effective_cost ?? b.fantasy_cost ?? 0)
+    }
+    if (typeof av === 'string') return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av)
+    return sortDir === 'asc' ? av - bv : bv - av
+  })
 
   useEffect(() => {
     if (!stageId) return
@@ -164,20 +186,42 @@ export default function AdminPricingPanel({ stageId, token }) {
             borderBottom: '1px solid var(--color-xama-border)',
             background: 'var(--surface-2)',
           }}>
-            {['Jogador', 'Time', 'Auto', 'Override', 'Novo valor', ''].map(h => (
-              <span key={h} style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-xama-muted)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                {h}
+            {[
+              { key: 'name',  label: 'Jogador' },
+              { key: 'team',  label: 'Time'    },
+              { key: 'auto',  label: 'Auto'    },
+              { key: null,    label: 'Override' },
+              { key: null,    label: 'Novo valor' },
+              { key: null,    label: ''         },
+            ].map(({ key, label }) => (
+              <span
+                key={label}
+                onClick={key ? () => handleSort(key) : undefined}
+                style={{
+                  fontSize: '11px', fontWeight: 700,
+                  color: sortKey === key ? 'var(--color-xama-orange)' : 'var(--color-xama-muted)',
+                  letterSpacing: '0.08em', textTransform: 'uppercase',
+                  cursor: key ? 'pointer' : 'default', userSelect: 'none',
+                  display: 'flex', alignItems: 'center', gap: '4px',
+                }}>
+                {label}
+                {key && sortKey === key && (
+                  <span style={{ fontSize: '9px' }}>{sortDir === 'asc' ? '▲' : '▼'}</span>
+                )}
+                {key && sortKey !== key && (
+                  <span style={{ fontSize: '9px', opacity: 0.3 }}>⇅</span>
+                )}
               </span>
             ))}
           </div>
 
-          {roster.map((r, i) => {
+          {sortedRoster.map((r, i) => {
             const fb = feedback[r.id]
             return (
               <div key={r.id} style={{
                 display: 'grid', gridTemplateColumns: '1fr 100px 80px 80px 160px 90px',
                 padding: '14px 20px', alignItems: 'center',
-                borderBottom: i < roster.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                borderBottom: i < sortedRoster.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
                 background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)',
               }}>
                 {/* Nome */}
@@ -195,7 +239,7 @@ export default function AdminPricingPanel({ stageId, token }) {
 
                 {/* Preço auto */}
                 <span style={{ fontSize: '14px', fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-muted)' }}>
-                  {r.fantasy_cost ?? '—'}
+                  {r.fantasy_cost != null ? Number(r.fantasy_cost).toFixed(2) : '—'}
                 </span>
 
                 {/* Override atual */}
@@ -204,7 +248,7 @@ export default function AdminPricingPanel({ stageId, token }) {
                   color: r.cost_override != null ? 'var(--color-xama-gold)' : 'var(--color-xama-muted)',
                   fontWeight: r.cost_override != null ? 700 : 400,
                 }}>
-                  {r.cost_override ?? '—'}
+                  {r.cost_override != null ? Number(r.cost_override).toFixed(2) : '—'}
                 </span>
 
                 {/* Input novo valor */}

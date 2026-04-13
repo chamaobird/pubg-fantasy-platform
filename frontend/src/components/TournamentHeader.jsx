@@ -6,7 +6,9 @@ import { StatusBadge } from './ui/Badge'
 // Resolve logo do campeonato pelo nome da stage (shortName como fallback)
 function ChampionshipLogo({ shortName, size = 32 }) {
   const upper = (shortName || '').toUpperCase()
-  const folder = upper.startsWith('PGS') ? 'PGS' : upper.startsWith('PAS') ? 'PAS' : null
+  const folder = upper.startsWith('PGS') ? 'PGS'
+    : (upper.startsWith('PAS') || upper.startsWith('PO')) ? 'PAS'
+    : null
   const candidates = folder ? [
     `/logos/Tournaments/${folder}.webp`,
     `/logos/Tournaments/${folder}.png`,

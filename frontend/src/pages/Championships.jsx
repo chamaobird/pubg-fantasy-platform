@@ -12,9 +12,10 @@ import TeamLogo from '../components/TeamLogo'
 // ── Status config ─────────────────────────────────────────────────────────────
 
 const STATUS = {
-  open:   { bg: 'rgba(74,222,128,0.1)',  border: 'rgba(74,222,128,0.3)',  color: '#4ade80', label: 'ABERTO' },
-  locked: { bg: 'rgba(107,114,128,0.1)', border: 'rgba(107,114,128,0.3)', color: '#6b7280', label: 'ENCERRADO' },
-  closed: { bg: 'rgba(249,115,22,0.1)',  border: 'rgba(249,115,22,0.3)',  color: '#f97316', label: 'EM BREVE' },
+  open:    { bg: 'rgba(74,222,128,0.1)',   border: 'rgba(74,222,128,0.3)',   color: '#4ade80', label: 'ABERTO'     },
+  preview: { bg: 'rgba(249,115,22,0.1)',   border: 'rgba(249,115,22,0.35)',  color: '#f97316', label: 'EM PREVIEW' },
+  locked:  { bg: 'rgba(107,114,128,0.1)',  border: 'rgba(107,114,128,0.3)',  color: '#6b7280', label: 'ENCERRADO'  },
+  closed:  { bg: 'rgba(107,114,128,0.07)', border: 'rgba(107,114,128,0.2)',  color: '#6b7280', label: 'EM BREVE'   },
 }
 
 function statusStyle(lineup_status) {
@@ -45,7 +46,7 @@ const LOGO_CANDIDATES = {
 
 function ChampLogo({ name = '', size = 48 }) {
   const upper = name.toUpperCase()
-  const key = upper.includes('PAS') ? 'PAS'
+  const key = (upper.includes('PAS') || upper.includes('AMERICAS')) ? 'PAS'
     : (upper.includes('PGS') || upper.includes('PGC') || upper.includes('PUBG') || upper.includes('GLOBAL SERIES')) ? 'PGS'
     : null
   const candidates = key ? LOGO_CANDIDATES[key] : []
@@ -79,8 +80,14 @@ function ChampLogo({ name = '', size = 48 }) {
 
 function StageRow({ stage, champName, navigate }) {
   const st = statusStyle(stage.lineup_status)
-  const isOpen = stage.lineup_status === 'open'
+  const isOpen    = stage.lineup_status === 'open'
+  const isPreview = stage.lineup_status === 'preview'
   const dateStr = stageDateStr(stage)
+
+  const borderDefault  = isOpen ? 'rgba(74,222,128,0.15)' : isPreview ? 'rgba(249,115,22,0.2)' : 'var(--color-xama-border)'
+  const bgDefault      = isOpen ? 'rgba(74,222,128,0.03)'  : isPreview ? 'rgba(249,115,22,0.03)' : 'rgba(255,255,255,0.01)'
+  const borderHover    = isOpen ? 'rgba(74,222,128,0.4)'   : isPreview ? 'rgba(249,115,22,0.45)' : 'rgba(249,115,22,0.3)'
+  const bgHover        = isOpen ? 'rgba(74,222,128,0.06)'  : isPreview ? 'rgba(249,115,22,0.07)' : 'rgba(249,115,22,0.04)'
 
   // Derivar tag do time a partir do shortName do campeonato para o TeamLogo
   // O shortName da stage é usado para resolver a pasta de logos correta
@@ -92,18 +99,18 @@ function StageRow({ stage, champName, navigate }) {
       style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '10px 14px', gap: 12,
-        background: isOpen ? 'rgba(74,222,128,0.03)' : 'rgba(255,255,255,0.01)',
-        border: `1px solid ${isOpen ? 'rgba(74,222,128,0.15)' : 'var(--color-xama-border)'}`,
+        background: bgDefault,
+        border: `1px solid ${borderDefault}`,
         borderRadius: 8, cursor: 'pointer',
         transition: 'border-color 0.15s, background 0.15s',
       }}
       onMouseEnter={e => {
-        e.currentTarget.style.borderColor = isOpen ? 'rgba(74,222,128,0.4)' : 'rgba(249,115,22,0.3)'
-        e.currentTarget.style.background  = isOpen ? 'rgba(74,222,128,0.06)' : 'rgba(249,115,22,0.04)'
+        e.currentTarget.style.borderColor = borderHover
+        e.currentTarget.style.background  = bgHover
       }}
       onMouseLeave={e => {
-        e.currentTarget.style.borderColor = isOpen ? 'rgba(74,222,128,0.15)' : 'var(--color-xama-border)'
-        e.currentTarget.style.background  = isOpen ? 'rgba(74,222,128,0.03)' : 'rgba(255,255,255,0.01)'
+        e.currentTarget.style.borderColor = borderDefault
+        e.currentTarget.style.background  = bgDefault
       }}
     >
       {/* Left: nome + data */}
@@ -156,11 +163,12 @@ function StageRow({ stage, champName, navigate }) {
 // ── ChampionshipCard ──────────────────────────────────────────────────────────
 
 function ChampionshipCard({ championship, navigate }) {
-  const hasOpen  = championship.stages.some(s => s.lineup_status === 'open')
-  const allLocked = championship.stages.every(s => s.lineup_status === 'locked')
+  const hasOpen    = championship.stages.some(s => s.lineup_status === 'open')
+  const hasPreview = championship.stages.some(s => s.lineup_status === 'preview')
+  const allLocked  = championship.stages.every(s => s.lineup_status === 'locked')
 
-  // Ordena: open primeiro, depois por data de abertura (cronológico), depois por id
-  const stageOrder = { open: 0, closed: 1, locked: 2 }
+  // Ordena: open primeiro, preview, depois por data de abertura (cronológico), depois por id
+  const stageOrder = { open: 0, preview: 1, closed: 2, locked: 3 }
   const sortedStages = [...championship.stages].sort((a, b) => {
     const statusDiff = (stageOrder[a.lineup_status] ?? 3) - (stageOrder[b.lineup_status] ?? 3)
     if (statusDiff !== 0) return statusDiff
@@ -176,7 +184,7 @@ function ChampionshipCard({ championship, navigate }) {
       background: 'rgba(18, 21, 28, 0.82)',
       backdropFilter: 'blur(8px)',
       WebkitBackdropFilter: 'blur(8px)',
-      border: `1px solid ${hasOpen ? 'rgba(74,222,128,0.2)' : 'rgba(249,115,22,0.12)'}`,
+      border: `1px solid ${hasOpen ? 'rgba(74,222,128,0.2)' : hasPreview ? 'rgba(249,115,22,0.2)' : 'rgba(249,115,22,0.12)'}`,
       boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
       borderRadius: 12, overflow: 'hidden',
       position: 'relative',
@@ -203,6 +211,9 @@ function ChampionshipCard({ championship, navigate }) {
             {championship.stages.length} stage{championship.stages.length !== 1 ? 's' : ''}
             {hasOpen && (
               <span style={{ marginLeft: 8, color: '#4ade80', fontWeight: 700 }}>• lineup aberto</span>
+            )}
+            {!hasOpen && hasPreview && (
+              <span style={{ marginLeft: 8, color: '#f97316', fontWeight: 700 }}>• em preview</span>
             )}
             {allLocked && (
               <span style={{ marginLeft: 8, color: '#6b7280' }}>• encerrado</span>
@@ -251,7 +262,7 @@ export default function Championships() {
       .catch(() => { setError('Erro ao carregar campeonatos'); setLoading(false) })
   }, [])
 
-  const active   = championships.filter(c => c.stages.some(s => s.lineup_status !== 'locked'))
+  const active   = championships.filter(c => c.stages.some(s => ['open', 'preview', 'closed'].includes(s.lineup_status)))
   const finished = championships.filter(c => c.stages.length === 0 || c.stages.every(s => s.lineup_status === 'locked'))
 
   return (

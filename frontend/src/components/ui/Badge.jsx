@@ -31,9 +31,10 @@ export function StatusBadge({ status }) {
     upcoming: { preset: 'soon',  label: 'EM BREVE',  dot: false },
     finished: { preset: 'done',  label: 'ENCERRADO', dot: false },
     // lineup_status
-    open:     { preset: 'live',  label: 'ABERTA',    dot: true  },
-    closed:   { preset: 'soon',  label: 'EM BREVE',  dot: false },
-    locked:   { preset: 'done',  label: 'ENCERRADO', dot: false },
+    open:     { preset: 'live',  label: 'ABERTA',     dot: true  },
+    preview:  { preset: 'soon',  label: 'EM PREVIEW', dot: false },
+    closed:   { preset: 'soon',  label: 'EM BREVE',   dot: false },
+    locked:   { preset: 'done',  label: 'ENCERRADO',  dot: false },
   }
   const cfg = MAP[status] ?? { preset: 'soon', label: 'EM BREVE', dot: false }
   return <Badge preset={cfg.preset} dot={cfg.dot}>{cfg.label}</Badge>

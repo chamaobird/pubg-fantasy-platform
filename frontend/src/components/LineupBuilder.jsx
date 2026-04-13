@@ -49,6 +49,7 @@ async function httpJson(url, options) {
 }
 
 const BUDGET_CAP = 100
+const fmtCost = (v) => Number(v || 0).toFixed(2)
 
 // ── Main component ─────────────────────────────────────────────────────────
 export default function LineupBuilder({
@@ -76,8 +77,8 @@ export default function LineupBuilder({
 
   // ── UI ──────────────────────────────────────────────────────────────────
   const [searchName,   setSearchName]   = useState('')
-  const [sortKey,      setSortKey]      = useState('effective_cost')
-  const [sortDir,      setSortDir]      = useState('desc')
+  const [sortKey,      setSortKey]      = useState('team')
+  const [sortDir,      setSortDir]      = useState('asc')
   const [saveLoading,  setSaveLoading]  = useState(false)
   const [saveError,    setSaveError]    = useState('')
   const [saveSuccess,  setSaveSuccess]  = useState(null)
@@ -134,7 +135,7 @@ export default function LineupBuilder({
     return [...filteredPlayers].sort((a, b) => {
       let aVal, bVal
       if (sortKey === 'name')           { aVal = formatPlayerName(a.person_name); bVal = formatPlayerName(b.person_name) }
-      else if (sortKey === 'team')      { aVal = a.team_name; bVal = b.team_name }
+      else if (sortKey === 'team')      { aVal = formatTeamTag(a.person_name, a.team_name); bVal = formatTeamTag(b.person_name, b.team_name) }
       else                              { aVal = a[sortKey]; bVal = b[sortKey] }
       if (aVal == null && bVal == null) return 0
       if (aVal == null) return 1
@@ -260,7 +261,10 @@ export default function LineupBuilder({
 
   function handleSort(key) {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
-    else { setSortKey(key); setSortDir('desc') }
+    else {
+      setSortKey(key)
+      setSortDir(key === 'team' || key === 'name' ? 'asc' : 'desc')
+    }
   }
 
   const budgetUsedPct  = Math.min((totalCost / BUDGET_CAP) * 100, 100)
@@ -270,7 +274,20 @@ export default function LineupBuilder({
   const COLS = [
     { key: 'team',           label: 'Time',    right: false },
     { key: 'name',           label: 'Jogador', right: false },
-    { key: 'effective_cost', label: 'Preço',   right: true  },
+    { key: 'effective_cost', label: 'Preço',   right: true,
+      render: (p) => <span style={{ color: 'var(--color-xama-gold)', fontWeight: 700 }}>{fmtCost(p.effective_cost)}</span> },
+    { key: 'pts_per_match',  label: 'PTS/G',   right: true,
+      render: (p) => p.pts_per_match != null ? Number(p.pts_per_match).toFixed(2) : '—' },
+    { key: 'total_kills',    label: 'K',       right: true,
+      render: (p) => p.total_kills != null ? Math.round(p.total_kills) : '—' },
+    { key: 'total_assists',  label: 'ASS',     right: true,
+      render: (p) => p.total_assists != null ? Math.round(p.total_assists) : '—' },
+    { key: 'total_damage',   label: 'DMG',     right: true,
+      render: (p) => p.total_damage != null ? Math.round(p.total_damage) : '—' },
+    { key: 'avg_survival_secs', label: 'SURV', right: true,
+      render: (p) => p.avg_survival_secs != null ? Math.round(Number(p.avg_survival_secs) / 60) : '—' },
+    { key: 'matches_played', label: 'P',       right: true,
+      render: (p) => p.matches_played ?? '—' },
   ]
 
   // ── Render ──────────────────────────────────────────────────────────────
@@ -396,7 +413,7 @@ export default function LineupBuilder({
                       {formatTeamTag(p.person_name, p.team_name)}
                     </span>
                     <span style={{ fontSize: 10, fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-gold)', fontWeight: 700 }}>
-                      {Number(p.effective_cost || 0)}
+                      {fmtCost(p.effective_cost)}
                     </span>
                   </div>
                   {isCap ? (
@@ -462,7 +479,7 @@ export default function LineupBuilder({
                   fontSize: 11, fontFamily: "'JetBrains Mono', monospace",
                   color: reserveEligible ? '#4ade80' : '#f87171', fontWeight: 700, flexShrink: 0,
                 }}>
-                  {Number(reservePlayer.effective_cost || 0)}{!reserveEligible && ' ⚠'}
+                  {fmtCost(reservePlayer.effective_cost)}{!reserveEligible && ' ⚠'}
                 </span>
                 <button className="xlb-remove-btn" onClick={removeReserve} title="Remover reserva">×</button>
               </div>
@@ -545,7 +562,8 @@ export default function LineupBuilder({
                     {COLS.map(({ key, label, right }) => (
                       <th key={key}
                         className={`${right ? 'right' : ''} ${sortKey === key ? 'active' : ''}`}
-                        onClick={() => handleSort(key)}>
+                        onClick={() => handleSort(key)}
+                        style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
                         {label}
                         {sortKey === key
                           ? <span className="ml-0.5 text-[9px]">{sortDir === 'desc' ? '▼' : '▲'}</span>
@@ -568,12 +586,12 @@ export default function LineupBuilder({
                         <td>
                           <div className="flex items-center gap-1.5">
                             <TeamLogo teamName={playerTag} size={20} />
-                            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--color-xama-muted)' }}>
+                            <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--color-xama-muted)' }}>
                               {playerTag || '—'}
                             </span>
                           </div>
                         </td>
-                        <td className="font-semibold whitespace-nowrap" style={{ color: 'var(--color-xama-text)' }}>
+                        <td className="font-semibold whitespace-nowrap" style={{ color: 'var(--color-xama-text)', fontSize: 14 }}>
                           <span
                             onClick={() => setHistoryPlayer({
                               person_id: p.person_id,
@@ -593,10 +611,18 @@ export default function LineupBuilder({
                             <span style={{ marginLeft: 4, fontSize: 9, color: '#60a5fa', fontWeight: 700 }}>NEW</span>
                           )}
                         </td>
-                        <td className="right tabular-nums font-bold"
-                          style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-gold)' }}>
-                          {Number(p.effective_cost || 0)}
-                        </td>
+                        {COLS.slice(2).map(col => (
+                          <td key={col.key}
+                            className="right tabular-nums"
+                            style={{
+                              fontFamily: "'JetBrains Mono', monospace",
+                              fontSize: 13,
+                              color: 'var(--color-xama-text)',
+                              whiteSpace: 'nowrap',
+                            }}>
+                            {col.render ? col.render(p) : (p[col.key] ?? '—')}
+                          </td>
+                        ))}
                         <td>
                           <div className="flex gap-1 justify-end">
                             {onPlayerInfoClick && (

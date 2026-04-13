@@ -21,8 +21,8 @@ function buildCandidates(teamName, shortName, logoUrlProp) {
   let primaryFolder = null
   if (shortName) {
     const upper = shortName.toUpperCase()
-    if (upper.startsWith('PAS')) primaryFolder = 'PAS'
-    else if (upper.startsWith('PGS')) primaryFolder = 'PGS'
+    if (upper.startsWith('PGS')) primaryFolder = 'PGS'
+    else if (upper.startsWith('PAS') || upper.startsWith('PO')) primaryFolder = 'PAS'
   }
 
   const ext = (folder) => JPEG_TEAMS.has(tag) ? 'jpeg' : 'png'
