@@ -46,7 +46,6 @@ function fmtDateFull(iso) {
     weekday: 'short',
     day: '2-digit',
     month: 'short',
-    timeZone: 'America/Sao_Paulo',
   })
 }
 
@@ -56,7 +55,6 @@ function fmtTime(iso) {
   return new Date(iso).toLocaleTimeString('pt-BR', {
     hour: '2-digit',
     minute: '2-digit',
-    timeZone: 'America/Sao_Paulo',
   })
 }
 
@@ -74,12 +72,12 @@ function buildDateRange(stage) {
   const start = stage.start_date || stage.lineup_open_at
   const end   = stage.end_date   || stage.lineup_close_at
   if (!start) return null
-  const d1 = new Date(start).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', timeZone: 'America/Sao_Paulo' })
+  const d1 = new Date(start).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
   if (!end) return d1
-  const endDay   = new Date(end).toLocaleDateString('pt-BR', { day: '2-digit', timeZone: 'America/Sao_Paulo' })
-  const endMonth = new Date(end).toLocaleDateString('pt-BR', { month: 'short', timeZone: 'America/Sao_Paulo' })
-  const startDay = new Date(start).toLocaleDateString('pt-BR', { day: '2-digit', timeZone: 'America/Sao_Paulo' })
-  const startMonth = new Date(start).toLocaleDateString('pt-BR', { month: 'short', timeZone: 'America/Sao_Paulo' })
+  const endDay   = new Date(end).toLocaleDateString('pt-BR', { day: '2-digit' })
+  const endMonth = new Date(end).toLocaleDateString('pt-BR', { month: 'short' })
+  const startDay = new Date(start).toLocaleDateString('pt-BR', { day: '2-digit' })
+  const startMonth = new Date(start).toLocaleDateString('pt-BR', { month: 'short' })
   if (startMonth === endMonth) return `${startDay}–${endDay} ${startMonth}`
   return `${startDay} ${startMonth} – ${endDay} ${endMonth}`
 }
