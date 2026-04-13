@@ -160,8 +160,8 @@ function StageRow({ stage, onClick, champName, userScore, userRank }) {
       style={{ gap: '14px' }}
     >
       {/* Logo */}
-      <div style={{ flexShrink: 0, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <StageChampLogo champName={champName} size={28} />
+      <div style={{ flexShrink: 0, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <StageChampLogo champName={champName} size={32} />
       </div>
 
       {/* Texto */}
@@ -247,8 +247,8 @@ function PreviewCard({ s, champMap, navigate }) {
       }} />
 
       {/* Logo grande */}
-      <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 52, height: 52 }}>
-        <StageChampLogo champName={champ?.name} size={48} />
+      <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 60, height: 60 }}>
+        <StageChampLogo champName={champ?.name} size={56} />
       </div>
 
       {/* Info central */}
