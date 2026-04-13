@@ -351,17 +351,6 @@ export default function LineupBuilder({
                 <span style={{ fontSize: 11, color: 'var(--color-xama-muted)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
                   Budget
                 </span>
-                <button
-                  onClick={() => setShowScoringRules(true)}
-                  title="Como funciona a pontuação?"
-                  style={{
-                    fontSize: 10, fontWeight: 700, color: 'var(--color-xama-muted)',
-                    background: 'none', border: '1px solid var(--color-xama-border)',
-                    borderRadius: 4, padding: '1px 6px', cursor: 'pointer',
-                    fontFamily: "'JetBrains Mono', monospace", lineHeight: 1.4,
-                  }}>
-                  ?
-                </button>
                 {stage?.captain_multiplier && (
                   <span title={`Capitão recebe ×${Number(stage.captain_multiplier).toFixed(2)} nos pontos`} style={{
                     fontSize: 10, fontWeight: 700, letterSpacing: '0.05em',
@@ -560,6 +549,48 @@ export default function LineupBuilder({
               placeholder="Buscar jogador ou time..."
             />
             <span className="xlb-count">{filteredPlayers.length}/{players.length}</span>
+            <button
+              onClick={() => setShowScoringRules(true)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                background: 'rgba(249,115,22,0.08)',
+                border: '1px solid rgba(249,115,22,0.25)',
+                borderRadius: 6, padding: '5px 12px', cursor: 'pointer',
+                color: 'var(--color-xama-orange)',
+                fontSize: 13, fontWeight: 700, letterSpacing: '0.04em',
+                fontFamily: "'Rajdhani', sans-serif",
+                whiteSpace: 'nowrap', flexShrink: 0,
+              }}>
+              📋 Cálculo
+            </button>
+          </div>
+
+          {/* Banner resumo da fórmula */}
+          <div
+            onClick={() => setShowScoringRules(true)}
+            style={{
+              display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px 16px',
+              padding: '8px 16px', cursor: 'pointer',
+              background: 'rgba(249,115,22,0.04)',
+              borderBottom: '1px solid rgba(249,115,22,0.12)',
+              transition: 'background 0.15s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(249,115,22,0.08)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'rgba(249,115,22,0.04)'}
+          >
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-xama-orange)', letterSpacing: '0.08em', fontFamily: "'JetBrains Mono', monospace" }}>
+              🔥 XAMA
+            </span>
+            {[
+              'Kill +10', 'Assist +1', 'Knock +1', 'Dano ×0.03', 'Morte precoce −15', 'Late Game bônus', `Cap ×${Number(stage?.captain_multiplier ?? 1.30).toFixed(2)}`
+            ].map(item => (
+              <span key={item} style={{ fontSize: 11, color: 'var(--color-xama-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
+                {item}
+              </span>
+            ))}
+            <span style={{ fontSize: 11, color: 'var(--color-xama-orange)', fontFamily: "'JetBrains Mono', monospace", marginLeft: 'auto' }}>
+              ver detalhes →
+            </span>
           </div>
 
           {/* Estados */}

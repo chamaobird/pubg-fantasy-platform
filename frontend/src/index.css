@@ -741,3 +741,28 @@ body {
   background: linear-gradient(90deg, #f97316, transparent);
   border-radius: 2px;
 }
+
+/* Chrome / Edge / Safari */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-xama-surface);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(249, 115, 22, 0.35);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(249, 115, 22, 0.6);
+}
+::-webkit-scrollbar-corner {
+  background: var(--color-xama-surface);
+}
+ 
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(249, 115, 22, 0.35) var(--color-xama-surface);
+}
