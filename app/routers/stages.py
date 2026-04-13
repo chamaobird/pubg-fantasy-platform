@@ -51,6 +51,10 @@ class StageOut(BaseModel):
     pricing_newcomer_cost: int
     is_active: bool
     lineup_open: bool
+    lineup_open_at: Optional[datetime] = None
+    lineup_close_at: Optional[datetime] = None
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
 
@@ -70,6 +74,10 @@ class StageOut(BaseModel):
             pricing_newcomer_cost=s.pricing_newcomer_cost,
             is_active=s.is_active,
             lineup_open=(s.lineup_status == "open"),
+            lineup_open_at=s.lineup_open_at,
+            lineup_close_at=s.lineup_close_at,
+            start_date=s.start_date,
+            end_date=s.end_date,
         )
 
 
