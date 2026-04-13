@@ -3,48 +3,54 @@
 
 ---
 
-## Estado Atual — 12/04/2026 (fim de sessão)
+## Estado Atual — 13/04/2026 (fim de sessão)
 
 ### Próximas tarefas
-- Quarta 15/04: ajustar preços dos invited manualmente (TGLTN, CowBoi etc. estão com preço do PGS)
-- Quarta 15/04: mudar lineup_status da stage 15 para 'open' para abrir montagem
+- Quarta 15/04: ajustar preços dos invited manualmente (verificar TGLTN=35 ok, CowBoi=24.34, Kickstart=22.22, hwinn — confirmar valores corretos)
+- Quarta 15/04: mudar lineup_status da stage 15 de `preview` para `open` após confirmar roster oficial
 - Após primeira partida 17/04: validar/corrigir Steam names via manage_player_accounts.py
-- UX: Dashboard e TournamentHub ainda sem redesign atmosférico completo
-- UX: ordenação por nome de time no PlayerStatsPage e LineupBuilder (pendência antiga)
 
-### Stack e migrations
-- Migrations aplicadas até 0011 (roster cost Numeric 6,2)
-- Próxima migration: revision = "0012", down_revision = "0011"
+### Backlog UX (próximas sessões)
+1. **Dashboard** — título do card mostra "Playoffs 1 - Dia 1"; idealmente mostrar nome do campeonato completo ou abreviado (ex: "PAS1 2026 Playoffs 1"). Logo do torneio já aparece.
+2. **Championships.jsx** — stages em `preview` mostram badge "EM BREVE" igual às `closed`; criar badge diferenciado "EM PREVIEW" para consistência com o Dashboard
+3. **TournamentHub / LineupBuilder** — aumentar tipografia da tabela de jogadores (atualmente pequena demais para leitura confortável)
+4. **LineupBuilder** — replicar colunas e ordenação da aba Stats (Preço, PTS XAMA, PTS/G, K, Ass, Dmg, Surv, Partidas) para manter coerência visual entre as duas abas
+5. **Logos dos times** — confirmar localização dos arquivos e ajustar paths se necessário (alguns times aparecem sem logo)
+6. **Ordenação por nome de time** no PlayerStatsPage e LineupBuilder (pendência antiga)
+7. **Redesign atmosférico** completo do Dashboard e TournamentHub (pendência antiga)
+
+---
+
+## Sessão 13/04/2026 — Preview status + correção de tags + UX Dashboard
+
+### Status `preview` implementado
+- Novo valor `preview` adicionado ao check constraint do banco via migration 0012
+- `app/schemas/stage.py`: `preview` adicionado aos validators de `StageCreate` e `StageUpdate`
+- `app/routers/lineups.py`: `ForceStatusRequest` aceita `preview`; documentação atualizada
+- `app/services/lineup.py`: `_assert_lineup_open` distingue `preview` (mensagem específica) de outros status bloqueados
+- Stage 15 (Playoffs 1 - Dia 1) ativada em `preview` via SQL
+- Comando para abrir de verdade: `UPDATE stage SET lineup_status = 'open' WHERE id = 15;`
+
+### Frontend — preview no Dashboard e TournamentHub
+- `Dashboard.jsx`: stages `preview` entram na seção "Lineup Aberta" com badge "⏳ EM PREVIEW", botão "VER LOBBY", texto explicativo de roster em validação
+- `TournamentHub.jsx`: prop `isPreview` derivada do status, passada para o LineupBuilder
+- `LineupBuilder.jsx`: banner laranja + botão desabilitado "⏳ LINEUP DESABILITADO — AGUARDANDO CONFIRMAÇÃO" quando `isPreview=true`; tabela de jogadores totalmente visível
+
+### Correção de display_name (64 jogadores — stage 15)
+- Todos os 64 jogadores do Playoffs 1 Dia 1 tiveram `display_name` corrigido para formato `TAG_PlayerName`
+- Times corrigidos: FLCN, TL, FUR, 55PD, TOYO, ROC, BST, WOLF, PEST, X10, WIT, NA, NW, LB, FE, DUEL
+- 7 jogadores tinham tag errada ou ausente: dnL1, enzito, Haven-, JoShY-_-, Luciid_oO, slabyy-, Tny7 → corrigidos
+
+### UX — Dashboard e Championships
+- `Dashboard.jsx`: logo do campeonato em cada card e row; ordem cronológica (menor data no topo); seção "Aguardando Abertura" defaultOpen=true
+- `Championships.jsx`: datas das stages nas rows; ordem cronológica dentro de cada championship
+- `PlayerStatsPage.jsx`: ordem de colunas corrigida (Preço → PTS XAMA → PTS/G → K → Ass → Dmg → Surv → P); ordenação por time funcional
+
+### Migration 0012
+- Adicionou `preview` ao check constraint `ck_stage_lineup_status`
+- Constraint anterior: `('closed', 'open', 'locked')` → Nova: `('closed', 'open', 'locked', 'preview')`
 
 ---
 
 ## Sessão 12/04/2026 — PAS1 Playoffs 1 + Redesign
-
-### PAS1 Playoffs 1 — banco populado
-- Championship "PUBG Americas Series 1 2026 - Playoffs 1" (id=7, shard=steam)
-- 3 Stages: Playoffs 1 Dia 1/2/3 (ids 15/16/17), lineup_status=closed
-- 3 StageDays: 17/04, 18/04, 19/04
-- 64 Rosters no Dia 1 (16 times × 4 jogadores), preços por tier: high=33, mid=28, open=18
-- 199 Persons, 305 PlayerAccounts (pending_ALIAS para sem Steam ID confirmado)
-- Scripts em scripts/pubg/: populate_pas1_playoffs.py, manage_player_accounts.py
-- SHARD configurável no topo do populate script (steam vs pc-tournament)
-
-### Estudo PAS — fluxo documentado
-- shard=steam para scrims públicas; shard do Esports Server a confirmar após 1ª partida
-- Sessão BR confirmada via 5 partidas esports-squad-fpp do dia 11/04
-- 40 account_ids confirmados via cruzamento com scrims públicas
-- Protocolo pós-partida: comparar nomes da API com player_account.alias → corrigir via manage_player_accounts.py sem afetar lineups dos usuários
-
-### Frontend — redesign atmosférico
-- AppBackground.jsx: grade hexagonal + gradiente radial laranja (valores idênticos à Landing)
-- RequireAuth em App.jsx: injeta AppBackground em todas as páginas internas automaticamente
-- Championships.jsx: cards com backdropFilter blur, navbar semi-transparente
-- Profile.jsx: cards semi-transparentes
-- Dashboard: transparente via .xama-page (index.css)
-- lineup_status=locked: lineup visível mas não editável (prop canEdit no LineupBuilder)
-- TournamentHub: isLocked e canEdit separados do isFinished
-
----
-
-## Sessão 11/04/2026 — Landing/Auth redesign + pricing + modais
 (ver versão anterior do CHANGELOG)

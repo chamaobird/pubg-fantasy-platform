@@ -20,7 +20,9 @@ if (!document.getElementById('xama-dash-anim')) {
   s.textContent = `
     @keyframes xamaPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
     @keyframes xamaFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes xamaPreviewPulse { 0%, 100% { border-color: rgba(249,115,22,0.3); } 50% { border-color: rgba(249,115,22,0.6); } }
     .xama-pulse { animation: xamaPulse 1.8s ease-in-out infinite; }
+    .xama-preview-card { animation: xamaPreviewPulse 2.5s ease-in-out infinite; }
     .xama-open-card { transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s; }
     .xama-open-card:hover { transform: translateY(-3px); box-shadow: 0 12px 32px rgba(249,115,22,0.15); }
     .xama-collapse-btn { background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 0; color: var(--color-xama-muted); font-size: 21px; font-weight: 600; letter-spacing: 0.04em; transition: color 0.15s; }
@@ -37,9 +39,49 @@ if (!document.getElementById('xama-dash-anim')) {
 
 const fmt1 = (v) => v != null ? Number(v).toFixed(1) : '—'
 
-function fmtDate(iso) {
+// Formata "Qui, 17 abr" a partir de ISO string
+function fmtDateFull(iso) {
   if (!iso) return null
-  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+  return new Date(iso).toLocaleDateString('pt-BR', {
+    weekday: 'short',
+    day: '2-digit',
+    month: 'short',
+    timeZone: 'America/Sao_Paulo',
+  })
+}
+
+// Formata "21:00" no fuso de Brasília
+function fmtTime(iso) {
+  if (!iso) return null
+  return new Date(iso).toLocaleTimeString('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'America/Sao_Paulo',
+  })
+}
+
+// "Qui, 17 abr · 21:00" — usa start_date preferencial, fallback lineup_open_at
+function buildDateLabel(stage) {
+  const src = stage.start_date || stage.lineup_open_at
+  if (!src) return null
+  const date = fmtDateFull(src)
+  const time = fmtTime(src)
+  return time ? `${date} · ${time}` : date
+}
+
+// Range "17–19 abr" para stages multi-dia
+function buildDateRange(stage) {
+  const start = stage.start_date || stage.lineup_open_at
+  const end   = stage.end_date   || stage.lineup_close_at
+  if (!start) return null
+  const d1 = new Date(start).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', timeZone: 'America/Sao_Paulo' })
+  if (!end) return d1
+  const endDay   = new Date(end).toLocaleDateString('pt-BR', { day: '2-digit', timeZone: 'America/Sao_Paulo' })
+  const endMonth = new Date(end).toLocaleDateString('pt-BR', { month: 'short', timeZone: 'America/Sao_Paulo' })
+  const startDay = new Date(start).toLocaleDateString('pt-BR', { day: '2-digit', timeZone: 'America/Sao_Paulo' })
+  const startMonth = new Date(start).toLocaleDateString('pt-BR', { month: 'short', timeZone: 'America/Sao_Paulo' })
+  if (startMonth === endMonth) return `${startDay}–${endDay} ${startMonth}`
+  return `${startDay} ${startMonth} – ${endDay} ${endMonth}`
 }
 
 // ── ChampLogo ────────────────────────────────────────────────────────────────
@@ -107,41 +149,67 @@ function CollapseSection({ title, icon, count, defaultOpen = false, children }) 
 
 // ── StageRow ─────────────────────────────────────────────────────────────────
 
-function StageRow({ stage, onClick, champName }) {
-  const dateStr = (() => {
-    const open  = stage.lineup_open_at || stage.start_date
-    const close = stage.lineup_close_at || stage.end_date
-    if (open && close) return `${fmtDate(open)} – ${fmtDate(close)}`
-    if (open) return fmtDate(open)
-    return null
-  })()
+function StageRow({ stage, onClick, champName, userScore, userRank }) {
+  const dateLabel = buildDateLabel(stage)
+  const isResult = !!onClick
 
   return (
     <div
       className={onClick ? 'xama-row-item xama-row-item-clickable' : 'xama-row-item'}
       onClick={onClick}
+      style={{ gap: '14px' }}
     >
+      {/* Logo */}
       <div style={{ flexShrink: 0, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <StageChampLogo champName={champName} size={28} />
       </div>
+
+      {/* Texto */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{
-          fontSize: '22px', fontWeight: 600, color: 'var(--color-xama-text)',
+          fontSize: '16px', fontWeight: 600, color: 'var(--color-xama-text)',
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           fontFamily: 'Rajdhani, sans-serif',
         }}>{stage.name}</div>
-        <div style={{ fontSize: '13px', color: 'var(--color-xama-muted)', marginTop: '2px', display: 'flex', gap: '10px', alignItems: 'center' }}>
-          {dateStr && <span style={{ fontFamily: 'JetBrains Mono, monospace' }}>{dateStr}</span>}
-          {!dateStr && <span>Lineup será liberada em breve</span>}
-          {stage.days_count != null && <span>{stage.days_count} dias</span>}
-          {stage.matches_count != null && <span>{stage.matches_count} partidas</span>}
+        <div style={{ fontSize: '12px', color: 'var(--color-xama-muted)', marginTop: '2px', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+          {champName && (
+            <span style={{ color: 'rgba(249,115,22,0.7)', fontWeight: 500 }}>{champName}</span>
+          )}
+          {dateLabel && (
+            <span style={{ fontFamily: 'JetBrains Mono, monospace' }}>{dateLabel}</span>
+          )}
+          {!dateLabel && <span>Em breve</span>}
         </div>
       </div>
-      {onClick ? (
-        <span style={{ color: 'var(--color-xama-muted)', fontSize: '20px', flexShrink: 0 }}>›</span>
+
+      {/* Lado direito */}
+      {isResult ? (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px', flexShrink: 0 }}>
+          {userScore != null ? (
+            <>
+              <span style={{
+                fontSize: '16px', fontWeight: 700, color: 'var(--color-xama-orange)',
+                fontFamily: 'JetBrains Mono, monospace',
+              }}>{fmt1(userScore)} pts</span>
+              {userRank && (
+                <span style={{ fontSize: '11px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace' }}>
+                  #{userRank}
+                </span>
+              )}
+            </>
+          ) : (
+            <span style={{
+              fontSize: '12px', fontWeight: 600, letterSpacing: '0.06em',
+              padding: '3px 9px', borderRadius: 4,
+              background: 'rgba(107,114,128,0.12)', border: '1px solid rgba(107,114,128,0.2)',
+              color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace',
+            }}>SEM LINEUP</span>
+          )}
+          <span style={{ color: 'var(--color-xama-muted)', fontSize: '18px' }}>›</span>
+        </div>
       ) : (
         <span style={{
-          fontSize: '13px', fontWeight: 700, letterSpacing: '0.08em',
+          fontSize: '12px', fontWeight: 700, letterSpacing: '0.08em',
           padding: '3px 10px', borderRadius: 4, flexShrink: 0,
           background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.2)',
           color: 'var(--color-xama-orange)', fontFamily: 'JetBrains Mono, monospace',
@@ -151,29 +219,95 @@ function StageRow({ stage, onClick, champName }) {
   )
 }
 
-// ── ActiveCard — card de destaque para open e preview ────────────────────────
+// ── PreviewCard — card médio para stages em preview ──────────────────────────
 
-function ActiveCard({ s, isPreview, lineup, champMap, navigate }) {
+function PreviewCard({ s, champMap, navigate }) {
+  const champ     = champMap[s.id]
+  const dateLabel = buildDateLabel(s)
+
+  return (
+    <div className="xama-open-card xama-preview-card" style={{
+      background: 'var(--surface-1)',
+      border: '1px solid rgba(249,115,22,0.3)',
+      borderLeft: '3px solid var(--color-xama-orange)',
+      borderRadius: 'var(--radius-card)',
+      padding: '20px 20px 18px',
+      display: 'flex',
+      gap: '16px',
+      alignItems: 'center',
+      position: 'relative',
+      overflow: 'hidden',
+    }}>
+      {/* Glow sutil */}
+      <div style={{
+        position: 'absolute', top: 0, right: 0,
+        width: '160px', height: '160px',
+        background: 'radial-gradient(circle, rgba(249,115,22,0.05) 0%, transparent 70%)',
+        pointerEvents: 'none',
+      }} />
+
+      {/* Logo grande */}
+      <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 52, height: 52 }}>
+        <StageChampLogo champName={champ?.name} size={48} />
+      </div>
+
+      {/* Info central */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        {/* Badge + campeonato */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
+          <span style={{
+            fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em',
+            padding: '2px 8px', borderRadius: 4,
+            background: 'rgba(249,115,22,0.12)', border: '1px solid rgba(249,115,22,0.25)',
+            color: 'var(--color-xama-orange)', fontFamily: 'JetBrains Mono, monospace',
+          }}>⏳ EM PREVIEW</span>
+          {champ && (
+            <span style={{ fontSize: '11px', color: 'rgba(249,115,22,0.6)', fontFamily: 'JetBrains Mono, monospace', fontWeight: 500 }}>
+              {champ.name}
+            </span>
+          )}
+        </div>
+
+        {/* Nome da stage */}
+        <div style={{
+          fontSize: '22px', fontWeight: 700, color: 'var(--color-xama-text)',
+          fontFamily: 'Rajdhani, sans-serif', lineHeight: 1.2, marginBottom: '4px',
+        }}>{s.name}</div>
+
+        {/* Data */}
+        {dateLabel && (
+          <div style={{ fontSize: '12px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace' }}>
+            {dateLabel}
+          </div>
+        )}
+
+        {/* Mensagem */}
+        <div style={{ fontSize: '13px', color: 'var(--color-xama-muted)', marginTop: '6px', lineHeight: 1.4 }}>
+          Lineup aguardando confirmação — a montagem será liberada em breve.
+        </div>
+      </div>
+
+      {/* Botão */}
+      <div style={{ flexShrink: 0 }}>
+        <Button variant="primary" size="sm" onClick={() => navigate(`/tournament/${s.id}`)}>
+          VER LOBBY
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+// ── OpenCard — card grande para stages com lineup aberta ─────────────────────
+
+function OpenCard({ s, lineup, champMap, navigate }) {
   const hasLineup = !!lineup
-  const champ = champMap[s.id]
+  const champ     = champMap[s.id]
+  const dateLabel = buildDateLabel(s)
 
-  const dateStr = (() => {
-    const open  = s.lineup_open_at || s.start_date
-    const close = s.lineup_close_at || s.end_date
-    if (open && close) return `${fmtDate(open)} – ${fmtDate(close)}`
-    if (open) return fmtDate(open)
-    return null
-  })()
-
-  const borderColor = isPreview
-    ? 'rgba(249,115,22,0.3)'
-    : hasLineup ? 'rgba(74,222,128,0.25)' : 'rgba(249,115,22,0.35)'
-
-  const glowBg = isPreview
-    ? 'radial-gradient(circle, rgba(249,115,22,0.06) 0%, transparent 70%)'
-    : hasLineup
-      ? 'radial-gradient(circle, rgba(74,222,128,0.06) 0%, transparent 70%)'
-      : 'radial-gradient(circle, rgba(249,115,22,0.08) 0%, transparent 70%)'
+  const borderColor = hasLineup ? 'rgba(74,222,128,0.25)' : 'rgba(249,115,22,0.35)'
+  const glowBg      = hasLineup
+    ? 'radial-gradient(circle, rgba(74,222,128,0.06) 0%, transparent 70%)'
+    : 'radial-gradient(circle, rgba(249,115,22,0.08) 0%, transparent 70%)'
 
   return (
     <div className="xama-open-card" style={{
@@ -186,37 +320,28 @@ function ActiveCard({ s, isPreview, lineup, champMap, navigate }) {
     }}>
       <div style={{
         position: 'absolute', top: 0, right: 0,
-        width: '200px', height: '200px',
+        width: '220px', height: '220px',
         background: glowBg, pointerEvents: 'none',
       }} />
 
-      {/* Badge de status + data */}
+      {/* Badge status + data */}
       <div style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-        {isPreview ? (
-          <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '15px' }}>⏳</span>
-            <span style={{ fontSize: '15px', fontWeight: 700, letterSpacing: '0.06em', color: 'var(--color-xama-orange)', textTransform: 'uppercase' }}>
-              EM PREVIEW
-            </span>
-          </span>
-        ) : (
-          <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span className="xama-pulse" style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--color-xama-orange)', display: 'inline-block' }} />
-            <span style={{ fontSize: '16px', fontWeight: 700, letterSpacing: '0.06em', color: 'var(--color-xama-orange)', textTransform: 'uppercase' }}>ABERTA</span>
-          </span>
-        )}
-        {dateStr && (
-          <span style={{ fontSize: '13px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace' }}>
-            {dateStr}
+        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span className="xama-pulse" style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--color-xama-orange)', display: 'inline-block' }} />
+          <span style={{ fontSize: '16px', fontWeight: 700, letterSpacing: '0.06em', color: 'var(--color-xama-orange)', textTransform: 'uppercase' }}>ABERTA</span>
+        </span>
+        {dateLabel && (
+          <span style={{ fontSize: '12px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace' }}>
+            {dateLabel}
           </span>
         )}
       </div>
 
-      {/* Logo + nome do campeonato */}
+      {/* Logo + campeonato */}
       {champ && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', width: '100%', justifyContent: 'center' }}>
-          <StageChampLogo champName={champ.name} size={22} />
-          <span style={{ fontSize: '11px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.06em' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px', width: '100%', justifyContent: 'center' }}>
+          <StageChampLogo champName={champ.name} size={36} />
+          <span style={{ fontSize: '12px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.06em' }}>
             {champ.name}
           </span>
         </div>
@@ -224,23 +349,14 @@ function ActiveCard({ s, isPreview, lineup, champMap, navigate }) {
 
       {/* Nome da stage */}
       <div style={{
-        fontSize: '30px', fontWeight: 700, color: 'var(--color-xama-text)',
+        fontSize: '32px', fontWeight: 700, color: 'var(--color-xama-text)',
         lineHeight: 1.2, marginBottom: '20px',
         fontFamily: 'Rajdhani, sans-serif', letterSpacing: '-0.01em',
         textAlign: 'center', width: '100%',
       }}>{s.name}</div>
 
       {/* Corpo */}
-      {isPreview ? (
-        <div style={{ width: '100%' }}>
-          <p style={{ fontSize: '15px', color: 'var(--color-xama-muted)', margin: '0 0 18px', lineHeight: 1.5, textAlign: 'center' }}>
-            Roster em validação. Montagem de lineup será liberada em breve.
-          </p>
-          <Button variant="primary" size="md" full onClick={() => navigate(`/tournament/${s.id}`)}>
-            VER LOBBY
-          </Button>
-        </div>
-      ) : hasLineup ? (
+      {hasLineup ? (
         <div style={{ width: '100%' }}>
           <div style={{
             background: 'var(--surface-2)', borderRadius: 'var(--radius-inner)',
@@ -248,13 +364,13 @@ function ActiveCard({ s, isPreview, lineup, champMap, navigate }) {
             gap: '12px', marginBottom: '18px',
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '19px', color: 'var(--color-xama-muted)' }}>Lineup</span>
-              <span style={{ fontSize: '19px', color: 'var(--color-xama-green)', fontWeight: 600 }}>✅ Montada</span>
+              <span style={{ fontSize: '17px', color: 'var(--color-xama-muted)' }}>Lineup</span>
+              <span style={{ fontSize: '17px', color: 'var(--color-xama-green)', fontWeight: 600 }}>✅ Montada</span>
             </div>
             {lineup.total_points != null && (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '19px', color: 'var(--color-xama-muted)' }}>Pontos totais</span>
-                <span style={{ fontSize: '24px', color: 'var(--color-xama-orange)', fontWeight: 700, fontFamily: 'JetBrains Mono, monospace' }}>
+                <span style={{ fontSize: '17px', color: 'var(--color-xama-muted)' }}>Pontos totais</span>
+                <span style={{ fontSize: '22px', color: 'var(--color-xama-orange)', fontWeight: 700, fontFamily: 'JetBrains Mono, monospace' }}>
                   {fmt1(lineup.total_points)} pts
                 </span>
               </div>
@@ -266,7 +382,7 @@ function ActiveCard({ s, isPreview, lineup, champMap, navigate }) {
         </div>
       ) : (
         <div style={{ width: '100%' }}>
-          <p style={{ fontSize: '19px', color: 'var(--color-xama-muted)', margin: '0 0 18px', lineHeight: 1.5, textAlign: 'center' }}>
+          <p style={{ fontSize: '17px', color: 'var(--color-xama-muted)', margin: '0 0 18px', lineHeight: 1.5, textAlign: 'center' }}>
             Lineup ainda não montada.
           </p>
           <Button variant="primary" size="md" full onClick={() => navigate(`/tournament/${s.id}`)}>
@@ -320,10 +436,11 @@ export default function Dashboard() {
       .finally(() => setLoading(false))
   }, [])
 
+  // Busca lineups para stages open E locked (para mostrar pontuação em Resultados)
   useEffect(() => {
-    if (!token) return
-    const openStages = stages.filter(s => s.lineup_status === 'open')
-    openStages.forEach(s => {
+    if (!token || stages.length === 0) return
+    const relevantStages = stages.filter(s => s.lineup_status === 'open' || s.lineup_status === 'locked')
+    relevantStages.forEach(s => {
       fetch(`${API_BASE_URL}/lineups/stage/${s.id}`, { headers: H })
         .then(r => r.ok ? r.json() : [])
         .then(lineups => {
@@ -335,15 +452,18 @@ export default function Dashboard() {
   }, [stages, token])
 
   const sortByDate = (arr) => [...arr].sort((a, b) => {
-    const da = new Date(a.lineup_open_at || a.start_date || '9999').getTime()
-    const db = new Date(b.lineup_open_at || b.start_date || '9999').getTime()
+    const da = new Date(a.start_date || a.lineup_open_at || '9999').getTime()
+    const db = new Date(b.start_date || b.lineup_open_at || '9999').getTime()
     return da - db
   })
 
-  // open + preview entram na mesma seção de destaque
-  const activeStages = useMemo(() => sortByDate(stages.filter(s => s.lineup_status === 'open' || s.lineup_status === 'preview')), [stages])
-  const closedStages = useMemo(() => sortByDate(stages.filter(s => s.lineup_status === 'closed')), [stages])
-  const lockedStages = useMemo(() => sortByDate(stages.filter(s => s.lineup_status === 'locked')), [stages])
+  const openStages    = useMemo(() => sortByDate(stages.filter(s => s.lineup_status === 'open')), [stages])
+  const previewStages = useMemo(() => sortByDate(stages.filter(s => s.lineup_status === 'preview')), [stages])
+  const closedStages  = useMemo(() => sortByDate(stages.filter(s => s.lineup_status === 'closed')), [stages])
+  const lockedStages  = useMemo(() => sortByDate(stages.filter(s => s.lineup_status === 'locked')), [stages])
+
+  // Seção 1 tem conteúdo se houver open ou preview
+  const hasActive = openStages.length > 0 || previewStages.length > 0
 
   const displayName = user?.display_name || user?.username
     || (user?.email ? user.email.split('@')[0] : 'jogador')
@@ -360,6 +480,7 @@ export default function Dashboard() {
       <Navbar />
       <div className="xama-container" style={{ flex: 1, paddingTop: '36px', paddingBottom: '64px' }}>
 
+        {/* Saudação */}
         <div style={{ marginBottom: '44px' }}>
           <h1 style={{
             fontSize: '42px', fontWeight: 800, color: '#fff',
@@ -374,7 +495,7 @@ export default function Dashboard() {
         </div>
 
         {/* ── SEÇÃO 1 — LINEUP ABERTA / EM PREVIEW ── */}
-        {activeStages.length > 0 && (
+        {hasActive && (
           <div style={{ marginBottom: '48px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px' }}>
               <span style={{ fontSize: '20px' }}>⚡</span>
@@ -385,20 +506,37 @@ export default function Dashboard() {
                 fontSize: '16px', fontWeight: 700, padding: '2px 10px',
                 borderRadius: '20px', background: 'rgba(249,115,22,0.15)',
                 color: 'var(--color-xama-orange)', fontFamily: 'JetBrains Mono, monospace',
-              }}>{activeStages.length}</span>
+              }}>{openStages.length + previewStages.length}</span>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
-              {activeStages.map(s => (
-                <ActiveCard
-                  key={s.id}
-                  s={s}
-                  isPreview={s.lineup_status === 'preview'}
-                  lineup={myLineups[s.id]}
-                  champMap={champMap}
-                  navigate={navigate}
-                />
-              ))}
-            </div>
+
+            {/* Cards open — grandes, em grid */}
+            {openStages.length > 0 && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px', marginBottom: previewStages.length > 0 ? '12px' : '0' }}>
+                {openStages.map(s => (
+                  <OpenCard
+                    key={s.id}
+                    s={s}
+                    lineup={myLineups[s.id]}
+                    champMap={champMap}
+                    navigate={navigate}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Cards preview — médios, em lista */}
+            {previewStages.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {previewStages.map(s => (
+                  <PreviewCard
+                    key={s.id}
+                    s={s}
+                    champMap={champMap}
+                    navigate={navigate}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -422,14 +560,19 @@ export default function Dashboard() {
         {lockedStages.length > 0 && (
           <CollapseSection title="Resultados" icon="📊" count={lockedStages.length} defaultOpen={false}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {lockedStages.map(s => (
-                <StageRow
-                  key={s.id}
-                  stage={s}
-                  champName={champMap[s.id]?.name}
-                  onClick={() => navigate(`/tournament/${s.id}`)}
-                />
-              ))}
+              {lockedStages.map(s => {
+                const lineup = myLineups[s.id]
+                return (
+                  <StageRow
+                    key={s.id}
+                    stage={s}
+                    champName={champMap[s.id]?.name}
+                    onClick={() => navigate(`/tournament/${s.id}`)}
+                    userScore={lineup?.total_points}
+                    userRank={lineup?.rank}
+                  />
+                )
+              })}
             </div>
           </CollapseSection>
         )}

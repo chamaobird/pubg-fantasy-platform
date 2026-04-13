@@ -51,6 +51,14 @@ class Stage(Base):
     lineup_close_at: Mapped[Optional[DateTime]] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    start_date: Mapped[Optional[DateTime]] = mapped_column(
+        DateTime(timezone=True), nullable=True,
+        comment="Datetime of first match in this stage (UTC)"
+    )
+    end_date: Mapped[Optional[DateTime]] = mapped_column(
+        DateTime(timezone=True), nullable=True,
+        comment="Datetime of last match in this stage (UTC)"
+    )
     lineup_status: Mapped[str] = mapped_column(
         String(10),
         nullable=False,

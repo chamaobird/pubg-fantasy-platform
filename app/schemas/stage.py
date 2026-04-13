@@ -15,6 +15,8 @@ class StageCreate(BaseModel):
     shard: str
     lineup_open_at: Optional[datetime] = None
     lineup_close_at: Optional[datetime] = None
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
     lineup_status: str = "closed"
     lineup_size: int = 4
     carries_stats_from: Optional[List[int]] = None
@@ -67,6 +69,8 @@ class StageUpdate(BaseModel):
     shard: Optional[str] = None
     lineup_open_at: Optional[datetime] = None
     lineup_close_at: Optional[datetime] = None
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
     lineup_status: Optional[str] = None
     lineup_size: Optional[int] = None
     carries_stats_from: Optional[List[int]] = None
@@ -110,6 +114,8 @@ class StageResponse(BaseModel):
     shard: str
     lineup_open_at: Optional[datetime]
     lineup_close_at: Optional[datetime]
+    start_date: Optional[datetime]
+    end_date: Optional[datetime]
     lineup_status: str
     lineup_size: int
     captain_multiplier: float

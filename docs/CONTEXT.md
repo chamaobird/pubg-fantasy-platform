@@ -30,10 +30,10 @@ $env:DATABASE_URL="..." ; python -m alembic upgrade head
 - PowerShell: usar `;` em vez de `&&` para encadear comandos
 
 ## Migrations (cadeia real)
-`0001 → 0002 → 4bfb4ef75223 → 0003 → 0004 → 0005 → 0006 → 0007 → 0008 → 0009 → 0010 → 0011`
-- Próxima: `revision = "0012"`, `down_revision = "0011"`
+`0001 → 0002 → 4bfb4ef75223 → 0003 → 0004 → 0005 → 0006 → 0007 → 0008 → 0009 → 0010 → 0011 → 0012`
+- Próxima: `revision = "0013"`, `down_revision = "0012"`
 - Sempre rodar `python -m alembic` da raiz
-- Verificar antes de criar: `Get-Content alembic\versions\0011_*.py | Select-Object -First 15`
+- Verificar antes de criar: `Get-Content alembic\versions\0012_*.py | Select-Object -First 15`
 
 ## Entidades principais
 ```
@@ -42,6 +42,20 @@ PERSON / PLAYER_ACCOUNT    (identidade multi-shard)
 ROSTER                     (person × stage, com fantasy_cost Numeric 6,2)
 LINEUP → LINEUP_PLAYER     (4 titulares + 1 reserva, 1 capitão com ×captain_multiplier)
 USER_DAY_STAT / USER_STAGE_STAT / PERSON_STAGE_STAT
+```
+
+## lineup_status — valores válidos
+```
+closed   — padrão; stage não aparece nas seções ativas do Dashboard
+preview  — visível com roster/stats, lineup desabilitado (aguardando confirmação do roster)
+open     — lineup aberto para montagem
+locked   — stage encerrada; lineup visível mas não editável
+```
+Comandos SQL para transições manuais:
+```sql
+UPDATE stage SET lineup_status = 'preview' WHERE id = <stage_id>;
+UPDATE stage SET lineup_status = 'open'    WHERE id = <stage_id>;
+UPDATE stage SET lineup_status = 'locked'  WHERE id = <stage_id>;
 ```
 
 ## Auth — fluxo
@@ -108,6 +122,7 @@ POST  /admin/stages/{id}/import-matches
 POST  /admin/stages/{id}/reprocess-match
 POST  /admin/stages/{id}/score-day
 POST  /admin/stages/{id}/rescore
+POST  /admin/stages/{id}/force-status   ← aceita: closed | open | locked | preview
 ```
 
 ## Dados reais no banco
@@ -115,10 +130,12 @@ POST  /admin/stages/{id}/rescore
   - 8 Stages: PGS1WS(2), PGS1SS(3), PGS1FS(4), PGS2WS(5), PGS2SS(6), PGS2FS(7), PGS3SS(8), PGS3GF(9)
   - 12 StageDays, 60 matches, 3840 match_stats, 97 Persons, 197 PlayerAccounts, 512 Rosters
 - Championship: PUBG Americas Series 1 2026 - Playoffs 1 (id=7, shard=steam)
-  - 3 Stages: Playoffs 1 Dia 1(15), Dia 2(16), Dia 3(17) — lineup_status=closed
+  - 3 Stages: Playoffs 1 Dia 1(15), Dia 2(16), Dia 3(17)
+  - Stage 15: lineup_status=preview → abrir com `open` após confirmar roster em 15/04
+  - Stage 16 e 17: lineup_status=closed
   - 3 StageDays: 17/04, 18/04, 19/04
-  - 64 Rosters no Dia 1 (16 times × 4 jogadores)
-  - Preços por tier: high=33, mid=28, open=18
+  - 64 Rosters no Dia 1 (16 times × 4 jogadores), todos com display_name no formato TAG_PlayerName
+  - Preços por tier: high=33, mid=28, open=18 (TGLTN fixado em 35 via cost_override)
   - 199 Persons, 305 PlayerAccounts (pending_ALIAS para contas sem Steam ID confirmado)
   - Scripts: `scripts/pubg/populate_pas1_playoffs.py`, `scripts/pubg/manage_player_accounts.py`
   - shard=steam para scrims públicas; shard do Esports Server a confirmar após 1ª partida
@@ -131,5 +148,6 @@ POST  /admin/stages/{id}/rescore
 - `UserResponse` inclui `has_password` (bool) para frontend detectar conta Google-only
 - Profile usa `/auth/me` (GET/PATCH)
 - `lineup_status=locked`: lineup visível mas não editável (prop `canEdit` no LineupBuilder)
-- TournamentHub: `isLocked` e `canEdit` separados de `isFinished`
+- `lineup_status=preview`: visível com roster/stats, prop `isPreview=true` no LineupBuilder — botão desabilitado com mensagem "Lineup desabilitado — Aguardando confirmação"
+- TournamentHub: `isLocked`, `isPreview` e `canEdit` derivados do status, separados de `isFinished`
 - AppBackground.jsx injetado via RequireAuth em App.jsx — aplica grade hexagonal + gradiente laranja em todas as páginas internas
