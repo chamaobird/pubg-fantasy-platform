@@ -93,7 +93,7 @@ const LOGO_CANDIDATES = {
 
 function StageChampLogo({ champName = '', size = 28 }) {
   const upper = (champName || '').toUpperCase()
-  const key = upper.includes('PAS') ? 'PAS'
+  const key = (upper.includes('PAS') || upper.includes('AMERICAS')) ? 'PAS'
     : (upper.includes('PGS') || upper.includes('GLOBAL SERIES') || upper.includes('PGC')) ? 'PGS'
     : null
   const candidates = key ? LOGO_CANDIDATES[key] : []
