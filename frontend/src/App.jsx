@@ -10,6 +10,7 @@ import LineupResultsPage from './pages/LineupResultsPage'
 import AuthVerified from './pages/AuthVerified'
 import AuthCallback from './pages/AuthCallback'
 import ResetPasswordPage from './pages/ResetPasswordPage'
+import AppBackground from './components/AppBackground'
 
 export const AuthContext = createContext(null)
 export const useAuth = () => useContext(AuthContext)
@@ -18,7 +19,14 @@ function RequireAuth({ children }) {
   const { token } = useAuth()
   const location = useLocation()
   if (!token) return <Navigate to="/" state={{ from: location }} replace />
-  return children
+  return (
+    <>
+      <AppBackground />
+      <div style={{ position: 'relative', zIndex: 2 }}>
+        {children}
+      </div>
+    </>
+  )
 }
 
 function LandingWithRedirect() {

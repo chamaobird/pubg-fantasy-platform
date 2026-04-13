@@ -30,16 +30,16 @@ $env:DATABASE_URL="..." ; python -m alembic upgrade head
 - PowerShell: usar `;` em vez de `&&` para encadear comandos
 
 ## Migrations (cadeia real)
-`0001 → 0002 → 4bfb4ef75223 → 0003 → 0004 → 0005 → 0006 → 0007 → 0008 → 0009`
-- Próxima: `revision = "0010"`, `down_revision = "0009"`
+`0001 → 0002 → 4bfb4ef75223 → 0003 → 0004 → 0005 → 0006 → 0007 → 0008 → 0009 → 0010 → 0011`
+- Próxima: `revision = "0012"`, `down_revision = "0011"`
 - Sempre rodar `python -m alembic` da raiz
-- Verificar antes de criar: `Get-Content alembic\versions\0009_*.py | Select-Object -First 15`
+- Verificar antes de criar: `Get-Content alembic\versions\0011_*.py | Select-Object -First 15`
 
 ## Entidades principais
 ```
 CHAMPIONSHIP → STAGE → STAGE_DAY → MATCH → MATCH_STAT
 PERSON / PLAYER_ACCOUNT    (identidade multi-shard)
-ROSTER                     (person × stage, com fantasy_cost)
+ROSTER                     (person × stage, com fantasy_cost Numeric 6,2)
 LINEUP → LINEUP_PLAYER     (4 titulares + 1 reserva, 1 capitão com ×captain_multiplier)
 USER_DAY_STAT / USER_STAGE_STAT / PERSON_STAGE_STAT
 ```
@@ -112,8 +112,16 @@ POST  /admin/stages/{id}/rescore
 
 ## Dados reais no banco
 - Championship: PUBG Global Series 2026 (id=2, tier_weight=1.00)
-- 8 Stages: PGS1WS(2), PGS1SS(3), PGS1FS(4), PGS2WS(5), PGS2SS(6), PGS2FS(7), PGS3SS(8), PGS3GF(9)
-- 12 StageDays, 60 matches, 3840 match_stats, 97 Persons, 197 PlayerAccounts, 512 Rosters
+  - 8 Stages: PGS1WS(2), PGS1SS(3), PGS1FS(4), PGS2WS(5), PGS2SS(6), PGS2FS(7), PGS3SS(8), PGS3GF(9)
+  - 12 StageDays, 60 matches, 3840 match_stats, 97 Persons, 197 PlayerAccounts, 512 Rosters
+- Championship: PUBG Americas Series 1 2026 - Playoffs 1 (id=7, shard=steam)
+  - 3 Stages: Playoffs 1 Dia 1(15), Dia 2(16), Dia 3(17) — lineup_status=closed
+  - 3 StageDays: 17/04, 18/04, 19/04
+  - 64 Rosters no Dia 1 (16 times × 4 jogadores)
+  - Preços por tier: high=33, mid=28, open=18
+  - 199 Persons, 305 PlayerAccounts (pending_ALIAS para contas sem Steam ID confirmado)
+  - Scripts: `scripts/pubg/populate_pas1_playoffs.py`, `scripts/pubg/manage_player_accounts.py`
+  - shard=steam para scrims públicas; shard do Esports Server a confirmar após 1ª partida
 
 ## Notas importantes
 - `pricing_n_matches`: campo DEPRECATED no modelo Stage
@@ -122,3 +130,6 @@ POST  /admin/stages/{id}/rescore
 - `*.sql` no .gitignore
 - `UserResponse` inclui `has_password` (bool) para frontend detectar conta Google-only
 - Profile usa `/auth/me` (GET/PATCH)
+- `lineup_status=locked`: lineup visível mas não editável (prop `canEdit` no LineupBuilder)
+- TournamentHub: `isLocked` e `canEdit` separados de `isFinished`
+- AppBackground.jsx injetado via RequireAuth em App.jsx — aplica grade hexagonal + gradiente laranja em todas as páginas internas

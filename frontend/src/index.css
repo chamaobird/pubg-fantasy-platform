@@ -45,7 +45,7 @@
   --radius-tag:   5px;
 
   /* Superfícies (layers) */
-  --surface-0: #0d0f14;   /* fundo da página */
+  --surface-0: transparent;   /* fundo da página — AppBackground cuida do fundo */
   --surface-1: #12151c;   /* cards / painéis */
   --surface-2: #0f1219;   /* header de tabela / sub-painel */
   --surface-3: #1a1f2e;   /* inputs / chips */
@@ -294,7 +294,7 @@ body {
 ════════════════════════════════════════════════════════════════════ */
 
 /* ─── Container principal ─── */
-.xama-page { min-height: 100vh; background: var(--surface-0); color: var(--color-xama-text); font-family: 'Rajdhani', sans-serif; display: flex; flex-direction: column; }
+.xama-page { min-height: 100vh; background: transparent; color: var(--color-xama-text); font-family: 'Rajdhani', sans-serif; display: flex; flex-direction: column; }
 .xama-container { max-width: 1200px; margin: 0 auto; padding: 0 24px; width: 100%; }
 .xama-container-narrow { max-width: 900px; margin: 0 auto; padding: 0 24px; width: 100%; }
 
@@ -696,3 +696,48 @@ body {
 .xlb-search-input::placeholder { color: #374151; }
 .xlb-search-input:focus { border-color: #3d4d6e; }
 .xlb-count { font-size: 11px; color: var(--color-xama-muted); font-family: 'JetBrains Mono', monospace; white-space: nowrap; }
+
+/* ── XAMA Atmospheric — Scan line + utilitários ────────────────────────── */
+@keyframes xama-scan-global {
+  0%   { top: -2px; opacity: 0; }
+  5%   { opacity: 1; }
+  95%  { opacity: 1; }
+  100% { top: 100vh; opacity: 0; }
+}
+.xama-scan-line {
+  position: fixed;
+  left: 0; right: 0;
+  height: 1px;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(249,115,22,0.25), transparent);
+  animation: xama-scan-global 8s linear infinite;
+}
+
+/* Linha separadora com brilho laranja */
+.xama-divider {
+  height: 1px;
+  background: linear-gradient(90deg, rgba(249,115,22,0.3), rgba(249,115,22,0.05) 50%, transparent);
+  border: none;
+  margin: 24px 0;
+}
+
+/* Título de página com traço laranja */
+.xama-page-title {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: var(--fs-page-title);
+  font-weight: 700;
+  color: var(--color-xama-text);
+  letter-spacing: 0.02em;
+  position: relative;
+  padding-bottom: 10px;
+  margin-bottom: 24px;
+}
+.xama-page-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0;
+  width: 40px; height: 2px;
+  background: linear-gradient(90deg, #f97316, transparent);
+  border-radius: 2px;
+}

@@ -43,7 +43,6 @@ export default function TournamentHub() {
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         setStage(data)
-        // Busca todas as stages do mesmo championship para o dropdown
         if (data?.championship_id) {
           fetch(`${API_BASE_URL}/stages/?championship_id=${data.championship_id}`)
             .then(r => r.ok ? r.json() : [])
@@ -54,16 +53,23 @@ export default function TournamentHub() {
       .catch(() => {})
   }, [id])
 
-  const isFinished = stage ? (stage.lineup_status === 'locked' || !stage.is_active) : false
+  const isFinished = stage ? (!stage.is_active) : false
+  const isLocked   = stage ? (stage.lineup_status === 'locked') : false
+  const isPreview  = stage ? (stage.lineup_status === 'preview') : false
+  const canEdit    = stage ? (stage.lineup_status === 'open') : false
+
+  // preview: tab Lineup visível mas com botões travados
+  // closed:  tab Lineup só aparece se stage está ativa (comportamento antigo)
+  const showLineupTab = !isFinished
 
   const ALL_TABS = [
-    { id: TAB_LINEUP,      label: 'Montar Lineup', icon: '⚔️' },
-    { id: TAB_LEADERBOARD, label: 'Leaderboard',   icon: '🏆' },
-    { id: TAB_STATS,       label: 'Stats',          icon: '📊' },
+    ...(showLineupTab ? [{ id: TAB_LINEUP, label: isPreview ? 'Lineup' : 'Montar Lineup', icon: '⚔️' }] : []),
+    { id: TAB_LEADERBOARD, label: 'Leaderboard', icon: '🏆' },
+    { id: TAB_STATS,       label: 'Stats',        icon: '📊' },
     ...(isAdmin ? [{ id: TAB_ADMIN, label: 'Admin', icon: '⚙️' }] : []),
   ]
 
-  const TABS      = isFinished ? ALL_TABS.filter(t => t.id !== TAB_LINEUP) : ALL_TABS
+  const TABS      = ALL_TABS
   const activeTab = TABS.find(t => t.id === tab) ? tab : TABS[0]?.id ?? TAB_LEADERBOARD
 
   useEffect(() => {
@@ -88,6 +94,8 @@ export default function TournamentHub() {
           <LineupBuilder
             token={token}
             stageId={Number(id)}
+            canEdit={canEdit}
+            isPreview={isPreview}
             onPlayerInfoClick={(roster) => setPriceModalRoster(roster)}
           />
         )}

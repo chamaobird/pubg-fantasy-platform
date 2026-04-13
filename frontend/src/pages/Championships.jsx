@@ -7,17 +7,33 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../App'
 import { API_BASE_URL } from '../config'
+import TeamLogo from '../components/TeamLogo'
 
 // ── Status config ─────────────────────────────────────────────────────────────
 
 const STATUS = {
-  open:     { bg: 'rgba(74,222,128,0.1)',  border: 'rgba(74,222,128,0.3)',  color: '#4ade80', label: 'ABERTO' },
-  locked:   { bg: 'rgba(107,114,128,0.1)', border: 'rgba(107,114,128,0.3)', color: '#6b7280', label: 'ENCERRADO' },
-  closed:   { bg: 'rgba(249,115,22,0.1)',  border: 'rgba(249,115,22,0.3)',  color: '#f97316', label: 'EM BREVE' },
+  open:   { bg: 'rgba(74,222,128,0.1)',  border: 'rgba(74,222,128,0.3)',  color: '#4ade80', label: 'ABERTO' },
+  locked: { bg: 'rgba(107,114,128,0.1)', border: 'rgba(107,114,128,0.3)', color: '#6b7280', label: 'ENCERRADO' },
+  closed: { bg: 'rgba(249,115,22,0.1)',  border: 'rgba(249,115,22,0.3)',  color: '#f97316', label: 'EM BREVE' },
 }
 
 function statusStyle(lineup_status) {
   return STATUS[lineup_status] || STATUS.closed
+}
+
+// ── Helpers de data ───────────────────────────────────────────────────────────
+
+function fmtDate(iso) {
+  if (!iso) return null
+  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+}
+
+function stageDateStr(stage) {
+  const open  = stage.lineup_open_at || stage.start_date
+  const close = stage.lineup_close_at || stage.end_date
+  if (open && close) return `${fmtDate(open)} – ${fmtDate(close)}`
+  if (open) return fmtDate(open)
+  return null
 }
 
 // ── Tournament Logo ───────────────────────────────────────────────────────────
@@ -29,19 +45,17 @@ const LOGO_CANDIDATES = {
 
 function ChampLogo({ name = '', size = 48 }) {
   const upper = name.toUpperCase()
-  const key = upper.includes('PGS') || upper.includes('PGC') || upper.includes('PUBG') || upper.includes('GLOBAL SERIES') ? 'PGS'
-    : upper.includes('PAS') ? 'PAS'
+  const key = upper.includes('PAS') ? 'PAS'
+    : (upper.includes('PGS') || upper.includes('PGC') || upper.includes('PUBG') || upper.includes('GLOBAL SERIES')) ? 'PGS'
     : null
   const candidates = key ? LOGO_CANDIDATES[key] : []
   const [idx, setIdx] = useState(0)
   const [failed, setFailed] = useState(false)
 
-  const fallbackEmoji = upper.includes('PGS') || upper.includes('PGC') ? '🏆' : '🥇'
+  const fallbackEmoji = upper.includes('PAS') ? '🥇' : '🏆'
 
   if (!key || failed || candidates.length === 0) {
-    return (
-      <span style={{ fontSize: size * 0.7, lineHeight: 1 }}>{fallbackEmoji}</span>
-    )
+    return <span style={{ fontSize: size * 0.7, lineHeight: 1 }}>{fallbackEmoji}</span>
   }
 
   return (
@@ -63,16 +77,21 @@ function ChampLogo({ name = '', size = 48 }) {
 
 // ── StageRow ──────────────────────────────────────────────────────────────────
 
-function StageRow({ stage, navigate }) {
+function StageRow({ stage, champName, navigate }) {
   const st = statusStyle(stage.lineup_status)
   const isOpen = stage.lineup_status === 'open'
+  const dateStr = stageDateStr(stage)
+
+  // Derivar tag do time a partir do shortName do campeonato para o TeamLogo
+  // O shortName da stage é usado para resolver a pasta de logos correta
+  const stageShortName = stage.short_name || ''
 
   return (
     <div
       onClick={() => navigate(`/tournament/${stage.id}`)}
       style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '10px 14px',
+        padding: '10px 14px', gap: 12,
         background: isOpen ? 'rgba(74,222,128,0.03)' : 'rgba(255,255,255,0.01)',
         border: `1px solid ${isOpen ? 'rgba(74,222,128,0.15)' : 'var(--color-xama-border)'}`,
         borderRadius: 8, cursor: 'pointer',
@@ -80,21 +99,36 @@ function StageRow({ stage, navigate }) {
       }}
       onMouseEnter={e => {
         e.currentTarget.style.borderColor = isOpen ? 'rgba(74,222,128,0.4)' : 'rgba(249,115,22,0.3)'
-        e.currentTarget.style.background = isOpen ? 'rgba(74,222,128,0.06)' : 'rgba(249,115,22,0.04)'
+        e.currentTarget.style.background  = isOpen ? 'rgba(74,222,128,0.06)' : 'rgba(249,115,22,0.04)'
       }}
       onMouseLeave={e => {
         e.currentTarget.style.borderColor = isOpen ? 'rgba(74,222,128,0.15)' : 'var(--color-xama-border)'
-        e.currentTarget.style.background = isOpen ? 'rgba(74,222,128,0.03)' : 'rgba(255,255,255,0.01)'
+        e.currentTarget.style.background  = isOpen ? 'rgba(74,222,128,0.03)' : 'rgba(255,255,255,0.01)'
       }}
     >
-      <span style={{
-        fontSize: 15, fontWeight: 600,
-        color: 'var(--color-xama-text)',
-        fontFamily: "'Rajdhani', sans-serif",
-      }}>
-        {stage.name}
-      </span>
+      {/* Left: nome + data */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <span style={{
+          fontSize: 15, fontWeight: 600,
+          color: 'var(--color-xama-text)',
+          fontFamily: "'Rajdhani', sans-serif",
+          display: 'block',
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+        }}>
+          {stage.name}
+        </span>
+        {dateStr && (
+          <span style={{
+            fontSize: 11, color: 'var(--color-xama-muted)',
+            fontFamily: "'JetBrains Mono', monospace",
+            display: 'block', marginTop: 2,
+          }}>
+            {dateStr}
+          </span>
+        )}
+      </div>
 
+      {/* Right: short_name, badge status, seta */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
         {stage.short_name && (
           <span style={{
@@ -122,26 +156,36 @@ function StageRow({ stage, navigate }) {
 // ── ChampionshipCard ──────────────────────────────────────────────────────────
 
 function ChampionshipCard({ championship, navigate }) {
-  const hasOpen = championship.stages.some(s => s.lineup_status === 'open')
+  const hasOpen  = championship.stages.some(s => s.lineup_status === 'open')
   const allLocked = championship.stages.every(s => s.lineup_status === 'locked')
 
-  // Ordena: open primeiro, depois por id decrescente (mais recente primeiro)
+  // Ordena: open primeiro, depois por data de abertura (cronológico), depois por id
   const stageOrder = { open: 0, closed: 1, locked: 2 }
   const sortedStages = [...championship.stages].sort((a, b) => {
     const statusDiff = (stageOrder[a.lineup_status] ?? 3) - (stageOrder[b.lineup_status] ?? 3)
     if (statusDiff !== 0) return statusDiff
-    return b.id - a.id  // mais recente primeiro dentro do mesmo status
+    // Dentro do mesmo status, ordena cronologicamente (menor data no topo = acontece primeiro)
+    const da = new Date(a.lineup_open_at || a.start_date || '9999').getTime()
+    const db = new Date(b.lineup_open_at || b.start_date || '9999').getTime()
+    if (da !== db) return da - db
+    return a.id - b.id
   })
 
   return (
     <div style={{
-      background: 'var(--color-xama-surface)',
-      border: `1px solid ${hasOpen ? 'rgba(74,222,128,0.2)' : 'var(--color-xama-border)'}`,
+      background: 'rgba(18, 21, 28, 0.82)',
+      backdropFilter: 'blur(8px)',
+      WebkitBackdropFilter: 'blur(8px)',
+      border: `1px solid ${hasOpen ? 'rgba(74,222,128,0.2)' : 'rgba(249,115,22,0.12)'}`,
+      boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
       borderRadius: 12, overflow: 'hidden',
       position: 'relative',
     }}>
       {hasOpen && (
         <div style={{ height: 2, background: 'linear-gradient(90deg, #4ade80, transparent 60%)' }} />
+      )}
+      {!hasOpen && (
+        <div style={{ height: 1, background: 'linear-gradient(90deg, rgba(249,115,22,0.35), transparent 50%)' }} />
       )}
 
       {/* Header */}
@@ -171,7 +215,12 @@ function ChampionshipCard({ championship, navigate }) {
       {sortedStages.length > 0 ? (
         <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
           {sortedStages.map(stage => (
-            <StageRow key={stage.id} stage={stage} navigate={navigate} />
+            <StageRow
+              key={stage.id}
+              stage={stage}
+              champName={championship.name}
+              navigate={navigate}
+            />
           ))}
         </div>
       ) : (
@@ -202,19 +251,13 @@ export default function Championships() {
       .catch(() => { setError('Erro ao carregar campeonatos'); setLoading(false) })
   }, [])
 
-  // Separa ativos (alguma stage não locked) de encerrados (todas locked ou sem stages)
   const active   = championships.filter(c => c.stages.some(s => s.lineup_status !== 'locked'))
   const finished = championships.filter(c => c.stages.length === 0 || c.stages.every(s => s.lineup_status === 'locked'))
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--color-xama-black)', fontFamily: "'Rajdhani', sans-serif" }}>
-      <div style={{
-        position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0,
-        background: 'radial-gradient(ellipse 70% 40% at 50% 0%, rgba(249,115,22,0.04) 0%, transparent 60%)',
-      }} />
-
+    <div style={{ minHeight: '100vh', background: 'transparent', fontFamily: "'Rajdhani', sans-serif", position: 'relative' }}>
       {/* Navbar */}
-      <header style={{ position: 'relative', zIndex: 1, background: 'var(--color-xama-surface)', borderBottom: '1px solid var(--color-xama-border)' }}>
+      <header style={{ position: 'relative', zIndex: 1, background: 'rgba(18,21,28,0.92)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderBottom: '1px solid var(--color-xama-border)' }}>
         <div style={{ height: 2, background: 'linear-gradient(90deg, var(--color-xama-orange), transparent 50%)' }} />
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', display: 'flex', alignItems: 'center', gap: 16, height: 70 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }} onClick={() => navigate('/dashboard')}>
@@ -232,9 +275,9 @@ export default function Championships() {
           <div style={{ flex: 1 }} />
           <nav style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {[
-              { label: 'Dashboard',    path: '/dashboard'      },
-              { label: 'Campeonatos',  path: '/championships'  },
-              { label: '👤 Perfil',   path: '/profile'        },
+              { label: 'Dashboard',   path: '/dashboard'     },
+              { label: 'Campeonatos', path: '/championships' },
+              { label: '👤 Perfil',  path: '/profile'       },
             ].map(({ label, path }) => {
               const isHere = path === '/championships'
               return (
@@ -284,7 +327,6 @@ export default function Championships() {
 
         {!loading && !error && (
           <>
-            {/* Ativos */}
             {active.length > 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 48 }}>
                 {active.map(c => (
@@ -297,7 +339,6 @@ export default function Championships() {
               </div>
             )}
 
-            {/* Encerrados — colapsável */}
             {finished.length > 0 && (
               <div>
                 <button

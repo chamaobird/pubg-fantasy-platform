@@ -3,13 +3,14 @@
 
 ---
 
-## Estado Atual — 11/04/2026 (fim de sessão)
+## Estado Atual — 12/04/2026 (fim de sessão)
 
-### Próximas tarefas — ver BACKLOG.md
-- Abrir lineup da próxima etapa da PAS (próxima sessão)
-- Adequar cores/tema das páginas internas ao visual da Landing (backlog UX)
-- UX-18: logos no LineupBuilder
-- Landing/Auth: confirmação de senha no cadastro (UX-04)
+### Próximas tarefas
+- Quarta 15/04: ajustar preços dos invited manualmente (TGLTN, CowBoi etc. estão com preço do PGS)
+- Quarta 15/04: mudar lineup_status da stage 15 para 'open' para abrir montagem
+- Após primeira partida 17/04: validar/corrigir Steam names via manage_player_accounts.py
+- UX: Dashboard e TournamentHub ainda sem redesign atmosférico completo
+- UX: ordenação por nome de time no PlayerStatsPage e LineupBuilder (pendência antiga)
 
 ### Stack e migrations
 - Migrations aplicadas até 0011 (roster cost Numeric 6,2)
@@ -17,40 +18,33 @@
 
 ---
 
-## Sessão 11/04/2026 — Landing/Auth redesign
+## Sessão 12/04/2026 — PAS1 Playoffs 1 + Redesign
 
-### Landing Atmospheric implementada
-- Background: grade hexagonal SVG inline + gradiente radial laranja + scan line animada
-- Hero: eyebrow com traço laranja, tipografia Rajdhani bold, stats em grid unificado
-- Stats atualizadas: 262+ jogadores, 9 stages, 60 partidas
-- Form: fundo escuro translúcido rgba + borda laranja + backdropFilter blur
-- Título explícito no card: "Entrar na plataforma" / "Criar conta"
-- Toggle Entrar/Cadastrar: ativo com fundo laranja sólido
-- Botão Google adaptado ao tema escuro
-- Classes CSS isoladas (xama-landing-input, xama-msg-error, xama-msg-success) para não conflitar com o resto da app
+### PAS1 Playoffs 1 — banco populado
+- Championship "PUBG Americas Series 1 2026 - Playoffs 1" (id=7, shard=steam)
+- 3 Stages: Playoffs 1 Dia 1/2/3 (ids 15/16/17), lineup_status=closed
+- 3 StageDays: 17/04, 18/04, 19/04
+- 64 Rosters no Dia 1 (16 times × 4 jogadores), preços por tier: high=33, mid=28, open=18
+- 199 Persons, 305 PlayerAccounts (pending_ALIAS para sem Steam ID confirmado)
+- Scripts em scripts/pubg/: populate_pas1_playoffs.py, manage_player_accounts.py
+- SHARD configurável no topo do populate script (steam vs pc-tournament)
 
----
+### Estudo PAS — fluxo documentado
+- shard=steam para scrims públicas; shard do Esports Server a confirmar após 1ª partida
+- Sessão BR confirmada via 5 partidas esports-squad-fpp do dia 11/04
+- 40 account_ids confirmados via cruzamento com scrims públicas
+- Protocolo pós-partida: comparar nomes da API com player_account.alias → corrigir via manage_player_accounts.py sem afetar lineups dos usuários
 
-## Sessão 11/04/2026 — parte 3 (pricing + modais)
-
-### Pricing corrigido
-- MIN_VALID_MATCHES: 20→5, fantasy_cost Numeric(6,2), migration 0011
-- Recalculo executado nas stages 2-8
-
-### PlayerHistoryModal
-- Endpoint: GET /stages/persons/{person_id}/match-history?limit=15&before_date=...
-- Gráfico de barras SVG com barras negativas (escala unificada), tooltip, data no eixo X
-- Logo do time no header, filtro por contexto do clique
-- Integrado em PlayerStatsPage e LineupBuilder
-
-### Team logos e TournamentHeader
-- team_name corrigido via team_map no player-stats
-- TeamLogo: .webp antes de .png
-- TournamentHeader: logo campeonato + dropdown stages com busca
-- Championship renomeado: "PUBG Global Series 2026 - Circuito 1"
+### Frontend — redesign atmosférico
+- AppBackground.jsx: grade hexagonal + gradiente radial laranja (valores idênticos à Landing)
+- RequireAuth em App.jsx: injeta AppBackground em todas as páginas internas automaticamente
+- Championships.jsx: cards com backdropFilter blur, navbar semi-transparente
+- Profile.jsx: cards semi-transparentes
+- Dashboard: transparente via .xama-page (index.css)
+- lineup_status=locked: lineup visível mas não editável (prop canEdit no LineupBuilder)
+- TournamentHub: isLocked e canEdit separados do isFinished
 
 ---
 
-## Sessões anteriores
-- 10/04/2026: Google OAuth, forgot/reset password, Resend, migration 0009
-- Fases 0-9 + Blocos A-B: setup completo, schema, auth, scoring, pricing, lineup, leaderboard
+## Sessão 11/04/2026 — Landing/Auth redesign + pricing + modais
+(ver versão anterior do CHANGELOG)

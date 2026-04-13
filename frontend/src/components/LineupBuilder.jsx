@@ -51,48 +51,52 @@ async function httpJson(url, options) {
 const BUDGET_CAP = 100
 
 // ── Main component ─────────────────────────────────────────────────────────
-export default function LineupBuilder({ token = '', stageId, onPlayerInfoClick }) {
+export default function LineupBuilder({
+  token = '',
+  stageId,
+  onPlayerInfoClick,
+  canEdit = false,
+  isPreview = false,
+}) {
   // ── Dados da stage ──────────────────────────────────────────────────────
-  const [stage,        setStage]        = useState(null)
-  const [stageDays,    setStageDays]    = useState([])
-  const [players,      setPlayers]      = useState([])
+  const [stage,          setStage]          = useState(null)
+  const [stageDays,      setStageDays]      = useState([])
+  const [players,        setPlayers]        = useState([])
   const [playersLoading, setPlayersLoading] = useState(false)
   const [playersError,   setPlayersError]   = useState('')
 
-  // ── Lineup do usuário (lineups já submetidos) ───────────────────────────
-  const [myLineups,  setMyLineups]  = useState([])   // list[LineupOut]
+  // ── Lineup do usuário ───────────────────────────────────────────────────
+  const [myLineups,      setMyLineups]      = useState([])
   const [myLineupsLoaded, setMyLineupsLoaded] = useState(false)
 
   // ── Seleção ─────────────────────────────────────────────────────────────
-  const [selectedPlayers, setSelectedPlayers] = useState([])  // max 4 (roster objects)
+  const [selectedPlayers, setSelectedPlayers] = useState([])
   const [reservePlayer,   setReservePlayer]   = useState(null)
-  const [captainId,       setCaptainId]       = useState(null) // roster_id do capitão
+  const [captainId,       setCaptainId]       = useState(null)
 
   // ── UI ──────────────────────────────────────────────────────────────────
-  const [searchName, setSearchName] = useState('')
-  const [sortKey,    setSortKey]    = useState('effective_cost')
-  const [sortDir,    setSortDir]    = useState('desc')
-  const [saveLoading, setSaveLoading] = useState(false)
-  const [saveError,   setSaveError]   = useState('')
-  const [saveSuccess, setSaveSuccess] = useState(null)
-  const [historyPlayer, setHistoryPlayer] = useState(null) // { person_id, person_name, team_name }
+  const [searchName,   setSearchName]   = useState('')
+  const [sortKey,      setSortKey]      = useState('effective_cost')
+  const [sortDir,      setSortDir]      = useState('desc')
+  const [saveLoading,  setSaveLoading]  = useState(false)
+  const [saveError,    setSaveError]    = useState('')
+  const [saveSuccess,  setSaveSuccess]  = useState(null)
+  const [historyPlayer, setHistoryPlayer] = useState(null)
 
   // ── Stage day ativo ─────────────────────────────────────────────────────
-  // Usa o primeiro day ativo ou o último day disponível
   const activeStageDayId = useMemo(() => {
     if (stageDays.length === 0) return null
     const active = stageDays.find(d => d.is_active)
     return active ? active.id : stageDays[stageDays.length - 1].id
   }, [stageDays])
 
-  // Lineup já submetido para o day ativo
   const currentDayLineup = useMemo(
     () => myLineups.find(l => l.stage_day_id === activeStageDayId) || null,
     [myLineups, activeStageDayId]
   )
 
-  // Stage está fechada para submissão?
-  const isLocked = !stage?.lineup_open || !!currentDayLineup
+  // isLocked: true quando preview, não pode editar, ou já tem lineup submetido
+  const isLocked = isPreview || !canEdit || !!currentDayLineup
 
   // ── Derived — budget ────────────────────────────────────────────────────
   const totalCost = useMemo(
@@ -277,8 +281,28 @@ export default function LineupBuilder({ token = '', stageId, onPlayerInfoClick }
         {/* ── Cabeçalho sticky com lineup montado ──────────────────────── */}
         <div className="xlb-sticky-header">
 
-          {/* Banner de stage fechada */}
-          {stage && !stage.lineup_open && (
+          {/* Banner preview — aguardando confirmação */}
+          {isPreview && (
+            <div style={{
+              background: 'rgba(249,115,22,0.08)',
+              border: '1px solid rgba(249,115,22,0.3)',
+              borderRadius: 8, padding: '12px 16px', marginBottom: 12,
+              display: 'flex', alignItems: 'center', gap: 10,
+            }}>
+              <span style={{ fontSize: 18 }}>⏳</span>
+              <div>
+                <div style={{ color: 'var(--color-xama-orange)', fontSize: 13, fontWeight: 700 }}>
+                  Lineup desabilitado — Aguardando confirmação
+                </div>
+                <div style={{ color: 'var(--color-xama-muted)', fontSize: 12, marginTop: 2 }}>
+                  O roster está sendo validado. A montagem será liberada em breve.
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Banner de stage fechada (closed/locked mas não preview) */}
+          {stage && !stage.lineup_open && !isPreview && (
             <div style={{
               background: 'rgba(248,113,113,0.08)',
               border: '1px solid rgba(248,113,113,0.3)',
@@ -375,7 +399,6 @@ export default function LineupBuilder({ token = '', stageId, onPlayerInfoClick }
                       {Number(p.effective_cost || 0)}
                     </span>
                   </div>
-                  {/* Botão de capitão / badge multiplicador */}
                   {isCap ? (
                     stage?.captain_multiplier && (
                       <div style={{
@@ -460,20 +483,38 @@ export default function LineupBuilder({ token = '', stageId, onPlayerInfoClick }
           <div style={{ padding: '10px 16px 14px' }}>
             {saveError   && <div className="msg-error"   style={{ marginBottom: 8 }}>{saveError}</div>}
             {saveSuccess && <div className="msg-success" style={{ marginBottom: 8 }}>Lineup salvo com sucesso!</div>}
-            <button
-              onClick={saveLineup}
-              disabled={!canSave || saveLoading}
-              style={{
-                width: '100%', padding: '11px 0',
-                fontFamily: "'Rajdhani', sans-serif",
-                fontSize: 15, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
-                borderRadius: 8, border: 'none', cursor: canSave && !saveLoading ? 'pointer' : 'not-allowed',
-                background: canSave && !saveLoading ? 'var(--color-xama-orange)' : 'var(--surface-3)',
-                color: canSave && !saveLoading ? '#fff' : 'var(--color-xama-muted)',
-                transition: 'background 0.15s',
-              }}>
-              {saveLoading ? 'Salvando...' : isLocked ? '🔒 Fechado' : 'Salvar Lineup'}
-            </button>
+
+            {/* Botão desabilitado com mensagem específica para preview */}
+            {isPreview ? (
+              <button
+                disabled
+                style={{
+                  width: '100%', padding: '11px 0',
+                  fontFamily: "'Rajdhani', sans-serif",
+                  fontSize: 15, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+                  borderRadius: 8, border: '1px solid rgba(249,115,22,0.2)',
+                  cursor: 'not-allowed',
+                  background: 'rgba(249,115,22,0.05)',
+                  color: 'var(--color-xama-muted)',
+                }}>
+                ⏳ Lineup desabilitado — Aguardando confirmação
+              </button>
+            ) : (
+              <button
+                onClick={saveLineup}
+                disabled={!canSave || saveLoading}
+                style={{
+                  width: '100%', padding: '11px 0',
+                  fontFamily: "'Rajdhani', sans-serif",
+                  fontSize: 15, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+                  borderRadius: 8, border: 'none', cursor: canSave && !saveLoading ? 'pointer' : 'not-allowed',
+                  background: canSave && !saveLoading ? 'var(--color-xama-orange)' : 'var(--surface-3)',
+                  color: canSave && !saveLoading ? '#fff' : 'var(--color-xama-muted)',
+                  transition: 'background 0.15s',
+                }}>
+                {saveLoading ? 'Salvando...' : isLocked ? '🔒 Fechado' : 'Salvar Lineup'}
+              </button>
+            )}
           </div>
         </div>{/* fim sticky header */}
 
@@ -495,7 +536,7 @@ export default function LineupBuilder({ token = '', stageId, onPlayerInfoClick }
           {playersLoading && <p className="xama-loading" style={{ padding: '24px 18px' }}>Carregando jogadores...</p>}
           {playersError   && <p className="xama-error"   style={{ padding: '16px 18px' }}>{playersError}</p>}
 
-          {/* Tabela */}
+          {/* Tabela — sempre renderizada em preview, botões desabilitados */}
           {!playersLoading && !playersError && (
             <div style={{ overflowX: 'auto' }}>
               <table className="xlb-table">
@@ -516,11 +557,12 @@ export default function LineupBuilder({ token = '', stageId, onPlayerInfoClick }
                 </thead>
                 <tbody>
                   {sortedPlayers.map(p => {
-                    const playerTag   = formatTeamTag(p.person_name, p.team_name)
-                    const isSelected  = selectedPlayers.some(sp => sp.id === p.id) || reservePlayer?.id === p.id
+                    const playerTag    = formatTeamTag(p.person_name, p.team_name)
+                    const isSelected   = selectedPlayers.some(sp => sp.id === p.id) || reservePlayer?.id === p.id
                     const isConflicted = !isSelected && conflictedTeams.has(playerTag) && conflictedTeams.size > 0
-                    const isCap       = p.id === captainId
-                    const btnDisabled = isLocked || isConflicted
+                    const isCap        = p.id === captainId
+                    // Em preview: todos os botões de ação ficam desabilitados
+                    const btnDisabled  = isLocked || isConflicted
                     return (
                       <tr key={p.id} className={isConflicted ? 'xlb-row--dimmed' : ''}>
                         <td>

@@ -50,7 +50,6 @@ const MAP_DISPLAY = {
 }
 
 // ── Sparkline SVG inline ───────────────────────────────────────────────────
-// Recebe pts_by_day: [{day, pts}] e renderiza barrinhas verticais
 
 function Sparkline({ data, width = 48, height = 18 }) {
   if (!data || data.length < 2) return null
@@ -79,49 +78,81 @@ function Sparkline({ data, width = 48, height = 18 }) {
 }
 
 // ── Colunas da tabela ──────────────────────────────────────────────────────
+// Ordem: Preço, PTS XAMA, PTS/G, (sparkline embutida no PTS XAMA), K Total,
+//        ASS, DMG, SURV, Partidas
+// Coluna W (vitórias) e BEST mantidas mas movidas para depois de SURV
 
 const COLUMNS = [
-  { key: 'matches_played',      label: 'M',          title: 'Partidas jogadas',          right: true,
+  { key: 'fantasy_cost',
+    label: 'PREÇO',      title: 'Preço fantasy atual',        right: true,
+    render: (p) => (
+      <span style={{ color: 'var(--color-xama-gold)', fontWeight: 700 }}>
+        {Number(p.fantasy_cost || 0).toFixed(0)}
+      </span>
+    ),
+    sortVal: (p) => Number(p.fantasy_cost || 0) },
+
+  { key: 'total_xama_points',
+    label: 'PTS XAMA',   title: 'Pontos XAMA totais',        right: true,
+    render: (p) => (
+      <span style={{ color: 'var(--color-xama-orange)', display: 'inline-flex', alignItems: 'center' }}>
+        {fmt2(p.total_xama_points)}
+        <Sparkline data={p.pts_by_day} />
+      </span>
+    ),
+    sortVal: (p) => p.total_xama_points || 0 },
+
+  { key: 'pts_per_match',
+    label: 'PTS/G',      title: 'Pontos XAMA por jogo',      right: true,
+    render: (p) => fmt2(p.pts_per_match) },
+
+  { key: 'total_kills',
+    label: 'K Total',    title: 'Total de kills',             right: true,
+    render: (p) => fmtInt(p.total_kills) },
+
+  { key: 'total_assists',
+    label: 'ASS',        title: 'Total de assists',           right: true,
+    render: (p) => fmtInt(p.total_assists) },
+
+  { key: 'total_damage',
+    label: 'DMG',        title: 'Dano total',                 right: true,
+    render: (p) => fmtInt(p.total_damage) },
+
+  { key: 'avg_survival_secs',
+    label: 'SURV (min)', title: 'Sobrevivência média (min)',  right: true,
+    render: (p) => fmtMin(p.avg_survival_secs),
+    sortVal: (p) => p.avg_survival_secs || 0 },
+
+  { key: 'matches_played',
+    label: 'P',          title: 'Partidas jogadas',           right: true,
     render: (p) => p.matches_played ?? '—' },
-  { key: 'total_wins',          label: 'W',           title: 'Vitórias (1º lugar)',       right: true,
+
+  // Extras mantidos no final
+  { key: 'total_wins',
+    label: 'W',           title: 'Vitórias (1º lugar)',       right: true,
     render: (p) => (
       <span style={{ color: (p.total_wins || 0) > 0 ? '#4ade80' : 'var(--color-xama-muted)' }}>
         {fmtInt(p.total_wins)}
       </span>
     ),
     sortVal: (p) => p.total_wins || 0 },
-  { key: 'total_xama_points',   label: 'PTS XAMA',   title: 'Pontos XAMA totais',        right: true,
-    render: (p) => (
-      <span style={{ color: 'var(--color-xama-orange)' }}>
-        {fmt2(p.total_xama_points)}
-        <Sparkline data={p.pts_by_day} />
-      </span>
-    ),
-    sortVal: (p) => p.total_xama_points || 0 },
-  { key: 'pts_per_match',       label: 'PTS/G',      title: 'Pontos XAMA por jogo',      right: true,
-    render: (p) => fmt2(p.pts_per_match) },
-  { key: 'best_match_pts',      label: 'BEST',       title: 'Melhor partida individual', right: true,
+
+  { key: 'avg_placement',
+    label: 'PLACE',      title: 'Colocação média',            right: true,
+    render: (p) => <span style={{ color: placementColorHex(p.avg_placement) }}>{fmt1(p.avg_placement)}</span>,
+    color: (p) => placementColorHex(p.avg_placement) },
+
+  { key: 'total_knocks',
+    label: 'KD',         title: 'Total de knocks',            right: true,
+    render: (p) => fmtInt(p.total_knocks) },
+
+  { key: 'best_match_pts',
+    label: 'BEST',       title: 'Melhor partida individual',  right: true,
     render: (p) => {
       if (!p.best_match_pts) return '—'
       return <span style={{ color: '#f0c040', fontWeight: 600 }}>{fmt2(p.best_match_pts)}</span>
     },
     sortVal: (p) => p.best_match_pts || 0 },
-  { key: 'total_kills',         label: 'K Total',    title: 'Total de kills',             right: true,
-    render: (p) => fmtInt(p.total_kills) },
-  { key: 'total_assists',       label: 'ASS',        title: 'Total de assists',           right: true,
-    render: (p) => fmtInt(p.total_assists) },
-  { key: 'total_knocks',        label: 'KD',         title: 'Total de knocks',            right: true,
-    render: (p) => fmtInt(p.total_knocks) },
-  { key: 'total_damage',        label: 'DMG',        title: 'Dano total',                 right: true,
-    render: (p) => fmtInt(p.total_damage) },
-  { key: 'avg_placement',       label: 'PLACE',      title: 'Colocação média',            right: true,
-    render: (p) => <span style={{ color: placementColorHex(p.avg_placement) }}>{fmt1(p.avg_placement)}</span>,
-    color: (p) => placementColorHex(p.avg_placement) },
-  { key: 'avg_survival_secs',   label: 'SURV (min)', title: 'Sobrevivência média (min)',  right: true,
-    render: (p) => fmtMin(p.avg_survival_secs),
-    sortVal: (p) => p.avg_survival_secs || 0 },
-  { key: 'fantasy_cost',        label: 'PREÇO',      title: 'Preço fantasy atual',        right: true,
-    render: (p) => <span style={{ color: 'var(--color-xama-gold)' }}>${Number(p.fantasy_cost || 0).toFixed(3)}</span> },
 ]
 
 function SortIcon({ active, dir }) {
@@ -149,9 +180,9 @@ export default function PlayerStatsPage({ stageId: propStageId = null, shortName
 
   // ── Hierarquia de filtros ─────────────────────────────────────────────────
   const [stageDays, setStageDays]             = useState([])
-  const [selectedDayId, setSelectedDayId]     = useState(null)   // null = stage completa
+  const [selectedDayId, setSelectedDayId]     = useState(null)
   const [matches, setMatches]                 = useState([])
-  const [selectedMatchId, setSelectedMatchId] = useState(null)   // null = dia completo
+  const [selectedMatchId, setSelectedMatchId] = useState(null)
 
   // ── Stats ─────────────────────────────────────────────────────────────────
   const [stats, setStats]           = useState([])
@@ -161,6 +192,7 @@ export default function PlayerStatsPage({ stageId: propStageId = null, shortName
   // ── Filtros de tabela ─────────────────────────────────────────────────────
   const [search, setSearch]         = useState('')
   const [teamFilter, setTeamFilter] = useState('')
+  // sortKey default: 'team' para ordenação inicial por time
   const [sortKey, setSortKey]       = useState('total_xama_points')
   const [sortDir, setSortDir]       = useState('desc')
   const [historyPlayer, setHistoryPlayer] = useState(null)
@@ -206,7 +238,7 @@ export default function PlayerStatsPage({ stageId: propStageId = null, shortName
       .catch((e) => { setError(e.message); setLoading(false) })
   }, [stageId, selectedDayId, selectedMatchId])
 
-  // ── Opções de time ────────────────────────────────────────────────────────
+  // ── Opções de time (ordenadas alfabeticamente) ────────────────────────────
   const teamOptions = useMemo(() => {
     const tags = new Set(stats.map((p) => formatTeamTag(p.person_name, p.team_name)).filter(Boolean))
     return Array.from(tags).sort()
@@ -222,11 +254,21 @@ export default function PlayerStatsPage({ stageId: propStageId = null, shortName
   const sorted = useMemo(() => {
     if (!sortKey) return filtered
     return [...filtered].sort((a, b) => {
-      const col = COLUMNS.find((c) => c.key === sortKey)
       let av, bv
-      if (col?.sortVal) { av = col.sortVal(a); bv = col.sortVal(b) }
-      else if (sortKey === 'name') { av = formatPlayerName(a.person_name); bv = formatPlayerName(b.person_name) }
-      else { av = a[sortKey]; bv = b[sortKey] }
+
+      if (sortKey === 'team') {
+        // Ordenação por time: tag do time extraída do nome da pessoa
+        av = formatTeamTag(a.person_name, a.team_name)
+        bv = formatTeamTag(b.person_name, b.team_name)
+      } else if (sortKey === 'name') {
+        av = formatPlayerName(a.person_name)
+        bv = formatPlayerName(b.person_name)
+      } else {
+        const col = COLUMNS.find((c) => c.key === sortKey)
+        if (col?.sortVal) { av = col.sortVal(a); bv = col.sortVal(b) }
+        else { av = a[sortKey]; bv = b[sortKey] }
+      }
+
       av = av ?? (sortDir === 'desc' ? -Infinity : Infinity)
       bv = bv ?? (sortDir === 'desc' ? -Infinity : Infinity)
       if (typeof av === 'string') return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av)
@@ -236,10 +278,12 @@ export default function PlayerStatsPage({ stageId: propStageId = null, shortName
 
   const handleSort = (key) => {
     if (sortKey === key) setSortDir((d) => d === 'desc' ? 'asc' : 'desc')
-    else { setSortKey(key); setSortDir('desc') }
+    else {
+      setSortKey(key)
+      // Time e nome: asc por padrão; stats numéricas: desc
+      setSortDir(key === 'team' || key === 'name' ? 'asc' : 'desc')
+    }
   }
-
-  // Estrela BEST removida — valor numérico apenas
 
   // ── Labels de contexto ────────────────────────────────────────────────────
   const selectedDay   = stageDays.find((d) => d.id === selectedDayId)
@@ -252,7 +296,7 @@ export default function PlayerStatsPage({ stageId: propStageId = null, shortName
       return `Dia ${selectedDay.day_number}${date ? ` · ${date}` : ''}`
     }
     return stageDays.length > 1 ? 'Total' : (stageDays[0] ? `Dia ${stageDays[0].day_number}` : 'Total')
-  }, [selectedMatch, selectedDay])
+  }, [selectedMatch, selectedDay, stageDays])
 
   const thStyle = (col) => ({
     padding: '10px 12px',
@@ -295,7 +339,7 @@ export default function PlayerStatsPage({ stageId: propStageId = null, shortName
           {/* ── Filtros ───────────────────────────────────────────────────── */}
           <div className="flex flex-wrap items-center gap-3">
 
-            {/* Chips de dia — esconde botão TOTAL quando há só 1 dia */}
+            {/* Chips de dia */}
             {stageDays.length > 0 && (
               <div className="flex items-center gap-1">
                 {stageDays.length > 1 && (
@@ -326,7 +370,7 @@ export default function PlayerStatsPage({ stageId: propStageId = null, shortName
               </div>
             )}
 
-            {/* Seletor de partida — aparece quando há um dia selecionado com partidas */}
+            {/* Seletor de partida */}
             {selectedDayId && matches.length > 0 && (
               <select
                 value={selectedMatchId ?? ''}

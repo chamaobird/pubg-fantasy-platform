@@ -26,7 +26,7 @@ if (!document.getElementById('xama-dash-anim')) {
     .xama-collapse-btn { background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 0; color: var(--color-xama-muted); font-size: 21px; font-weight: 600; letter-spacing: 0.04em; transition: color 0.15s; }
     .xama-collapse-btn:hover { color: var(--color-xama-text); }
     .xama-collapse-chevron { transition: transform 0.2s ease; display: inline-block; }
-    .xama-row-item { display: flex; align-items: center; gap: 14px; padding: 16px 20px; border-radius: var(--radius-inner); background: var(--surface-1); border: 1px solid var(--color-xama-border); transition: border-color 0.15s, background 0.15s; cursor: default; }
+    .xama-row-item { display: flex; align-items: center; gap: 14px; padding: 14px 20px; border-radius: var(--radius-inner); background: var(--surface-1); border: 1px solid var(--color-xama-border); transition: border-color 0.15s, background 0.15s; cursor: default; }
     .xama-row-item:hover { border-color: rgba(249,115,22,0.25); background: rgba(249,115,22,0.03); }
     .xama-row-item-clickable { cursor: pointer; }
     .xama-row-item-clickable:hover { border-color: rgba(249,115,22,0.35); background: rgba(249,115,22,0.05); }
@@ -36,6 +36,46 @@ if (!document.getElementById('xama-dash-anim')) {
 }
 
 const fmt1 = (v) => v != null ? Number(v).toFixed(1) : '—'
+
+// ── Helpers de data ──────────────────────────────────────────────────────────
+
+function fmtDate(iso) {
+  if (!iso) return null
+  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+}
+
+// ── ChampLogo — logo do campeonato para cada row de stage ────────────────────
+
+const LOGO_CANDIDATES = {
+  PGS: ['/logos/Tournaments/PGS.webp', '/logos/Tournaments/PGS.png'],
+  PAS: ['/logos/Tournaments/PAS.png'],
+}
+
+function StageChampLogo({ champName = '', size = 28 }) {
+  const upper = (champName || '').toUpperCase()
+  const key = upper.includes('PAS') ? 'PAS'
+    : (upper.includes('PGS') || upper.includes('GLOBAL SERIES') || upper.includes('PGC')) ? 'PGS'
+    : null
+  const candidates = key ? LOGO_CANDIDATES[key] : []
+  const [idx, setIdx] = useState(0)
+  const [failed, setFailed] = useState(false)
+
+  if (!key || failed || candidates.length === 0) {
+    return <span style={{ fontSize: size * 0.75 }}>{upper.includes('PAS') ? '🥇' : '🏆'}</span>
+  }
+
+  return (
+    <img
+      src={candidates[idx]}
+      alt=""
+      draggable={false}
+      onError={() => idx + 1 < candidates.length ? setIdx(i => i + 1) : setFailed(true)}
+      style={{ width: size, height: size, objectFit: 'contain', flexShrink: 0 }}
+    />
+  )
+}
+
+// ── CollapseSection ──────────────────────────────────────────────────────────
 
 function CollapseSection({ title, icon, count, defaultOpen = false, children }) {
   const [open, setOpen] = useState(defaultOpen)
@@ -67,15 +107,71 @@ function CollapseSection({ title, icon, count, defaultOpen = false, children }) 
   )
 }
 
+// ── StageRow — item usado nas seções Aguardando e Resultados ─────────────────
+
+function StageRow({ stage, onClick, champName }) {
+  const dateStr = (() => {
+    const open = stage.lineup_open_at || stage.start_date
+    const close = stage.lineup_close_at || stage.end_date
+    if (open && close) return `${fmtDate(open)} – ${fmtDate(close)}`
+    if (open) return fmtDate(open)
+    return null
+  })()
+
+  return (
+    <div
+      className={onClick ? 'xama-row-item xama-row-item-clickable' : 'xama-row-item'}
+      onClick={onClick}
+    >
+      {/* Logo do campeonato */}
+      <div style={{ flexShrink: 0, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <StageChampLogo champName={champName} size={28} />
+      </div>
+
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{
+          fontSize: '22px', fontWeight: 600, color: 'var(--color-xama-text)',
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          fontFamily: 'Rajdhani, sans-serif',
+        }}>{stage.name}</div>
+        <div style={{ fontSize: '13px', color: 'var(--color-xama-muted)', marginTop: '2px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+          {dateStr && (
+            <span style={{ fontFamily: 'JetBrains Mono, monospace' }}>{dateStr}</span>
+          )}
+          {!dateStr && <span>Lineup será liberada em breve</span>}
+          {stage.days_count != null && <span>{stage.days_count} dias</span>}
+          {stage.matches_count != null && <span>{stage.matches_count} partidas</span>}
+        </div>
+      </div>
+
+      {/* Badge de status */}
+      {onClick ? (
+        <span style={{ color: 'var(--color-xama-muted)', fontSize: '20px', flexShrink: 0 }}>›</span>
+      ) : (
+        <span style={{
+          fontSize: '13px', fontWeight: 700, letterSpacing: '0.08em',
+          padding: '3px 10px', borderRadius: 4, flexShrink: 0,
+          background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.2)',
+          color: 'var(--color-xama-orange)', fontFamily: 'JetBrains Mono, monospace',
+        }}>⏳ EM BREVE</span>
+      )}
+    </div>
+  )
+}
+
+// ── Main ─────────────────────────────────────────────────────────────────────
+
 export default function Dashboard() {
   const { token } = useAuth()
   const navigate  = useNavigate()
   const H = { Authorization: `Bearer ${token}` }
 
-  const [user,    setUser]    = useState(null)
-  const [stages,  setStages]  = useState([])
-  const [myLineups, setMyLineups] = useState({}) // { [stage_id]: lineup }
-  const [loading, setLoading] = useState(true)
+  const [user,      setUser]      = useState(null)
+  const [stages,    setStages]    = useState([])
+  // Mapa stageId → championship { id, name }
+  const [champMap,  setChampMap]  = useState({})
+  const [myLineups, setMyLineups] = useState({})
+  const [loading,   setLoading]   = useState(true)
 
   // ── Usuário ────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -86,16 +182,30 @@ export default function Dashboard() {
       .catch(() => {})
   }, [token])
 
-  // ── Stages ─────────────────────────────────────────────────────────────────
+  // ── Stages + Championships ─────────────────────────────────────────────────
   useEffect(() => {
-    fetch(`${API_BASE_URL}/stages/`)
-      .then(r => r.json())
-      .then(data => setStages(Array.isArray(data) ? data : []))
+    Promise.all([
+      fetch(`${API_BASE_URL}/stages/`).then(r => r.json()),
+      fetch(`${API_BASE_URL}/championships/?include_inactive=true`).then(r => r.json()),
+    ])
+      .then(([stagesData, champsData]) => {
+        setStages(Array.isArray(stagesData) ? stagesData : [])
+        // Montar mapa stageId → championship
+        const map = {}
+        if (Array.isArray(champsData)) {
+          champsData.forEach(c => {
+            if (Array.isArray(c.stages)) {
+              c.stages.forEach(s => { map[s.id] = { id: c.id, name: c.name } })
+            }
+          })
+        }
+        setChampMap(map)
+      })
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
 
-  // ── Meus lineups (para stages abertas) ────────────────────────────────────
+  // ── Meus lineups (stages abertas) ──────────────────────────────────────────
   useEffect(() => {
     if (!token) return
     const openStages = stages.filter(s => s.lineup_status === 'open')
@@ -111,9 +221,17 @@ export default function Dashboard() {
   }, [stages, token])
 
   // ── Derived ────────────────────────────────────────────────────────────────
-  const openStages    = useMemo(() => stages.filter(s => s.lineup_status === 'open'),   [stages])
-  const closedStages  = useMemo(() => stages.filter(s => s.lineup_status === 'closed'), [stages])
-  const lockedStages  = useMemo(() => stages.filter(s => s.lineup_status === 'locked'), [stages])
+  // Ordena por data de abertura, do mais próximo/recente para o mais distante.
+  // Dentro das seções, usamos mesma lógica: a partida mais cedo fica no topo.
+  const sortByDate = (arr) => [...arr].sort((a, b) => {
+    const da = new Date(a.lineup_open_at || a.start_date || '9999').getTime()
+    const db = new Date(b.lineup_open_at || b.start_date || '9999').getTime()
+    return da - db  // cronológico: menor data primeiro (mais próximo no topo)
+  })
+
+  const openStages   = useMemo(() => sortByDate(stages.filter(s => s.lineup_status === 'open')),   [stages])
+  const closedStages = useMemo(() => sortByDate(stages.filter(s => s.lineup_status === 'closed')), [stages])
+  const lockedStages = useMemo(() => sortByDate(stages.filter(s => s.lineup_status === 'locked')), [stages])
 
   const displayName = user?.display_name || user?.username
     || (user?.email ? user.email.split('@')[0] : 'jogador')
@@ -158,15 +276,18 @@ export default function Dashboard() {
                 color: 'var(--color-xama-orange)', fontFamily: 'JetBrains Mono, monospace',
               }}>{openStages.length}</span>
             </div>
-
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: `repeat(${Math.min(openStages.length, 3)}, 1fr)`,
-              gap: '16px',
-            }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
               {openStages.map(s => {
                 const lineup    = myLineups[s.id]
                 const hasLineup = !!lineup
+                const champ     = champMap[s.id]
+                const dateStr   = (() => {
+                  const open  = s.lineup_open_at || s.start_date
+                  const close = s.lineup_close_at || s.end_date
+                  if (open && close) return `${fmtDate(open)} – ${fmtDate(close)}`
+                  if (open) return fmtDate(open)
+                  return null
+                })()
                 return (
                   <div key={s.id} className="xama-open-card" style={{
                     background: 'var(--surface-1)',
@@ -190,16 +311,26 @@ export default function Dashboard() {
                         <span className="xama-pulse" style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--color-xama-orange)', display: 'inline-block' }} />
                         <span style={{ fontSize: '16px', fontWeight: 700, letterSpacing: '0.06em', color: 'var(--color-xama-orange)', textTransform: 'uppercase' }}>ABERTA</span>
                       </span>
-                      {s.lineup_close_at && (
-                        <span style={{ fontSize: '13px', color: 'var(--color-xama-muted)' }}>
-                          Fecha {new Date(s.lineup_close_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                      {dateStr && (
+                        <span style={{ fontSize: '13px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace' }}>
+                          {dateStr}
                         </span>
                       )}
                     </div>
 
+                    {/* Logo + nome do campeonato acima do nome da stage */}
+                    {champ && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', width: '100%', justifyContent: 'center' }}>
+                        <StageChampLogo champName={champ.name} size={22} />
+                        <span style={{ fontSize: '11px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.06em' }}>
+                          {champ.name}
+                        </span>
+                      </div>
+                    )}
+
                     <div style={{
                       fontSize: '30px', fontWeight: 700, color: 'var(--color-xama-text)',
-                      lineHeight: 1.2, marginTop: '16px', marginBottom: '20px',
+                      lineHeight: 1.2, marginBottom: '20px',
                       fontFamily: 'Rajdhani, sans-serif', letterSpacing: '-0.01em',
                       textAlign: 'center', width: '100%',
                     }}>{s.name}</div>
@@ -247,24 +378,15 @@ export default function Dashboard() {
 
         {/* ── SEÇÃO 2 — AGUARDANDO ABERTURA ── */}
         {closedStages.length > 0 && (
-          <CollapseSection title="Aguardando Abertura" icon="📅" count={closedStages.length} defaultOpen={false}>
+          <CollapseSection title="Aguardando Abertura" icon="📅" count={closedStages.length} defaultOpen={true}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {closedStages.map(s => (
-                <div key={s.id} className="xama-row-item">
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{
-                      fontSize: '22px', fontWeight: 600, color: 'var(--color-xama-text)',
-                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                      fontFamily: 'Rajdhani, sans-serif',
-                    }}>{s.name}</div>
-                    <div style={{ fontSize: '16px', color: 'var(--color-xama-muted)', marginTop: '2px' }}>
-                      {s.lineup_open_at
-                        ? `Abre ${new Date(s.lineup_open_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}`
-                        : 'Lineup será liberada em breve'}
-                    </div>
-                  </div>
-                  <span style={{ fontSize: '16px', color: 'var(--color-xama-muted)', fontWeight: 600 }}>⏳ EM BREVE</span>
-                </div>
+                <StageRow
+                  key={s.id}
+                  stage={s}
+                  champName={champMap[s.id]?.name}
+                  onClick={null}
+                />
               ))}
             </div>
           </CollapseSection>
@@ -275,31 +397,12 @@ export default function Dashboard() {
           <CollapseSection title="Resultados" icon="📊" count={lockedStages.length} defaultOpen={false}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {lockedStages.map(s => (
-                <div
+                <StageRow
                   key={s.id}
-                  className="xama-row-item xama-row-item-clickable"
+                  stage={s}
+                  champName={champMap[s.id]?.name}
                   onClick={() => navigate(`/tournament/${s.id}`)}
-                >
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{
-                      fontSize: '22px', fontWeight: 600, color: 'var(--color-xama-text)',
-                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                      fontFamily: 'Rajdhani, sans-serif',
-                    }}>{s.name}</div>
-                    <div style={{ fontSize: '16px', color: 'var(--color-xama-muted)', marginTop: '2px', display: 'flex', gap: '12px' }}>
-                      {(s.start_date || s.lineup_open_at) && (
-                        <span>
-                          {new Date(s.start_date || s.lineup_open_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
-                          {(s.end_date || s.lineup_close_at) && ` – ${new Date(s.end_date || s.lineup_close_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}`}
-                        </span>
-                      )}
-                      {s.days_count != null && <span>{s.days_count} dias</span>}
-                      {s.matches_count != null && <span>{s.matches_count} partidas</span>}
-                      {!(s.start_date || s.lineup_open_at) && !(s.days_count) && <span>Encerrado</span>}
-                    </div>
-                  </div>
-                  <span style={{ color: 'var(--color-xama-muted)', fontSize: '20px' }}>›</span>
-                </div>
+                />
               ))}
             </div>
           </CollapseSection>

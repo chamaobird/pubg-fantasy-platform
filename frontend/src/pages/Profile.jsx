@@ -26,7 +26,7 @@ const IS = {
 }
 const IR = { ...IS, color: 'var(--color-xama-muted)', cursor: 'default' }
 const CS = {
-  background: '#13161d', border: '1px solid var(--color-xama-border, #1e2330)',
+  background: 'rgba(19,22,29,0.82)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', border: '1px solid rgba(249,115,22,0.10)',
   borderRadius: '12px', padding: '28px', marginBottom: '16px',
 }
 const ST = {
@@ -112,7 +112,7 @@ export default function Profile() {
   const isGoogle = user ? !user.has_password : false
 
   return (
-    <div style={{ background: 'var(--color-xama-bg, #0d0f14)', color: 'var(--color-xama-text, #dce1ea)', fontFamily: "'Rajdhani', sans-serif", minHeight: '100vh' }}>
+    <div style={{ background: 'transparent', color: 'var(--color-xama-text, #dce1ea)', fontFamily: "'Rajdhani', sans-serif", minHeight: '100vh' }}>
       <Navbar />
       <div style={{ maxWidth: '560px', margin: '0 auto', padding: '40px 24px' }}>
 
