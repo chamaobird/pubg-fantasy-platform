@@ -60,6 +60,7 @@ body {
   font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
   font-size: 14px;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
 /* ─── App shell ─────────────────────────────────────────────────────── */
@@ -294,8 +295,8 @@ body {
 ════════════════════════════════════════════════════════════════════ */
 
 /* ─── Container principal ─── */
-.xama-page { min-height: 100vh; background: transparent; color: var(--color-xama-text); font-family: 'Rajdhani', sans-serif; display: flex; flex-direction: column; }
-.xama-container { max-width: 1200px; margin: 0 auto; padding: 0 24px; width: 100%; }
+.xama-page { min-height: 100vh; background: transparent; color: var(--color-xama-text); font-family: 'Rajdhani', sans-serif; display: flex; flex-direction: column; max-width: 100%; }
+.xama-container { max-width: 1200px; margin: 0 auto; padding: 0 24px; width: 100%; overflow-x: hidden; }
 .xama-container-narrow { max-width: 900px; margin: 0 auto; padding: 0 24px; width: 100%; }
 
 /* ─── Page Header (título principal) ─── */

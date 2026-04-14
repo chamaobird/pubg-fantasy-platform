@@ -82,9 +82,9 @@ export default function Navbar({ tournament = null }) {
         {/* Nav links */}
         <nav style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
           {[
-          { label: 'Campeonatos', path: '/championships' },
-            { label: 'Dashboard',  path: '/dashboard'   },
-            { label: '👤 Perfil',  path: '/profile'     },
+            { label: 'Dashboard',    path: '/dashboard'     },
+            { label: 'Campeonatos', path: '/championships' },
+            { label: '👤 Perfil',   path: '/profile'       },
           ].map(({ label, path }) => {
             const active = isActive(path)
             return (
@@ -93,13 +93,15 @@ export default function Navbar({ tournament = null }) {
                 onClick={() => navigate(path)}
                 style={{
                   background: active ? 'rgba(249,115,22,0.1)' : 'none',
-                  border: active ? '1px solid rgba(249,115,22,0.3)' : 'none',
-                  borderRadius: '6px', padding: '8px 16px',
+                  border: 'none',
+                  borderBottom: active ? '2px solid var(--color-xama-orange)' : '2px solid transparent',
+                  borderRadius: '0',
+                  padding: '8px 16px',
                   fontSize: '17px', fontWeight: active ? 700 : 600,
                   letterSpacing: '0.04em',
                   color: active ? 'var(--color-xama-orange)' : 'var(--color-xama-muted)',
                   cursor: 'pointer', fontFamily: "'Rajdhani', sans-serif",
-                  transition: 'color 0.15s',
+                  transition: 'color 0.15s, border-color 0.15s',
                   whiteSpace: 'nowrap',
                 }}
                 onMouseEnter={e => { if (!active) e.currentTarget.style.color = 'var(--color-xama-text)' }}

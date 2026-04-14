@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../App'
 import { API_BASE_URL } from '../config'
 import TeamLogo from '../components/TeamLogo'
+import Navbar from '../components/Navbar'
 
 // ── Status config ─────────────────────────────────────────────────────────────
 
@@ -268,52 +269,7 @@ export default function Championships() {
   return (
     <div style={{ minHeight: '100vh', background: 'transparent', fontFamily: "'Rajdhani', sans-serif", position: 'relative' }}>
       {/* Navbar */}
-      <header style={{ position: 'relative', zIndex: 1, background: 'rgba(18,21,28,0.92)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderBottom: '1px solid var(--color-xama-border)' }}>
-        <div style={{ height: 2, background: 'linear-gradient(90deg, var(--color-xama-orange), transparent 50%)' }} />
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', display: 'flex', alignItems: 'center', gap: 16, height: 70 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }} onClick={() => navigate('/dashboard')}>
-            <div style={{
-              width: 40, height: 40, fontSize: 20,
-              background: 'linear-gradient(135deg, rgba(249,115,22,0.25), rgba(249,115,22,0.05))',
-              border: '1px solid rgba(249,115,22,0.3)', borderRadius: 10,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>🔥</div>
-            <div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--color-xama-text)', letterSpacing: '0.06em', lineHeight: 1 }}>XAMA</div>
-              <div style={{ fontSize: 11, color: 'var(--color-xama-orange)', letterSpacing: '0.16em', textTransform: 'uppercase', lineHeight: 1 }}>Fantasy</div>
-            </div>
-          </div>
-          <div style={{ flex: 1 }} />
-          <nav style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {[
-              { label: 'Dashboard',   path: '/dashboard'     },
-              { label: 'Campeonatos', path: '/championships' },
-              { label: '👤 Perfil',  path: '/profile'       },
-            ].map(({ label, path }) => {
-              const isHere = path === '/championships'
-              return (
-                <button key={path} onClick={() => navigate(path)} style={{
-                  background: isHere ? 'rgba(249,115,22,0.1)' : 'none',
-                  border: isHere ? '1px solid rgba(249,115,22,0.3)' : 'none',
-                  borderRadius: 6, padding: '8px 16px',
-                  fontSize: 17, fontWeight: isHere ? 700 : 600,
-                  color: isHere ? 'var(--color-xama-orange)' : 'var(--color-xama-muted)',
-                  cursor: 'pointer', fontFamily: "'Rajdhani', sans-serif",
-                  letterSpacing: '0.04em',
-                }}>
-                  {label}
-                </button>
-              )
-            })}
-            <button onClick={logout} style={{
-              background: 'none', border: '1px solid var(--color-xama-border)',
-              borderRadius: 6, padding: '8px 18px', fontSize: 16, fontWeight: 600,
-              color: 'var(--color-xama-muted)', cursor: 'pointer',
-              fontFamily: "'Rajdhani', sans-serif", letterSpacing: '0.06em',
-            }}>Sair</button>
-          </nav>
-        </div>
-      </header>
+      <Navbar />
 
       {/* Content */}
       <main style={{ position: 'relative', zIndex: 1, maxWidth: 1000, margin: '0 auto', padding: '48px 24px' }}>
