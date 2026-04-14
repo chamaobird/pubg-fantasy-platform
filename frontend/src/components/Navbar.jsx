@@ -1,15 +1,7 @@
 // frontend/src/components/Navbar.jsx
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../App'
-
-const STATUS_COLOR = {
-  active: '#4ade80', upcoming: '#f97316', finished: '#6b7280',
-  open: '#4ade80', closed: '#f97316', locked: '#6b7280',
-}
-const STATUS_LABEL = {
-  active: 'AO VIVO', upcoming: 'EM BREVE', finished: 'ENCERRADO',
-  open: 'ABERTA', closed: 'EM BREVE', locked: 'ENCERRADO',
-}
+import { STATUS_COLOR, STATUS_LABEL } from '../utils/statusColors'
 
 export default function Navbar({ tournament = null }) {
   const navigate = useNavigate()
@@ -64,11 +56,11 @@ export default function Navbar({ tournament = null }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
                 <span style={{
                   width: '7px', height: '7px', borderRadius: '50%',
-                  background: STATUS_COLOR[tournament.status] || '#6b7280', flexShrink: 0,
+                  background: STATUS_COLOR[tournament.status] || 'var(--color-xama-muted)', flexShrink: 0,
                 }} />
                 <span style={{
                   fontSize: '12px', fontWeight: 700, letterSpacing: '0.12em',
-                  color: STATUS_COLOR[tournament.status] || '#6b7280', textTransform: 'uppercase',
+                  color: STATUS_COLOR[tournament.status] || 'var(--color-xama-muted)', textTransform: 'uppercase',
                 }}>
                   {STATUS_LABEL[tournament.status] || tournament.status}
                 </span>

@@ -3,7 +3,10 @@
 
 ---
 
-## Estado Atual — 13/04/2026 (fim de sessão noite)
+## Estado Atual — 14/04/2026 (fim de sessão)
+
+### Próxima tarefa de UI
+**Sessão de debt técnico — navbar TournamentSelect, fontFamily inline e cores hardcoded**
 
 ### Próximas tarefas operacionais
 - Quarta 15/04: ajustar preços invited (TGLTN=35, CowBoi=24.34, Kickstart=22.22, hwinn=13.24 — confirmar)
@@ -12,11 +15,43 @@
 
 ### Backlog imediato
 1. Corrigir comentário `scoring.py` linha ~14: `×1.25` → `×1.30`
-2. **Mobile Fase 1** — navbar ordem fixa, overflow-x, viewport meta
-3. **Mobile Fase 2** — LineupBuilder cards, tabelas responsivas, navbar mobile
+2. **Mobile Fase 2** — LineupBuilder cards, tabelas responsivas, navbar mobile
+3. **Debt técnico UI** (auditoria 14/04):
+   - `TournamentSelect.jsx` — navbar inline duplicada (não usa `<Navbar />`)
+   - `fontFamily` hardcoded em inline styles — 11 arquivos afetados
+   - Cores hex → tokens CSS — 15+ arquivos afetados
 
 ### Skills disponíveis
 - `frontend-design` já ativa em `/mnt/skills/public/frontend-design` — usar em todo trabalho de UI/mobile
+
+---
+
+## Sessão 14/04/2026 — Mobile Fase 1 + statusColors refactor
+
+### Arquivos criados/modificados
+- `frontend/src/utils/statusColors.js` ← novo utilitário centralizado
+- `frontend/src/index.css` — `overflow-x: hidden` no body; `max-width: 100%` em `.xama-page`; `overflow-x: hidden` em `.xama-container`
+- `frontend/src/components/Navbar.jsx` — ordem fixa (Dashboard → Campeonatos → Perfil); destaque ativo com `borderBottom` laranja; importa `statusColors.js`
+- `frontend/src/pages/Championships.jsx` — navbar inline duplicada removida → usa `<Navbar />`; importa `statusColors.js`
+- `frontend/src/components/TournamentHeader.jsx` — importa `statusColors.js`
+
+### Mobile Fase 1
+- `overflow-x: hidden` no `body` e `.xama-container` — elimina scroll horizontal em mobile
+- `max-width: 100%` em `.xama-page` — impede overflow de layout
+- Viewport meta tag confirmada em `index.html` (já existia)
+- Navbar: ordem dos itens fixada; estado ativo usa `borderBottom: 2px solid var(--color-xama-orange)` em vez de borda caixinha
+- Bug corrigido: `Championships.jsx` tinha navbar inline própria com `isHere = path === '/championships'` hardcoded e estilo antigo — substituída pelo componente `<Navbar />`
+
+### statusColors.js (refactor)
+- Criado `frontend/src/utils/statusColors.js` com `STATUS_COLOR`, `STATUS_LABEL`, `STATUS_CONFIG`, `statusConfig()`
+- Todos os status usam `var(--color-xama-*)` em vez de hex direto
+- Definições duplicadas removidas de `Navbar.jsx`, `TournamentHeader.jsx`, `Championships.jsx`
+- Fallbacks `|| '#6b7280'` → `|| 'var(--color-xama-muted)'`
+
+### Auditoria de inconsistências (não corrigido ainda — ver backlog)
+- `TournamentSelect.jsx` — navbar inline duplicada
+- `fontFamily` hardcoded em inline styles — 11 arquivos
+- Cores hex sem token — 15+ arquivos
 
 ---
 

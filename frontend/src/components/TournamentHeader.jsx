@@ -31,9 +31,8 @@ function ChampionshipLogo({ shortName, size = 32 }) {
   )
 }
 
-// Status label para o dropdown
-const STATUS_LABEL = { open: 'ABERTA', closed: 'EM BREVE', locked: 'ENCERRADO' }
-const STATUS_COLOR = { open: '#4ade80', closed: '#f97316', locked: '#6b7280' }
+import { STATUS_COLOR, STATUS_LABEL } from '../utils/statusColors'
+
 const DROPDOWN_SHOW_SEARCH = 6  // mostra campo de busca quando há mais de N stages
 
 export default function TournamentHeader({ tournament, championship, championshipName, siblingStages, currentStageId, phaseLabel, myRank }) {
@@ -117,7 +116,7 @@ export default function TournamentHeader({ tournament, championship, championshi
                             .filter(s => !stageSearch || s.name.toLowerCase().includes(stageSearch.toLowerCase()))
                             .map(s => {
                               const isCurrent = s.id === currentStageId
-                              const color = STATUS_COLOR[s.lineup_status] || '#6b7280'
+                              const color = STATUS_COLOR[s.lineup_status] || 'var(--color-xama-muted)'
                               return (
                                 <div
                                   key={s.id}

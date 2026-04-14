@@ -153,6 +153,7 @@ POST  /admin/stages/{id}/force-status   ← aceita: closed | open | locked | pre
 - `lineup_status=preview`: visível com roster/stats, prop `isPreview=true` no LineupBuilder — botão desabilitado com mensagem "Lineup desabilitado — Aguardando confirmação"
 - TournamentHub: `isLocked`, `isPreview` e `canEdit` derivados do status, separados de `isFinished`
 - AppBackground.jsx injetado via RequireAuth em App.jsx — aplica grade hexagonal + gradiente laranja em todas as páginas internas
+- `frontend/src/utils/statusColors.js` — fonte única para cores/labels de status (open/preview/closed/locked/active/upcoming/finished); exporta `STATUS_COLOR`, `STATUS_LABEL`, `STATUS_CONFIG`, `statusConfig()`; usar em qualquer novo componente que precise de cor por status
 - Stage tem `start_date` e `end_date` (DateTime, nullable) — adicionados na migration 0013
 - `StageOut` em `app/routers/stages.py` tem schema local próprio com `from_orm_stage()` — campos novos devem ser adicionados lá (não só em `app/schemas/stage.py`)
 - Logos de torneios: `frontend/public/logos/Tournaments/PAS.png` e `PGS.png`

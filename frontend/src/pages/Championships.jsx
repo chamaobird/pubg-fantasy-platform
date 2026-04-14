@@ -9,19 +9,7 @@ import { useAuth } from '../App'
 import { API_BASE_URL } from '../config'
 import TeamLogo from '../components/TeamLogo'
 import Navbar from '../components/Navbar'
-
-// ── Status config ─────────────────────────────────────────────────────────────
-
-const STATUS = {
-  open:    { bg: 'rgba(74,222,128,0.1)',   border: 'rgba(74,222,128,0.3)',   color: '#4ade80', label: 'ABERTO'     },
-  preview: { bg: 'rgba(249,115,22,0.1)',   border: 'rgba(249,115,22,0.35)',  color: '#f97316', label: 'EM PREVIEW' },
-  locked:  { bg: 'rgba(107,114,128,0.1)',  border: 'rgba(107,114,128,0.3)',  color: '#6b7280', label: 'ENCERRADO'  },
-  closed:  { bg: 'rgba(107,114,128,0.07)', border: 'rgba(107,114,128,0.2)',  color: '#6b7280', label: 'EM BREVE'   },
-}
-
-function statusStyle(lineup_status) {
-  return STATUS[lineup_status] || STATUS.closed
-}
+import { STATUS_COLOR, statusConfig } from '../utils/statusColors'
 
 // ── Helpers de data ───────────────────────────────────────────────────────────
 
@@ -80,7 +68,7 @@ function ChampLogo({ name = '', size = 48 }) {
 // ── StageRow ──────────────────────────────────────────────────────────────────
 
 function StageRow({ stage, champName, navigate }) {
-  const st = statusStyle(stage.lineup_status)
+  const st = statusConfig(stage.lineup_status)
   const isOpen    = stage.lineup_status === 'open'
   const isPreview = stage.lineup_status === 'preview'
   const dateStr = stageDateStr(stage)
@@ -191,7 +179,7 @@ function ChampionshipCard({ championship, navigate }) {
       position: 'relative',
     }}>
       {hasOpen && (
-        <div style={{ height: 2, background: 'linear-gradient(90deg, #4ade80, transparent 60%)' }} />
+        <div style={{ height: 2, background: `linear-gradient(90deg, ${STATUS_COLOR.open}, transparent 60%)` }} />
       )}
       {!hasOpen && (
         <div style={{ height: 1, background: 'linear-gradient(90deg, rgba(249,115,22,0.35), transparent 50%)' }} />
@@ -211,13 +199,13 @@ function ChampionshipCard({ championship, navigate }) {
           <div style={{ fontSize: 11, color: 'var(--color-xama-muted)', marginTop: 3 }}>
             {championship.stages.length} stage{championship.stages.length !== 1 ? 's' : ''}
             {hasOpen && (
-              <span style={{ marginLeft: 8, color: '#4ade80', fontWeight: 700 }}>• lineup aberto</span>
+              <span style={{ marginLeft: 8, color: STATUS_COLOR.open, fontWeight: 700 }}>• lineup aberto</span>
             )}
             {!hasOpen && hasPreview && (
-              <span style={{ marginLeft: 8, color: '#f97316', fontWeight: 700 }}>• em preview</span>
+              <span style={{ marginLeft: 8, color: STATUS_COLOR.preview, fontWeight: 700 }}>• em preview</span>
             )}
             {allLocked && (
-              <span style={{ marginLeft: 8, color: '#6b7280' }}>• encerrado</span>
+              <span style={{ marginLeft: 8, color: STATUS_COLOR.locked }}>• encerrado</span>
             )}
           </div>
         </div>
