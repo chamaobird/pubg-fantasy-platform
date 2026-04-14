@@ -138,7 +138,7 @@ export default function AdminPricingPanel({ stageId, token }) {
         <div>
           <h2 style={{
             fontSize: '20px', fontWeight: 700, color: 'var(--color-xama-text)',
-            fontFamily: "'Rajdhani', sans-serif", letterSpacing: '0.04em',
+            letterSpacing: '0.04em',
             margin: 0,
           }}>Pricing Admin</h2>
           <p style={{ fontSize: '13px', color: 'var(--color-xama-muted)', margin: '4px 0 0' }}>
@@ -152,7 +152,7 @@ export default function AdminPricingPanel({ stageId, token }) {
             padding: '8px 16px', borderRadius: '6px', border: '1px solid rgba(249,115,22,0.3)',
             background: 'rgba(249,115,22,0.08)', color: 'var(--color-xama-orange)',
             fontSize: '12px', fontWeight: 700, cursor: recalcLoading ? 'not-allowed' : 'pointer',
-            fontFamily: "'Rajdhani', sans-serif", letterSpacing: '0.06em', textTransform: 'uppercase',
+            letterSpacing: '0.06em', textTransform: 'uppercase',
           }}>
           {recalcLoading ? '⏳ Recalculando...' : '⚡ Recalcular Pricing'}
         </button>
@@ -171,7 +171,7 @@ export default function AdminPricingPanel({ stageId, token }) {
       )}
 
       {loading && <p style={{ color: 'var(--color-xama-muted)', fontSize: '13px' }}>Carregando jogadores...</p>}
-      {error   && <p style={{ color: '#f87171', fontSize: '13px' }}>{error}</p>}
+      {error   && <p style={{ color: 'var(--color-xama-red)', fontSize: '13px' }}>{error}</p>}
 
       {!loading && !error && (
         <div style={{
@@ -228,7 +228,7 @@ export default function AdminPricingPanel({ stageId, token }) {
                 <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-xama-text)', fontFamily: "'Rajdhani', sans-serif" }}>
                   {formatName(r.person_name)}
                   {r.newcomer_to_tier && (
-                    <span style={{ marginLeft: '6px', fontSize: '9px', color: '#60a5fa', fontWeight: 700 }}>NEW</span>
+                    <span style={{ marginLeft: '6px', fontSize: '9px', color: 'var(--color-xama-blue)', fontWeight: 700 }}>NEW</span>
                   )}
                 </span>
 
@@ -272,7 +272,7 @@ export default function AdminPricingPanel({ stageId, token }) {
                     }}
                   />
                   {fb && (
-                    <span style={{ fontSize: '11px', color: fb.ok ? '#4ade80' : '#f87171', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: '11px', color: fb.ok ? 'var(--color-xama-green)' : 'var(--color-xama-red)', whiteSpace: 'nowrap' }}>
                       {fb.msg}
                     </span>
                   )}
@@ -285,9 +285,9 @@ export default function AdminPricingPanel({ stageId, token }) {
                   style={{
                     padding: '5px 12px', borderRadius: '6px', border: 'none',
                     background: saving[r.id] ? 'var(--surface-3)' : 'var(--color-xama-orange)',
-                    color: saving[r.id] ? 'var(--color-xama-muted)' : '#fff',
+                    color: saving[r.id] ? 'var(--color-xama-muted)' : 'var(--color-xama-text)',
                     fontSize: '11px', fontWeight: 700, cursor: saving[r.id] ? 'not-allowed' : 'pointer',
-                    fontFamily: "'Rajdhani', sans-serif", letterSpacing: '0.06em', textTransform: 'uppercase',
+                    letterSpacing: '0.06em', textTransform: 'uppercase',
                   }}>
                   {saving[r.id] ? '...' : 'Salvar'}
                 </button>

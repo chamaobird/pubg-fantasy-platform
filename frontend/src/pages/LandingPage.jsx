@@ -52,7 +52,7 @@ const btnStyle = (disabled) => ({
   fontSize: '13px', fontWeight: 700, letterSpacing: '0.1em',
   textTransform: 'uppercase', fontFamily: "'Rajdhani', sans-serif",
   cursor: disabled ? 'default' : 'pointer', border: 'none', width: '100%',
-  background: disabled ? 'rgba(30,35,48,0.8)' : '#f97316',
+  background: disabled ? 'rgba(30,35,48,0.8)' : 'var(--color-xama-orange)',
   color: disabled ? '#475569' : '#fff',
   transition: 'all 0.15s',
 })
@@ -63,7 +63,6 @@ const googleBtnStyle = {
   background: 'rgba(255,255,255,0.04)',
   color: '#e2e8f0',
   fontSize: '12px', fontWeight: 600, letterSpacing: '0.03em',
-  fontFamily: "'Rajdhani', sans-serif",
   border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer', transition: 'all 0.15s',
 }
 
@@ -200,7 +199,7 @@ function AuthCard({ redirectTo = '/dashboard' }) {
         {/* Título do card */}
         {mode !== 'forgot' && (
           <div style={{ marginBottom: '16px' }}>
-            <div style={{ fontSize: '17px', fontWeight: 700, color: '#f1f5f9', fontFamily: "'Rajdhani', sans-serif", letterSpacing: '0.03em' }}>
+            <div style={{ fontSize: '17px', fontWeight: 700, color: '#f1f5f9', letterSpacing: '0.03em' }}>
               {mode === 'login' ? 'Entrar na plataforma' : 'Criar conta'}
             </div>
             <div style={{ fontSize: '11px', color: '#475569', marginTop: '2px' }}>
@@ -237,7 +236,7 @@ function AuthCard({ redirectTo = '/dashboard' }) {
                 setShowResend(false); setResendMsg('')
                 setForgotMsg(''); setForgotError('')
               }}
-                style={{ flex: 1, padding: '8px', fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: "'Rajdhani', sans-serif", cursor: 'pointer', border: 'none', background: mode === m ? '#f97316' : 'transparent', color: mode === m ? '#fff' : '#475569', transition: 'all 0.15s' }}>
+                style={{ flex: 1, padding: '8px', fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer', border: 'none', background: mode === m ? '#f97316' : 'transparent', color: mode === m ? '#fff' : '#475569', transition: 'all 0.15s' }}>
                 {m === 'login' ? 'Entrar' : 'Cadastrar'}
               </button>
             ))}
@@ -249,11 +248,11 @@ function AuthCard({ redirectTo = '/dashboard' }) {
           <form onSubmit={doLogin} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <div>
               <label style={labelStyle}>E-mail</label>
-              <input className="xama-landing-input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="seu@email.com" required style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: '15px' }} />
+              <input className="xama-landing-input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="seu@email.com" required style={{ fontSize: '15px' }} />
             </div>
             <div>
               <label style={labelStyle}>Senha</label>
-              <input className="xama-landing-input" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: '15px' }} />
+              <input className="xama-landing-input" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required style={{ fontSize: '15px' }} />
             </div>
             {loginError && <div className="xama-msg-error">{loginError}</div>}
             <button type="submit" disabled={loginLoading} style={btnStyle(loginLoading)}>
@@ -285,7 +284,7 @@ function AuthCard({ redirectTo = '/dashboard' }) {
             </div>
             <div>
               <label style={labelStyle}>E-mail</label>
-              <input className="xama-landing-input" type="email" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} placeholder="seu@email.com" required style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: '15px' }} />
+              <input className="xama-landing-input" type="email" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} placeholder="seu@email.com" required style={{ fontSize: '15px' }} />
             </div>
             {forgotError && <div className="xama-msg-error">{forgotError}</div>}
             {forgotMsg && <div className="xama-msg-success">{forgotMsg}</div>}
@@ -307,15 +306,15 @@ function AuthCard({ redirectTo = '/dashboard' }) {
           <form onSubmit={doRegister} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <div>
               <label style={labelStyle}>E-mail</label>
-              <input className="xama-landing-input" type="email" value={regEmail} onChange={e => setRegEmail(e.target.value)} placeholder="seu@email.com" required style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: '15px' }} />
+              <input className="xama-landing-input" type="email" value={regEmail} onChange={e => setRegEmail(e.target.value)} placeholder="seu@email.com" required style={{ fontSize: '15px' }} />
             </div>
             <div>
               <label style={labelStyle}>Username</label>
-              <input className="xama-landing-input" type="text" value={regUsername} onChange={e => setRegUsername(e.target.value)} placeholder="seu_nick" required style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: '15px' }} />
+              <input className="xama-landing-input" type="text" value={regUsername} onChange={e => setRegUsername(e.target.value)} placeholder="seu_nick" required style={{ fontSize: '15px' }} />
             </div>
             <div>
               <label style={labelStyle}>Senha</label>
-              <input className="xama-landing-input" type="password" value={regPassword} onChange={e => setRegPassword(e.target.value)} placeholder="••••••••" required style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: '15px' }} />
+              <input className="xama-landing-input" type="password" value={regPassword} onChange={e => setRegPassword(e.target.value)} placeholder="••••••••" required style={{ fontSize: '15px' }} />
             </div>
 
             {/* BUG-01: erro em PT-BR + BUG-02: link de reenvio */}
@@ -361,7 +360,6 @@ export default function LandingPage({ redirectTo = '/dashboard' }) {
     <div style={{
       minHeight: '100vh',
       background: '#08090d',
-      fontFamily: "'Rajdhani', sans-serif",
       display: 'flex', flexDirection: 'column',
       position: 'relative', overflow: 'hidden',
     }}>

@@ -239,7 +239,6 @@ export default function PlayerHistoryModal({
                 <span style={{
                   fontSize: '22px', fontWeight: 700,
                   color: 'var(--color-xama-text)',
-                  fontFamily: "'Rajdhani', sans-serif",
                 }}>
                   {personName}
                 </span>
@@ -274,7 +273,7 @@ export default function PlayerHistoryModal({
           }}>
             {[
               { label: 'Média pts',      value: avgPts,     color: 'var(--color-xama-orange)' },
-              { label: 'Melhor partida', value: bestPts,    color: '#f0c040' },
+              { label: 'Melhor partida', value: bestPts,    color: 'var(--color-xama-gold)' },
               { label: 'Total kills',    value: totalKills, color: 'var(--color-xama-text)' },
             ].map(({ label, value, color }) => (
               <div key={label}>
@@ -297,7 +296,7 @@ export default function PlayerHistoryModal({
             </div>
           )}
           {error && (
-            <div style={{ textAlign: 'center', padding: '40px', color: '#f87171' }}>
+            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--color-xama-red)' }}>
               Erro ao carregar histórico.
             </div>
           )}

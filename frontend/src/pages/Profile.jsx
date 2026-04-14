@@ -22,7 +22,7 @@ const IS = {
   width: '100%', padding: '12px 14px', borderRadius: '7px',
   background: '#0a0c11', border: '1px solid var(--color-xama-border, #1e2330)',
   color: 'var(--color-xama-text, #dce1ea)', fontSize: '16px',
-  fontFamily: "'Rajdhani', sans-serif", outline: 'none', boxSizing: 'border-box',
+  outline: 'none', boxSizing: 'border-box',
 }
 const IR = { ...IS, color: 'var(--color-xama-muted)', cursor: 'default' }
 const CS = {
@@ -36,14 +36,14 @@ const ST = {
 const btnOrange = (disabled) => ({
   padding: '11px 28px', borderRadius: '7px', border: 'none',
   background: disabled ? '#1a1f2e' : 'var(--color-xama-orange, #f97316)',
-  color: disabled ? 'var(--color-xama-muted)' : '#fff',
-  fontFamily: "'Rajdhani', sans-serif", fontWeight: 700, fontSize: '14px',
+  color: disabled ? 'var(--color-xama-muted)' : 'var(--color-xama-text)',
+  fontWeight: 700, fontSize: '14px',
   letterSpacing: '0.06em', textTransform: 'uppercase',
   cursor: disabled ? 'default' : 'pointer', transition: 'all 0.15s',
 })
 const msgS = (type) => ({
   fontSize: '13px', marginTop: '6px',
-  color: type === 'ok' ? '#4ade80' : '#f87171'
+  color: type === 'ok' ? 'var(--color-xama-green)' : 'var(--color-xama-red)'
 })
 
 export default function Profile() {
@@ -112,7 +112,7 @@ export default function Profile() {
   const isGoogle = user ? !user.has_password : false
 
   return (
-    <div style={{ background: 'transparent', color: 'var(--color-xama-text, #dce1ea)', fontFamily: "'Rajdhani', sans-serif", minHeight: '100vh' }}>
+    <div style={{ background: 'transparent', color: 'var(--color-xama-text, #dce1ea)', minHeight: '100vh' }}>
       <Navbar />
       <div style={{ maxWidth: '560px', margin: '0 auto', padding: '40px 24px' }}>
 
@@ -168,7 +168,7 @@ export default function Profile() {
             <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: '1px solid var(--color-xama-border)' }}>
               <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-xama-text)' }}>{label}</span>
               {linked
-                ? <span style={{ fontSize: '13px', padding: '4px 12px', borderRadius: '20px', background: '#14532d', color: '#4ade80', fontWeight: 600 }}>Vinculado</span>
+                ? <span style={{ fontSize: '13px', padding: '4px 12px', borderRadius: '20px', background: '#14532d', color: 'var(--color-xama-green)', fontWeight: 600 }}>Vinculado</span>
                 : soon
                   ? <span style={{ fontSize: '13px', padding: '4px 12px', borderRadius: '20px', background: '#1a1f2e', color: 'var(--color-xama-muted)', fontWeight: 600 }}>Em breve</span>
                   : <button style={btnOrange(false)}>Vincular</button>
@@ -179,7 +179,7 @@ export default function Profile() {
 
         <div style={{ textAlign: 'center', marginTop: '8px', paddingBottom: '40px' }}>
           <button onClick={() => { logout(); navigate('/') }}
-            style={{ padding: '11px 28px', borderRadius: '7px', background: 'transparent', color: '#f87171', border: '1px solid rgba(248,113,113,0.2)', fontFamily: "'Rajdhani', sans-serif", fontWeight: 700, fontSize: '14px', letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer' }}>
+            style={{ padding: '11px 28px', borderRadius: '7px', background: 'transparent', color: 'var(--color-xama-red)', border: '1px solid rgba(248,113,113,0.2)', fontWeight: 700, fontSize: '14px', letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer' }}>
             Sair da Conta
           </button>
         </div>

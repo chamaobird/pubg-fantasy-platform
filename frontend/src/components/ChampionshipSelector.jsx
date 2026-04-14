@@ -20,7 +20,6 @@ const selectStyle = {
   color: 'var(--color-xama-text)',
   padding: '6px 10px',
   fontSize: '13px',
-  fontFamily: "'Rajdhani', sans-serif",
   cursor: 'pointer',
   outline: 'none',
 }

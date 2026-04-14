@@ -3,11 +3,12 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../App'
 import { API_BASE_URL } from '../config'
+import Navbar from '../components/Navbar'
 
 const STATUS_STYLE = {
-  active:   { bg: 'rgba(74,222,128,0.1)',  border: 'rgba(74,222,128,0.3)',  color: '#4ade80', label: 'AO VIVO' },
-  upcoming: { bg: 'rgba(249,115,22,0.1)',  border: 'rgba(249,115,22,0.3)',  color: '#f97316', label: 'EM BREVE' },
-  finished: { bg: 'rgba(107,114,128,0.1)', border: 'rgba(107,114,128,0.3)', color: '#6b7280', label: 'ENCERRADO' },
+  active:   { bg: 'rgba(74,222,128,0.1)',  border: 'rgba(74,222,128,0.3)',  color: 'var(--color-xama-green)',  label: 'AO VIVO' },
+  upcoming: { bg: 'rgba(249,115,22,0.1)',  border: 'rgba(249,115,22,0.3)',  color: 'var(--color-xama-orange)', label: 'EM BREVE' },
+  finished: { bg: 'rgba(107,114,128,0.1)', border: 'rgba(107,114,128,0.3)', color: 'var(--color-xama-muted)',  label: 'ENCERRADO' },
 }
 
 const REGION_LABEL = { KR: 'Coreia do Sul', CN: 'China', SEA: 'Sudeste Asiático', AS: 'Ásia', AM: 'Américas', EU: 'Europa', GLOBAL: 'Global' }
@@ -96,7 +97,7 @@ function TournamentCard({ t, navigate }) {
         </span>
       </div>
 
-      <div style={{ fontSize: '25px', fontWeight: 700, color: 'var(--color-xama-text)', marginBottom: '8px', lineHeight: 1.3, fontFamily: "'Rajdhani', sans-serif" }}>
+      <div style={{ fontSize: '25px', fontWeight: 700, color: 'var(--color-xama-text)', marginBottom: '8px', lineHeight: 1.3 }}>
         {t.name}
       </div>
 
@@ -150,7 +151,7 @@ function ChampionshipBlock({ championship, tournById, navigate }) {
           }}>
             Campeonato · {REGION_LABEL[championship.region] || championship.region}
           </div>
-          <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--color-xama-text)', lineHeight: 1.2, fontFamily: "'Rajdhani', sans-serif" }}>
+          <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--color-xama-text)', lineHeight: 1.2 }}>
             {championship.name}
           </div>
         </div>
@@ -210,7 +211,7 @@ function ChampionshipBlock({ championship, tournById, navigate }) {
 
               <div style={{
                 fontSize: '19px', fontWeight: 700, color: 'var(--color-xama-text)',
-                marginBottom: '12px', lineHeight: 1.3, fontFamily: "'Rajdhani', sans-serif",
+                marginBottom: '12px', lineHeight: 1.3,
               }}>
                 {phase.phase}
               </div>
@@ -238,7 +239,7 @@ function ChampionshipBlock({ championship, tournById, navigate }) {
 
 // ── Main page ───────────────────────────────────────────────────────────────
 export default function TournamentSelect() {
-  const { logout } = useAuth()
+  useAuth()
   const navigate = useNavigate()
 
   const [tournaments, setTournaments]   = useState([])
@@ -303,83 +304,7 @@ export default function TournamentSelect() {
         background: 'radial-gradient(ellipse 70% 40% at 50% 0%, rgba(249,115,22,0.05) 0%, transparent 60%)',
       }} />
 
-      {/* ── Navbar (uses shared Navbar component) ── */}
-      <header style={{ position: 'relative', zIndex: 1, background: 'var(--color-xama-surface)', borderBottom: '1px solid var(--color-xama-border)' }}>
-        <div style={{ height: '2px', background: 'linear-gradient(90deg, var(--color-xama-orange), transparent 50%)' }} />
-        <div style={{
-          maxWidth: '1200px', margin: '0 auto', padding: '0 24px',
-          display: 'flex', alignItems: 'center', gap: '16px', height: '70px',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }} onClick={() => navigate('/dashboard')}>
-            <div style={{
-              width: '40px', height: '40px', fontSize: '20px',
-              background: 'linear-gradient(135deg, rgba(249,115,22,0.25), rgba(249,115,22,0.05))',
-              border: '1px solid rgba(249,115,22,0.3)', borderRadius: '10px',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>🔥</div>
-            <div>
-              <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--color-xama-text)', letterSpacing: '0.06em', lineHeight: 1 }}>XAMA</div>
-              <div style={{ fontSize: '11px', color: 'var(--color-xama-orange)', letterSpacing: '0.16em', textTransform: 'uppercase', lineHeight: 1 }}>Fantasy</div>
-            </div>
-          </div>
-
-          <div style={{ flex: 1 }} />
-
-          <nav style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <button
-              onClick={() => navigate('/dashboard')}
-              style={{
-                background: 'none', border: 'none', padding: '8px 16px',
-                fontSize: '17px', fontWeight: 600, letterSpacing: '0.04em',
-                color: 'var(--color-xama-muted)', cursor: 'pointer',
-                fontFamily: "'Rajdhani', sans-serif", transition: 'color 0.15s',
-              }}
-              onMouseEnter={e => e.currentTarget.style.color = 'var(--color-xama-text)'}
-              onMouseLeave={e => e.currentTarget.style.color = 'var(--color-xama-muted)'}
-            >
-              Dashboard
-            </button>
-            <button
-              onClick={() => navigate('/tournaments')}
-              style={{
-                background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.3)',
-                borderRadius: '6px', padding: '8px 16px',
-                fontSize: '17px', fontWeight: 700, letterSpacing: '0.04em',
-                color: 'var(--color-xama-orange)', cursor: 'pointer',
-                fontFamily: "'Rajdhani', sans-serif",
-              }}
-            >
-              Torneios
-            </button>
-            <button
-              onClick={() => navigate('/profile')}
-              style={{
-                background: 'none', border: '1px solid var(--color-xama-border)',
-                borderRadius: '6px', padding: '8px 16px',
-                fontSize: '17px', fontWeight: 600, letterSpacing: '0.04em',
-                color: 'var(--color-xama-muted)', cursor: 'pointer',
-                fontFamily: "'Rajdhani', sans-serif", transition: 'color 0.15s, border-color 0.15s',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.color = 'var(--color-xama-text)'; e.currentTarget.style.borderColor = 'var(--color-xama-muted)' }}
-              onMouseLeave={e => { e.currentTarget.style.color = 'var(--color-xama-muted)'; e.currentTarget.style.borderColor = 'var(--color-xama-border)' }}
-            >
-              👤 Perfil
-            </button>
-            <button
-              onClick={logout}
-              style={{
-                background: 'none', border: '1px solid var(--color-xama-border)',
-                borderRadius: '6px', padding: '8px 18px',
-                fontSize: '16px', fontWeight: 600, letterSpacing: '0.06em',
-                color: 'var(--color-xama-muted)', cursor: 'pointer',
-                fontFamily: "'Rajdhani', sans-serif",
-              }}
-            >
-              Sair
-            </button>
-          </nav>
-        </div>
-      </header>
+      <Navbar />
 
       {/* ── Content ── */}
       <main style={{ position: 'relative', zIndex: 1, maxWidth: '1200px', margin: '0 auto', padding: '48px 24px' }}>
@@ -392,7 +317,7 @@ export default function TournamentSelect() {
           }}>
             Selecione o campeonato
           </div>
-          <h1 style={{ fontSize: '48px', fontWeight: 700, color: 'var(--color-xama-text)', letterSpacing: '-0.01em', margin: 0, fontFamily: "'Rajdhani', sans-serif" }}>
+          <h1 style={{ fontSize: '48px', fontWeight: 700, color: 'var(--color-xama-text)', letterSpacing: '-0.01em', margin: 0 }}>
             Torneios Disponíveis
           </h1>
         </div>
@@ -445,7 +370,7 @@ export default function TournamentSelect() {
                   <div style={{ flex: 1, height: '1px', background: 'var(--color-xama-border)' }} />
                   <span style={{
                     fontSize: '16px', fontWeight: 700, letterSpacing: '0.16em',
-                    textTransform: 'uppercase', color: '#f97316',
+                    textTransform: 'uppercase', color: 'var(--color-xama-orange)',
                     fontFamily: "'JetBrains Mono', monospace", whiteSpace: 'nowrap',
                   }}>
                     {showOnHold ? '▲' : '▼'} &nbsp;Em Espera ({onHoldItems.length})

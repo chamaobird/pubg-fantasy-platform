@@ -97,7 +97,6 @@ export default function LineupResultsPage({ token = '' }) {
         {/* Header */}
         <div style={{ marginBottom: 20 }}>
           <h1 style={{
-            fontFamily: "'Rajdhani', sans-serif",
             fontSize: 24, fontWeight: 700, letterSpacing: '0.06em',
             textTransform: 'uppercase', color: 'var(--color-xama-text)', margin: 0,
           }}>
@@ -123,7 +122,7 @@ export default function LineupResultsPage({ token = '' }) {
           <div style={{
             background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.3)',
             borderRadius: 8, padding: '16px', textAlign: 'center',
-            color: '#f87171', fontSize: 14,
+            color: 'var(--color-xama-red)', fontSize: 14,
           }}>
             Faça login para ver seus resultados.
           </div>
@@ -143,7 +142,6 @@ export default function LineupResultsPage({ token = '' }) {
                       onClick={() => setActiveDayId(d.id)}
                       style={{
                         padding: '6px 14px',
-                        fontFamily: "'Rajdhani', sans-serif",
                         fontSize: 13, fontWeight: 700, letterSpacing: '0.06em',
                         textTransform: 'uppercase',
                         borderRadius: 6, border: 'none', cursor: 'pointer',
@@ -221,7 +219,6 @@ function LineupCard({ lineup, captainMultiplier, stage }) {
         background: 'var(--surface-2)', borderBottom: '1px solid var(--color-xama-border)',
       }}>
         <span style={{
-          fontFamily: "'Rajdhani', sans-serif",
           fontSize: 14, fontWeight: 700, letterSpacing: '0.06em',
           textTransform: 'uppercase', color: 'var(--color-xama-text)',
         }}>
@@ -339,7 +336,7 @@ function PlayerRow({ lp, captainMultiplier, isPending, isReserve = false }) {
           )}
           {isReserve && (
             <span style={{
-              fontSize: 9, fontWeight: 700, color: '#60a5fa',
+              fontSize: 9, fontWeight: 700, color: 'var(--color-xama-blue)',
               background: 'rgba(96,165,250,0.08)', border: '1px solid rgba(96,165,250,0.2)',
               borderRadius: 3, padding: '1px 4px', letterSpacing: '0.06em',
             }}>
@@ -395,7 +392,7 @@ function StageSummary({ lineups, days }) {
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       }}>
         <span style={{
-          fontFamily: "'Rajdhani', sans-serif", fontSize: 13, fontWeight: 700,
+          fontSize: 13, fontWeight: 700,
           letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--color-xama-muted)',
         }}>
           Acumulado da Stage

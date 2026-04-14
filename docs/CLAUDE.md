@@ -2,73 +2,63 @@
 
 Fantasy league para PUBG esports. Usuários montam lineups de jogadores pro e ganham pontos com base em stats reais de partidas.
 
-## Comportamento esperado
+## Comandos essenciais
 
-- PowerShell: usar `;` em vez de `&&` para encadear comandos
-- SQLAlchemy síncrono — usar `Session`, nunca `AsyncSession`
-- Python global (sem .venv) — rodar `python -m uvicorn` direto
-- Alembic: sempre `python -m alembic` da raiz; verificar cadeia antes de criar migration
-- psql: SEMPRE usar arquivo intermediário `.sql` com encoding ASCII, nunca `-c` inline
-- Ao gerar arquivos: sempre incluir o path completo no output
-- Preferir PowerShell commands exatos em vez de descrever o que fazer manualmente
+```powershell
+# Backend (raiz do projeto, Python global, sem .venv)
+python -m uvicorn app.main:app --reload
+
+# Frontend
+cd frontend ; npm run dev
+
+# Migration (sempre da raiz)
+$env:DATABASE_URL="..." ; python -m alembic upgrade head
+
+# psql — SEMPRE arquivo intermediário (nunca -c inline)
+'SQL;' | Out-File -FilePath ".\query.sql" -Encoding ascii
+& "C:\Program Files\PostgreSQL\18\bin\psql.exe" "CONNECTION_STRING" -f ".\query.sql"
+```
+
+## Regras obrigatórias
+
+- **PowerShell**: usar `;` em vez de `&&` para encadear comandos
+- **SQLAlchemy**: síncrono — usar `Session`, nunca `AsyncSession`
+- **Alembic**: sempre `python -m alembic` da raiz; verificar cadeia antes de criar migration
+- **Próxima migration**: `revision = "0014"`, `down_revision = "0013"`
+- **Outputs**: sempre incluir path completo nos arquivos gerados
+- **RTK instalado**: usar `rtk pytest`, `rtk git status`, `rtk git diff`, `rtk read`, etc. para economizar tokens
 
 ## Convenções de código
 
-- Componentes React: `PascalCase`
-- CSS classes: prefixo por contexto (`.xlb-*` LineupBuilder, `.xh-*` headings, `.xcard-*` cards)
-- Cores e fontes: sempre usar tokens CSS (`var(--color-xama-orange)`, `var(--fs-body)`)
-- Player name format: `TEAM_PlayerName` — split em `_` → `[0]` = tag do time
-- Endpoints admin: prefixo `/admin/`
-- Schemas Pydantic: separar request/response
-- Models SQLAlchemy: um arquivo por modelo em `app/models/`
+- Componentes React: `PascalCase`; CSS classes: prefixo por contexto (`.xlb-*`, `.xh-*`, `.xcard-*`)
+- Cores/fontes: sempre tokens CSS (`var(--color-xama-orange)`, `var(--fs-body)`) — nunca hardcoded
+- Player name: `TEAM_PlayerName` → split em `_` → `[0]` = tag do time
+- `StageOut` em `app/routers/stages.py` tem schema local com `from_orm_stage()` — campos novos devem ser adicionados lá também
+- `MatchStat` está em `app/models/match_stat.py` (não em `app/models/match.py`)
 
-## Stack resumida
+## O que NÃO mexer
 
-| Layer | Tech |
-|-------|------|
-| Backend | Python 3.11, FastAPI, SQLAlchemy 2.0 (sync) |
-| Database | PostgreSQL, Alembic migrations |
-| Frontend | React 18, Vite 5, Tailwind CSS v4 |
-| Auth | JWT (bcrypt + SHA256 prehash), Google OAuth redirect flow |
-| Email | Resend (domínio chamaobird.xyz) |
-| Deploy | Render.com |
-| Scheduler | APScheduler dentro do FastAPI |
+- `_legacy/` — código antigo, somente referência
+- `*.sql` — ignorado no git, não commitar
+- `bcrypt==4.0.1` + `passlib==1.7.4` — versões fixadas, não atualizar
 
-## Estrutura de pastas relevante
+## Stack
 
-```
-app/
-  models/          # SQLAlchemy ORM — um por arquivo
-  schemas/         # Pydantic request/response
-  services/        # Lógica de negócio (pricing, scoring, lineup, identity)
-  routers/
-    admin/         # Endpoints admin
-  jobs/            # APScheduler jobs
-  core/            # config.py, security.py
-  database.py
-  main.py
+Backend: Python 3.11, FastAPI, SQLAlchemy 2.0 (sync), PostgreSQL, APScheduler
+Frontend: React 18, Vite 5, Tailwind CSS v4, React Router, Axios
+Auth: JWT (bcrypt + SHA256 prehash), Google OAuth redirect flow
+Deploy: Render.com (auto-deploy no push para main)
 
-frontend/src/
-  pages/           # Páginas por rota
-  components/      # Componentes reutilizáveis
-    ui/            # Design system base (Card, Badge, Button...)
-  api/             # Axios client + service modules
-  context/         # AuthContext
-  index.css        # Tokens CSS do design system XAMA
+## Contexto completo
 
-alembic/versions/  # Migrations numeradas (0001...000N)
-```
+Ver `CONTEXT.md` (técnico/operacional) e `CHANGELOG.md` (estado atual + próximos passos).
 
-## Contexto completo do projeto
-Ver CONTEXT.md (técnico/operacional) e CHANGELOG.md (histórico + estado atual).
+## Ao encerrar a sessão
 
-## Atualização de docs ao final de cada sessão
+Atualizar obrigatoriamente:
+1. `CHANGELOG.md` — o que foi feito, bugs corrigidos, próximo passo na seção "Estado Atual"
+2. `CONTEXT.md` — se houver nova migration, env var, rota ou nota técnica importante
 
-Ao encerrar qualquer sessão de desenvolvimento, **sempre** atualizar:
-
-1. **CHANGELOG.md** — adicionar entrada com data, o que foi feito e bugs corrigidos. Atualizar a seção "Estado Atual" no topo para refletir o próximo passo.
-2. **CONTEXT.md** — atualizar se houver mudança técnica: nova migration, nova env var, nova rota, nova nota importante.
-
-Atualizar quando houver mudança estrutural:
-- **ARCHITECTURE.md** — nova entidade, mudança de regra de negócio, decisão de design
-- **FRONTEND.md** — novo componente, nova página, novo token CSS
+Atualizar se houver mudança estrutural:
+- `FRONTEND.md` — novo componente, página ou token CSS
+- `ARCHITECTURE.md` — nova entidade ou decisão de design

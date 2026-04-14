@@ -15,11 +15,6 @@
 
 ## 🟡 Média prioridade
 
-### Mobile — Fase 1 (quick wins, ~1 sessão)
-- [ ] #MOB-01 Navbar: ordem fixa dos itens (`Campeonatos · Dashboard · Perfil · Sair`), ativo = destaque visual apenas, sem reordenação
-- [ ] #MOB-02 `overflow-x: hidden` no body + `max-width: 100%` nos containers — elimina scroll lateral
-- [ ] #MOB-03 Verificar `<meta name="viewport">` no `index.html`
-
 ### Mobile — Fase 2 (componentes, sessão dedicada)
 - [ ] #MOB-04 LineupBuilder: layout em cards por jogador em vez de tabela
 - [ ] #MOB-05 PlayerStatsPage: scroll horizontal controlado nas tabelas
@@ -27,6 +22,10 @@
 - [ ] #MOB-07 Navbar: hambúrguer ou bottom bar para mobile
 - [ ] Nota: usar skill `frontend-design` (já ativa em `/mnt/skills/public/frontend-design`) em todo trabalho visual mobile
 - [ ] Nota: Playwright para testes E2E — avaliar após estabilização do mobile
+
+### Debt técnico UI — Categoria B (pós PAS1)
+- [ ] #DEBT-B1 Tokens CSS para surface secundárias: `#0f1219` → `--surface-2`, `#1a1f2e` → `--surface-3`, `#2a3046` → `--border-2`, `#13161f` → `--row-hover` — ~30 ocorrências em `index.css` + JSX
+- [ ] #DEBT-B2 LandingPage: paleta própria (`#08090d`, `#f1f5f9` etc.) — avaliar se vale criar tokens separados para a landing
 
 ### UX — Championships.jsx
 - [ ] #UX-CHAMP-02 Avaliar se Championships vira página mais rica (stats, datas, histórico)
@@ -56,21 +55,25 @@
 
 ## 🟢 Concluído
 
+### Sessão 14/04/2026 (tarde/noite) — Debt técnico UI: tokens CSS + fontFamily
+- [x] TournamentSelect.jsx: navbar inline removida → usa `<Navbar />`
+- [x] Cores hex → tokens CSS (Categoria A) em 8 arquivos: orange, gold, red, green, blue, muted, text, black, surface, border
+- [x] fontFamily: "'Rajdhani', sans-serif" removido de 17 arquivos JSX
+- [x] fontFamily: "'JetBrains Mono', monospace" preservado em todos os arquivos (semântico)
+- [x] Badge.jsx (ui/): RegionBadge cores tokenizadas; EU purple mantido
+- [x] TeamLogo.jsx: fontFamily removido do fallback badge
+
+### Sessão 14/04/2026 (manhã) — Mobile Fase 1 + statusColors refactor
+- [x] Mobile Fase 1: overflow-x hidden, max-width containers, viewport confirmado
+- [x] Navbar: ordem fixa, estado ativo com borderBottom laranja
+- [x] statusColors.js: utilitário centralizado criado
+- [x] Championships.jsx: navbar inline substituída por `<Navbar />`
+
 ### Sessão 13/04/2026 (noite) — UX polish pré-torneio
-- [x] Championships.jsx: badge "EM PREVIEW", ordenação stageOrder, hover laranja, fix logo PAS via `includes('AMERICAS')`
-- [x] LineupBuilder: 9 colunas (Time, Jogador, Preço, PTS/G, K, ASS, DMG, SURV, P)
-- [x] LineupBuilder: tipografia aumentada, sort default team/asc, preços 2 casas decimais
-- [x] LineupBuilder: botão 📋 Cálculo na barra de busca + banner resumo da fórmula
-- [x] ScoringRulesModal.jsx: modal com fórmula completa, late game, capitão ×1.30, exemplo prático
-- [x] PlayerStatsPage: sort default team/asc, preço 2 casas decimais, fundo transparent
-- [x] TournamentLeaderboard: fundo transparent (fundo hex visível)
-- [x] TournamentHeader: badge "EM PREVIEW", logo inline com título, detecção prefixo PO → pasta PAS
-- [x] TeamLogo: detecção prefixo PO → pasta PAS, alias flcn→flc
-- [x] AdminPricingPanel: ordenação por Jogador/Time/Auto, preços 2 casas decimais
-- [x] Badge.jsx: preview → "EM PREVIEW"
-- [x] Scrollbar customizada tema XAMA (laranja) em `index.css`
-- [x] DB: display_names FLCN→FLC (4 jogadores: Shrimzy, hwinn, Kickstart, TGLTN)
-- [x] Assets: logos PAS novos — 55pd.png, bst.png, roc.png, toyo.png, wolf.png
+- [x] Championships, LineupBuilder (9 colunas, sort, preços), ScoringRulesModal
+- [x] PlayerStatsPage, TournamentLeaderboard, TournamentHeader, TeamLogo
+- [x] AdminPricingPanel, Badge, scrollbar tema XAMA, logos PAS novos
+- [x] DB: display_names FLCN→FLC (4 jogadores)
 
 ### Sessão 13/04/2026 (tarde) — Dashboard redesign
 - [x] Migration 0013, start_date/end_date, Dashboard hierarquia de cards, logos, datas, ordenação
@@ -86,3 +89,19 @@
 
 ### Fases 0–9 + Blocos A–B
 - [x] Setup completo, schema, auth, scoring, pricing, lineup, leaderboard, populate PGS
+
+---
+
+## 🔵 Infraestrutura / Workflow
+
+### Claude Code — dicas de uso
+- Limite de caracteres por prompt no terminal — dividir prompts grandes em partes (max ~3 arquivos por instrução)
+- Instruções concisas e diretas funcionam melhor que listas longas
+- Fornecer arquivos como upload ao Claude.ai em vez de colar conteúdo em texto
+
+### Claude Code + rtk (configurado, não ativo)
+- Claude Code instalado no projeto
+- rtk 0.35.0 instalado globalmente em `C:\Users\lgpas\.cargo\bin\rtk.exe`
+- CLAUDE.md já existe com instruções do projeto
+- Para ativar: `rtk init` na raiz do projeto, depois `claude`
+- Recomendado iniciar após o PAS1 (pós 20/04)

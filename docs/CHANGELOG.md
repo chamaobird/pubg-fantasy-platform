@@ -3,10 +3,7 @@
 
 ---
 
-## Estado Atual — 14/04/2026 (fim de sessão)
-
-### Próxima tarefa de UI
-**Sessão de debt técnico — navbar TournamentSelect, fontFamily inline e cores hardcoded**
+## Estado Atual — 14/04/2026 (fim de sessão — tarde/noite)
 
 ### Próximas tarefas operacionais
 - Quarta 15/04: ajustar preços invited (TGLTN=35, CowBoi=24.34, Kickstart=22.22, hwinn=13.24 — confirmar)
@@ -16,117 +13,83 @@
 ### Backlog imediato
 1. Corrigir comentário `scoring.py` linha ~14: `×1.25` → `×1.30`
 2. **Mobile Fase 2** — LineupBuilder cards, tabelas responsivas, navbar mobile
-3. **Debt técnico UI** (auditoria 14/04):
-   - `TournamentSelect.jsx` — navbar inline duplicada (não usa `<Navbar />`)
-   - `fontFamily` hardcoded em inline styles — 11 arquivos afetados
-   - Cores hex → tokens CSS — 15+ arquivos afetados
+3. **Debt técnico UI restante:**
+   - Cores Categoria B sem token: `#0f1219`, `#1a1f2e`, `#2a3046` — ~30 ocorrências em index.css e JSX
+   - LandingPage: cores de paleta própria (`#08090d`, `#f1f5f9`, `#475569`, `#e2e8f0`) — não substituir por tokens
+
+### Nota — Claude Code (limite de prompt)
+- O terminal do Claude Code tem limite de caracteres por prompt
+- Prompts grandes devem ser divididos em partes menores (3 arquivos por vez no máximo)
+- Preferir instruções concisas e diretas; evitar listas com mais de ~8 itens por prompt
 
 ### Skills disponíveis
 - `frontend-design` já ativa em `/mnt/skills/public/frontend-design` — usar em todo trabalho de UI/mobile
 
 ---
 
-## Sessão 14/04/2026 — Mobile Fase 1 + statusColors refactor
+## Sessão 14/04/2026 (tarde/noite) — Debt técnico UI: tokens CSS + fontFamily
+
+### Arquivos modificados
+**Remoção de `fontFamily` Rajdhani hardcoded (17 arquivos):**
+- `AuthVerified.jsx`, `ResetPasswordPage.jsx`, `ChampionshipSelector.jsx`
+- `ScoringRulesModal.jsx`, `PriceHistoryModal.jsx`, `TournamentHeader.jsx`
+- `AdminPricingPanel.jsx`, `Profile.jsx`, `Championships.jsx`
+- `Dashboard.jsx`, `TournamentSelect.jsx`, `LineupResultsPage.jsx`
+- `LineupBuilder.jsx`, `PlayerStatsPage.jsx`, `PlayerHistoryModal.jsx`
+- `TournamentLeaderboard.jsx`, `LandingPage.jsx`
+
+**Substituição de cores hex → tokens CSS (8 arquivos, Categoria A):**
+- `AdminPricingPanel.jsx`, `LineupBuilder.jsx`, `PlayerHistoryModal.jsx`
+- `TournamentLeaderboard.jsx`, `LineupResultsPage.jsx`, `TournamentSelect.jsx`
+- `Profile.jsx`, `AuthVerified.jsx`
+
+**Mapa de tokens aplicados:**
+- `#f97316` / `#fb923c` → `var(--color-xama-orange)`
+- `#f0c040` → `var(--color-xama-gold)`
+- `#f87171` → `var(--color-xama-red)`
+- `#4ade80` / `#34d399` → `var(--color-xama-green)`
+- `#6b7280` → `var(--color-xama-muted)`
+- `#60a5fa` / `#3b82f6` → `var(--color-xama-blue)`
+- `#fff` (texto em botão ativo) → `var(--color-xama-text)`
+
+**Outros:**
+- `TournamentSelect.jsx` — navbar inline (76 linhas) removida e substituída por `<Navbar />`
+- `Badge.jsx` (`ui/`) — `RegionBadge`: `#fb923c`→orange, `#6b7280`→muted; EU purple `#818cf8` mantido
+- `TeamLogo.jsx` — `fontFamily` removido do fallback initials badge
+
+### O que foi mantido intencionalmente
+- `fontFamily: "'JetBrains Mono', monospace"` — todos preservados (tipografia monospace é semântica)
+- SVG attributes (`fill=`, `stroke=`) no `PlayerHistoryModal` — não tocar
+- Cores de paleta própria da `LandingPage` (`#08090d`, `#f1f5f9`, `#475569`, `#64748b`) — paleta pública diferente das páginas internas
+- Cores Categoria B (`#0f1219`, `#1a1f2e`, `#2a3046`, `#13161f`) — sem token; endereçar em sessão futura
+- `#818cf8` (EU purple no RegionBadge) — sem token equivalente
+
+---
+
+## Sessão 14/04/2026 (manhã) — Mobile Fase 1 + statusColors refactor
 
 ### Arquivos criados/modificados
 - `frontend/src/utils/statusColors.js` ← novo utilitário centralizado
-- `frontend/src/index.css` — `overflow-x: hidden` no body; `max-width: 100%` em `.xama-page`; `overflow-x: hidden` em `.xama-container`
-- `frontend/src/components/Navbar.jsx` — ordem fixa (Dashboard → Campeonatos → Perfil); destaque ativo com `borderBottom` laranja; importa `statusColors.js`
-- `frontend/src/pages/Championships.jsx` — navbar inline duplicada removida → usa `<Navbar />`; importa `statusColors.js`
+- `frontend/src/index.css` — `overflow-x: hidden` no body; `max-width: 100%` em `.xama-page`
+- `frontend/src/components/Navbar.jsx` — ordem fixa; destaque ativo com `borderBottom` laranja
+- `frontend/src/pages/Championships.jsx` — navbar inline removida → usa `<Navbar />`
 - `frontend/src/components/TournamentHeader.jsx` — importa `statusColors.js`
 
-### Mobile Fase 1
-- `overflow-x: hidden` no `body` e `.xama-container` — elimina scroll horizontal em mobile
-- `max-width: 100%` em `.xama-page` — impede overflow de layout
-- Viewport meta tag confirmada em `index.html` (já existia)
-- Navbar: ordem dos itens fixada; estado ativo usa `borderBottom: 2px solid var(--color-xama-orange)` em vez de borda caixinha
-- Bug corrigido: `Championships.jsx` tinha navbar inline própria com `isHere = path === '/championships'` hardcoded e estilo antigo — substituída pelo componente `<Navbar />`
+### Mobile Fase 1 (concluída)
+- `overflow-x: hidden` no body e `.xama-container`
+- `max-width: 100%` em `.xama-page`
+- Navbar: ordem fixa (Dashboard → Campeonatos → Perfil); estado ativo com `borderBottom` laranja
 
-### statusColors.js (refactor)
-- Criado `frontend/src/utils/statusColors.js` com `STATUS_COLOR`, `STATUS_LABEL`, `STATUS_CONFIG`, `statusConfig()`
-- Todos os status usam `var(--color-xama-*)` em vez de hex direto
-- Definições duplicadas removidas de `Navbar.jsx`, `TournamentHeader.jsx`, `Championships.jsx`
-- Fallbacks `|| '#6b7280'` → `|| 'var(--color-xama-muted)'`
-
-### Auditoria de inconsistências (não corrigido ainda — ver backlog)
-- `TournamentSelect.jsx` — navbar inline duplicada
-- `fontFamily` hardcoded em inline styles — 11 arquivos
-- Cores hex sem token — 15+ arquivos
+### statusColors.js
+- `STATUS_COLOR`, `STATUS_LABEL`, `STATUS_CONFIG`, `statusConfig()` — fonte única
+- Todos os status usam `var(--color-xama-*)` em vez de hex
 
 ---
 
 ## Sessão 13/04/2026 (noite) — UX polish pré-torneio
-
-### Arquivos criados/modificados
-- `frontend/src/pages/Championships.jsx`
-- `frontend/src/components/LineupBuilder.jsx`
-- `frontend/src/components/PlayerStatsPage.jsx`
-- `frontend/src/components/TournamentLeaderboard.jsx`
-- `frontend/src/components/TournamentHeader.jsx`
-- `frontend/src/components/TeamLogo.jsx`
-- `frontend/src/components/AdminPricingPanel.jsx`
-- `frontend/src/components/ui/Badge.jsx`
-- `frontend/src/components/ScoringRulesModal.jsx` ← novo
-- `frontend/src/index.css` ← scrollbar adicionada
-- `frontend/public/logos/PAS/` ← 55pd, bst, roc, toyo, wolf adicionados
-
-### Championships.jsx
-- Badge "EM PREVIEW" (laranja) para `preview`; "EM BREVE" cinza para `closed`
-- `stageOrder`: open=0, preview=1, closed=2, locked=3
-- Fix logo: `ChampLogo` detecta PAS via `includes('AMERICAS')`
-- Hover e borda laranja para stages em preview
-
-### LineupBuilder.jsx
-- 9 colunas: Time, Jogador, Preço, PTS/G, K, ASS, DMG, SURV, P
-- Helper `fmtCost` — preços com 2 casas decimais em toda a UI
-- Sort default `team / asc`; `handleSort` asc para time/nome, desc para numéricos
-- Botão `📋 Cálculo` na barra de busca — abre ScoringRulesModal
-- Banner fixo acima da tabela: resumo da fórmula + "ver detalhes →"
-- `ScoringRulesModal` integrado com `captainMultiplier` da stage
-
-### ScoringRulesModal.jsx (novo)
-- Fórmula validada: Kills×10, Assists×1, Knocks×1, Dano×0.03, Morte precoce −15
-- Late game bonus: sobreviventes vencedor +10, tabela N=1..4
-- Capitão ×1.30 (valor real da stage via prop)
-- Exemplo prático calculado: 41pts base → 53.3pts como capitão
-
-### PlayerStatsPage.jsx
-- Sort default `team / asc`
-- Coluna PREÇO: `.toFixed(2)`
-- Fundo `transparent`
-
-### TournamentLeaderboard.jsx
-- Fundo `transparent`
-
-### TournamentHeader.jsx
-- `STATUS_LABEL/COLOR`: preview → "EM PREVIEW" laranja
-- Logo inline com título `h2`
-- `ChampionshipLogo`: prefixo `PO` → pasta PAS
-
-### TeamLogo.jsx
-- Prefixo `PO` no shortName → `primaryFolder = 'PAS'`
-- `TEAM_TAG_ALIAS = { flcn: 'flc' }`
-
-### AdminPricingPanel.jsx
-- Colunas Jogador, Time, Auto clicáveis com sort
-- Sort default `team / asc`
-- Preços com `.toFixed(2)`
-
-### Badge.jsx
-- `preview` → preset `soon`, label "EM PREVIEW"
-
-### index.css
-- Scrollbar tema XAMA: thumb laranja rgba(249,115,22,0.35), track surface
-- Webkit + Firefox
-
-### DB (operação manual)
-- `UPDATE person SET display_name = 'FLC' || SUBSTRING(display_name FROM 5) WHERE display_name ILIKE 'FLCN_%'`
-- 4 jogadores corrigidos: FLC_Shrimzy, FLC_hwinn, FLC_Kickstart, FLC_TGLTN
-
----
+(ver versão anterior do CHANGELOG para detalhes completos)
+- Championships, LineupBuilder, ScoringRulesModal, PlayerStatsPage, TournamentLeaderboard
+- TournamentHeader, TeamLogo, AdminPricingPanel, Badge, scrollbar, logos PAS
 
 ## Sessão 13/04/2026 (tarde) — Dashboard redesign + start_date/end_date
-(ver versão anterior do CHANGELOG)
-
 ## Sessão 13/04/2026 (manhã) — Preview status + correção de tags
-(ver versão anterior do CHANGELOG)

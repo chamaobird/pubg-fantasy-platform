@@ -14,7 +14,6 @@ export default function AuthVerified() {
     <div style={{
       minHeight: '100vh', background: '#0a0c11',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontFamily: "'Rajdhani', sans-serif",
     }}>
       <div style={{
         textAlign: 'center', padding: '48px 40px',
@@ -22,7 +21,7 @@ export default function AuthVerified() {
         borderRadius: '16px', maxWidth: '400px',
       }}>
         <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>
-        <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#4ade80', marginBottom: '8px' }}>
+        <h1 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--color-xama-green)', marginBottom: '8px' }}>
           Email confirmado!
         </h1>
         <p style={{ fontSize: '15px', color: '#94a3b8', marginBottom: '24px' }}>
@@ -31,9 +30,9 @@ export default function AuthVerified() {
         <button
           onClick={() => navigate('/')}
           style={{
-            padding: '10px 28px', background: '#f97316', color: '#000',
+            padding: '10px 28px', background: 'var(--color-xama-orange)', color: 'var(--color-xama-black)',
             border: 'none', borderRadius: '6px', fontWeight: 700,
-            fontSize: '15px', cursor: 'pointer', fontFamily: "'Rajdhani', sans-serif",
+            fontSize: '15px', cursor: 'pointer',
           }}>
           Ir para o login
         </button>

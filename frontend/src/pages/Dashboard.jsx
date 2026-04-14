@@ -167,7 +167,6 @@ function StageRow({ stage, onClick, champName, userScore, userRank }) {
         <div style={{
           fontSize: '16px', fontWeight: 600, color: 'var(--color-xama-text)',
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-          fontFamily: 'Rajdhani, sans-serif',
         }}>{stage.name}</div>
         <div style={{ fontSize: '12px', color: 'var(--color-xama-muted)', marginTop: '2px', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
           {champName && (
@@ -269,7 +268,7 @@ function PreviewCard({ s, champMap, navigate }) {
         {/* Nome da stage */}
         <div style={{
           fontSize: '22px', fontWeight: 700, color: 'var(--color-xama-text)',
-          fontFamily: 'Rajdhani, sans-serif', lineHeight: 1.2, marginBottom: '4px',
+          lineHeight: 1.2, marginBottom: '4px',
         }}>{s.name}</div>
 
         {/* Data */}
@@ -349,7 +348,7 @@ function OpenCard({ s, lineup, champMap, navigate }) {
       <div style={{
         fontSize: '32px', fontWeight: 700, color: 'var(--color-xama-text)',
         lineHeight: 1.2, marginBottom: '20px',
-        fontFamily: 'Rajdhani, sans-serif', letterSpacing: '-0.01em',
+        letterSpacing: '-0.01em',
         textAlign: 'center', width: '100%',
       }}>{s.name}</div>
 
@@ -481,9 +480,9 @@ export default function Dashboard() {
         {/* Saudação */}
         <div style={{ marginBottom: '44px' }}>
           <h1 style={{
-            fontSize: '42px', fontWeight: 800, color: '#fff',
+            fontSize: '42px', fontWeight: 800, color: 'var(--color-xama-text)',
             margin: '0 0 10px', letterSpacing: '-0.02em',
-            fontFamily: 'Rajdhani, sans-serif', lineHeight: 1.1,
+            lineHeight: 1.1,
           }}>
             Olá, {displayName.toUpperCase()} 👋
           </h1>

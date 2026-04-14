@@ -98,7 +98,6 @@ export default function TeamLogo({ teamName, logoUrl: logoUrlProp, shortName = '
       fontSize: Math.max(7, Math.floor(size * 0.34)),
       fontWeight: 700,
       color: 'var(--color-xama-orange)',
-      fontFamily: "'JetBrains Mono', monospace",
       letterSpacing: '-0.02em',
       flexShrink: 0,
       lineHeight: 1,

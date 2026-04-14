@@ -66,7 +66,7 @@ export default function PriceHistoryModal({ stageId, roster, onClose }) {
             <div style={{
               fontSize: '16px', fontWeight: 700,
               color: 'var(--color-xama-text)',
-              fontFamily: "'Rajdhani', sans-serif", letterSpacing: '0.04em',
+              letterSpacing: '0.04em',
             }}>
               {playerName}
               {roster.team_name && (
@@ -105,7 +105,7 @@ export default function PriceHistoryModal({ stageId, roster, onClose }) {
             </p>
           )}
           {error && (
-            <p style={{ padding: '16px', textAlign: 'center', color: '#f87171', fontSize: '13px' }}>
+            <p style={{ padding: '16px', textAlign: 'center', color: 'var(--color-xama-red)', fontSize: '13px' }}>
               {error}
             </p>
           )}
@@ -161,7 +161,7 @@ export default function PriceHistoryModal({ stageId, roster, onClose }) {
               padding: '8px 20px', borderRadius: '6px', border: '1px solid var(--color-xama-border)',
               background: 'var(--surface-2)', color: 'var(--color-xama-muted)',
               fontSize: '13px', fontWeight: 600, cursor: 'pointer',
-              fontFamily: "'Rajdhani', sans-serif", letterSpacing: '0.04em',
+              letterSpacing: '0.04em',
             }}>
             Fechar
           </button>

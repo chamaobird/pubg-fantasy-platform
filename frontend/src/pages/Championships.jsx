@@ -107,7 +107,6 @@ function StageRow({ stage, champName, navigate }) {
         <span style={{
           fontSize: 15, fontWeight: 600,
           color: 'var(--color-xama-text)',
-          fontFamily: "'Rajdhani', sans-serif",
           display: 'block',
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>
@@ -191,7 +190,7 @@ function ChampionshipCard({ championship, navigate }) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{
             fontSize: 22, fontWeight: 700, color: 'var(--color-xama-text)',
-            fontFamily: "'Rajdhani', sans-serif", lineHeight: 1.2,
+            lineHeight: 1.2,
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           }}>
             {championship.name}
@@ -255,7 +254,7 @@ export default function Championships() {
   const finished = championships.filter(c => c.stages.length === 0 || c.stages.every(s => s.lineup_status === 'locked'))
 
   return (
-    <div style={{ minHeight: '100vh', background: 'transparent', fontFamily: "'Rajdhani', sans-serif", position: 'relative' }}>
+    <div style={{ minHeight: '100vh', background: 'transparent', position: 'relative' }}>
       {/* Navbar */}
       <Navbar />
 
@@ -268,7 +267,7 @@ export default function Championships() {
           }}>
             XAMA Fantasy
           </div>
-          <h1 style={{ fontSize: 42, fontWeight: 700, color: 'var(--color-xama-text)', margin: 0, fontFamily: "'Rajdhani', sans-serif", letterSpacing: '-0.01em' }}>
+          <h1 style={{ fontSize: 42, fontWeight: 700, color: 'var(--color-xama-text)', margin: 0, letterSpacing: '-0.01em' }}>
             Campeonatos
           </h1>
         </div>

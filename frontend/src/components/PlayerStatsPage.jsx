@@ -167,7 +167,6 @@ const selectStyle = {
   color: 'var(--color-xama-text)',
   padding: '6px 10px',
   fontSize: '13px',
-  fontFamily: "'Rajdhani', sans-serif",
   cursor: 'pointer',
   outline: 'none',
 }
@@ -305,12 +304,11 @@ export default function PlayerStatsPage({ stageId: propStageId = null, shortName
     cursor: 'pointer', userSelect: 'none',
     whiteSpace: 'nowrap',
     color: sortKey === col?.key ? 'var(--color-xama-orange)' : 'var(--color-xama-muted)',
-    fontFamily: "'Rajdhani', sans-serif",
     transition: 'color 0.15s',
   })
 
   return (
-    <div style={{ minHeight: '100vh', background: 'transparent', fontFamily: "'Rajdhani', sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: 'transparent' }}>
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="px-6 py-5 border-b" style={{ background: 'var(--color-xama-surface)', borderColor: 'var(--color-xama-border)' }}>
@@ -324,7 +322,7 @@ export default function PlayerStatsPage({ stageId: propStageId = null, shortName
                 </h1>
                 {(selectedDay || selectedMatch) && (
                   <span className="px-2 py-0.5 rounded text-[10px] font-bold"
-                    style={{ fontFamily: "'JetBrains Mono', monospace", background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.3)', color: '#60a5fa' }}>
+                    style={{ fontFamily: "'JetBrains Mono', monospace", background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.3)', color: 'var(--color-xama-blue)' }}>
                     {filterLabel}
                   </span>
                 )}
@@ -361,7 +359,7 @@ export default function PlayerStatsPage({ stageId: propStageId = null, shortName
                       ...selectStyle, padding: '4px 10px', fontWeight: 600,
                       background: selectedDayId === d.id ? 'rgba(96,165,250,0.12)' : '#0d0f14',
                       borderColor: selectedDayId === d.id ? 'rgba(96,165,250,0.5)' : 'var(--color-xama-border)',
-                      color: selectedDayId === d.id ? '#60a5fa' : 'var(--color-xama-muted)',
+                      color: selectedDayId === d.id ? 'var(--color-xama-blue)' : 'var(--color-xama-muted)',
                     }}>
                     Dia {d.day_number}
                   </button>
@@ -406,7 +404,7 @@ export default function PlayerStatsPage({ stageId: propStageId = null, shortName
             {(selectedDayId || selectedMatchId || teamFilter || search) && (
               <button
                 onClick={() => { setSelectedDayId(null); setSelectedMatchId(null); setTeamFilter(''); setSearch('') }}
-                style={{ ...selectStyle, color: '#f87171', borderColor: 'rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.05)' }}>
+                style={{ ...selectStyle, color: 'var(--color-xama-red)', borderColor: 'rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.05)' }}>
                 ✕ Limpar
               </button>
             )}
@@ -517,7 +515,7 @@ export default function PlayerStatsPage({ stageId: propStageId = null, shortName
               </table>
             </div>
             <div className="px-5 py-3 flex items-center justify-between" style={{ borderTop: '1px solid var(--color-xama-border)', background: '#0a0c11' }}>
-              <span className="text-[11px] font-bold tracking-[0.1em] uppercase" style={{ color: 'var(--color-xama-orange)', fontFamily: "'Rajdhani', sans-serif" }}>
+              <span className="text-[11px] font-bold tracking-[0.1em] uppercase" style={{ color: 'var(--color-xama-orange)' }}>
                 🔥 XAMA Fantasy
               </span>
               <span className="text-[11px] tabular-nums" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-muted)' }}>

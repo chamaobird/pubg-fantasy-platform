@@ -63,7 +63,6 @@ export default function ResetPasswordPage() {
   return (
     <div style={{
       minHeight: '100vh', background: 'var(--color-xama-black)',
-      fontFamily: "'Rajdhani', sans-serif",
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       padding: '16px',
     }}>
@@ -93,7 +92,7 @@ export default function ResetPasswordPage() {
           {success ? (
             <div style={{
               textAlign: 'center', padding: '24px',
-              color: '#34d399', fontSize: '15px', fontWeight: 600,
+              color: 'var(--color-xama-green)', fontSize: '15px', fontWeight: 600,
             }}>
               ✅ Senha atualizada com sucesso!<br />
               <span style={{ fontSize: '13px', color: 'var(--color-xama-muted)', fontWeight: 400 }}>
@@ -117,7 +116,7 @@ export default function ResetPasswordPage() {
                   required
                   minLength={6}
                   disabled={!token}
-                  style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: '15px' }}
+                  style={{ fontSize: '15px' }}
                 />
               </div>
               <div>
@@ -135,7 +134,7 @@ export default function ResetPasswordPage() {
                   required
                   minLength={6}
                   disabled={!token}
-                  style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: '15px' }}
+                  style={{ fontSize: '15px' }}
                 />
               </div>
 
@@ -149,11 +148,11 @@ export default function ResetPasswordPage() {
                 style={{
                   marginTop: '4px', padding: '12px', borderRadius: '8px',
                   fontSize: '15px', fontWeight: 700, letterSpacing: '0.06em',
-                  textTransform: 'uppercase', fontFamily: "'Rajdhani', sans-serif",
+                  textTransform: 'uppercase',
                   cursor: loading || !token ? 'default' : 'pointer',
                   border: 'none', width: '100%',
                   background: loading || !token ? '#1a1f2e' : 'var(--color-xama-orange)',
-                  color: loading || !token ? 'var(--color-xama-muted)' : '#0d0f14',
+                  color: loading || !token ? 'var(--color-xama-muted)' : 'var(--color-xama-black)',
                   transition: 'all 0.15s',
                 }}
               >

@@ -326,7 +326,7 @@ export default function LineupBuilder({
               background: 'rgba(248,113,113,0.08)',
               border: '1px solid rgba(248,113,113,0.3)',
               borderRadius: 8, padding: '10px 16px', marginBottom: 12,
-              color: '#f87171', fontSize: 13, fontWeight: 600, textAlign: 'center',
+              color: 'var(--color-xama-red)', fontSize: 13, fontWeight: 600, textAlign: 'center',
             }}>
               🔒 Lineup fechado — submissões não são aceitas no momento
             </div>
@@ -338,7 +338,7 @@ export default function LineupBuilder({
               background: 'rgba(74,222,128,0.08)',
               border: '1px solid rgba(74,222,128,0.25)',
               borderRadius: 8, padding: '10px 16px', marginBottom: 12,
-              color: '#4ade80', fontSize: 13, fontWeight: 600, textAlign: 'center',
+              color: 'var(--color-xama-green)', fontSize: 13, fontWeight: 600, textAlign: 'center',
             }}>
               ✅ Lineup já submetido para hoje
             </div>
@@ -368,7 +368,7 @@ export default function LineupBuilder({
               <span style={{
                 fontSize: 13, fontWeight: 700,
                 fontFamily: "'JetBrains Mono', monospace",
-                color: isOverBudget ? '#f87171' : 'var(--color-xama-text)',
+                color: isOverBudget ? 'var(--color-xama-red)' : 'var(--color-xama-text)',
               }}>
                 {totalCost} / {BUDGET_CAP}
               </span>
@@ -470,7 +470,7 @@ export default function LineupBuilder({
                 border: '1px solid rgba(96,165,250,0.3)',
                 borderRadius: 8, padding: '8px 12px',
               }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: '#60a5fa', letterSpacing: '0.06em', flexShrink: 0 }}>RES</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--color-xama-blue)', letterSpacing: '0.06em', flexShrink: 0 }}>RES</span>
                 <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-xama-text)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {formatPlayerName(reservePlayer.person_name)}
                 </span>
@@ -479,7 +479,7 @@ export default function LineupBuilder({
                 </span>
                 <span style={{
                   fontSize: 11, fontFamily: "'JetBrains Mono', monospace",
-                  color: reserveEligible ? '#4ade80' : '#f87171', fontWeight: 700, flexShrink: 0,
+                  color: reserveEligible ? 'var(--color-xama-green)' : 'var(--color-xama-red)', fontWeight: 700, flexShrink: 0,
                 }}>
                   {fmtCost(reservePlayer.effective_cost)}{!reserveEligible && ' ⚠'}
                 </span>
@@ -509,7 +509,6 @@ export default function LineupBuilder({
                 disabled
                 style={{
                   width: '100%', padding: '11px 0',
-                  fontFamily: "'Rajdhani', sans-serif",
                   fontSize: 15, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
                   borderRadius: 8, border: '1px solid rgba(249,115,22,0.2)',
                   cursor: 'not-allowed',
@@ -524,11 +523,10 @@ export default function LineupBuilder({
                 disabled={!canSave || saveLoading}
                 style={{
                   width: '100%', padding: '11px 0',
-                  fontFamily: "'Rajdhani', sans-serif",
                   fontSize: 15, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
                   borderRadius: 8, border: 'none', cursor: canSave && !saveLoading ? 'pointer' : 'not-allowed',
                   background: canSave && !saveLoading ? 'var(--color-xama-orange)' : 'var(--surface-3)',
-                  color: canSave && !saveLoading ? '#fff' : 'var(--color-xama-muted)',
+                  color: canSave && !saveLoading ? 'var(--color-xama-text)' : 'var(--color-xama-muted)',
                   transition: 'background 0.15s',
                 }}>
                 {saveLoading ? 'Salvando...' : isLocked ? '🔒 Fechado' : 'Salvar Lineup'}
@@ -558,7 +556,6 @@ export default function LineupBuilder({
                 borderRadius: 6, padding: '5px 12px', cursor: 'pointer',
                 color: 'var(--color-xama-orange)',
                 fontSize: 13, fontWeight: 700, letterSpacing: '0.04em',
-                fontFamily: "'Rajdhani', sans-serif",
                 whiteSpace: 'nowrap', flexShrink: 0,
               }}>
               📋 Cálculo
@@ -672,7 +669,7 @@ export default function LineupBuilder({
                             {onPlayerInfoClick && (
                               <button
                                 className="xlb-action-btn"
-                                style={{ background: 'rgba(96,165,250,0.08)', borderColor: 'rgba(96,165,250,0.2)', color: '#60a5fa' }}
+                                style={{ background: 'rgba(96,165,250,0.08)', borderColor: 'rgba(96,165,250,0.2)', color: 'var(--color-xama-blue)' }}
                                 onClick={() => onPlayerInfoClick(p)}
                                 title="Ver histórico de preços">
                                 📈

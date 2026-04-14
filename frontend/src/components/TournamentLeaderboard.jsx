@@ -11,7 +11,6 @@ const selectStyle = {
   color: 'var(--color-xama-text)',
   padding: '5px 8px',
   fontSize: '12px',
-  fontFamily: "'Rajdhani', sans-serif",
   cursor: 'pointer',
   outline: 'none',
 }
@@ -113,7 +112,7 @@ export default function TournamentLeaderboard({
   const anyPoints         = rankings.some((r) => (r.total_points ?? r.points ?? 0) > 0)
 
   return (
-    <div className="min-h-screen" style={{ background: 'transparent', fontFamily: "'Rajdhani', sans-serif" }}>
+    <div className="min-h-screen" style={{ background: 'transparent' }}>
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="px-6 py-5 border-b" style={{ background: 'var(--color-xama-surface)', borderColor: 'var(--color-xama-border)' }}>
@@ -132,7 +131,7 @@ export default function TournamentLeaderboard({
               className="dark-btn flex items-center gap-2"
               onClick={() => fetchLeaderboard(selectedDayId, selectedMatchId)}
               disabled={loading}
-              style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 600 }}>
+              style={{ fontWeight: 600 }}>
               <span style={{ fontSize: '13px' }}>↻</span>
               {loading ? 'Carregando…' : 'Atualizar'}
             </button>
@@ -165,7 +164,7 @@ export default function TournamentLeaderboard({
                     padding: '4px 10px', fontWeight: 600,
                     background: selectedDayId === d.id ? 'rgba(96,165,250,0.12)' : '#0d0f14',
                     borderColor: selectedDayId === d.id ? 'rgba(96,165,250,0.5)' : 'var(--color-xama-border)',
-                    color: selectedDayId === d.id ? '#60a5fa' : 'var(--color-xama-muted)',
+                    color: selectedDayId === d.id ? 'var(--color-xama-blue)' : 'var(--color-xama-muted)',
                   }}>
                   Dia {d.day_number}
                 </button>
@@ -191,7 +190,7 @@ export default function TournamentLeaderboard({
           {selectedDayId && (
             <button
               onClick={() => setSelectedDayId(null)}
-              style={{ ...selectStyle, color: '#f87171', borderColor: 'rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.05)' }}>
+              style={{ ...selectStyle, color: 'var(--color-xama-red)', borderColor: 'rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.05)' }}>
               ✕ Limpar
             </button>
           )}
@@ -231,7 +230,7 @@ export default function TournamentLeaderboard({
             {/* Banner de contexto */}
             {selectedDayId && (
               <div className="px-4 py-2 text-[11px] font-bold tracking-[0.08em] uppercase"
-                style={{ background: 'rgba(96,165,250,0.08)', borderBottom: '1px solid rgba(96,165,250,0.2)', color: '#60a5fa', fontFamily: "'JetBrains Mono', monospace" }}>
+                style={{ background: 'rgba(96,165,250,0.08)', borderBottom: '1px solid rgba(96,165,250,0.2)', color: 'var(--color-xama-blue)', fontFamily: "'JetBrains Mono', monospace" }}>
                 📅 Dia {selectedDay?.day_number} —{' '}
                 {selectedDay?.date ? new Date(selectedDay.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : ''}
               </div>
@@ -245,7 +244,6 @@ export default function TournamentLeaderboard({
                       style={{
                         color: 'var(--color-xama-muted)',
                         textAlign: i >= 2 ? 'right' : 'left',
-                        fontFamily: "'Rajdhani', sans-serif",
                         width: i === 0 ? '52px' : undefined,
                       }}>
                       {h}
@@ -294,7 +292,7 @@ export default function TournamentLeaderboard({
                           {/* Badge de dias jogados no acumulado */}
                           {!selectedDayId && entry.days_played > 0 && (
                             <span className="text-[9px] font-bold px-1.5 py-0.5 rounded"
-                              style={{ background: 'rgba(96,165,250,0.1)', border: '1px solid rgba(96,165,250,0.3)', color: '#60a5fa', fontFamily: "'JetBrains Mono', monospace" }}>
+                              style={{ background: 'rgba(96,165,250,0.1)', border: '1px solid rgba(96,165,250,0.3)', color: 'var(--color-xama-blue)', fontFamily: "'JetBrains Mono', monospace" }}>
                               {entry.days_played}D
                             </span>
                           )}
@@ -306,7 +304,7 @@ export default function TournamentLeaderboard({
                         <span className="text-[15px] font-bold tabular-nums"
                           style={{
                             fontFamily: "'JetBrains Mono', monospace",
-                            color: pts > 0 ? (selectedDayId ? '#60a5fa' : 'var(--color-xama-gold)') : '#374151',
+                            color: pts > 0 ? (selectedDayId ? 'var(--color-xama-blue)' : 'var(--color-xama-gold)') : '#374151',
                           }}>
                           {Number(pts).toFixed(2)}
                         </span>
@@ -320,7 +318,7 @@ export default function TournamentLeaderboard({
             <div className="px-5 py-3 flex items-center justify-between"
               style={{ borderTop: '1px solid var(--color-xama-border)', background: '#0a0c11' }}>
               <span className="text-[11px] font-bold tracking-[0.1em] uppercase"
-                style={{ color: 'var(--color-xama-gold)', fontFamily: "'Rajdhani', sans-serif" }}>
+                style={{ color: 'var(--color-xama-gold)' }}>
                 🏆 XAMA Fantasy
               </span>
               <span className="text-[11px] tabular-nums"

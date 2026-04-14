@@ -25,7 +25,6 @@ export default function ScoringRulesModal({ captainMultiplier = 1.30, onClose })
         border: '1px solid var(--color-xama-border)',
         borderRadius: 14,
         boxShadow: '0 24px 64px rgba(0,0,0,0.6)',
-        fontFamily: "'Rajdhani', sans-serif",
       }}>
         {/* Barra laranja topo */}
         <div style={{ height: 3, background: 'linear-gradient(90deg, var(--color-xama-orange), transparent 60%)', borderRadius: '14px 14px 0 0' }} />
@@ -67,7 +66,7 @@ export default function ScoringRulesModal({ captainMultiplier = 1.30, onClose })
                 <Row label="Assist"         value="+1"   note="Por assistência" />
                 <Row label="Knock"          value="+1"   note="Por derrubada" />
                 <Row label="Dano"           value="+0.03" note="Por ponto de dano causado" color="var(--color-xama-gold)" />
-                <Row label="Morte precoce"  value="−15"  note="Morreu antes de 10 min sem nenhum kill" color="#f87171" />
+                <Row label="Morte precoce"  value="−15"  note="Morreu antes de 10 min sem nenhum kill" color="var(--color-xama-red)" />
               </tbody>
             </table>
           </div>
@@ -152,7 +151,7 @@ export default function ScoringRulesModal({ captainMultiplier = 1.30, onClose })
                 { label: '3 kills',       calc: '3 × 10',    pts: '+30',  color: 'var(--color-xama-orange)' },
                 { label: '1 assist',      calc: '1 × 1',     pts: '+1',   color: 'var(--color-xama-text)' },
                 { label: '200 dano',      calc: '200 × 0.03',pts: '+6',   color: 'var(--color-xama-gold)' },
-                { label: 'Late game',     calc: 'bônus',     pts: '+4',   color: '#60a5fa' },
+                { label: 'Late game',     calc: 'bônus',     pts: '+4',   color: 'var(--color-xama-blue)' },
               ].map(({ label, calc, pts, color }) => (
                 <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
                   <span style={{ fontSize: 13, color: 'var(--color-xama-muted)' }}>{label}</span>
@@ -195,7 +194,7 @@ const tdStyle = { padding: '8px 10px', fontSize: 13, color: 'var(--color-xama-te
 const thStyle = (left) => ({
   padding: '7px 10px', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em',
   textTransform: 'uppercase', color: 'var(--color-xama-muted)',
-  fontFamily: "'Rajdhani', sans-serif", textAlign: left ? 'left' : 'right',
+  textAlign: left ? 'left' : 'right',
 })
 
 function Th({ children, left }) {

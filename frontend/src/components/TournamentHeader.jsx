@@ -103,7 +103,7 @@ export default function TournamentHeader({ tournament, championship, championshi
                                 border: '1px solid var(--color-xama-border)',
                                 borderRadius: '6px', padding: '6px 10px',
                                 fontSize: '13px', color: 'var(--color-xama-text)',
-                                fontFamily: "'Rajdhani', sans-serif", outline: 'none',
+                                outline: 'none',
                               }}
                             />
                           </div>
@@ -135,7 +135,6 @@ export default function TournamentHeader({ tournament, championship, championshi
                                   <span style={{
                                     fontSize: '14px', fontWeight: isCurrent ? 700 : 500,
                                     color: isCurrent ? 'var(--color-xama-orange)' : 'var(--color-xama-text)',
-                                    fontFamily: "'Rajdhani', sans-serif",
                                   }}>
                                     {s.name}
                                   </span>

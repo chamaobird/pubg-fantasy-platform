@@ -42,7 +42,7 @@ export function StatusBadge({ status }) {
 
 /** Badge inline "EU" de região */
 export function RegionBadge({ region }) {
-  const color = region === 'EU' ? '#818cf8' : region === 'AM' ? '#fb923c' : '#6b7280'
+  const color = region === 'EU' ? '#818cf8' : region === 'AM' ? 'var(--color-xama-orange)' : 'var(--color-xama-muted)'
   return (
     <span style={{
       display: 'inline-block', padding: '1px 6px',
