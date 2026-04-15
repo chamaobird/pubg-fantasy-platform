@@ -11,14 +11,17 @@ GET /championships/{id}
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from typing import Optional
 
 from app.database import get_db
 from app.models.championship import Championship
 from app.models.stage import Stage
+from app.models.user import User
+from app.models.user_stat import UserStageStat
 
 router = APIRouter(prefix="/championships", tags=["Championships"])
 
@@ -26,6 +29,18 @@ router = APIRouter(prefix="/championships", tags=["Championships"])
 # ---------------------------------------------------------------------------
 # Schemas de resposta
 # ---------------------------------------------------------------------------
+
+class ChampionshipLeaderboardEntryOut(BaseModel):
+    rank: int
+    user_id: str
+    username: Optional[str]
+    total_points: float
+    stages_played: int
+    survival_secs: int
+    captain_pts: float
+
+    model_config = {"from_attributes": True}
+
 
 class StagePublic(BaseModel):
     id: int
@@ -113,3 +128,76 @@ def get_championship(
             detail=f"Championship {championship_id} not found",
         )
     return _build_response(championship, db)
+
+
+@router.get(
+    "/{championship_id}/leaderboard",
+    response_model=list[ChampionshipLeaderboardEntryOut],
+    summary="Leaderboard acumulado do campeonato",
+)
+def get_championship_leaderboard(
+    championship_id: int,
+    limit: int = Query(50, ge=1, le=200),
+    db: Session = Depends(get_db),
+) -> list[ChampionshipLeaderboardEntryOut]:
+    """
+    Retorna o ranking acumulado de todos os usuários no campeonato,
+    somando pontos de todas as stages.
+
+    Desempate: survival_secs DESC → captain_pts DESC.
+    """
+    championship = db.query(Championship).filter(
+        Championship.id == championship_id
+    ).first()
+    if not championship:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Championship {championship_id} not found",
+        )
+
+    # IDs das stages do campeonato
+    stage_ids = [
+        s.id for s in db.query(Stage.id).filter(Stage.championship_id == championship_id).all()
+    ]
+    if not stage_ids:
+        return []
+
+    # Agrega por usuário somando pontos de todas as stages
+    rows = (
+        db.query(
+            UserStageStat.user_id.label("user_id"),
+            func.sum(UserStageStat.total_points).label("total_points"),
+            func.count(UserStageStat.stage_id).label("stages_played"),
+            func.sum(UserStageStat.survival_secs).label("survival_secs"),
+            func.sum(UserStageStat.captain_pts).label("captain_pts"),
+        )
+        .filter(UserStageStat.stage_id.in_(stage_ids))
+        .group_by(UserStageStat.user_id)
+        .order_by(
+            func.sum(UserStageStat.total_points).desc(),
+            func.sum(UserStageStat.survival_secs).desc(),
+            func.sum(UserStageStat.captain_pts).desc(),
+        )
+        .limit(limit)
+        .all()
+    )
+
+    # Busca usernames em lote
+    user_ids = [r.user_id for r in rows]
+    username_map = {
+        u.id: u.username
+        for u in db.query(User).filter(User.id.in_(user_ids)).all()
+    }
+
+    return [
+        ChampionshipLeaderboardEntryOut(
+            rank=idx + 1,
+            user_id=r.user_id,
+            username=username_map.get(r.user_id),
+            total_points=float(r.total_points or 0),
+            stages_played=int(r.stages_played or 0),
+            survival_secs=int(r.survival_secs or 0),
+            captain_pts=float(r.captain_pts or 0),
+        )
+        for idx, r in enumerate(rows)
+    ]

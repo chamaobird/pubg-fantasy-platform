@@ -33,12 +33,14 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional
 
+from sqlalchemy import and_, func
 from sqlalchemy.orm import Session
 
 from app.models import Stage, StageDay
 from app.models.lineup import Lineup, LineupPlayer
 from app.models.match import Match
 from app.models.match_stat import MatchStat
+from app.models.roster import Roster
 from app.models.user_stat import UserDayStat, UserStageStat
 
 logger = logging.getLogger(__name__)
@@ -204,11 +206,10 @@ def _upsert_user_stage_stat(
 ) -> UserStageStat:
     """
     Recalcula UserStageStat somando todos os UserDayStat do usuário na stage.
+    Também computa survival_secs e captain_pts para desempate no campeonato.
     Idempotente.
     """
-    # Soma via subquery para evitar carregar todos os registros
-    from sqlalchemy import func
-
+    # total_points + days_played
     result = (
         db.query(
             func.sum(UserDayStat.points).label("total"),
@@ -225,6 +226,42 @@ def _upsert_user_stage_stat(
     total_points = Decimal(str(result.total or 0))
     days_played  = int(result.days or 0)
 
+    # captain_pts: soma de points_earned dos jogadores capitão nos lineups válidos
+    captain_pts_val = (
+        db.query(func.coalesce(func.sum(LineupPlayer.points_earned), 0))
+        .join(Lineup, LineupPlayer.lineup_id == Lineup.id)
+        .join(StageDay, Lineup.stage_day_id == StageDay.id)
+        .filter(
+            Lineup.user_id == user_id,
+            Lineup.is_valid == True,  # noqa: E712
+            StageDay.stage_id == stage_id,
+            LineupPlayer.is_captain == True,  # noqa: E712
+        )
+        .scalar()
+    )
+    captain_pts = Decimal(str(captain_pts_val or 0))
+
+    # survival_secs: soma do tempo de sobrevivência dos titulares nos lineups válidos
+    survival_secs_val = (
+        db.query(func.coalesce(func.sum(MatchStat.survival_time), 0))
+        .join(Match, MatchStat.match_id == Match.id)
+        .join(StageDay, Match.stage_day_id == StageDay.id)
+        .join(Roster, MatchStat.person_id == Roster.person_id)
+        .join(LineupPlayer, LineupPlayer.roster_id == Roster.id)
+        .join(Lineup, and_(
+            LineupPlayer.lineup_id == Lineup.id,
+            Lineup.user_id == user_id,
+            Lineup.stage_day_id == StageDay.id,
+            Lineup.is_valid == True,  # noqa: E712
+        ))
+        .filter(
+            StageDay.stage_id == stage_id,
+            LineupPlayer.slot_type == "titular",
+        )
+        .scalar()
+    )
+    survival_secs = int(survival_secs_val or 0)
+
     stat = (
         db.query(UserStageStat)
         .filter(
@@ -235,15 +272,19 @@ def _upsert_user_stage_stat(
     )
 
     if stat:
-        stat.total_points = total_points
-        stat.days_played  = days_played
-        stat.updated_at   = datetime.now(timezone.utc)
+        stat.total_points  = total_points
+        stat.days_played   = days_played
+        stat.survival_secs = survival_secs
+        stat.captain_pts   = captain_pts
+        stat.updated_at    = datetime.now(timezone.utc)
     else:
         stat = UserStageStat(
             user_id=user_id,
             stage_id=stage_id,
             total_points=total_points,
             days_played=days_played,
+            survival_secs=survival_secs,
+            captain_pts=captain_pts,
         )
         db.add(stat)
 

@@ -42,6 +42,8 @@ router = APIRouter(prefix="/stages", tags=["Stages"])
 class StageOut(BaseModel):
     id: int
     championship_id: int
+    championship_name: Optional[str] = None
+    championship_short_name: Optional[str] = None
     name: str
     short_name: str
     shard: str
@@ -62,9 +64,12 @@ class StageOut(BaseModel):
 
     @classmethod
     def from_orm_stage(cls, s: Stage) -> "StageOut":
+        champ = s.championship
         return cls(
             id=s.id,
             championship_id=s.championship_id,
+            championship_name=champ.name if champ else None,
+            championship_short_name=champ.short_name if champ else None,
             name=s.name,
             short_name=s.short_name,
             shard=s.shard,
