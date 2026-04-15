@@ -2,11 +2,10 @@
 
 ## 🔴 Alta prioridade — próxima sessão
 
-### Operacional — 15/04
-- [ ] #PAS-10 Confirmar e ajustar preços dos invited: TGLTN=35 ok, CowBoi=24.34, Kickstart=22.22, hwinn=13.24 (verificar se correto)
-- [ ] #PAS-11 Confirmar roster oficial divulgado e corrigir display_names se necessário
-- [ ] #PAS-12 Abrir stage 15: `UPDATE stage SET lineup_status = 'open' WHERE id = 15;`
+### Operacional
+- [ ] Ajustar preço do hwinn via AdminPricingPanel (valor ~13.24 — confirmar)
 - [ ] #PAS-13 Após 1ª partida (17/04): validar/corrigir Steam names via `scripts/pubg/manage_player_accounts.py`
+- [ ] #PAS-14 Após 1ª partida (17/04): atualizar PlayerAccount id=308 (Gustav) — substituir account_id=PENDING_Gustav e shard=pending pelos valores reais do PUBG API
 
 ### Tech debt rápido
 - [ ] Corrigir comentário no `app/services/scoring.py` linha ~14: capitão `×1.25` → `×1.30`
@@ -24,8 +23,8 @@
 - [ ] Nota: Playwright para testes E2E — avaliar após estabilização do mobile
 
 ### Debt técnico UI — Categoria B (pós PAS1)
-- [ ] #DEBT-B1 Tokens CSS para surface secundárias: `#0f1219` → `--surface-2`, `#1a1f2e` → `--surface-3`, `#2a3046` → `--border-2`, `#13161f` → `--row-hover` — ~30 ocorrências em `index.css` + JSX
-- [ ] #DEBT-B2 LandingPage: paleta própria (`#08090d`, `#f1f5f9` etc.) — avaliar se vale criar tokens separados para a landing
+- [ ] #DEBT-B1 Tokens CSS para surfaces secundárias: `#0f1219` → `--surface-2`, `#1a1f2e` → `--surface-3`, `#2a3046` → `--border-2`, `#13161f` → `--row-hover` — ~30 ocorrências em `index.css` + JSX
+- [ ] #DEBT-B2 LandingPage: paleta própria (`#08090d`, `#f1f5f9` etc.) — avaliar se vale criar tokens separados
 
 ### UX — Championships.jsx
 - [ ] #UX-CHAMP-02 Avaliar se Championships vira página mais rica (stats, datas, histórico)
@@ -55,24 +54,25 @@
 
 ## 🟢 Concluído
 
-### Sessão 14/04/2026 (tarde/noite) — Debt técnico UI: tokens CSS + fontFamily
-- [x] TournamentSelect.jsx: navbar inline removida → usa `<Navbar />`
-- [x] Cores hex → tokens CSS (Categoria A) em 8 arquivos: orange, gold, red, green, blue, muted, text, black, surface, border
-- [x] fontFamily: "'Rajdhani', sans-serif" removido de 17 arquivos JSX
-- [x] fontFamily: "'JetBrains Mono', monospace" preservado em todos os arquivos (semântico)
-- [x] Badge.jsx (ui/): RegionBadge cores tokenizadas; EU purple mantido
-- [x] TeamLogo.jsx: fontFamily removido do fallback badge
+### Sessão 14/04/2026 (noite) — Operacional PAS1
+- [x] Roster swap: Gustav criado (FLC), hwinn movido para WOLF, Sayfoo removido da stage 15
+- [x] Stage 15 aberta: lineup_status = 'open'
 
-### Sessão 14/04/2026 (manhã) — Mobile Fase 1 + statusColors refactor
-- [x] Mobile Fase 1: overflow-x hidden, max-width containers, viewport confirmado
-- [x] Navbar: ordem fixa, estado ativo com borderBottom laranja
-- [x] statusColors.js: utilitário centralizado criado
-- [x] Championships.jsx: navbar inline substituída por `<Navbar />`
+### Sessão 14/04/2026 (tarde/noite) — Debt técnico UI
+- [x] TournamentSelect.jsx: navbar inline → `<Navbar />`
+- [x] Cores hex → tokens CSS (Categoria A) em 8 arquivos
+- [x] fontFamily: "'Rajdhani', sans-serif" removido de 17 arquivos JSX
+- [x] Badge.jsx, TeamLogo.jsx tokenizados
+
+### Sessão 14/04/2026 (manhã) — Mobile Fase 1 + statusColors
+- [x] overflow-x hidden, max-width containers, viewport confirmado
+- [x] Navbar ordem fixa, estado ativo com borderBottom laranja
+- [x] statusColors.js criado
+- [x] Championships.jsx navbar inline → `<Navbar />`
 
 ### Sessão 13/04/2026 (noite) — UX polish pré-torneio
-- [x] Championships, LineupBuilder (9 colunas, sort, preços), ScoringRulesModal
-- [x] PlayerStatsPage, TournamentLeaderboard, TournamentHeader, TeamLogo
-- [x] AdminPricingPanel, Badge, scrollbar tema XAMA, logos PAS novos
+- [x] Championships, LineupBuilder (9 colunas), ScoringRulesModal, PlayerStatsPage, TournamentLeaderboard
+- [x] TournamentHeader, TeamLogo, AdminPricingPanel, Badge, scrollbar, logos PAS novos
 - [x] DB: display_names FLCN→FLC (4 jogadores)
 
 ### Sessão 13/04/2026 (tarde) — Dashboard redesign
@@ -94,14 +94,21 @@
 
 ## 🔵 Infraestrutura / Workflow
 
-### Claude Code — dicas de uso
-- Limite de caracteres por prompt no terminal — dividir prompts grandes em partes (max ~3 arquivos por instrução)
-- Instruções concisas e diretas funcionam melhor que listas longas
-- Fornecer arquivos como upload ao Claude.ai em vez de colar conteúdo em texto
+### Claude Code — rotina de sessão
+```powershell
+# Iniciar
+cd C:\Users\lgpas\PROJECTS\pubg-fantasy-platform
+claude
 
-### Claude Code + rtk (configurado, não ativo)
-- Claude Code instalado no projeto
-- rtk 0.35.0 instalado globalmente em `C:\Users\lgpas\.cargo\bin\rtk.exe`
+# Ver economia de tokens ao fim da sessão
+rtk gain
+```
+
+### Claude Code — dicas de uso
+- Limite de caracteres por prompt no terminal — dividir em partes (max ~3 arquivos por instrução)
+- Fornecer arquivos JSX como upload no Claude.ai em vez de Get-Content
+- Prompts concisos funcionam melhor que listas longas
+
+### Claude Code + rtk
+- rtk 0.35.0 instalado em `C:\Users\lgpas\.cargo\bin\rtk.exe`
 - CLAUDE.md já existe com instruções do projeto
-- Para ativar: `rtk init` na raiz do projeto, depois `claude`
-- Recomendado iniciar após o PAS1 (pós 20/04)

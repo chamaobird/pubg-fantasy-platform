@@ -22,6 +22,10 @@ $env:DATABASE_URL="..." ; python -m alembic upgrade head
 # psql — SEMPRE usar arquivo intermediário (nunca -c inline no PowerShell)
 'SQL;' | Out-File -FilePath ".\query.sql" -Encoding ascii
 & "C:\Program Files\PostgreSQL\18\bin\psql.exe" "CONNECTION_STRING" -f ".\query.sql"
+
+# Claude Code
+cd C:\Users\lgpas\PROJECTS\pubg-fantasy-platform ; claude
+rtk gain   # ver economia de tokens ao fim da sessão
 ```
 
 ## Projeto
@@ -132,15 +136,15 @@ POST  /admin/stages/{id}/force-status   ← aceita: closed | open | locked | pre
   - Datas populadas via migration 0013 (start_date/end_date preenchidos)
 - Championship: PUBG Americas Series 1 2026 - Playoffs 1 (id=7, shard=steam)
   - 3 Stages: Playoffs 1 Dia 1(15), Dia 2(16), Dia 3(17)
-  - Stage 15: lineup_status=preview → abrir com `open` após confirmar roster em 15/04
+  - Stage 15: lineup_status=**open** (aberto em 14/04)
   - Stage 16 e 17: lineup_status=closed
   - Datas: Dia 1 = 18/04 01:00 UTC, Dia 2 = 19/04 01:00 UTC, Dia 3 = 20/04 01:00 UTC
   - 3 StageDays: 17/04, 18/04, 19/04 (horário local do evento: 21:00 EDT)
-  - 64 Rosters no Dia 1 (16 times × 4 jogadores), todos com display_name no formato TAG_PlayerName
   - Preços por tier: high=33, mid=28, open=18 (TGLTN fixado em 35 via cost_override)
-  - 199 Persons, 305 PlayerAccounts (pending_ALIAS para contas sem Steam ID confirmado)
   - Scripts: `scripts/pubg/populate_pas1_playoffs.py`, `scripts/pubg/manage_player_accounts.py`
   - shard=steam para scrims públicas; shard do Esports Server a confirmar após 1ª partida
+  - **Roster swap 14/04:** Gustav (Person id=202) entrou na FLC; hwinn (id=39) movido para WOLF (display_name: WOLF_hwinn); Sayfoo removido da stage 15 (Person id=122 preservada)
+  - 200 Persons, 308 PlayerAccounts — Gustav tem PlayerAccount id=308 com account_id=PENDING_Gustav (atualizar após 1ª partida)
 
 ## Notas importantes
 - `pricing_n_matches`: campo DEPRECATED no modelo Stage
