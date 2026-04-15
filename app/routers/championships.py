@@ -20,8 +20,9 @@ from typing import Optional
 from app.database import get_db
 from app.models.championship import Championship
 from app.models.stage import Stage
+from app.models.stage_day import StageDay
 from app.models.user import User
-from app.models.user_stat import UserStageStat
+from app.models.user_stat import UserDayStat, UserStageStat
 
 router = APIRouter(prefix="/championships", tags=["Championships"])
 
@@ -183,6 +184,93 @@ def get_championship_leaderboard(
     )
 
     # Busca usernames em lote
+    user_ids = [r.user_id for r in rows]
+    username_map = {
+        u.id: u.username
+        for u in db.query(User).filter(User.id.in_(user_ids)).all()
+    }
+
+    return [
+        ChampionshipLeaderboardEntryOut(
+            rank=idx + 1,
+            user_id=r.user_id,
+            username=username_map.get(r.user_id),
+            total_points=float(r.total_points or 0),
+            stages_played=int(r.stages_played or 0),
+            survival_secs=int(r.survival_secs or 0),
+            captain_pts=float(r.captain_pts or 0),
+        )
+        for idx, r in enumerate(rows)
+    ]
+
+
+@router.get(
+    "/{championship_id}/leaderboard/combined",
+    response_model=list[ChampionshipLeaderboardEntryOut],
+    summary="Leaderboard combinado — dias arbitrários",
+)
+def get_combined_leaderboard(
+    championship_id: int,
+    stage_day_ids: str = Query(..., description="IDs de stage_days separados por vírgula, ex: 1,2,5"),
+    limit: int = Query(50, ge=1, le=200),
+    db: Session = Depends(get_db),
+) -> list[ChampionshipLeaderboardEntryOut]:
+    """
+    Soma UserDayStat dos stage_day_ids especificados.
+    Permite combinações arbitrárias (dias de stages diferentes).
+    Desempate: survival_secs DESC → captain_pts DESC.
+    """
+    championship = db.query(Championship).filter(
+        Championship.id == championship_id
+    ).first()
+    if not championship:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Championship {championship_id} not found",
+        )
+
+    try:
+        day_ids = [int(x.strip()) for x in stage_day_ids.split(",") if x.strip()]
+    except ValueError:
+        raise HTTPException(status_code=400, detail="stage_day_ids inválidos")
+
+    if not day_ids:
+        return []
+
+    # Valida que os days pertencem ao campeonato
+    valid_day_ids = [
+        row[0] for row in (
+            db.query(StageDay.id)
+            .join(Stage, StageDay.stage_id == Stage.id)
+            .filter(
+                Stage.championship_id == championship_id,
+                StageDay.id.in_(day_ids),
+            )
+            .all()
+        )
+    ]
+    if not valid_day_ids:
+        return []
+
+    rows = (
+        db.query(
+            UserDayStat.user_id.label("user_id"),
+            func.sum(UserDayStat.points).label("total_points"),
+            func.count(UserDayStat.id).label("stages_played"),
+            func.sum(UserDayStat.survival_secs).label("survival_secs"),
+            func.sum(UserDayStat.captain_pts).label("captain_pts"),
+        )
+        .filter(UserDayStat.stage_day_id.in_(valid_day_ids))
+        .group_by(UserDayStat.user_id)
+        .order_by(
+            func.sum(UserDayStat.points).desc(),
+            func.sum(UserDayStat.survival_secs).desc(),
+            func.sum(UserDayStat.captain_pts).desc(),
+        )
+        .limit(limit)
+        .all()
+    )
+
     user_ids = [r.user_id for r in rows]
     username_map = {
         u.id: u.username

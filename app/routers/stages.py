@@ -59,12 +59,14 @@ class StageOut(BaseModel):
     lineup_close_at: Optional[datetime] = None
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
+    stage_days: list["StageDayOut"] = []
 
     model_config = {"from_attributes": True}
 
     @classmethod
     def from_orm_stage(cls, s: Stage) -> "StageOut":
         champ = s.championship
+        days = sorted(s.stage_days, key=lambda d: d.day_number) if s.stage_days else []
         return cls(
             id=s.id,
             championship_id=s.championship_id,
@@ -85,6 +87,7 @@ class StageOut(BaseModel):
             lineup_close_at=s.lineup_close_at,
             start_date=s.start_date,
             end_date=s.end_date,
+            stage_days=[StageDayOut.model_validate(d) for d in days],
         )
 
 

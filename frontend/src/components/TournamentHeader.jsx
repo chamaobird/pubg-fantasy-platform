@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { StatusBadge } from './ui/Badge'
 
 // Resolve logo do campeonato pelo nome da stage (shortName como fallback)
-function ChampionshipLogo({ shortName, size = 32 }) {
+function ChampionshipLogo({ shortName, width = 32, height = 32 }) {
   const upper = (shortName || '').toUpperCase()
   const folder = upper.startsWith('PGS') ? 'PGS'
     : (upper.startsWith('PAS') || upper.startsWith('PO')) ? 'PAS'
@@ -26,7 +26,7 @@ function ChampionshipLogo({ shortName, size = 32 }) {
       src={candidates[idx]}
       alt=""
       onError={() => idx + 1 < candidates.length ? setIdx(i => i + 1) : setFailed(true)}
-      style={{ width: size, height: size, objectFit: 'contain', flexShrink: 0 }}
+      style={{ width, height, objectFit: 'contain', flexShrink: 0 }}
     />
   )
 }
@@ -52,7 +52,7 @@ export default function TournamentHeader({ tournament, championship, championshi
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
 
           {/* Logo do campeonato */}
-          <ChampionshipLogo shortName={phaseLabel} size={44} />
+          <ChampionshipLogo shortName={phaseLabel} width={180} height="auto" />
 
           <div>
             <h2 className="xt-name" style={{ fontSize: '30px', display: 'flex', alignItems: 'center', gap: '8px', position: 'relative' }}>

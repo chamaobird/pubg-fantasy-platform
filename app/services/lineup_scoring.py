@@ -73,7 +73,7 @@ def score_stage_day(db: Session, stage_day_id: int) -> dict:
 
     # Pré-carrega todos os MatchStat do dia indexados por person_id
     # (pode haver múltiplas partidas no mesmo dia)
-    match_stats_by_person = _load_match_stats_for_day(db, stage_day_id)
+    match_stats_by_person, survival_by_person = _load_match_stats_for_day(db, stage_day_id)
 
     # Todos os lineups válidos do dia
     lineups = (
@@ -94,6 +94,7 @@ def score_stage_day(db: Session, stage_day_id: int) -> dict:
                 db=db,
                 lineup=lineup,
                 match_stats_by_person=match_stats_by_person,
+                survival_by_person=survival_by_person,
                 captain_multiplier=captain_multiplier,
             )
             affected_users.add(lineup.user_id)
@@ -132,16 +133,20 @@ def _score_lineup(
     db: Session,
     lineup: Lineup,
     match_stats_by_person: dict[int, float],
+    survival_by_person: dict[int, int],
     captain_multiplier: float,
 ) -> None:
     """
     Calcula points_earned para cada LineupPlayer e atualiza Lineup.total_points
-    e UserDayStat.
+    e UserDayStat (com survival_secs e captain_pts para desempate).
     """
-    total_points = Decimal("0.00")
+    total_points  = Decimal("0.00")
+    captain_pts   = Decimal("0.00")
+    survival_secs = 0
 
     for lp in lineup.players:
-        raw_pts = match_stats_by_person.get(lp.roster.person_id, 0.0)
+        person_id = lp.roster.person_id
+        raw_pts = match_stats_by_person.get(person_id, 0.0)
         pts = Decimal(str(round(raw_pts, 2)))
 
         if lp.is_captain:
@@ -151,16 +156,22 @@ def _score_lineup(
 
         # Apenas titulares somam ao total (#071)
         if lp.slot_type == "titular":
-            total_points += pts
+            total_points  += pts
+            survival_secs += survival_by_person.get(person_id, 0)
+            if lp.is_captain:
+                captain_pts = pts   # só um capitão por lineup
 
     lineup.total_points = total_points
 
     # Upsert UserDayStat (#072)
-    _upsert_user_day_stat(db, lineup.user_id, lineup.stage_day_id, total_points)
+    _upsert_user_day_stat(
+        db, lineup.user_id, lineup.stage_day_id,
+        total_points, survival_secs, captain_pts,
+    )
 
     logger.debug(
-        "[LineupScoring] lineup_id=%s user=%s total=%.2f",
-        lineup.id, lineup.user_id, total_points,
+        "[LineupScoring] lineup_id=%s user=%s total=%.2f surv=%ds cap=%.2f",
+        lineup.id, lineup.user_id, total_points, survival_secs, captain_pts,
     )
 
 
@@ -173,6 +184,8 @@ def _upsert_user_day_stat(
     user_id: str,
     stage_day_id: int,
     points: Decimal,
+    survival_secs: int = 0,
+    captain_pts: Decimal = Decimal("0"),
 ) -> UserDayStat:
     stat = (
         db.query(UserDayStat)
@@ -183,13 +196,17 @@ def _upsert_user_day_stat(
         .first()
     )
     if stat:
-        stat.points = points
-        stat.updated_at = datetime.now(timezone.utc)
+        stat.points        = points
+        stat.survival_secs = survival_secs
+        stat.captain_pts   = captain_pts
+        stat.updated_at    = datetime.now(timezone.utc)
     else:
         stat = UserDayStat(
             user_id=user_id,
             stage_day_id=stage_day_id,
             points=points,
+            survival_secs=survival_secs,
+            captain_pts=captain_pts,
         )
         db.add(stat)
     return stat
@@ -206,14 +223,14 @@ def _upsert_user_stage_stat(
 ) -> UserStageStat:
     """
     Recalcula UserStageStat somando todos os UserDayStat do usuário na stage.
-    Também computa survival_secs e captain_pts para desempate no campeonato.
     Idempotente.
     """
-    # total_points + days_played
     result = (
         db.query(
             func.sum(UserDayStat.points).label("total"),
             func.count(UserDayStat.id).label("days"),
+            func.sum(UserDayStat.survival_secs).label("surv"),
+            func.sum(UserDayStat.captain_pts).label("cap"),
         )
         .join(StageDay, UserDayStat.stage_day_id == StageDay.id)
         .filter(
@@ -223,44 +240,10 @@ def _upsert_user_stage_stat(
         .first()
     )
 
-    total_points = Decimal(str(result.total or 0))
-    days_played  = int(result.days or 0)
-
-    # captain_pts: soma de points_earned dos jogadores capitão nos lineups válidos
-    captain_pts_val = (
-        db.query(func.coalesce(func.sum(LineupPlayer.points_earned), 0))
-        .join(Lineup, LineupPlayer.lineup_id == Lineup.id)
-        .join(StageDay, Lineup.stage_day_id == StageDay.id)
-        .filter(
-            Lineup.user_id == user_id,
-            Lineup.is_valid == True,  # noqa: E712
-            StageDay.stage_id == stage_id,
-            LineupPlayer.is_captain == True,  # noqa: E712
-        )
-        .scalar()
-    )
-    captain_pts = Decimal(str(captain_pts_val or 0))
-
-    # survival_secs: soma do tempo de sobrevivência dos titulares nos lineups válidos
-    survival_secs_val = (
-        db.query(func.coalesce(func.sum(MatchStat.survival_time), 0))
-        .join(Match, MatchStat.match_id == Match.id)
-        .join(StageDay, Match.stage_day_id == StageDay.id)
-        .join(Roster, MatchStat.person_id == Roster.person_id)
-        .join(LineupPlayer, LineupPlayer.roster_id == Roster.id)
-        .join(Lineup, and_(
-            LineupPlayer.lineup_id == Lineup.id,
-            Lineup.user_id == user_id,
-            Lineup.stage_day_id == StageDay.id,
-            Lineup.is_valid == True,  # noqa: E712
-        ))
-        .filter(
-            StageDay.stage_id == stage_id,
-            LineupPlayer.slot_type == "titular",
-        )
-        .scalar()
-    )
-    survival_secs = int(survival_secs_val or 0)
+    total_points  = Decimal(str(result.total or 0))
+    days_played   = int(result.days or 0)
+    survival_secs = int(result.surv or 0)
+    captain_pts   = Decimal(str(result.cap or 0))
 
     stat = (
         db.query(UserStageStat)
@@ -381,16 +364,17 @@ def _recalculate_stage_ranks(db: Session, stage_id: int) -> int:
 def _load_match_stats_for_day(
     db: Session,
     stage_day_id: int,
-) -> dict[int, float]:
+) -> tuple[dict[int, float], dict[int, int]]:
     """
-    Retorna {person_id: total_fantasy_points} somando todas as partidas do dia.
+    Retorna:
+      match_pts_by_person: {person_id: total_fantasy_points}
+      survival_by_person:  {person_id: total_survival_seconds}
     """
-    from sqlalchemy import func
-
     rows = (
         db.query(
             MatchStat.person_id,
-            func.sum(MatchStat.fantasy_points).label("total_pts"),
+            func.sum(MatchStat.xama_points).label("total_pts"),
+            func.sum(MatchStat.survival_time).label("total_surv"),
         )
         .join(Match, MatchStat.match_id == Match.id)
         .filter(Match.stage_day_id == stage_day_id)
@@ -398,4 +382,6 @@ def _load_match_stats_for_day(
         .all()
     )
 
-    return {row.person_id: float(row.total_pts or 0) for row in rows}
+    pts_map  = {row.person_id: float(row.total_pts  or 0) for row in rows}
+    surv_map = {row.person_id: int(row.total_surv   or 0) for row in rows}
+    return pts_map, surv_map

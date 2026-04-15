@@ -69,6 +69,14 @@ class UserDayStat(Base):
     points: Mapped[Decimal] = mapped_column(
         Numeric(8, 2), nullable=False, server_default="0"
     )
+    survival_secs: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default="0",
+        comment="Total survival seconds for tiebreaking"
+    )
+    captain_pts: Mapped[Decimal] = mapped_column(
+        Numeric(10, 2), nullable=False, server_default="0",
+        comment="Total captain player points for tiebreaking"
+    )
     rank: Mapped[Optional[int]] = mapped_column(
         Integer, nullable=True, comment="Position in day leaderboard"
     )
