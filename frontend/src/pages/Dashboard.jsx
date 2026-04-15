@@ -311,82 +311,91 @@ function OpenCard({ s, lineup, champMap, navigate }) {
       background: 'var(--surface-1)',
       border: `1px solid ${borderColor}`,
       borderRadius: 'var(--radius-card)',
-      padding: '28px 24px 24px',
-      display: 'flex', flexDirection: 'column', alignItems: 'center',
+      padding: '20px 24px',
       position: 'relative', overflow: 'hidden',
     }}>
       <div style={{
         position: 'absolute', top: 0, right: 0,
-        width: '220px', height: '220px',
+        width: '260px', height: '260px',
         background: glowBg, pointerEvents: 'none',
       }} />
 
-      {/* Badge status + data */}
-      <div style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+      {/* Linha superior: ABERTA + Campeonato/Data */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <span className="xama-pulse" style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--color-xama-orange)', display: 'inline-block' }} />
           <span style={{ fontSize: '16px', fontWeight: 700, letterSpacing: '0.06em', color: 'var(--color-xama-orange)', textTransform: 'uppercase' }}>ABERTA</span>
         </span>
-        {dateLabel && (
-          <span style={{ fontSize: '12px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace' }}>
-            {dateLabel}
-          </span>
-        )}
+        <div style={{ textAlign: 'right' }}>
+          {champ && (
+            <div style={{ fontSize: '11px', color: 'rgba(249,115,22,0.65)', fontFamily: 'JetBrains Mono, monospace', fontWeight: 500 }}>
+              {champ.name}
+            </div>
+          )}
+          {dateLabel && (
+            <div style={{ fontSize: '11px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace', marginTop: '2px' }}>
+              {dateLabel}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Logo + campeonato */}
-      {champ && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px', width: '100%', justifyContent: 'center' }}>
-          <StageChampLogo champName={champ.name} size={36} />
-          <span style={{ fontSize: '12px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.06em' }}>
-            {champ.name}
-          </span>
+      {/* Corpo: Logo esquerda + conteúdo direita */}
+      <div style={{ display: 'flex', gap: '28px', alignItems: 'stretch' }}>
+
+        {/* Logo — ocupa ~80% da altura do corpo */}
+        <div style={{
+          flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          width: '120px',
+        }}>
+          <StageChampLogo champName={champ?.name} size={110} />
         </div>
-      )}
 
-      {/* Nome da stage */}
-      <div style={{
-        fontSize: '32px', fontWeight: 700, color: 'var(--color-xama-text)',
-        lineHeight: 1.2, marginBottom: '20px',
-        letterSpacing: '-0.01em',
-        textAlign: 'center', width: '100%',
-      }}>{s.name}</div>
+        {/* Conteúdo direita */}
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '14px' }}>
 
-      {/* Corpo */}
-      {hasLineup ? (
-        <div style={{ width: '100%' }}>
+          {/* Nome da stage */}
           <div style={{
-            background: 'var(--surface-2)', borderRadius: 'var(--radius-inner)',
-            padding: '16px 18px', display: 'flex', flexDirection: 'column',
-            gap: '12px', marginBottom: '18px',
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '17px', color: 'var(--color-xama-muted)' }}>Lineup</span>
-              <span style={{ fontSize: '17px', color: 'var(--color-xama-green)', fontWeight: 600 }}>✅ Montada</span>
-            </div>
-            {lineup.total_points != null && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '17px', color: 'var(--color-xama-muted)' }}>Pontos totais</span>
-                <span style={{ fontSize: '22px', color: 'var(--color-xama-orange)', fontWeight: 700, fontFamily: 'JetBrains Mono, monospace' }}>
-                  {fmt1(lineup.total_points)} pts
-                </span>
+            fontSize: '32px', fontWeight: 700, color: 'var(--color-xama-text)',
+            lineHeight: 1.2, letterSpacing: '-0.01em',
+          }}>{s.name}</div>
+
+          {/* Estado da lineup */}
+          {hasLineup ? (
+            <>
+              <div style={{
+                background: 'var(--surface-2)', borderRadius: 'var(--radius-inner)',
+                padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '8px',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '15px', color: 'var(--color-xama-muted)' }}>Lineup</span>
+                  <span style={{ fontSize: '15px', color: 'var(--color-xama-green)', fontWeight: 600 }}>✅ Montada</span>
+                </div>
+                {lineup.total_points != null && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '15px', color: 'var(--color-xama-muted)' }}>Pontos totais</span>
+                    <span style={{ fontSize: '20px', color: 'var(--color-xama-orange)', fontWeight: 700, fontFamily: 'JetBrains Mono, monospace' }}>
+                      {fmt1(lineup.total_points)} pts
+                    </span>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-          <Button variant="primary" size="md" full onClick={() => navigate(`/tournament/${s.id}`)}>
-            VER TORNEIO
-          </Button>
+              <Button variant="primary" size="md" full onClick={() => navigate(`/tournament/${s.id}`)}>
+                VER TORNEIO
+              </Button>
+            </>
+          ) : (
+            <>
+              <p style={{ fontSize: '15px', color: 'var(--color-xama-muted)', margin: 0, lineHeight: 1.5 }}>
+                Lineup ainda não montada.
+              </p>
+              <Button variant="primary" size="md" full onClick={() => navigate(`/tournament/${s.id}`)}>
+                MONTAR LINEUP
+              </Button>
+            </>
+          )}
         </div>
-      ) : (
-        <div style={{ width: '100%' }}>
-          <p style={{ fontSize: '17px', color: 'var(--color-xama-muted)', margin: '0 0 18px', lineHeight: 1.5, textAlign: 'center' }}>
-            Lineup ainda não montada.
-          </p>
-          <Button variant="primary" size="md" full onClick={() => navigate(`/tournament/${s.id}`)}>
-            MONTAR LINEUP
-          </Button>
-        </div>
-      )}
+      </div>
     </div>
   )
 }
@@ -508,7 +517,7 @@ export default function Dashboard() {
 
             {/* Cards open — grandes, em grid */}
             {openStages.length > 0 && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px', marginBottom: previewStages.length > 0 ? '12px' : '0' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px', marginBottom: previewStages.length > 0 ? '12px' : '0' }}>
                 {openStages.map(s => (
                   <OpenCard
                     key={s.id}
