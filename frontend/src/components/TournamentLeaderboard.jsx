@@ -27,7 +27,9 @@ const ownerLabel = (entry) => entry.username || `#${entry.user_id.slice(0, 8)}`
 export default function TournamentLeaderboard({
   token = '',
   stageId = '',
+  lineupStatus = '',
 }) {
+  const isOpen = lineupStatus === 'open'
 
   // ── Dados de dias e partidas ───────────────────────────────────────────────
   const [stageDays, setStageDays]     = useState([])   // [{id, day_number, date}]
@@ -43,11 +45,16 @@ export default function TournamentLeaderboard({
   const [error, setError]         = useState(null)
   const [myUserId, setMyUserId]   = useState(null)
 
+  // ── Submissões (stage open) ────────────────────────────────────────────────
+  const [submissions, setSubmissions]       = useState([])
+  const [submissionsLoading, setSubLoading] = useState(false)
+
   // ── Reset ao trocar stage ──────────────────────────────────────────────────
   useEffect(() => {
     setStageDays([]); setSelectedDayId(null)
     setMatches([]); setSelectedMatchId(null)
     setRankings([]); setError(null)
+    setSubmissions([])
 
     if (!stageId) return
 
@@ -60,6 +67,19 @@ export default function TournamentLeaderboard({
     // Busca leaderboard acumulado
     fetchLeaderboard(null, null)
   }, [stageId]) // eslint-disable-line
+
+  // ── Busca submissões quando stage está aberta ──────────────────────────────
+  useEffect(() => {
+    if (!isOpen || !stageId || stageDays.length === 0) return
+    const activeDay = stageDays.find(d => d.is_active) || stageDays[0]
+    if (!activeDay) return
+    setSubLoading(true)
+    fetch(`${API_BASE_URL}/stages/${stageId}/days/${activeDay.id}/submissions`)
+      .then(r => r.ok ? r.json() : [])
+      .then(setSubmissions)
+      .catch(() => setSubmissions([]))
+      .finally(() => setSubLoading(false))
+  }, [isOpen, stageId, stageDays]) // eslint-disable-line
 
   // ── Busca partidas ao selecionar um dia ───────────────────────────────────
   useEffect(() => {
@@ -197,7 +217,99 @@ export default function TournamentLeaderboard({
         </div>
       </div>
 
-      {/* ── Conteúdo ───────────────────────────────────────────────────────── */}
+      {/* ── View de submissões (stage aberta, dia 1 sem pontos) ─────────────── */}
+      {isOpen && (
+        <div className="max-w-3xl mx-auto px-4 py-6">
+          <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--color-xama-border)', background: 'var(--color-xama-surface)' }}>
+            <div style={{ height: '2px', background: 'linear-gradient(90deg, var(--color-xama-orange) 0%, transparent 50%)' }} />
+            <div className="px-4 py-3 text-[11px] font-bold tracking-[0.08em] uppercase flex items-center justify-between"
+              style={{ background: 'rgba(249,115,22,0.06)', borderBottom: '1px solid rgba(249,115,22,0.15)', color: 'var(--color-xama-orange)', fontFamily: "'JetBrains Mono', monospace" }}>
+              <span>⚡ LINEUP ENVIADO — dia ainda em andamento</span>
+              <span style={{ color: 'var(--color-xama-muted)', fontWeight: 400 }}>
+                {submissionsLoading ? '…' : `${submissions.length} manager${submissions.length !== 1 ? 's' : ''}`}
+              </span>
+            </div>
+
+            {submissionsLoading && (
+              <p className="text-center py-12 text-[13px]" style={{ color: 'var(--color-xama-muted)' }}>Carregando…</p>
+            )}
+
+            {!submissionsLoading && submissions.length === 0 && (
+              <p className="text-center py-12 text-[13px]" style={{ color: 'var(--color-xama-muted)' }}>Nenhum lineup enviado ainda.</p>
+            )}
+
+            {!submissionsLoading && submissions.length > 0 && (
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr style={{ background: '#0a0c11', borderBottom: '1px solid var(--color-xama-border)' }}>
+                    {['#', 'Manager', 'Enviado'].map((h, i) => (
+                      <th key={i} className="px-4 py-3 text-[10px] font-bold tracking-[0.1em] uppercase"
+                        style={{ color: 'var(--color-xama-muted)', textAlign: i === 2 ? 'right' : 'left', width: i === 0 ? '52px' : undefined }}>
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {submissions.map((entry) => {
+                    const isMe = entry.user_id === myUserId
+                    const time = new Date(entry.submitted_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+                    return (
+                      <tr key={entry.user_id}
+                        style={{
+                          borderBottom: '1px solid #13161f',
+                          background: isMe ? 'rgba(20,184,166,0.06)' : 'transparent',
+                          outline: isMe ? '1px solid rgba(20,184,166,0.18)' : 'none',
+                          outlineOffset: '-1px',
+                        }}
+                        onMouseEnter={e => { if (!isMe) e.currentTarget.style.background = '#161b27' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = isMe ? 'rgba(20,184,166,0.06)' : 'transparent' }}>
+                        <td className="px-4 py-[13px]">
+                          <span className="text-[13px] font-bold tabular-nums"
+                            style={{ fontFamily: "'JetBrains Mono', monospace", color: '#2a3046' }}>
+                            {String(entry.rank).padStart(2, '0')}
+                          </span>
+                        </td>
+                        <td className="px-4 py-[13px]">
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ fontSize: '13px', color: 'var(--color-xama-text)', fontFamily: "'JetBrains Mono', monospace" }}>
+                              {entry.username || `#${entry.user_id.slice(0, 8)}`}
+                            </span>
+                            {isMe && (
+                              <span className="text-[10px] font-bold tracking-[0.06em] px-2 py-0.5 rounded"
+                                style={{ background: 'rgba(20,184,166,0.18)', border: '1px solid rgba(20,184,166,0.4)', color: '#2dd4bf' }}>
+                                EU
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-[13px] text-right">
+                          <span style={{ fontSize: '12px', color: 'var(--color-xama-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
+                            ✓ {time}
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            )}
+
+            <div className="px-5 py-3 flex items-center justify-between"
+              style={{ borderTop: '1px solid var(--color-xama-border)', background: '#0a0c11' }}>
+              <span className="text-[11px] font-bold tracking-[0.1em] uppercase" style={{ color: 'var(--color-xama-orange)' }}>
+                ⚡ XAMA Fantasy
+              </span>
+              <span className="text-[11px]" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-muted)' }}>
+                pontos disponíveis após o encerramento
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Conteúdo (leaderboard normal) ──────────────────────────────────── */}
+      {!isOpen && (
       <div className="max-w-3xl mx-auto px-4 py-6">
         {loading && (
           <p className="text-center py-20 text-[13px]" style={{ color: 'var(--color-xama-muted)' }}>
@@ -329,6 +441,8 @@ export default function TournamentLeaderboard({
           </div>
         )}
       </div>
+      )}
+
     </div>
   )
 }

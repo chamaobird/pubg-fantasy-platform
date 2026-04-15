@@ -24,12 +24,14 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
+from app.models.lineup import Lineup
 from app.models.match import Match
 from app.models.match_stat import MatchStat
 from app.models.person import Person
 from app.models.roster import Roster, RosterPriceHistory
 from app.models.stage import Stage
 from app.models.stage_day import StageDay
+from app.models.user import User
 from app.models.user_stat import UserDayStat, UserStageStat
 
 router = APIRouter(prefix="/stages", tags=["Stages"])
@@ -176,6 +178,15 @@ class DayLeaderboardEntryOut(BaseModel):
     user_id: str
     username: Optional[str]
     points: float
+
+    model_config = {"from_attributes": True}
+
+
+class SubmissionEntryOut(BaseModel):
+    rank: int
+    user_id: str
+    username: Optional[str]
+    submitted_at: datetime
 
     model_config = {"from_attributes": True}
 
@@ -553,6 +564,50 @@ def get_day_leaderboard(
             points=float(s.points),
         )
         for s in stats
+    ]
+
+
+@router.get(
+    "/{stage_id}/days/{stage_day_id}/submissions",
+    response_model=list[SubmissionEntryOut],
+    summary="Quem já submeteu lineup no dia (ordenado por envio)",
+    description=(
+        "Retorna a lista de usuários que já submeteram lineup para o dia informado, "
+        "ordenada por submitted_at (quem enviou primeiro aparece primeiro). "
+        "Não expõe a composição do lineup — apenas username e ordem de envio. "
+        "Usado no Leaderboard quando a stage está aberta (dia 1 sem pontuação)."
+    ),
+)
+def get_day_submissions(
+    stage_id: int,
+    stage_day_id: int,
+    db: Session = Depends(get_db),
+) -> list[SubmissionEntryOut]:
+    _get_stage_or_404(db, stage_id)
+    stage_day = (
+        db.query(StageDay)
+        .filter(StageDay.id == stage_day_id, StageDay.stage_id == stage_id)
+        .first()
+    )
+    if not stage_day:
+        raise HTTPException(status_code=404, detail=f"StageDay {stage_day_id} não encontrado.")
+
+    rows = (
+        db.query(Lineup, User)
+        .join(User, Lineup.user_id == User.id)
+        .filter(Lineup.stage_day_id == stage_day_id, Lineup.is_valid == True)  # noqa: E712
+        .order_by(Lineup.submitted_at.asc())
+        .all()
+    )
+
+    return [
+        SubmissionEntryOut(
+            rank=idx + 1,
+            user_id=lineup.user_id,
+            username=user.username,
+            submitted_at=lineup.submitted_at,
+        )
+        for idx, (lineup, user) in enumerate(rows)
     ]
 
 

@@ -2,7 +2,7 @@
 // XAMA Fantasy — Lineup Builder (Fase 6)
 // Consome os novos endpoints: /stages/, /stages/{id}/roster, /stages/{id}/days, /lineups/
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { API_BASE_URL } from '../config'
 import TeamLogo from './TeamLogo'
 import PlayerHistoryModal from './PlayerHistoryModal'
@@ -86,6 +86,9 @@ export default function LineupBuilder({
   const [historyPlayer, setHistoryPlayer] = useState(null)
   const [showScoringRules, setShowScoringRules] = useState(false)
 
+  // ── Ref para evitar re-popular o builder após edições do usuário ────────
+  const loadedLineupIdRef = useRef(null)
+
   // ── Stage day ativo ─────────────────────────────────────────────────────
   const activeStageDayId = useMemo(() => {
     if (stageDays.length === 0) return null
@@ -98,8 +101,8 @@ export default function LineupBuilder({
     [myLineups, activeStageDayId]
   )
 
-  // isLocked: true quando preview, não pode editar, ou já tem lineup submetido
-  const isLocked = isPreview || !canEdit || !!currentDayLineup
+  // isLocked: true quando preview ou stage não está aberta
+  const isLocked = isPreview || !canEdit
 
   // ── Derived — budget ────────────────────────────────────────────────────
   const totalCost = useMemo(
@@ -149,6 +152,7 @@ export default function LineupBuilder({
 
   // ── Effects — carregar dados da stage ───────────────────────────────────
   useEffect(() => {
+    loadedLineupIdRef.current = null   // reset ao trocar de stage
     if (!stageId) return
     setPlayersLoading(true)
     setPlayersError('')
@@ -189,6 +193,28 @@ export default function LineupBuilder({
     const interval = setInterval(ping, 10 * 60 * 1000)
     return () => clearInterval(interval)
   }, [])
+
+  // ── Effects — popular builder com lineup existente ───────────────────────
+  useEffect(() => {
+    if (!currentDayLineup || players.length === 0) return
+    if (loadedLineupIdRef.current === currentDayLineup.id) return
+
+    loadedLineupIdRef.current = currentDayLineup.id
+
+    const titulares = currentDayLineup.players
+      .filter(lp => lp.slot_type === 'titular')
+      .map(lp => players.find(p => p.id === lp.roster_id))
+      .filter(Boolean)
+
+    const reserveEntry = currentDayLineup.players.find(lp => lp.slot_type === 'reserve')
+    const reserve = reserveEntry ? (players.find(p => p.id === reserveEntry.roster_id) || null) : null
+
+    const captainEntry = currentDayLineup.players.find(lp => lp.is_captain)
+
+    setSelectedPlayers(titulares)
+    setReservePlayer(reserve)
+    setCaptainId(captainEntry?.roster_id || null)
+  }, [currentDayLineup, players])
 
   // ── Actions ─────────────────────────────────────────────────────────────
   function addPlayer(player) {

@@ -624,9 +624,9 @@ body {
 .xlb-captain-btn:hover { border-color: var(--color-xama-gold); color: var(--color-xama-gold); }
 .xlb-captain-btn.active { background: rgba(240,192,64,0.15); border-color: var(--color-xama-gold); color: var(--color-xama-gold); }
 .xlb-remove-btn {
-  width: 22px; height: 22px; border-radius: 4px; flex-shrink: 0;
+  width: 26px; height: 26px; border-radius: 4px; flex-shrink: 0;
   background: none; border: 1px solid #3d1515; color: #f87171;
-  cursor: pointer; font-size: 12px; line-height: 1;
+  cursor: pointer; font-size: 16px; font-weight: 700; line-height: 1;
   display: flex; align-items: center; justify-content: center;
   transition: background 0.12s;
 }

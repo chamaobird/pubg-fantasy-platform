@@ -100,7 +100,7 @@ export default function TournamentHub() {
           />
         )}
         {activeTab === TAB_LEADERBOARD && (
-          <TournamentLeaderboard token={token} stageId={Number(id)} />
+          <TournamentLeaderboard token={token} stageId={Number(id)} lineupStatus={stage?.lineup_status} />
         )}
         {activeTab === TAB_STATS && (
           <PlayerStatsPage stageId={Number(id)} shortName={stage?.short_name ?? ''} />
