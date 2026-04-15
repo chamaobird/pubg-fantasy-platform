@@ -437,12 +437,15 @@ body {
 
 /* ─── Layout principal ─── */
 .xlb-page { padding: 24px 0 72px; }
+/* overflow-x:hidden no xama-container cria um scroll container que quebra position:sticky.
+   overflow-x:clip clipa sem criar scroll container — sticky passa a ser relativo ao body. */
+.xlb-page > .xama-container { overflow-x: clip; }
 /* ─── Sticky lineup header (novo layout horizontal) ─── */
 .xlb-sticky-header {
   position: sticky;
   top: 0;
   z-index: 50;
-  background: var(--surface-1);
+  background: var(--surface-1); /* #12151c — sólido, não transparenta sobre a tabela */
   border: 1px solid var(--color-xama-border);
   border-radius: var(--radius-card);
   box-shadow: 0 6px 28px rgba(0,0,0,0.55);
@@ -651,6 +654,8 @@ body {
 /* ─── Linha atenuada por conflito de time ─── */
 .xlb-row--dimmed { opacity: 0.32; pointer-events: none; }
 .xlb-row--dimmed td { user-select: none; }
+/* ─── Linha atenuada por orçamento insuficiente ─── */
+.xlb-row--budget-fade { opacity: 0.35; filter: grayscale(40%); }
 
 /* Botões de ação dentro da tabela */
 .xlb-action-btn {

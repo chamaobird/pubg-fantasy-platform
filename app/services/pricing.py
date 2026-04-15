@@ -161,6 +161,15 @@ def _record_price_history(
     stage_day_id: Optional[int],
     db: Session,
 ) -> None:
+    last = (
+        db.query(RosterPriceHistory)
+        .filter(RosterPriceHistory.roster_id == roster_id)
+        .order_by(RosterPriceHistory.recorded_at.desc())
+        .first()
+    )
+    if last is not None and float(last.cost) == float(cost) and last.source == source:
+        return
+
     db.add(RosterPriceHistory(
         roster_id    = roster_id,
         stage_day_id = stage_day_id,

@@ -407,8 +407,11 @@ export default function LineupBuilder({
                       onClick={() => removePlayer(p.id)}
                       title="Remover">×</button>
                   </div>
-                  <div className="xlb-hslot-name" style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-xama-text)', marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {formatPlayerName(p.person_name)}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4, minWidth: 0 }}>
+                    <TeamLogo teamName={formatTeamTag(p.person_name, p.team_name)} size={28} />
+                    <div className="xlb-hslot-name" style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-xama-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>
+                      {formatPlayerName(p.person_name)}
+                    </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'space-between' }}>
                     <span style={{ fontSize: 10, color: 'var(--color-xama-muted)' }}>
@@ -616,14 +619,17 @@ export default function LineupBuilder({
                 </thead>
                 <tbody>
                   {sortedPlayers.map(p => {
-                    const playerTag    = formatTeamTag(p.person_name, p.team_name)
-                    const isSelected   = selectedPlayers.some(sp => sp.id === p.id) || reservePlayer?.id === p.id
-                    const isConflicted = !isSelected && conflictedTeams.has(playerTag) && conflictedTeams.size > 0
-                    const isCap        = p.id === captainId
+                    const playerTag      = formatTeamTag(p.person_name, p.team_name)
+                    const isSelected     = selectedPlayers.some(sp => sp.id === p.id) || reservePlayer?.id === p.id
+                    const isConflicted   = !isSelected && conflictedTeams.has(playerTag) && conflictedTeams.size > 0
+                    const isCap          = p.id === captainId
+                    const remainingBudget = BUDGET_CAP - totalCost
+                    const isTooExpensive = !isSelected && Number(p.effective_cost) > remainingBudget
                     // Em preview: todos os botões de ação ficam desabilitados
                     const btnDisabled  = isLocked || isConflicted
+                    const rowClass = isConflicted ? 'xlb-row--dimmed' : isTooExpensive ? 'xlb-row--budget-fade' : ''
                     return (
-                      <tr key={p.id} className={isConflicted ? 'xlb-row--dimmed' : ''}>
+                      <tr key={p.id} className={rowClass}>
                         <td>
                           <div className="flex items-center gap-1.5">
                             <TeamLogo teamName={playerTag} size={20} />

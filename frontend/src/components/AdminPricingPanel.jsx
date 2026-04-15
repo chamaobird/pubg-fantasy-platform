@@ -39,7 +39,9 @@ export default function AdminPricingPanel({ stageId, token }) {
   useEffect(() => {
     if (!stageId) return
     setLoading(true)
-    fetch(`${API_BASE_URL}/stages/${stageId}/roster`)
+    fetch(`${API_BASE_URL}/admin/stages/${stageId}/roster?include_unavailable=true`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(data => {
         const list = Array.isArray(data) ? data : []
@@ -108,7 +110,9 @@ export default function AdminPricingPanel({ stageId, token }) {
       if (!res.ok) throw new Error(data?.detail || `HTTP ${res.status}`)
       setRecalcMsg(`✅ Recalculado — ${data.updated} atualizados, ${data.skipped} sem mudança`)
       // Recarrega roster para refletir novos preços
-      const r2 = await fetch(`${API_BASE_URL}/stages/${stageId}/roster`)
+      const r2 = await fetch(`${API_BASE_URL}/admin/stages/${stageId}/roster?include_unavailable=true`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
       if (r2.ok) {
         const list = await r2.json()
         setRoster(Array.isArray(list) ? list : [])
