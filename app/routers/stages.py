@@ -66,7 +66,7 @@ class StageOut(BaseModel):
     @classmethod
     def from_orm_stage(cls, s: Stage) -> "StageOut":
         champ = s.championship
-        days = sorted(s.stage_days, key=lambda d: d.day_number) if s.stage_days else []
+        days = sorted(s.days, key=lambda d: d.day_number) if s.days else []
         return cls(
             id=s.id,
             championship_id=s.championship_id,
