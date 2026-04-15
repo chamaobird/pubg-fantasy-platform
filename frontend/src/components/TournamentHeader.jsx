@@ -52,7 +52,7 @@ export default function TournamentHeader({ tournament, championship, championshi
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
 
           {/* Logo do campeonato */}
-          <ChampionshipLogo shortName={phaseLabel} width={180} height="auto" />
+          <ChampionshipLogo shortName={phaseLabel} width={155} height="auto" />
 
           <div>
             <h2 className="xt-name" style={{ fontSize: '30px', display: 'flex', alignItems: 'center', gap: '8px', position: 'relative' }}>

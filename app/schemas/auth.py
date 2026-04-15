@@ -27,8 +27,8 @@ class RegisterRequest(BaseModel):
         v = v.strip()
         if len(v) < 3:
             raise ValueError("Username must be at least 3 characters")
-        if len(v) > 15:
-            raise ValueError("Username must be at most 15 characters")
+        if len(v) > 18:
+            raise ValueError("Username must be at most 18 characters")
         if not v.replace("_", "").replace("-", "").replace(".", "").isalnum():
             raise ValueError("Username can only contain letters, numbers, _, - and .")
         return v
@@ -86,8 +86,8 @@ class UserUpdateRequest(BaseModel):
         v = v.strip()
         if len(v) < 3:
             raise ValueError("Username must be at least 3 characters")
-        if len(v) > 15:
-            raise ValueError("Username must be at most 15 characters")
+        if len(v) > 18:
+            raise ValueError("Username must be at most 18 characters")
         if not v.replace("_", "").replace("-", "").replace(".", "").isalnum():
             raise ValueError("Username can only contain letters, numbers, _, - and .")
         return v

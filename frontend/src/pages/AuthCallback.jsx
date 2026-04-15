@@ -1,10 +1,12 @@
 // frontend/src/pages/AuthCallback.jsx
 // Recebe o token JWT após o redirect do Google OAuth
 // Rota: /auth/callback?token=...
+// Se o usuário não tem username, redireciona para /setup-username
 
 import { useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../App'
+import { API_BASE_URL } from '../config'
 
 export default function AuthCallback() {
   const [searchParams] = useSearchParams()
@@ -13,14 +15,27 @@ export default function AuthCallback() {
 
   useEffect(() => {
     const token = searchParams.get('token')
-    if (token) {
-      setToken(token)
-      navigate('/dashboard', { replace: true })
-    } else {
-      // Sem token — algo deu errado, volta para landing com erro
+    if (!token) {
       navigate('/?error=oauth', { replace: true })
+      return
     }
-  }, [])
+
+    setToken(token)
+
+    // Verifica se o usuário já tem username; se não, força setup
+    fetch(`${API_BASE_URL}/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(user => {
+        if (user && !user.username) {
+          navigate('/setup-username', { replace: true })
+        } else {
+          navigate('/dashboard', { replace: true })
+        }
+      })
+      .catch(() => navigate('/dashboard', { replace: true }))
+  }, []) // eslint-disable-line
 
   return (
     <div style={{

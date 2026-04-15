@@ -291,16 +291,6 @@ export default function TournamentLeaderboard({
       <div className="px-6 py-5 border-b" style={{ background: 'var(--color-xama-surface)', borderColor: 'var(--color-xama-border)' }}>
         <div className="max-w-3xl mx-auto flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            {logoPrefix ? (
-              <img
-                src={`/logos/Tournaments/${logoPrefix}.png`}
-                alt={logoPrefix}
-                style={{ width: 34, height: 34, objectFit: 'contain', flexShrink: 0 }}
-                onError={e => { e.currentTarget.style.display = 'none' }}
-              />
-            ) : (
-              <span style={{ fontSize: '22px', lineHeight: 1 }}>🏆</span>
-            )}
             <h1 className="text-[28px] font-bold tracking-tight" style={{ color: 'var(--color-xama-text)', letterSpacing: '-0.01em' }}>
               LEADERBOARD
             </h1>

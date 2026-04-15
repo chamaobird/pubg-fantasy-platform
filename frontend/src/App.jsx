@@ -10,6 +10,7 @@ import LineupResultsPage from './pages/LineupResultsPage'
 import AuthVerified from './pages/AuthVerified'
 import AuthCallback from './pages/AuthCallback'
 import ResetPasswordPage from './pages/ResetPasswordPage'
+import SetupUsername from './pages/SetupUsername'
 import AppBackground from './components/AppBackground'
 
 export const AuthContext = createContext(null)
@@ -97,6 +98,10 @@ export default function App() {
 
           <Route path="/auth/callback" element={
             <AuthCallback />
+          } />
+
+          <Route path="/setup-username" element={
+            <RequireAuth><SetupUsername /></RequireAuth>
           } />
 
           <Route path="/auth/reset-password" element={
