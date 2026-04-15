@@ -3,16 +3,33 @@ import { login as apiLogin, register as apiRegister } from '../api/auth'
 
 const AuthContext = createContext(null)
 
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(() => {
-    try {
-      const stored = localStorage.getItem('wf_user')
-      return stored ? JSON.parse(stored) : null
-    } catch {
-      return null
+function isTokenExpired(token) {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    return payload.exp * 1000 < Date.now()
+  } catch {
+    return true
+  }
+}
+
+function loadStoredSession() {
+  try {
+    const token = localStorage.getItem('wf_token')
+    if (!token || isTokenExpired(token)) {
+      localStorage.removeItem('wf_token')
+      localStorage.removeItem('wf_user')
+      return { token: null, user: null }
     }
-  })
-  const [token, setToken] = useState(() => localStorage.getItem('wf_token') || null)
+    const stored = localStorage.getItem('wf_user')
+    return { token, user: stored ? JSON.parse(stored) : null }
+  } catch {
+    return { token: null, user: null }
+  }
+}
+
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(() => loadStoredSession().user)
+  const [token, setToken] = useState(() => loadStoredSession().token)
   const [loading, setLoading] = useState(false)
 
   const isAuthenticated = !!token && !!user
