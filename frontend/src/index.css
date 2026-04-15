@@ -637,7 +637,7 @@ body {
 .xlb-table thead tr { background: var(--surface-2); }
 .xlb-table th {
   padding: 12px 12px; text-align: left;
-  font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
   color: var(--color-xama-muted); border-bottom: 1px solid var(--color-xama-border);
   white-space: nowrap; cursor: pointer; user-select: none;
   transition: color 0.15s;
@@ -645,7 +645,7 @@ body {
 .xlb-table th:hover { color: var(--color-xama-text); }
 .xlb-table th.active { color: var(--color-xama-orange); }
 .xlb-table th.right, .xlb-table td.right { text-align: right; }
-.xlb-table td { padding: 0 12px; height: var(--space-row); vertical-align: middle; border-bottom: 1px solid #13161f; font-size: var(--fs-table); }
+.xlb-table td { padding: 13px 12px; vertical-align: middle; border-bottom: 1px solid #13161f; font-size: var(--fs-table); }
 .xlb-table tbody tr { transition: background 0.1s; }
 .xlb-table tbody tr:nth-child(even) { background: rgba(255,255,255,0.018); }
 .xlb-table tbody tr:hover { background: #161b27; }

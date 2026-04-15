@@ -277,7 +277,7 @@ export default function LineupBuilder({
     { key: 'team',           label: 'Time',    right: false },
     { key: 'name',           label: 'Jogador', right: false },
     { key: 'effective_cost', label: 'Preço',   right: true,
-      render: (p) => <span style={{ color: 'var(--color-xama-gold)', fontWeight: 700 }}>{fmtCost(p.effective_cost)}</span> },
+      render: (p) => <span style={{ color: 'var(--color-xama-gold)', fontWeight: 700, fontSize: 14 }}>{fmtCost(p.effective_cost)}</span> },
     { key: 'pts_per_match',  label: 'PTS/G',   right: true,
       render: (p) => p.pts_per_match != null ? Number(p.pts_per_match).toFixed(2) : '—' },
     { key: 'total_kills',    label: 'K',       right: true,
@@ -392,7 +392,7 @@ export default function LineupBuilder({
                 <div key={p.id} className="xlb-hslot" style={{
                   flex: 1, background: 'var(--surface-2)',
                   border: `1px solid ${isCap ? 'var(--color-xama-gold)' : 'var(--color-xama-border)'}`,
-                  borderRadius: 8, padding: '8px 10px', position: 'relative',
+                  borderRadius: 8, padding: '8px 10px', position: 'relative', minHeight: 120,
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                     <span style={{
@@ -407,17 +407,19 @@ export default function LineupBuilder({
                       onClick={() => removePlayer(p.id)}
                       title="Remover">×</button>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4, minWidth: 0 }}>
-                    <TeamLogo teamName={formatTeamTag(p.person_name, p.team_name)} size={28} />
-                    <div className="xlb-hslot-name" style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-xama-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 4, minWidth: 0 }}>
+                    <div style={{ marginBottom: 6 }}>
+                      <TeamLogo teamName={formatTeamTag(p.person_name, p.team_name)} size={28} />
+                    </div>
+                    <div className="xlb-hslot-name" style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-xama-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, textAlign: 'center', width: '100%' }}>
                       {formatPlayerName(p.person_name)}
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: 10, color: 'var(--color-xama-muted)' }}>
+                    <span style={{ fontSize: 12, color: 'var(--color-xama-muted)' }}>
                       {formatTeamTag(p.person_name, p.team_name)}
                     </span>
-                    <span style={{ fontSize: 10, fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-gold)', fontWeight: 700 }}>
+                    <span style={{ fontSize: 13, fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-gold)', fontWeight: 700 }}>
                       {fmtCost(p.effective_cost)}
                     </span>
                   </div>
@@ -454,7 +456,7 @@ export default function LineupBuilder({
                   border: '1px dashed var(--color-xama-border)',
                   borderRadius: 8, padding: '8px 10px',
                   display: 'flex', flexDirection: 'column',
-                  alignItems: 'center', justifyContent: 'center', gap: 4, minHeight: 80,
+                  alignItems: 'center', justifyContent: 'center', gap: 4, minHeight: 120,
                 }}>
                   <span style={{ fontSize: 9, color: 'var(--color-xama-muted)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>T{i + 1}</span>
                   <span style={{ fontSize: 10, color: 'var(--color-xama-muted)', fontStyle: 'italic' }}>— vazio —</span>
@@ -474,14 +476,14 @@ export default function LineupBuilder({
                 borderRadius: 8, padding: '8px 12px',
               }}>
                 <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--color-xama-blue)', letterSpacing: '0.06em', flexShrink: 0 }}>RES</span>
-                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-xama-text)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-xama-text)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {formatPlayerName(reservePlayer.person_name)}
                 </span>
                 <span style={{ fontSize: 11, color: 'var(--color-xama-muted)', flexShrink: 0 }}>
                   {formatTeamTag(reservePlayer.person_name, reservePlayer.team_name)}
                 </span>
                 <span style={{
-                  fontSize: 11, fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: 12, fontFamily: "'JetBrains Mono', monospace",
                   color: reserveEligible ? 'var(--color-xama-green)' : 'var(--color-xama-red)', fontWeight: 700, flexShrink: 0,
                 }}>
                   {fmtCost(reservePlayer.effective_cost)}{!reserveEligible && ' ⚠'}
@@ -607,7 +609,7 @@ export default function LineupBuilder({
                       <th key={key}
                         className={`${right ? 'right' : ''} ${sortKey === key ? 'active' : ''}`}
                         onClick={() => handleSort(key)}
-                        style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
+                        style={{ fontSize: 13, whiteSpace: 'nowrap' }}>
                         {label}
                         {sortKey === key
                           ? <span className="ml-0.5 text-[9px]">{sortDir === 'desc' ? '▼' : '▲'}</span>
@@ -628,17 +630,18 @@ export default function LineupBuilder({
                     // Em preview: todos os botões de ação ficam desabilitados
                     const btnDisabled  = isLocked || isConflicted
                     const rowClass = isConflicted ? 'xlb-row--dimmed' : isTooExpensive ? 'xlb-row--budget-fade' : ''
+                    const isReserveHighlighted = !btnDisabled && selectedPlayers.length === 4 && !isSelected && Number(p.effective_cost) <= minStarterCost
                     return (
                       <tr key={p.id} className={rowClass}>
                         <td>
                           <div className="flex items-center gap-1.5">
                             <TeamLogo teamName={playerTag} size={20} />
-                            <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--color-xama-muted)' }}>
+                            <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--color-xama-muted)' }}>
                               {playerTag || '—'}
                             </span>
                           </div>
                         </td>
-                        <td className="font-semibold whitespace-nowrap" style={{ color: 'var(--color-xama-text)', fontSize: 14 }}>
+                        <td className="font-semibold whitespace-nowrap" style={{ color: 'var(--color-xama-text)', fontSize: 15 }}>
                           <span
                             onClick={() => setHistoryPlayer({
                               person_id: p.person_id,
@@ -690,6 +693,11 @@ export default function LineupBuilder({
                             <button
                               className={`xlb-action-btn${isConflicted ? ' xlb-action-btn--conflict' : ''}`}
                               disabled={btnDisabled || isSelected}
+                              style={isReserveHighlighted ? {
+                                background: 'rgba(249,115,22,0.15)',
+                                borderColor: 'rgba(249,115,22,0.5)',
+                                color: 'var(--color-xama-orange)',
+                              } : undefined}
                               onClick={() => !btnDisabled && !isSelected && setAsReserve(p)}>
                               Reserva
                             </button>
