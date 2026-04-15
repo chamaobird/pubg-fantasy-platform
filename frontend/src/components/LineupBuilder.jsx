@@ -383,7 +383,7 @@ export default function LineupBuilder({
             </div>
           </div>
 
-          {/* Slots de titulares */}
+          {/* Slots de titulares + reserva em linha */}
           <div className="xlb-hslots-row" style={{ padding: '12px 16px 0', display: 'flex', gap: 8 }}>
             {Array.from({ length: 4 }).map((_, i) => {
               const p = selectedPlayers[i]
@@ -395,13 +395,25 @@ export default function LineupBuilder({
                   borderRadius: 8, padding: '8px 10px', position: 'relative', minHeight: 120,
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                    <span style={{
-                      fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
-                      color: isCap ? 'var(--color-xama-gold)' : 'var(--color-xama-muted)',
-                      textTransform: 'uppercase',
-                    }}>
-                      {isCap ? '⭐ CAP' : `T${i + 1}`}
-                    </span>
+                    <button
+                      onClick={() => toggleCaptain(p.id)}
+                      title={isCap ? 'Remover capitão' : 'Definir como capitão'}
+                      style={{
+                        background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: 3, lineHeight: 1,
+                      }}>
+                      <span style={{ fontSize: 16, color: isCap ? 'var(--color-xama-gold)' : 'var(--color-xama-muted)', lineHeight: 1 }}>
+                        {isCap ? '⭐' : '☆'}
+                      </span>
+                      {isCap && stage?.captain_multiplier && (
+                        <span style={{
+                          fontSize: 10, fontWeight: 700, color: 'var(--color-xama-gold)',
+                          fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.04em',
+                        }}>
+                          ×{Number(stage.captain_multiplier).toFixed(2)}
+                        </span>
+                      )}
+                    </button>
                     <button
                       className="xlb-remove-btn"
                       onClick={() => removePlayer(p.id)}
@@ -423,32 +435,6 @@ export default function LineupBuilder({
                       {fmtCost(p.effective_cost)}
                     </span>
                   </div>
-                  {isCap ? (
-                    stage?.captain_multiplier && (
-                      <div style={{
-                        marginTop: 5, textAlign: 'center',
-                        fontSize: 9, fontWeight: 700, letterSpacing: '0.06em',
-                        color: 'var(--color-xama-gold)',
-                        fontFamily: "'JetBrains Mono', monospace",
-                      }}>
-                        ×{Number(stage.captain_multiplier).toFixed(2)}
-                      </div>
-                    )
-                  ) : (
-                    <button
-                      onClick={() => toggleCaptain(p.id)}
-                      title="Definir como capitão"
-                      style={{
-                        marginTop: 6, width: '100%', fontSize: 9, fontWeight: 700,
-                        letterSpacing: '0.06em', textTransform: 'uppercase',
-                        background: 'rgba(250,204,21,0.08)',
-                        border: '1px solid rgba(250,204,21,0.2)',
-                        borderRadius: 4, padding: '3px 0',
-                        color: 'var(--color-xama-gold)', cursor: 'pointer',
-                      }}>
-                      CAP
-                    </button>
-                  )}
                 </div>
               ) : (
                 <div key={i} className="xlb-hslot empty" style={{
@@ -463,42 +449,54 @@ export default function LineupBuilder({
                 </div>
               )
             })}
-          </div>
 
-          {/* Divider + slot de reserva */}
-          <div style={{ padding: '10px 16px 0' }}>
-            <div style={{ height: 1, background: 'var(--color-xama-border)', marginBottom: 10 }} />
+            {/* 5º card — reserva */}
             {reservePlayer ? (
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                background: 'var(--surface-2)',
+              <div className="xlb-hslot" style={{
+                flex: 1, background: 'var(--surface-2)',
                 border: '1px solid rgba(96,165,250,0.3)',
-                borderRadius: 8, padding: '8px 12px',
+                borderRadius: 8, padding: '8px 10px', position: 'relative', minHeight: 120,
               }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--color-xama-blue)', letterSpacing: '0.06em', flexShrink: 0 }}>RES</span>
-                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-xama-text)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {formatPlayerName(reservePlayer.person_name)}
-                </span>
-                <span style={{ fontSize: 11, color: 'var(--color-xama-muted)', flexShrink: 0 }}>
-                  {formatTeamTag(reservePlayer.person_name, reservePlayer.team_name)}
-                </span>
-                <span style={{
-                  fontSize: 12, fontFamily: "'JetBrains Mono', monospace",
-                  color: reserveEligible ? 'var(--color-xama-green)' : 'var(--color-xama-red)', fontWeight: 700, flexShrink: 0,
-                }}>
-                  {fmtCost(reservePlayer.effective_cost)}{!reserveEligible && ' ⚠'}
-                </span>
-                <button className="xlb-remove-btn" onClick={removeReserve} title="Remover reserva">×</button>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                  <span style={{
+                    fontSize: 10, fontWeight: 700, letterSpacing: '0.08em',
+                    color: 'var(--color-xama-blue)', textTransform: 'uppercase',
+                  }}>RES</span>
+                  <button
+                    className="xlb-remove-btn"
+                    onClick={removeReserve}
+                    title="Remover reserva">×</button>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 4, minWidth: 0 }}>
+                  <div style={{ marginBottom: 6 }}>
+                    <TeamLogo teamName={formatTeamTag(reservePlayer.person_name, reservePlayer.team_name)} size={28} />
+                  </div>
+                  <div className="xlb-hslot-name" style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-xama-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, textAlign: 'center', width: '100%' }}>
+                    {formatPlayerName(reservePlayer.person_name)}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: 12, color: 'var(--color-xama-muted)' }}>
+                    {formatTeamTag(reservePlayer.person_name, reservePlayer.team_name)}
+                  </span>
+                  <span style={{
+                    fontSize: 13, fontFamily: "'JetBrains Mono', monospace",
+                    color: reserveEligible ? 'var(--color-xama-gold)' : 'var(--color-xama-red)', fontWeight: 700,
+                  }}>
+                    {fmtCost(reservePlayer.effective_cost)}{!reserveEligible && ' ⚠'}
+                  </span>
+                </div>
               </div>
             ) : (
-              <div style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: 'var(--surface-1)',
-                border: '1px dashed rgba(96,165,250,0.25)',
-                borderRadius: 8, padding: '10px 12px',
-                color: 'rgba(96,165,250,0.5)', fontSize: 11, fontStyle: 'italic',
+              <div className="xlb-hslot empty" style={{
+                flex: 1, background: 'rgba(59,130,246,0.08)',
+                border: '1px dashed rgba(96,165,250,0.4)',
+                borderRadius: 8, padding: '8px 10px',
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center', gap: 4, minHeight: 120,
               }}>
-                RES — reserva vazia
+                <span style={{ fontSize: 9, color: 'var(--color-xama-blue)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>RES</span>
+                <span style={{ fontSize: 10, color: 'rgba(96,165,250,0.6)', fontStyle: 'italic' }}>— vazio —</span>
               </div>
             )}
           </div>
@@ -625,12 +623,11 @@ export default function LineupBuilder({
                     const isSelected     = selectedPlayers.some(sp => sp.id === p.id) || reservePlayer?.id === p.id
                     const isConflicted   = !isSelected && conflictedTeams.has(playerTag) && conflictedTeams.size > 0
                     const isCap          = p.id === captainId
-                    const remainingBudget = BUDGET_CAP - totalCost
-                    const isTooExpensive = !isSelected && Number(p.effective_cost) > remainingBudget
                     // Em preview: todos os botões de ação ficam desabilitados
-                    const btnDisabled  = isLocked || isConflicted
-                    const rowClass = isConflicted ? 'xlb-row--dimmed' : isTooExpensive ? 'xlb-row--budget-fade' : ''
-                    const isReserveHighlighted = !btnDisabled && selectedPlayers.length === 4 && !isSelected && Number(p.effective_cost) <= minStarterCost
+                    const btnDisabled         = isLocked || isConflicted
+                    const isReserveHighlighted = !btnDisabled && selectedPlayers.length === 4 && !isSelected && !isConflicted && Number(p.effective_cost) <= minStarterCost
+                    const isBudgetFade        = !isSelected && !isReserveHighlighted && Number(p.effective_cost) > (BUDGET_CAP - totalCost)
+                    const rowClass = isConflicted ? 'xlb-row--dimmed' : isBudgetFade ? 'xlb-row--budget-fade' : ''
                     return (
                       <tr key={p.id} className={rowClass}>
                         <td>
