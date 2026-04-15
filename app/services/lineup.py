@@ -109,8 +109,8 @@ def submit_lineup(
     reserva   = roster_map[reserve_roster_id]
     _validate_reserve_cost(reserva, titulares)
 
-    # Valida budget (apenas titulares + reserva)
-    total_cost = _validate_budget(rosters)
+    # Valida budget (apenas titulares — reserva não conta)
+    total_cost = _validate_budget(titulares)
 
     # Upsert: remove lineup anterior se existir
     existing = (
@@ -251,16 +251,21 @@ def replicate_lineup_for_day(
         else:
             reserve_player = lp
 
-    # Calcula custo
-    all_ids = [lp.roster_id for lp in titular_players]
-    if reserve_player:
-        all_ids.append(reserve_player.roster_id)
+    # Calcula custo — apenas titulares, reserva não entra no budget
+    titular_ids = [lp.roster_id for lp in titular_players]
+    reserve_ids = [reserve_player.roster_id] if reserve_player else []
+    all_ids     = titular_ids + reserve_ids
 
     rosters_available = (
         db.query(Roster).filter(Roster.id.in_(all_ids)).all()
         if all_ids else []
     )
-    total_cost = sum(r.effective_cost or 0 for r in rosters_available)
+    roster_map_rep = {r.id: r for r in rosters_available}
+    total_cost = sum(
+        roster_map_rep[rid].effective_cost or 0
+        for rid in titular_ids
+        if rid in roster_map_rep
+    )
 
     # Cria lineup replicado
     new_lineup = Lineup(
@@ -428,7 +433,7 @@ def _validate_reserve_cost(reserva: Roster, titulares: list[Roster]) -> None:
 
 
 def _validate_budget(rosters: list[Roster]) -> int:
-    """Valida budget cap fixo de {BUDGET_CAP} tokens e retorna total_cost."""
+    """Valida budget cap dos titulares (reserva não conta). Retorna total_cost."""
     total_cost = sum(r.effective_cost or 0 for r in rosters)
     if total_cost > BUDGET_CAP:
         raise ValueError(
