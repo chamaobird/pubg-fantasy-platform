@@ -1,5 +1,5 @@
 // frontend/src/components/TournamentLeaderboard.jsx
-// XAMA Fantasy — Leaderboard com filtro hierárquico por campeonato/stage/dia
+// XAMA Fantasy — Leaderboard com filtro hierárquico por campeonato/fase/dia
 
 import { useEffect, useRef, useState } from 'react'
 import { API_BASE_URL } from '../config'
@@ -13,73 +13,74 @@ const RANK_BG     = {
 
 const ownerLabel = (entry) => entry.username || `#${entry.user_id.slice(0, 8)}`
 
-/** Extrai prefixo de logo: "PAS1" → "PAS", "PGS7" → "PGS" */
-function champLogoPrefix(shortName) {
-  if (!shortName) return null
-  const m = shortName.match(/^([A-Za-z]+)/)
-  return m ? m[1].toUpperCase() : null
+// ── Helpers de nomenclatura ────────────────────────────────────────────────
+
+/** "Playoffs 1 - Dia 1" → "Playoffs 1" */
+function extractPhase(name) {
+  const m = name.match(/^(.+?)\s*[-–]\s*Dia\s*\d+\s*$/i)
+  return m ? m[1].trim() : name
 }
 
-// ── Painel de seleção hierárquico ──────────────────────────────────────────
+/** "Playoffs 1 - Dia 1" → "Dia 1" */
+function extractDayLabel(name) {
+  const m = name.match(/[-–]\s*(Dia\s*\d+)\s*$/i)
+  return m ? m[1].trim() : name
+}
 
-/**
- * Constrói a lista de "opções de seleção" a partir das stages e seus dias.
- * Cada item: { key, label, type: 'total'|'stage'|'day', stageId, dayId }
- */
-function buildOptions(championshipShortName, siblingStages) {
-  const options = []
+/** "PAS1 PO1" → "PAS1" (primeiro token) */
+function extractChampCode(shortName) {
+  return (shortName || '').split(/\s+/)[0] || 'Campeonato'
+}
 
-  // Opção 0: Total do campeonato
-  options.push({
-    key: '__champ__',
-    label: `${championshipShortName || 'Campeonato'} — TOTAL`,
-    type: 'total',
-    stageId: null,
-    dayId: null,
-  })
+// ── Agrupa stages por fase ─────────────────────────────────────────────────
 
+function buildPhases(siblingStages) {
+  const map = new Map() // phaseLabel → { label, stages[] }
   for (const stage of siblingStages) {
-    const stageName = stage.short_name || stage.name
+    const label = extractPhase(stage.name)
+    if (!map.has(label)) map.set(label, { label, stages: [] })
+    map.get(label).stages.push(stage)
+  }
+  return [...map.values()]
+}
 
-    if (stage.stage_days && stage.stage_days.length > 0) {
-      // Stage com dias: só adiciona dias individuais (não o total da stage como opção extra)
-      for (const day of stage.stage_days) {
-        options.push({
-          key: `day_${day.id}`,
-          label: `${stageName} — Dia ${day.day_number}`,
-          type: 'day',
-          stageId: stage.id,
-          dayId: day.id,
-          stageLabel: stageName,
-          dayNumber: day.day_number,
-        })
-      }
-    } else {
-      // Stage sem dias cadastrados: adiciona opção do total da stage
-      options.push({
-        key: `stage_${stage.id}`,
-        label: stageName,
-        type: 'stage',
-        stageId: stage.id,
-        dayId: null,
-      })
+// ── Rótulo do botão fechado ────────────────────────────────────────────────
+
+function filterLabel(selectedKeys, champCode, phases) {
+  if (selectedKeys.has('__champ__')) return `${champCode} — TOTAL`
+
+  const selected = [...selectedKeys]
+  const count    = selected.length
+
+  // Fase inteira selecionada?
+  for (const phase of phases) {
+    const pKeys = phase.stages.map(s => `stage_${s.id}`)
+    if (pKeys.length > 0 && pKeys.every(k => selectedKeys.has(k)) && count === pKeys.length) {
+      return `${phase.label} — todos`
     }
   }
 
-  return options
+  // Dia único
+  if (count === 1) {
+    const stageId = Number(selected[0].replace('stage_', ''))
+    for (const phase of phases) {
+      const stage = phase.stages.find(s => s.id === stageId)
+      if (stage) return `${phase.label} — ${extractDayLabel(stage.name)}`
+    }
+  }
+
+  return `${count} selecionado${count !== 1 ? 's' : ''}`
 }
 
-/** Agrupa opções por stage para renderização hierárquica no painel */
-function groupOptions(options) {
-  const totalOpt = options.find(o => o.type === 'total')
-  const byStage = {}
-  for (const o of options) {
-    if (o.type === 'total') continue
-    const key = o.stageId ?? o.key
-    if (!byStage[key]) byStage[key] = { stageLabel: o.stageLabel || o.label, options: [] }
-    byStage[key].options.push(o)
+// ── Coleta stage_day_ids para o endpoint combinado ─────────────────────────
+
+function collectStageDayIds(stageIds, siblingStages) {
+  const ids = []
+  for (const sid of stageIds) {
+    const stage = siblingStages.find(s => s.id === sid)
+    for (const d of (stage?.stage_days || [])) ids.push(d.id)
   }
-  return { totalOpt, stageGroups: Object.values(byStage) }
+  return ids
 }
 
 // ── Componente principal ───────────────────────────────────────────────────
@@ -88,38 +89,32 @@ export default function TournamentLeaderboard({
   token                 = '',
   stageId               = '',
   lineupStatus          = '',
-  stageShortName        = '',
   championshipId        = null,
   championshipShortName = '',
   siblingStages         = [],
 }) {
-  const isOpen = lineupStatus === 'open'
+  const isOpen   = lineupStatus === 'open'
+  const champCode = extractChampCode(championshipShortName)
+  const phases    = buildPhases(siblingStages)
 
-  // ── Opções de filtro (derivadas de siblingStages) ─────────────────────────
-  const options = buildOptions(championshipShortName, siblingStages)
-
-  // ── Estado do filtro ──────────────────────────────────────────────────────
-  // selectedKeys: conjunto de keys selecionadas (multi-select via checkbox)
-  // Default: apenas '__champ__' (total do campeonato)
+  // selectedKeys: Set<'__champ__' | 'stage_N'>
   const [selectedKeys, setSelectedKeys] = useState(new Set(['__champ__']))
   const [panelOpen,    setPanelOpen]    = useState(false)
   const panelRef = useRef(null)
 
-  // ── Leaderboard ───────────────────────────────────────────────────────────
   const [rankings,  setRankings]  = useState([])
   const [loading,   setLoading]   = useState(false)
   const [error,     setError]     = useState(null)
   const [myUserId,  setMyUserId]  = useState(null)
 
-  // ── Submissões (stage atual aberta) ──────────────────────────────────────
   const [submissions,        setSubmissions]  = useState([])
   const [submissionsLoading, setSubLoading]   = useState(false)
 
-  // Exibe submissões só quando o filtro é exatamente a stage atual sem dias
-  const showSubmissions = isOpen && selectedKeys.size === 1
-    && (selectedKeys.has('__champ__') || [...selectedKeys][0] === `stage_${stageId}`)
+  const showSubmissions = isOpen
+    && selectedKeys.size === 1
+    && selectedKeys.has(`stage_${stageId}`)
 
-  // ── Reset ao trocar de stage ──────────────────────────────────────────────
+  // ── Reset ao trocar de stage ────────────────────────────────────────────
   useEffect(() => {
     setSelectedKeys(new Set(['__champ__']))
     setRankings([])
@@ -127,30 +122,24 @@ export default function TournamentLeaderboard({
     setSubmissions([])
   }, [stageId])
 
-  // ── Fechar painel ao clicar fora ──────────────────────────────────────────
+  // ── Fechar painel ao clicar fora ────────────────────────────────────────
   useEffect(() => {
     if (!panelOpen) return
-    const handler = (e) => {
-      if (panelRef.current && !panelRef.current.contains(e.target)) {
-        setPanelOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
+    const h = (e) => { if (panelRef.current && !panelRef.current.contains(e.target)) setPanelOpen(false) }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
   }, [panelOpen])
 
-  // ── Meu user_id ───────────────────────────────────────────────────────────
+  // ── Meu user_id ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (!token) { setMyUserId(null); return }
-    fetch(`${API_BASE_URL}/auth/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    fetch(`${API_BASE_URL}/auth/me`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d?.id) setMyUserId(d.id) })
       .catch(() => {})
   }, [token])
 
-  // ── Busca submissões ──────────────────────────────────────────────────────
+  // ── Submissões ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (!isOpen || !stageId) return
     setSubLoading(true)
@@ -167,122 +156,89 @@ export default function TournamentLeaderboard({
       .finally(() => setSubLoading(false))
   }, [isOpen, stageId]) // eslint-disable-line
 
-  // ── Busca leaderboard quando seleção muda ─────────────────────────────────
-  useEffect(() => {
-    fetchLeaderboard()
-  }, [selectedKeys, championshipId]) // eslint-disable-line
+  // ── Fetch ao mudar seleção ──────────────────────────────────────────────
+  useEffect(() => { fetchLeaderboard() }, [selectedKeys, championshipId]) // eslint-disable-line
 
-  // ── Fetch leaderboard ─────────────────────────────────────────────────────
+  // ── Fetch leaderboard ───────────────────────────────────────────────────
   const fetchLeaderboard = () => {
     if (!championshipId && !stageId) return
     setLoading(true); setError(null)
 
-    const selected = [...selectedKeys]
-
-    // Total do campeonato
-    if (selected.length === 1 && selected[0] === '__champ__') {
+    // 1. Total do campeonato
+    if (selectedKeys.has('__champ__')) {
       if (!championshipId) { setLoading(false); return }
       fetch(`${API_BASE_URL}/championships/${championshipId}/leaderboard`)
         .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() })
-        .then(data => { setRankings(data); setLoading(false) })
+        .then(d => { setRankings(d); setLoading(false) })
         .catch(e => { setError(e.message); setLoading(false) })
       return
     }
 
-    // Seleção simples de uma stage sem dias
-    const stageOnlyKeys = selected.filter(k => k.startsWith('stage_'))
-    const dayKeys       = selected.filter(k => k.startsWith('day_'))
+    const stageIds = [...selectedKeys].map(k => Number(k.replace('stage_', '')))
 
-    if (selected.length === 1 && stageOnlyKeys.length === 1 && !dayKeys.length) {
-      const sid = Number(stageOnlyKeys[0].replace('stage_', ''))
-      fetch(`${API_BASE_URL}/stages/${sid}/leaderboard`)
+    // 2. Stage única → endpoint de stage
+    if (stageIds.length === 1) {
+      fetch(`${API_BASE_URL}/stages/${stageIds[0]}/leaderboard`)
         .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() })
-        .then(data => { setRankings(data); setLoading(false) })
+        .then(d => { setRankings(d); setLoading(false) })
         .catch(e => { setError(e.message); setLoading(false) })
       return
     }
 
-    // Seleção simples de um único dia
-    if (selected.length === 1 && dayKeys.length === 1 && !stageOnlyKeys.length) {
-      const dayId = Number(dayKeys[0].replace('day_', ''))
-      // Descobre a stageId para esse day
-      const opt = options.find(o => o.key === dayKeys[0])
-      if (opt?.stageId) {
-        fetch(`${API_BASE_URL}/stages/${opt.stageId}/days/${dayId}/leaderboard`)
-          .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() })
-          .then(data => { setRankings(data); setLoading(false) })
-          .catch(e => { setError(e.message); setLoading(false) })
-        return
-      }
-    }
+    // 3. Combinação → endpoint combinado com stage_day_ids
+    const dayIds = collectStageDayIds(stageIds, siblingStages)
+    if (dayIds.length === 0) { setRankings([]); setLoading(false); return }
 
-    // Combinação arbitrária: coleta stage_day_ids de todas as seleções
-    const dayIds = new Set()
-    for (const key of selected) {
-      if (key === '__champ__') {
-        // Todos os days de todas as stages
-        for (const s of siblingStages) {
-          for (const d of (s.stage_days || [])) dayIds.add(d.id)
-        }
-      } else if (key.startsWith('stage_')) {
-        const sid = Number(key.replace('stage_', ''))
-        const stage = siblingStages.find(s => s.id === sid)
-        for (const d of (stage?.stage_days || [])) dayIds.add(d.id)
-      } else if (key.startsWith('day_')) {
-        dayIds.add(Number(key.replace('day_', '')))
-      }
-    }
-
-    if (dayIds.size === 0) { setRankings([]); setLoading(false); return }
-
-    fetch(`${API_BASE_URL}/championships/${championshipId}/leaderboard/combined?stage_day_ids=${[...dayIds].join(',')}`)
+    fetch(`${API_BASE_URL}/championships/${championshipId}/leaderboard/combined?stage_day_ids=${dayIds.join(',')}`)
       .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() })
-      .then(data => { setRankings(data); setLoading(false) })
+      .then(d => { setRankings(d); setLoading(false) })
       .catch(e => { setError(e.message); setLoading(false) })
   }
 
-  // ── Helpers de seleção ────────────────────────────────────────────────────
-  const toggleKey = (key) => {
+  // ── Toggles ─────────────────────────────────────────────────────────────
+
+  const selectChamp = () => setSelectedKeys(new Set(['__champ__']))
+
+  const toggleStage = (stageId) => {
     setSelectedKeys(prev => {
       const next = new Set(prev)
+      next.delete('__champ__')
+      const key = `stage_${stageId}`
       if (next.has(key)) {
         next.delete(key)
-        if (next.size === 0) next.add('__champ__') // nunca deixa vazio
+        if (next.size === 0) return new Set(['__champ__'])
       } else {
-        next.delete('__champ__')  // remove total ao selecionar algo específico
         next.add(key)
       }
       return next
     })
   }
 
-  const selectTotal = () => setSelectedKeys(new Set(['__champ__']))
-
-  // ── Label do botão de filtro ──────────────────────────────────────────────
-  const filterLabel = () => {
-    if (selectedKeys.has('__champ__'))
-      return `${championshipShortName || 'Campeonato'} — TOTAL`
-    if (selectedKeys.size === 1) {
-      const opt = options.find(o => o.key === [...selectedKeys][0])
-      return opt?.label ?? '—'
-    }
-    return `${selectedKeys.size} seleções`
+  const togglePhase = (phase) => {
+    const pKeys = phase.stages.map(s => `stage_${s.id}`)
+    const allSelected = pKeys.every(k => selectedKeys.has(k))
+    setSelectedKeys(prev => {
+      const next = new Set(prev)
+      next.delete('__champ__')
+      if (allSelected) {
+        pKeys.forEach(k => next.delete(k))
+      } else {
+        pKeys.forEach(k => next.add(k))
+      }
+      if (next.size === 0) return new Set(['__champ__'])
+      return next
+    })
   }
 
-  // ── Pontos normalizados por tipo de endpoint ──────────────────────────────
-  const getPoints = (entry) =>
-    entry.total_points !== undefined ? entry.total_points : (entry.points ?? 0)
-
-  const getBadge = (entry) => {
-    if (entry.stages_played > 0)
-      return { label: `${entry.stages_played}S`, color: 'rgba(240,192,64,0.18)', border: 'rgba(240,192,64,0.4)', text: '#f0c040' }
-    if (entry.days_played > 0)
-      return { label: `${entry.days_played}D`, color: 'rgba(96,165,250,0.1)', border: 'rgba(96,165,250,0.3)', text: 'var(--color-xama-blue)' }
+  // ── Computed ─────────────────────────────────────────────────────────────
+  const getPoints = (e) => e.total_points !== undefined ? e.total_points : (e.points ?? 0)
+  const getBadge  = (e) => {
+    if ((e.stages_played ?? 0) > 0)
+      return { label: `${e.stages_played}S`, color: 'rgba(240,192,64,0.18)', border: 'rgba(240,192,64,0.4)', text: '#f0c040' }
+    if ((e.days_played ?? 0) > 0)
+      return { label: `${e.days_played}D`, color: 'rgba(96,165,250,0.1)', border: 'rgba(96,165,250,0.3)', text: 'var(--color-xama-blue)' }
     return null
   }
-
-  const logoPrefix = champLogoPrefix(championshipShortName)
-  const { totalOpt, stageGroups } = groupOptions(options)
 
   return (
     <div className="min-h-screen" style={{ background: 'transparent' }}>
@@ -290,11 +246,9 @@ export default function TournamentLeaderboard({
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="px-6 py-5 border-b" style={{ background: 'var(--color-xama-surface)', borderColor: 'var(--color-xama-border)' }}>
         <div className="max-w-3xl mx-auto flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <h1 className="text-[28px] font-bold tracking-tight" style={{ color: 'var(--color-xama-text)', letterSpacing: '-0.01em' }}>
-              LEADERBOARD
-            </h1>
-          </div>
+          <h1 className="text-[28px] font-bold tracking-tight" style={{ color: 'var(--color-xama-text)', letterSpacing: '-0.01em' }}>
+            LEADERBOARD
+          </h1>
           <button
             className="dark-btn flex items-center gap-2"
             onClick={fetchLeaderboard}
@@ -305,9 +259,8 @@ export default function TournamentLeaderboard({
           </button>
         </div>
 
-        {/* ── Dropdown de filtro ───────────────────────────────────────────── */}
+        {/* ── Dropdown ────────────────────────────────────────────────────── */}
         <div className="max-w-3xl mx-auto mt-3" ref={panelRef} style={{ position: 'relative' }}>
-          {/* Botão que abre o painel */}
           <button
             onClick={() => setPanelOpen(o => !o)}
             style={{
@@ -318,17 +271,16 @@ export default function TournamentLeaderboard({
               color: 'var(--color-xama-text)',
               padding: '7px 12px',
               fontSize: '13px', fontWeight: 600, cursor: 'pointer',
-              minWidth: '220px', justifyContent: 'space-between',
+              minWidth: '240px', justifyContent: 'space-between',
             }}>
             <span style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-gold)' }}>
-              {filterLabel()}
+              {filterLabel(selectedKeys, champCode, phases)}
             </span>
             <span style={{ fontSize: '10px', color: 'var(--color-xama-muted)' }}>
               {panelOpen ? '▲' : '▼'}
             </span>
           </button>
 
-          {/* Painel hierárquico */}
           {panelOpen && (
             <div style={{
               position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 200,
@@ -336,74 +288,68 @@ export default function TournamentLeaderboard({
               border: '1px solid var(--color-xama-border)',
               borderRadius: '10px',
               boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-              minWidth: '280px',
-              overflow: 'hidden',
+              minWidth: '280px', overflow: 'hidden',
             }}>
               {/* Cabeçalho do painel */}
               <div style={{
-                padding: '8px 14px',
-                borderBottom: '1px solid var(--color-xama-border)',
+                padding: '8px 14px', borderBottom: '1px solid var(--color-xama-border)',
                 fontSize: '10px', fontWeight: 700, letterSpacing: '0.1em',
                 color: 'var(--color-xama-muted)', textTransform: 'uppercase',
                 fontFamily: "'JetBrains Mono', monospace",
               }}>
-                Selecionar visualização
+                Visualização
               </div>
 
-              <div style={{ maxHeight: '380px', overflowY: 'auto', padding: '6px 0' }}>
+              <div style={{ maxHeight: '400px', overflowY: 'auto', padding: '6px 0' }}>
 
                 {/* Opção: Total do campeonato */}
-                {totalOpt && (
-                  <FilterRow
-                    label={totalOpt.label}
-                    checked={selectedKeys.has('__champ__')}
-                    onChange={selectTotal}
-                    gold
-                  />
-                )}
+                <FilterRow
+                  label={`${champCode} — TOTAL`}
+                  checked={selectedKeys.has('__champ__')}
+                  onChange={selectChamp}
+                  gold
+                />
 
-                {/* Separador */}
-                {stageGroups.length > 0 && (
+                {phases.length > 0 && (
                   <div style={{ margin: '4px 0', borderTop: '1px solid var(--color-xama-border)' }} />
                 )}
 
-                {/* Grupos por stage */}
-                {stageGroups.map((group, gi) => (
-                  <div key={gi}>
-                    {/* Label da stage (não clicável — só label de seção) */}
-                    <div style={{
-                      padding: '5px 14px 2px',
-                      fontSize: '10px', fontWeight: 700, letterSpacing: '0.1em',
-                      color: 'var(--color-xama-blue)', textTransform: 'uppercase',
-                      fontFamily: "'JetBrains Mono', monospace",
-                    }}>
-                      {group.stageLabel}
-                    </div>
+                {phases.map((phase, gi) => {
+                  const pKeys      = phase.stages.map(s => `stage_${s.id}`)
+                  const allChecked = pKeys.length > 0 && pKeys.every(k => selectedKeys.has(k))
+                  const someChecked = pKeys.some(k => selectedKeys.has(k))
 
-                    {/* Opções da stage */}
-                    {group.options.map(opt => (
-                      <FilterRow
-                        key={opt.key}
-                        label={opt.type === 'day' ? `Dia ${opt.dayNumber}` : opt.label}
-                        checked={selectedKeys.has(opt.key)}
-                        onChange={() => toggleKey(opt.key)}
-                        indent
+                  return (
+                    <div key={gi}>
+                      {/* Cabeçalho da fase — clicável, seleciona todos os dias */}
+                      <PhaseHeader
+                        label={phase.label}
+                        allChecked={allChecked}
+                        someChecked={someChecked && !allChecked}
+                        onClick={() => togglePhase(phase)}
                       />
-                    ))}
 
-                    {gi < stageGroups.length - 1 && (
-                      <div style={{ margin: '4px 0', borderTop: '1px solid rgba(255,255,255,0.04)' }} />
-                    )}
-                  </div>
-                ))}
+                      {/* Dias da fase */}
+                      {phase.stages.map(stage => (
+                        <FilterRow
+                          key={stage.id}
+                          label={extractDayLabel(stage.name)}
+                          checked={selectedKeys.has(`stage_${stage.id}`)}
+                          onChange={() => toggleStage(stage.id)}
+                          indent
+                        />
+                      ))}
+
+                      {gi < phases.length - 1 && (
+                        <div style={{ margin: '4px 0', borderTop: '1px solid rgba(255,255,255,0.04)' }} />
+                      )}
+                    </div>
+                  )
+                })}
               </div>
 
-              {/* Rodapé: confirmar */}
-              <div style={{
-                padding: '8px 14px',
-                borderTop: '1px solid var(--color-xama-border)',
-                display: 'flex', justifyContent: 'flex-end',
-              }}>
+              {/* Rodapé */}
+              <div style={{ padding: '8px 14px', borderTop: '1px solid var(--color-xama-border)', display: 'flex', justifyContent: 'flex-end' }}>
                 <button
                   onClick={() => setPanelOpen(false)}
                   style={{
@@ -588,33 +534,72 @@ export default function TournamentLeaderboard({
   )
 }
 
-// ── Sub-componente linha de filtro ──────────────────────────────────────────
+// ── Sub-componentes ────────────────────────────────────────────────────────
+
 function FilterRow({ label, checked, onChange, gold = false, indent = false }) {
+  const activeColor = gold ? '#f0c040' : 'var(--color-xama-blue)'
+  const activeBg    = gold ? 'rgba(240,192,64,0.06)' : 'rgba(96,165,250,0.06)'
   return (
     <label
       style={{
         display: 'flex', alignItems: 'center', gap: '10px',
-        padding: `6px ${indent ? '24px' : '14px'}`,
+        padding: `6px ${indent ? '28px' : '14px'}`,
         cursor: 'pointer',
-        background: checked ? (gold ? 'rgba(240,192,64,0.06)' : 'rgba(96,165,250,0.06)') : 'transparent',
+        background: checked ? activeBg : 'transparent',
         transition: 'background 0.1s',
       }}
       onMouseEnter={e => { if (!checked) e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
-      onMouseLeave={e => { e.currentTarget.style.background = checked ? (gold ? 'rgba(240,192,64,0.06)' : 'rgba(96,165,250,0.06)') : 'transparent' }}>
+      onMouseLeave={e => { e.currentTarget.style.background = checked ? activeBg : 'transparent' }}>
       <input
         type="checkbox"
         checked={checked}
         onChange={onChange}
-        style={{ accentColor: gold ? '#f0c040' : 'var(--color-xama-blue)', width: '14px', height: '14px', cursor: 'pointer' }}
+        style={{ accentColor: activeColor, width: '14px', height: '14px', cursor: 'pointer', flexShrink: 0 }}
       />
       <span style={{
         fontSize: '13px',
-        color: checked ? (gold ? '#f0c040' : 'var(--color-xama-blue)') : 'var(--color-xama-text)',
+        color: checked ? activeColor : 'var(--color-xama-text)',
         fontWeight: checked ? 600 : 400,
         fontFamily: "'JetBrains Mono', monospace",
       }}>
         {label}
       </span>
     </label>
+  )
+}
+
+function PhaseHeader({ label, allChecked, someChecked, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: 'flex', alignItems: 'center', gap: '8px',
+        width: '100%', padding: '6px 14px',
+        background: allChecked ? 'rgba(96,165,250,0.06)' : 'transparent',
+        border: 'none', cursor: 'pointer', textAlign: 'left',
+        transition: 'background 0.1s',
+      }}
+      onMouseEnter={e => { if (!allChecked) e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
+      onMouseLeave={e => { e.currentTarget.style.background = allChecked ? 'rgba(96,165,250,0.06)' : 'transparent' }}>
+      {/* Checkbox visual (não é input real — o clique é no botão inteiro) */}
+      <span style={{
+        width: '14px', height: '14px', flexShrink: 0,
+        border: `2px solid ${allChecked ? 'var(--color-xama-blue)' : someChecked ? 'var(--color-xama-blue)' : 'var(--color-xama-border)'}`,
+        borderRadius: '3px',
+        background: allChecked ? 'var(--color-xama-blue)' : 'transparent',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: '9px', color: '#fff', fontWeight: 700,
+      }}>
+        {allChecked ? '✓' : someChecked ? '−' : ''}
+      </span>
+      <span style={{
+        fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em',
+        textTransform: 'uppercase',
+        color: allChecked || someChecked ? 'var(--color-xama-blue)' : 'var(--color-xama-muted)',
+        fontFamily: "'JetBrains Mono', monospace",
+      }}>
+        {label}
+      </span>
+    </button>
   )
 }
