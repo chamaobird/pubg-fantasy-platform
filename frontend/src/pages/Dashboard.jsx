@@ -303,98 +303,97 @@ function OpenCard({ s, lineup, champMap, navigate }) {
 
   const borderColor = hasLineup ? 'rgba(74,222,128,0.25)' : 'rgba(249,115,22,0.35)'
   const glowBg      = hasLineup
-    ? 'radial-gradient(circle, rgba(74,222,128,0.06) 0%, transparent 70%)'
-    : 'radial-gradient(circle, rgba(249,115,22,0.08) 0%, transparent 70%)'
+    ? 'radial-gradient(circle at 80% 50%, rgba(74,222,128,0.07) 0%, transparent 65%)'
+    : 'radial-gradient(circle at 80% 50%, rgba(249,115,22,0.09) 0%, transparent 65%)'
+
+  const subtitle = [champ?.name, dateLabel].filter(Boolean).join(' · ')
 
   return (
     <div className="xama-open-card" style={{
       background: 'var(--surface-1)',
       border: `1px solid ${borderColor}`,
       borderRadius: 'var(--radius-card)',
-      padding: '20px 24px',
+      padding: '18px 22px',
       position: 'relative', overflow: 'hidden',
+      display: 'flex', alignItems: 'center', gap: '22px',
+      flexWrap: 'wrap',
     }}>
-      <div style={{
-        position: 'absolute', top: 0, right: 0,
-        width: '260px', height: '260px',
-        background: glowBg, pointerEvents: 'none',
-      }} />
+      <div style={{ position: 'absolute', inset: 0, background: glowBg, pointerEvents: 'none' }} />
 
-      {/* Linha superior: ABERTA + Campeonato/Data */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span className="xama-pulse" style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--color-xama-orange)', display: 'inline-block' }} />
-          <span style={{ fontSize: '16px', fontWeight: 700, letterSpacing: '0.06em', color: 'var(--color-xama-orange)', textTransform: 'uppercase' }}>ABERTA</span>
-        </span>
-        <div style={{ textAlign: 'right' }}>
-          {champ && (
-            <div style={{ fontSize: '11px', color: 'rgba(249,115,22,0.65)', fontFamily: 'JetBrains Mono, monospace', fontWeight: 500 }}>
-              {champ.name}
-            </div>
-          )}
-          {dateLabel && (
-            <div style={{ fontSize: '11px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace', marginTop: '2px' }}>
-              {dateLabel}
-            </div>
-          )}
-        </div>
+      {/* Coluna 1 — Logo âncora */}
+      <div style={{
+        flexShrink: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        width: '108px', height: '108px',
+      }}>
+        <StageChampLogo champName={champ?.name} size={100} />
       </div>
 
-      {/* Corpo: Logo esquerda + conteúdo direita */}
-      <div style={{ display: 'flex', gap: '28px', alignItems: 'stretch' }}>
-
-        {/* Logo — ocupa ~80% da altura do corpo */}
+      {/* Coluna 2 — Título + subtítulo */}
+      <div style={{ flex: 1, minWidth: '160px' }}>
         <div style={{
-          flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          width: '120px',
+          fontSize: '26px', fontWeight: 700,
+          color: 'var(--color-xama-text)',
+          lineHeight: 1.15, letterSpacing: '-0.02em',
+          marginBottom: '6px',
         }}>
-          <StageChampLogo champName={champ?.name} size={110} />
+          {s.name}
         </div>
-
-        {/* Conteúdo direita */}
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '14px' }}>
-
-          {/* Nome da stage */}
+        {subtitle && (
           <div style={{
-            fontSize: '32px', fontWeight: 700, color: 'var(--color-xama-text)',
-            lineHeight: 1.2, letterSpacing: '-0.01em',
-          }}>{s.name}</div>
+            fontSize: '12px', color: 'var(--color-xama-muted)',
+            fontFamily: 'JetBrains Mono, monospace', lineHeight: 1.5,
+          }}>
+            {champ && (
+              <span style={{ color: 'rgba(249,115,22,0.7)', fontWeight: 600 }}>{champ.name}</span>
+            )}
+            {champ && dateLabel && <span style={{ margin: '0 5px', opacity: 0.4 }}>·</span>}
+            {dateLabel && <span>{dateLabel}</span>}
+          </div>
+        )}
+      </div>
 
-          {/* Estado da lineup */}
-          {hasLineup ? (
-            <>
-              <div style={{
-                background: 'var(--surface-2)', borderRadius: 'var(--radius-inner)',
-                padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '8px',
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '15px', color: 'var(--color-xama-muted)' }}>Lineup</span>
-                  <span style={{ fontSize: '15px', color: 'var(--color-xama-green)', fontWeight: 600 }}>✅ Montada</span>
-                </div>
-                {lineup.total_points != null && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '15px', color: 'var(--color-xama-muted)' }}>Pontos totais</span>
-                    <span style={{ fontSize: '20px', color: 'var(--color-xama-orange)', fontWeight: 700, fontFamily: 'JetBrains Mono, monospace' }}>
-                      {fmt1(lineup.total_points)} pts
-                    </span>
-                  </div>
-                )}
-              </div>
-              <Button variant="primary" size="md" full onClick={() => navigate(`/tournament/${s.id}`)}>
-                VER TORNEIO
-              </Button>
-            </>
-          ) : (
-            <>
-              <p style={{ fontSize: '15px', color: 'var(--color-xama-muted)', margin: 0, lineHeight: 1.5 }}>
-                Lineup ainda não montada.
-              </p>
-              <Button variant="primary" size="md" full onClick={() => navigate(`/tournament/${s.id}`)}>
-                MONTAR LINEUP
-              </Button>
-            </>
-          )}
+      {/* Coluna 3 — Status + CTA */}
+      <div style={{
+        flexShrink: 0,
+        display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px',
+      }}>
+        {/* Badge ABERTA — discreto */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+          <span className="xama-pulse" style={{
+            width: '6px', height: '6px', borderRadius: '50%',
+            background: 'var(--color-xama-orange)', display: 'inline-block',
+          }} />
+          <span style={{
+            fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em',
+            color: 'var(--color-xama-orange)', textTransform: 'uppercase',
+            fontFamily: 'JetBrains Mono, monospace',
+          }}>ABERTA</span>
         </div>
+
+        {/* Chip "Montada" ou pts */}
+        {hasLineup && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
+            <span style={{
+              fontSize: '11px', fontWeight: 700, letterSpacing: '0.06em',
+              padding: '3px 10px', borderRadius: '20px',
+              background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.3)',
+              color: 'var(--color-xama-green)',
+            }}>✓ Montada</span>
+            {lineup.total_points != null && (
+              <span style={{
+                fontSize: '20px', fontWeight: 700,
+                color: 'var(--color-xama-orange)',
+                fontFamily: 'JetBrains Mono, monospace',
+              }}>{fmt1(lineup.total_points)} pts</span>
+            )}
+          </div>
+        )}
+
+        {/* Botão */}
+        <Button variant="primary" size="sm" onClick={() => navigate(`/tournament/${s.id}`)}>
+          {hasLineup ? 'VER TORNEIO' : 'MONTAR LINEUP'}
+        </Button>
       </div>
     </div>
   )
