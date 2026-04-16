@@ -216,72 +216,6 @@ function StageRow({ stage, onClick, champName, userScore, userRank }) {
   )
 }
 
-// ── TreeConnector — tronco vertical + galhos com canto arredondado por card ────
-//
-// Estrutura visual:
-//   │  tronco vertical (x=1)
-//   │
-//   ╰──  galho: desce reto, Q-bezier no canto, horizontal até a borda do card
-//   │
-//   ╰──  idem para o próximo card
-//
-// W = paddingLeft do bloco interno = onde cada card começa (endpoint dos galhos)
-// CARD_H = altura estimada do PreviewCard: padding 22px + conteúdo ~48px ≈ 70px
-// R = raio do canto arredondado do galho
-
-function TreeConnector({ count, hasOpen }) {
-  if (!hasOpen || count === 0) return null
-
-  const PAD_T    = 10
-  const CARD_H   = 70
-  const CARD_GAP = 8
-  const W        = 16   // = paddingLeft
-  const R        = 8    // raio do canto arredondado
-
-  const centers = Array.from({ length: count }, (_, i) =>
-    PAD_T + i * (CARD_H + CARD_GAP) + CARD_H / 2
-  )
-  const trunkEnd = centers[centers.length - 1]
-  const svgH = trunkEnd + 6
-
-  return (
-    <svg
-      width={W + 1}
-      height={svgH}
-      viewBox={`0 0 ${W + 1} ${svgH}`}
-      style={{
-        position: 'absolute',
-        left: 0,
-        top: 0,
-        pointerEvents: 'none',
-        overflow: 'visible',
-      }}
-      fill="none"
-    >
-      {/* Tronco vertical: desce da borda superior até o último galho */}
-      <line
-        x1={1} y1={0}
-        x2={1} y2={trunkEnd}
-        stroke="rgba(249,115,22,0.20)"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-
-      {/* Galho por card: vertical → canto Q-bezier → horizontal até borda do card */}
-      {centers.map((cy, i) => (
-        <path
-          key={i}
-          d={`M 1 ${cy - R} Q 1 ${cy} ${1 + R} ${cy} L ${W} ${cy}`}
-          stroke="rgba(249,115,22,0.30)"
-          strokeWidth="1.5"
-          fill="none"
-          strokeLinecap="round"
-        />
-      ))}
-    </svg>
-  )
-}
-
 // ── PreviewCard — card compacto para stages em preview (hierarquia abaixo do open) ─
 function PreviewCard({ s, champMap, navigate }) {
   const champ     = champMap[s.id]
@@ -594,14 +528,9 @@ export default function Dashboard() {
               </div>
             )}
 
-            {/* Cards preview — compactos, recuados, conectados via SVG tree */}
+            {/* Cards preview — compactos e recuados */}
             {previewStages.length > 0 && (
-              <div style={{ position: 'relative', marginLeft: 'clamp(32px, 15%, 120px)', marginTop: '10px' }}>
-
-                {/* SVG tree connector: curvas de bezier do open card até o centro de cada preview */}
-                <TreeConnector count={previewStages.length} hasOpen={openStages.length > 0} />
-
-                {/* Bloco de preview */}
+              <div style={{ marginLeft: 'clamp(32px, 15%, 120px)', marginTop: '10px' }}>
                 <div style={{
                   paddingLeft: '16px',
                   paddingTop: '10px',
