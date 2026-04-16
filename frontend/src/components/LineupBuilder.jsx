@@ -27,10 +27,23 @@ const TEAM_NAME_TO_TAG = {
   'Tempest':       'TEMP',
 }
 
-function formatPlayerName(name) {
+function formatPlayerName(name, team) {
   if (!name) return ''
+  // Underscore no fim (ex: "HazzL_", "Oracle_") → remove o trailing _
+  if (name.endsWith('_')) return name.slice(0, -1)
   const idx = name.indexOf('_')
-  return idx !== -1 ? name.slice(idx + 1) : name
+  if (idx > 0 && idx < name.length - 1) {
+    const prefix = name.slice(0, idx)
+    // Só extrai o nome se o prefixo for uma tag válida (sem hífens)
+    // E corresponder à tag esperada do time (evita "J4M_d-_-b" → "d-_-b")
+    if (!prefix.includes('-')) {
+      const expectedTag = team ? TEAM_NAME_TO_TAG[team] : null
+      if (!expectedTag || prefix.toUpperCase() === expectedTag.toUpperCase()) {
+        return name.slice(idx + 1)
+      }
+    }
+  }
+  return name
 }
 function formatTeamTag(name, team) {
   // 1. Lookup direto pelo nome completo do time
@@ -166,7 +179,7 @@ export default function LineupBuilder({
   const sortedPlayers = useMemo(() => {
     return [...filteredPlayers].sort((a, b) => {
       let aVal, bVal
-      if (sortKey === 'name')           { aVal = formatPlayerName(a.person_name); bVal = formatPlayerName(b.person_name) }
+      if (sortKey === 'name')           { aVal = formatPlayerName(a.person_name, a.team_name); bVal = formatPlayerName(b.person_name, b.team_name) }
       else if (sortKey === 'team')      { aVal = formatTeamTag(a.person_name, a.team_name); bVal = formatTeamTag(b.person_name, b.team_name) }
       else                              { aVal = a[sortKey]; bVal = b[sortKey] }
       if (aVal == null && bVal == null) return 0
@@ -477,7 +490,7 @@ export default function LineupBuilder({
                       <TeamLogo teamName={formatTeamTag(p.person_name, p.team_name)} size={42} />
                     </div>
                     <div className="xlb-hslot-name" style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-xama-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, textAlign: 'center', width: '100%' }}>
-                      {formatPlayerName(p.person_name)}
+                      {formatPlayerName(p.person_name, p.team_name)}
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'space-between' }}>
@@ -526,7 +539,7 @@ export default function LineupBuilder({
                     <TeamLogo teamName={formatTeamTag(reservePlayer.person_name, reservePlayer.team_name)} size={42} />
                   </div>
                   <div className="xlb-hslot-name" style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-xama-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, textAlign: 'center', width: '100%' }}>
-                    {formatPlayerName(reservePlayer.person_name)}
+                    {formatPlayerName(reservePlayer.person_name, reservePlayer.team_name)}
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'space-between' }}>
@@ -697,14 +710,14 @@ export default function LineupBuilder({
                           <span
                             onClick={() => setHistoryPlayer({
                               person_id: p.person_id,
-                              person_name: formatPlayerName(p.person_name),
+                              person_name: formatPlayerName(p.person_name, p.team_name),
                               team_name: playerTag,
                               before_date: stageDays.find(d => d.id === activeStageDayId)?.lineup_close_at || null,
                             })}
                             style={{ cursor: 'pointer', borderBottom: '1px dashed rgba(249,115,22,0.4)', paddingBottom: '1px' }}
                             title="Ver histórico de partidas"
                           >
-                            {formatPlayerName(p.person_name)}
+                            {formatPlayerName(p.person_name, p.team_name)}
                           </span>
                           {isCap && (
                             <span style={{ marginLeft: 4, fontSize: 9, color: 'var(--color-xama-gold)', fontWeight: 700 }}>⭐CAP</span>
