@@ -17,7 +17,8 @@ CHAMPIONSHIP
 
 PERSON ──── PLAYER_ACCOUNT (multi-shard, multi-alias)
 PERSON ──── PERSON_STAGE_STAT (acumulado por fase)
-USER ─────── USER_STAGE_STAT / USER_DAY_STAT
+USER ─────── USER_STAGE_STAT (acumulado por stage: total_points, survival_secs, captain_pts)
+USER ─────── USER_DAY_STAT   (por stage_day: points, survival_secs, captain_pts)
 ```
 
 ## Entidades em detalhe
@@ -76,6 +77,17 @@ xama_points = kills×10 + assists×1 + knocks×1 + damage×0.03
             - 15 (se morte precoce)
             + late_game_bonus (se sobreviveu até fase final)
 ```
+Capitão recebe `×captain_multiplier` (padrão 1.30).
+
+### Tiebreaker (leaderboard)
+Ordem: `total_points DESC → survival_secs DESC → captain_pts DESC`
+- `survival_secs`: soma dos segundos vivos de todos os titulares no período
+- `captain_pts`: soma dos pontos do capitão no período
+- Campos presentes em `UserDayStat` e `UserStageStat`
+
+### Leaderboard por campeonato
+`GET /championships/{id}/leaderboard` — soma `UserStageStat.total_points` de todas as stages do campeonato.
+`GET /championships/{id}/leaderboard/combined?stage_day_ids=1,2,3` — soma `UserDayStat.points` para dias arbitrários (validados como pertencentes ao campeonato).
 
 ### Controle de lineup (APScheduler — 1min)
 1. Se `agora >= lineup_open_at` e status=closed → seta open

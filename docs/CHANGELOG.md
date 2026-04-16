@@ -3,19 +3,12 @@
 
 ---
 
-## Estado Atual — 14/04/2026 (fim de sessão — noite)
+## Estado Atual — 15/04/2026 (fim de sessão)
 
 ### Próximas tarefas operacionais
 - Ajustar preço do hwinn manualmente via AdminPricingPanel (valor ~13.24 — confirmar)
 - Após primeira partida 17/04: validar Steam names via `manage_player_accounts.py`
 - Após primeira partida 17/04: atualizar `account_id` e `shard` do Gustav (PlayerAccount id=308, atualmente PENDING_Gustav/pending)
-
-### Operacional concluído em 14/04
-- Stage 15 aberta: `lineup_status = 'open'` ✅
-- Roster swap PAS1 Playoffs Dia 1:
-  - Gustav (Person id=202) criado, adicionado à FLC (Roster id=583, custo 15.00)
-  - hwinn (Person id=39) movido FLC → WOLF (`FLC_hwinn` → `WOLF_hwinn`, Roster id=536 team atualizado)
-  - Sayfoo removido do Roster stage 15 (Person id=122 preservada no banco)
 
 ### Backlog imediato
 1. Corrigir comentário `scoring.py` linha ~14: `×1.25` → `×1.30`
@@ -24,13 +17,36 @@
    - Cores Categoria B sem token: `#0f1219`, `#1a1f2e`, `#2a3046` — ~30 ocorrências em index.css e JSX
    - LandingPage: cores de paleta própria (`#08090d`, `#f1f5f9`, `#475569`, `#e2e8f0`) — não substituir por tokens
 
-### Nota — Claude Code (limite de prompt)
-- O terminal do Claude Code tem limite de caracteres por prompt
-- Dividir prompts grandes em partes menores (3 arquivos por vez no máximo)
-- Preferir instruções concisas e diretas
-
 ### Skills disponíveis
 - `frontend-design` já ativa em `/mnt/skills/public/frontend-design` — usar em todo trabalho de UI/mobile
+
+---
+
+## Sessão 15/04/2026 — Leaderboard avançado + OAuth username + UX lineup
+
+### Backend
+- **Migrations 0014/0015**: `survival_secs` (Integer) + `captain_pts` (Numeric 10,2) em `user_stage_stat` e `user_day_stat`
+- **Bug fix crítico**: `_upsert_user_stage_stat` reescrito — agrega de `UserDayStat` (não de MatchStat diretamente); corrigido `MatchStat.xama_points` (era `fantasy_points`)
+- **Tiebreaker**: `total_points DESC → survival_secs DESC → captain_pts DESC` em todos os leaderboards
+- **`GET /championships/{id}/leaderboard`**: acumulado de todas as stages do campeonato
+- **`GET /championships/{id}/leaderboard/combined?stage_day_ids=`**: combinação arbitrária de dias (valida pertencimento ao campeonato)
+- **`StageOut`**: adicionado `championship_name`, `championship_short_name`, `stage_days` (corrigido: usa `s.days`, não `s.stage_days`)
+- **Username max**: 15 → 18 caracteres em `RegisterRequest` e `UserUpdateRequest`
+
+### Frontend
+- **`SetupUsername.jsx`**: nova página forçada pós-OAuth para usuários sem username (3–18 chars, regex)
+- **`AuthCallback.jsx`**: após login Google, verifica `/auth/me`; se `username == null` → redireciona `/setup-username`
+- **`App.jsx`**: rota `/setup-username` adicionada
+- **`TournamentLeaderboard.jsx`**: dropdown hierárquico por fase:
+  - `extractPhase` / `extractDayLabel` / `extractChampCode` para nomes limpos
+  - `buildPhases` agrupa stages por fase; `PhaseHeader` com checkbox indeterminado
+  - Labels: "PAS1 — TOTAL", "Playoffs 1 — todos", "Playoffs 1 — Dia 1", "N selecionados"
+  - `togglePhase` seleciona/deseleciona todos os dias de uma fase
+  - Logo removido do header do leaderboard; logo no `TournamentHeader` ajustado para 155px
+- **`LineupBuilder.jsx`**: logos de time 28px → 42px; card do reserva com `marginLeft: 12`; "RES" → "RESERVA"
+
+### Operacional
+- Rescore stage 15 executado via `POST /admin/stages/15/rescore` para popular tiebreaker nos rows existentes
 
 ---
 

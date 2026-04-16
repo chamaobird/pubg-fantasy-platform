@@ -24,7 +24,7 @@ $env:DATABASE_URL="..." ; python -m alembic upgrade head
 - **PowerShell**: usar `;` em vez de `&&` para encadear comandos
 - **SQLAlchemy**: síncrono — usar `Session`, nunca `AsyncSession`
 - **Alembic**: sempre `python -m alembic` da raiz; verificar cadeia antes de criar migration
-- **Próxima migration**: `revision = "0014"`, `down_revision = "0013"`
+- **Próxima migration**: `revision = "0016"`, `down_revision = "0015"`
 - **Outputs**: sempre incluir path completo nos arquivos gerados
 - **RTK instalado**: usar `rtk pytest`, `rtk git status`, `rtk git diff`, `rtk read`, etc. para economizar tokens
 

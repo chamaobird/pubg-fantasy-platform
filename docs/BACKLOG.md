@@ -9,6 +9,7 @@
 
 ### Tech debt rápido
 - [ ] Corrigir comentário no `app/services/scoring.py` linha ~14: capitão `×1.25` → `×1.30`
+- [ ] `TeamLogo.jsx`: remover alias `flcn → flc` (display_names já corrigidos no banco)
 
 ---
 
@@ -48,11 +49,22 @@
 
 ## 🔧 Tech debt conhecido
 - [ ] PlayerHistoryModal tooltip errático em bordas SVG — refatorar para HTML tooltip
-- [ ] TeamLogo.jsx: remover alias `flcn → flc` (display_names já corrigidos no banco)
 
 ---
 
 ## 🟢 Concluído
+
+### Sessão 15/04/2026 — Leaderboard avançado + OAuth username + UX lineup
+- [x] Migrations 0014/0015: `survival_secs` + `captain_pts` em `user_stage_stat` e `user_day_stat`
+- [x] Bug fix: `_upsert_user_stage_stat` reescrito; `MatchStat.xama_points` corrigido
+- [x] Tiebreaker: `total_points DESC → survival_secs DESC → captain_pts DESC`
+- [x] `GET /championships/{id}/leaderboard` e `/combined?stage_day_ids=`
+- [x] `StageOut`: `championship_name`, `championship_short_name`, `stage_days` (usa `s.days`)
+- [x] Username max 15 → 18
+- [x] `SetupUsername.jsx` + rota `/setup-username` + `AuthCallback` redireciona se sem username
+- [x] `TournamentLeaderboard`: dropdown por fase, nomes limpos, `extractPhase`/`extractChampCode`
+- [x] `TournamentHeader`: logo 155px; logo removido do header do leaderboard
+- [x] `LineupBuilder`: logos 42px, RESERVA label, separação visual do card de reserva
 
 ### Sessão 14/04/2026 (noite) — Operacional PAS1
 - [x] Roster swap: Gustav criado (FLC), hwinn movido para WOLF, Sayfoo removido da stage 15

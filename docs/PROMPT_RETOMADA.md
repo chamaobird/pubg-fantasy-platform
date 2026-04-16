@@ -8,11 +8,12 @@ Olá! Vamos retomar o desenvolvimento do XAMA Fantasy.
 **Contexto:** Sou desenvolvedor solo do XAMA Fantasy, uma plataforma de fantasy sports para esports de PUBG. Stack: FastAPI + PostgreSQL (Render) + React 18 + Vite. Repositório: `chamaobird/pubg-fantasy-platform`. Deploy automático no Render.
 
 **Estado atual:**
-- Migrations aplicadas até `0013` (próxima: `0014`, `down_revision = "0013"`)
+- Migrations aplicadas até `0015` (próxima: `0016`, `down_revision = "0015"`)
 - PAS1 Playoffs 1: championship id=7, stages 15/16/17
 - Stage 15 (Dia 1): lineup_status=**open** ✅
 - Roster atualizado: Gustav (FLC), hwinn (WOLF), Sayfoo removido
-- Debt técnico UI concluído: tokens CSS (Categoria A), fontFamily Rajdhani removido de 17 arquivos
+- Leaderboard: acumulado por campeonato, tiebreaker survival_secs+captain_pts, dropdown por fase
+- Google OAuth: usuários sem username redirecionados para `/setup-username`
 - Skill `frontend-design` ativa em `/mnt/skills/public/frontend-design` — usar em todo trabalho de UI
 
 **Tarefas pendentes:**

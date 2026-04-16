@@ -25,9 +25,10 @@ Deploy automático no Render a cada `git push origin main`.
 | `/tournament/:id` | `pages/TournamentHub.jsx` | Hub do torneio (Leaderboard, Lineup, Stats) |
 | `/stages/:id/results` | `pages/LineupResultsPage.jsx` | Resultados de uma fase |
 | `/profile` | `pages/Profile.jsx` | Perfil do usuário |
-| `/auth/callback` | `pages/AuthCallback.jsx` | Recebe token do Google OAuth |
+| `/auth/callback` | `pages/AuthCallback.jsx` | Recebe token do Google OAuth; redireciona para /setup-username se sem username |
 | `/auth/reset-password` | `pages/ResetPasswordPage.jsx` | Formulário de reset de senha |
 | `/auth/verified` | `pages/AuthVerified.jsx` | Confirmação de email |
+| `/setup-username` | `pages/SetupUsername.jsx` | Forçar escolha de username para usuários Google sem username |
 
 ## Componentes principais
 
@@ -121,7 +122,7 @@ frontend/public/logos/
 - Cores/fontes: sempre tokens CSS — nunca valores hardcoded
 - Player name: `TEAM_PlayerName` → split em `_` → `[0]` tag, `[1:]` nome
 - Auth: JWT Bearer token em `localStorage` como `wf_token`
-- API calls: sempre via `api/` service layer (nunca raw `fetch()`)
+- API calls: idealmente via `api/` service layer; alguns componentes usam `fetch()` diretamente (legacy)
 
 ## Desenvolvimento local
 ```powershell

@@ -34,10 +34,12 @@ rtk gain   # ver economia de tokens ao fim da sessão
 - PowerShell: usar `;` em vez de `&&` para encadear comandos
 
 ## Migrations (cadeia real)
-`0001 → 0002 → 4bfb4ef75223 → 0003 → 0004 → 0005 → 0006 → 0007 → 0008 → 0009 → 0010 → 0011 → 0012 → 0013`
-- Próxima: `revision = "0014"`, `down_revision = "0013"`
+`0001 → 0002 → 4bfb4ef75223 → 0003 → 0004 → 0005 → 0006 → 0007 → 0008 → 0009 → 0010 → 0011 → 0012 → 0013 → 0014 → 0015`
+- `0014`: `survival_secs` + `captain_pts` em `user_stage_stat`
+- `0015`: `survival_secs` + `captain_pts` em `user_day_stat`
+- Próxima: `revision = "0016"`, `down_revision = "0015"`
 - Sempre rodar `python -m alembic` da raiz
-- Verificar antes de criar: `Get-Content alembic\versions\0013_*.py | Select-Object -First 15`
+- Verificar antes de criar: `Get-Content alembic\versions\0015_*.py | Select-Object -First 15`
 
 ## Entidades principais
 ```
@@ -95,14 +97,17 @@ EMAIL_FROM=noreply@chamaobird.xyz
 /tournament/:id       → TournamentHub
 /stages/:id/results   → LineupResultsPage
 /auth/verified        → AuthVerified
-/auth/callback        → AuthCallback (token Google OAuth)
+/auth/callback        → AuthCallback (token Google OAuth; redireciona para /setup-username se sem username)
 /auth/reset-password  → ResetPasswordPage
+/setup-username       → SetupUsername (forçado pós-OAuth para usuários sem username)
 /profile              → Profile
 ```
 
 ## Endpoints públicos principais
 ```
 GET  /championships/
+GET  /championships/{id}/leaderboard                          ← acumulado de todas as stages
+GET  /championships/{id}/leaderboard/combined?stage_day_ids=  ← combinação arbitrária de dias
 GET  /stages/
 GET  /stages/{id}/roster
 GET  /stages/{id}/days
@@ -149,9 +154,12 @@ POST  /admin/stages/{id}/force-status   ← aceita: closed | open | locked | pre
 ## Notas importantes
 - `pricing_n_matches`: campo DEPRECATED no modelo Stage
 - MatchStat está em `app/models/match_stat.py` (NÃO em `app/models/match.py`)
+- `MatchStat.xama_points` (não `fantasy_points`) — campo correto para pontuação
 - `bcrypt==4.0.1` + `passlib==1.7.4` fixados no requirements.txt
 - `*.sql` no .gitignore
 - `UserResponse` inclui `has_password` (bool) para frontend detectar conta Google-only
+- Username: 3–18 chars, `[a-zA-Z0-9_\-.]` — validado em `RegisterRequest` e `UserUpdateRequest`
+- Google OAuth: se usuário não tem username → `AuthCallback` redireciona para `/setup-username`
 - Profile usa `/auth/me` (GET/PATCH)
 - `lineup_status=locked`: lineup visível mas não editável (prop `canEdit` no LineupBuilder)
 - `lineup_status=preview`: visível com roster/stats, prop `isPreview=true` no LineupBuilder — botão desabilitado com mensagem "Lineup desabilitado — Aguardando confirmação"
@@ -160,6 +168,11 @@ POST  /admin/stages/{id}/force-status   ← aceita: closed | open | locked | pre
 - `frontend/src/utils/statusColors.js` — fonte única para cores/labels de status (open/preview/closed/locked/active/upcoming/finished); exporta `STATUS_COLOR`, `STATUS_LABEL`, `STATUS_CONFIG`, `statusConfig()`; usar em qualquer novo componente que precise de cor por status
 - Stage tem `start_date` e `end_date` (DateTime, nullable) — adicionados na migration 0013
 - `StageOut` em `app/routers/stages.py` tem schema local próprio com `from_orm_stage()` — campos novos devem ser adicionados lá (não só em `app/schemas/stage.py`)
+- `StageOut` inclui `championship_name`, `championship_short_name`, `stage_days` — relacionamento `s.days` (não `s.stage_days`)
+- `UserDayStat` e `UserStageStat` têm `survival_secs` (Integer) e `captain_pts` (Numeric 10,2) — migrations 0014/0015
+- Tiebreaker leaderboard: `total_points DESC → survival_secs DESC → captain_pts DESC`
+- `_upsert_user_stage_stat` agrega de `UserDayStat` (não de MatchStat diretamente)
 - Logos de torneios: `frontend/public/logos/Tournaments/PAS.png` e `PGS.png`
 - Detecção de logo no Dashboard usa `includes('AMERICAS')` para PAS e `includes('GLOBAL SERIES')` para PGS
 - Datas no Dashboard exibidas no fuso local do usuário (sem timeZone fixo)
+- `TournamentLeaderboard`: dropdown hierárquico por fase; helpers `extractPhase`, `extractDayLabel`, `extractChampCode`; endpoint routes via `selectedKeys` Set (`__champ__`, `stage_N`)
