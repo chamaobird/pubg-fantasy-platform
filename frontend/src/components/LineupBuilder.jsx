@@ -39,6 +39,9 @@ async function httpJson(url, options) {
   const isJson = contentType.includes('application/json')
   const data = isJson ? await res.json().catch(() => null) : await res.text().catch(() => null)
   if (!res.ok) {
+    if (res.status === 401) {
+      window.dispatchEvent(new Event('auth:session-expired'))
+    }
     const detail = data && typeof data === 'object' && 'detail' in data ? data.detail : null
     const message = detail || `HTTP ${res.status}`
     const error = new Error(typeof message === 'string' ? message : JSON.stringify(message))

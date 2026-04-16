@@ -67,8 +67,8 @@ const googleBtnStyle = {
 }
 
 // ── Card principal de auth ────────────────────────────────────────────────────
-function AuthCard({ redirectTo = '/dashboard' }) {
-  const { setToken } = useAuth()
+function AuthCard({ redirectTo = '/dashboard', sessionExpiredMsg = '' }) {
+  const { setToken, clearSessionMsg } = useAuth()
   const navigate = useNavigate()
 
   const [mode, setMode] = useState('login') // 'login' | 'register' | 'forgot'
@@ -94,6 +94,7 @@ function AuthCard({ redirectTo = '/dashboard' }) {
   const [resendMsg, setResendMsg] = useState('')
 
   function finish(token) {
+    if (clearSessionMsg) clearSessionMsg()
     setToken(token, redirectTo)
     navigate(redirectTo, { replace: true })
   }
@@ -195,6 +196,13 @@ function AuthCard({ redirectTo = '/dashboard' }) {
       {/* Barra topo laranja */}
       <div style={{ height: '2px', background: 'linear-gradient(90deg, transparent, #f97316 40%, #fb923c 60%, transparent)' }} />
       <div style={{ padding: '24px 26px' }}>
+
+        {/* Mensagem de sessão expirada */}
+        {sessionExpiredMsg && (
+          <div className="xama-msg-error" style={{ marginBottom: '14px' }}>
+            🔒 {sessionExpiredMsg}
+          </div>
+        )}
 
         {/* Título do card */}
         {mode !== 'forgot' && (
@@ -356,6 +364,7 @@ function AuthCard({ redirectTo = '/dashboard' }) {
 
 // ── Landing page wrapper ──────────────────────────────────────────────────────
 export default function LandingPage({ redirectTo = '/dashboard' }) {
+  const { sessionExpiredMsg } = useAuth()
   return (
     <div style={{
       minHeight: '100vh',
@@ -463,7 +472,7 @@ export default function LandingPage({ redirectTo = '/dashboard' }) {
           </div>
 
           {/* Auth card */}
-          <AuthCard redirectTo={redirectTo} />
+          <AuthCard redirectTo={redirectTo} sessionExpiredMsg={sessionExpiredMsg} />
         </div>
       </main>
 

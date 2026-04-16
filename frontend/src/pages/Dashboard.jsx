@@ -415,7 +415,10 @@ export default function Dashboard() {
   useEffect(() => {
     if (!token) return
     fetch(`${API_BASE_URL}/auth/me`, { headers: H })
-      .then(r => r.ok ? r.json() : null)
+      .then(r => {
+        if (r.status === 401) { window.dispatchEvent(new Event('auth:session-expired')); return null }
+        return r.ok ? r.json() : null
+      })
       .then(setUser)
       .catch(() => {})
   }, [token])
@@ -447,7 +450,10 @@ export default function Dashboard() {
     const relevantStages = stages.filter(s => s.lineup_status === 'open' || s.lineup_status === 'locked')
     relevantStages.forEach(s => {
       fetch(`${API_BASE_URL}/lineups/stage/${s.id}`, { headers: H })
-        .then(r => r.ok ? r.json() : [])
+        .then(r => {
+          if (r.status === 401) { window.dispatchEvent(new Event('auth:session-expired')); return [] }
+          return r.ok ? r.json() : []
+        })
         .then(lineups => {
           if (lineups.length > 0)
             setMyLineups(prev => ({ ...prev, [s.id]: lineups[0] }))

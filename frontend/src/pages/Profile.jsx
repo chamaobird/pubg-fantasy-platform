@@ -58,7 +58,10 @@ export default function Profile() {
 
   useEffect(() => {
     fetch(`${API_BASE}/auth/me`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.ok ? r.json() : null)
+      .then(r => {
+        if (r.status === 401) { window.dispatchEvent(new Event('auth:session-expired')); return null }
+        return r.ok ? r.json() : null
+      })
       .then(d => {
         if (!d) return
         setUser(d)
