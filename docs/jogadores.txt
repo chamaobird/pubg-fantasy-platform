@@ -1,0 +1,553 @@
+{
+  "EUFAREIX10": {
+    "tag": "X10",
+    "players": [
+      {
+        "name": "FranXzz",
+        "playing_as": "FranXzz",
+        "team_handle": "X10_FranXzz",
+        "aliases": ["FranXzz", "X10_FranXzz"]
+      },
+      {
+        "name": "Sukehiro--",
+        "playing_as": "Sukehiro--",
+        "team_handle": "X10_kl4uZeera",
+        "aliases": ["Sukehiro--", "X10_kl4uZeera"]
+      },
+      {
+        "name": "San71Hero1",
+        "playing_as": "zxcxxcxcxccxccz",
+        "team_handle": "X10_San71Hero1",
+        "aliases": ["San71Hero1", "zxcxxcxcxccxccz", "X10_San71Hero1"]
+      },
+      {
+        "name": "Kalniixx",
+        "playing_as": "Kalniixx",
+        "team_handle": "X10_Kalniixx",
+        "aliases": ["Kalniixx", "X10_Kalniixx"]
+      }
+    ]
+  },
+  "Pest Control": {
+    "tag": "PEST",
+    "players": [
+      {
+        "name": "conf2031",
+        "playing_as": "conf2031",
+        "team_handle": "PEST_conf",
+        "aliases": ["conf2031", "PEST_conf"]
+      },
+      {
+        "name": "Kaymind",
+        "playing_as": "Kaymind",
+        "team_handle": "PEST_Kaymind",
+        "aliases": ["Kaymind", "PEST_Kaymind"]
+      },
+      {
+        "name": "HotNSpicy-",
+        "playing_as": "HotNSpicy-",
+        "team_handle": "PEST_HotNSpicy",
+        "aliases": ["HotNSpicy-", "PEST_HotNSpicy"]
+      },
+      {
+        "name": "JoShY-_-",
+        "playing_as": "JoShY-_-",
+        "team_handle": "PEST_JoShY-_-",
+        "aliases": ["JoShY-_-", "PEST_JoShY-_-"]
+      }
+    ]
+  },
+  "Dream One": {
+    "tag": "ONE",
+    "players": [
+      {
+        "name": "XH44444",
+        "playing_as": "XH4KAA",
+        "team_handle": "ONE_XH44444",
+        "aliases": ["XH44444", "XH4KAA", "ONE_XH44444"]
+      },
+      {
+        "name": "LiiPeeXx",
+        "playing_as": "LiiPeeXx",
+        "team_handle": "ONE_LiiPeeXx",
+        "aliases": ["LiiPeeXx", "ONE_LiiPeeXx"]
+      },
+      {
+        "name": "krizzen",
+        "playing_as": "Krizzen-",
+        "team_handle": "ONE_krizzen",
+        "aliases": ["krizzen", "Krizzen-", "ONE_krizzen"]
+      },
+      {
+        "name": "vps1-",
+        "playing_as": "vps1-",
+        "team_handle": "ONE_vps1-",
+        "aliases": ["vps1-", "ONE_vps1-"]
+      }
+    ]
+  },
+  "Tempest": {
+    "tag": "TMP",
+    "players": [
+      {
+        "name": "K1lawi",
+        "playing_as": "k1lawi",
+        "team_handle": null,
+        "aliases": ["K1lawi", "k1lawi"]
+      },
+      {
+        "name": "ASMR",
+        "playing_as": "HUGHLIGAN",
+        "team_handle": null,
+        "aliases": ["ASMR", "HUGHLIGAN"]
+      },
+      {
+        "name": "Palecks",
+        "playing_as": "DadBuff",
+        "team_handle": null,
+        "aliases": ["Palecks", "DadBuff"]
+      },
+      {
+        "name": "abdou",
+        "playing_as": "abdou",
+        "team_handle": null,
+        "aliases": ["abdou"]
+      }
+    ]
+  },
+  "What It Takes": {
+    "tag": "WIT",
+    "players": [
+      {
+        "name": "Maurnzz",
+        "playing_as": "Maurnzz",
+        "team_handle": "WIT_Maurnzz",
+        "aliases": ["Maurnzz", "WIT_Maurnzz"]
+      },
+      {
+        "name": "SneakAttack",
+        "playing_as": "SneakAttack",
+        "team_handle": "WIT_SneakAttack",
+        "aliases": ["SneakAttack", "WIT_SneakAttack"]
+      },
+      {
+        "name": "enzito_",
+        "playing_as": "enzito_",
+        "team_handle": "WIT_enzito",
+        "aliases": ["enzito_", "WIT_enzito"]
+      },
+      {
+        "name": "Luciid_oO",
+        "playing_as": "Luciid_oO",
+        "team_handle": "WIT_Luciid",
+        "aliases": ["Luciid_oO", "WIT_Luciid"]
+      }
+    ]
+  },
+  "Injected": {
+    "tag": "INJ",
+    "players": [
+      {
+        "name": "Choppy-_-",
+        "playing_as": "choppy-_-",
+        "team_handle": null,
+        "aliases": ["Choppy-_-", "choppy-_-"]
+      },
+      {
+        "name": "Stokeley",
+        "playing_as": "Stokeleyiwnl",
+        "team_handle": null,
+        "aliases": ["Stokeley", "Stokeleyiwnl"]
+      },
+      {
+        "name": "s1mplicityy",
+        "playing_as": "s1mplicityy",
+        "team_handle": null,
+        "aliases": ["s1mplicityy"]
+      },
+      {
+        "name": "Ty-n0ngluv",
+        "playing_as": "Ty-n0ngluv",
+        "team_handle": null,
+        "aliases": ["Ty-n0ngluv"]
+      }
+    ]
+  },
+  "Newgen Allstars": {
+    "tag": "NA",
+    "players": [
+      {
+        "name": "Poonage",
+        "playing_as": "9oonage",
+        "team_handle": "NA_ega",
+        "aliases": ["Poonage", "9oonage", "NA_ega"]
+      },
+      {
+        "name": "xxxxxxxxxppppp",
+        "playing_as": "xxxxxxxxxppppp",
+        "team_handle": "NA_Balefrost",
+        "aliases": ["xxxxxxxxxppppp", "NA_Balefrost"]
+      },
+      {
+        "name": "Shinboi",
+        "playing_as": "Shinboi",
+        "team_handle": "NA_Shinboi",
+        "aliases": ["Shinboi", "NA_Shinboi"]
+      },
+      {
+        "name": "f1nna-",
+        "playing_as": "f1nna-",
+        "team_handle": "NA_f1nna",
+        "aliases": ["f1nna-", "NA_f1nna"]
+      }
+    ]
+  },
+  "No Way": {
+    "tag": "NW",
+    "players": [
+      {
+        "name": "dnL1_",
+        "playing_as": "dnL1_",
+        "team_handle": "NW_dnL",
+        "aliases": ["dnL1_", "NW_dnL"]
+      },
+      {
+        "name": "DuduGladiador",
+        "playing_as": "DuduGladiador",
+        "team_handle": "NW_gladiador",
+        "aliases": ["DuduGladiador", "NW_gladiador"]
+      },
+      {
+        "name": "slabyy-",
+        "playing_as": "slabyy-",
+        "team_handle": "NW_slabyy",
+        "aliases": ["slabyy-", "NW_slabyy"]
+      },
+      {
+        "name": "ZxLopes",
+        "playing_as": "ZxLopes",
+        "team_handle": "NW_ZxLopes",
+        "aliases": ["ZxLopes", "NW_ZxLopes"]
+      }
+    ]
+  },
+  "Last Breath": {
+    "tag": "LB",
+    "players": [
+      {
+        "name": "danitw",
+        "playing_as": "danitw",
+        "team_handle": "LxB_danitw",
+        "aliases": ["danitw", "LxB_danitw"]
+      },
+      {
+        "name": "AleeRv",
+        "playing_as": "arv1O",
+        "team_handle": "LxB_arv10",
+        "aliases": ["AleeRv", "arv1O", "LxB_arv10"]
+      },
+      {
+        "name": "Blazr",
+        "playing_as": "Blazr-",
+        "team_handle": "LxB_Blazr",
+        "aliases": ["Blazr", "Blazr-", "LxB_Blazr"]
+      },
+      {
+        "name": "andriu-",
+        "playing_as": "andreww4Real",
+        "team_handle": "LxB_andreww",
+        "aliases": ["andriu-", "andreww4Real", "LxB_andreww"]
+      }
+    ]
+  },
+  "Chupinsky s": {
+    "tag": "INSK",
+    "players": [
+      {
+        "name": "Luizeer4",
+        "playing_as": "Luizeer4",
+        "team_handle": null,
+        "aliases": ["Luizeer4"]
+      },
+      {
+        "name": "tuuruuruu",
+        "playing_as": "tuuruuruu",
+        "team_handle": null,
+        "aliases": ["tuuruuruu"]
+      },
+      {
+        "name": "Gabudo",
+        "playing_as": "gabudo",
+        "team_handle": null,
+        "aliases": ["Gabudo", "gabudo"]
+      },
+      {
+        "name": "Oracle_",
+        "playing_as": "Oracle_",
+        "team_handle": null,
+        "aliases": ["Oracle_"]
+      }
+    ]
+  },
+  "For Nothing": {
+    "tag": "FN",
+    "players": [
+      {
+        "name": "sweezy",
+        "playing_as": "1sweezy-",
+        "team_handle": "FN_sweezy",
+        "aliases": ["sweezy", "1sweezy-", "FN_sweezy"]
+      },
+      {
+        "name": "M4UR1L1O",
+        "playing_as": "M4UR1L1O",
+        "team_handle": "FN_MAURILIO1",
+        "aliases": ["M4UR1L1O", "FN_MAURILIO1"]
+      },
+      {
+        "name": "Liel",
+        "playing_as": "Lyel",
+        "team_handle": "FN_Lyel",
+        "aliases": ["Liel", "Lyel", "FN_Lyel"]
+      },
+      {
+        "name": "gmoo-",
+        "playing_as": "gmoo-",
+        "team_handle": "FN_gmoo",
+        "aliases": ["gmoo-", "FN_gmoo"]
+      }
+    ]
+  },
+  "RENT FREE": {
+    "tag": "FR",
+    "players": [
+      {
+        "name": "Walkerwoman",
+        "playing_as": "gats0_0",
+        "team_handle": "FR_gats",
+        "aliases": ["Walkerwoman", "gats0_0", "FR_gats"]
+      },
+      {
+        "name": "J4M_d-_-b",
+        "playing_as": "J4M_d-_-b",
+        "team_handle": "FR_J4M",
+        "aliases": ["J4M_d-_-b", "FR_J4M"]
+      },
+      {
+        "name": "HoneyBadger-_-",
+        "playing_as": "HoneyBadger-_-",
+        "team_handle": "FR_HoneyBadger",
+        "aliases": ["HoneyBadger-_-", "FR_HoneyBadger"]
+      },
+      {
+        "name": "BLZZLER",
+        "playing_as": "BlZZLER",
+        "team_handle": "FR_Bizzler",
+        "aliases": ["BLZZLER", "BlZZLER", "FR_Bizzler"]
+      }
+    ]
+  },
+  "Collector": {
+    "tag": "CLR",
+    "players": [
+      {
+        "name": "DarkDreamzz",
+        "playing_as": "DarkDreamzz",
+        "team_handle": null,
+        "aliases": ["DarkDreamzz"]
+      },
+      {
+        "name": "4EARTH-",
+        "playing_as": "4EARTH-",
+        "team_handle": null,
+        "aliases": ["4EARTH-"]
+      },
+      {
+        "name": "HazzL_",
+        "playing_as": "HazzL_",
+        "team_handle": null,
+        "aliases": ["HazzL_"]
+      },
+      {
+        "name": "RedRyderNA",
+        "playing_as": "RedRyderNA",
+        "team_handle": null,
+        "aliases": ["RedRyderNA"]
+      }
+    ]
+  },
+  "DUEL": {
+    "tag": "DUEL",
+    "players": [
+      {
+        "name": "pentalol",
+        "playing_as": "pentalol",
+        "team_handle": "DUEL_pentalol",
+        "aliases": ["pentalol", "DUEL_pentalol"]
+      },
+      {
+        "name": "Iroh",
+        "playing_as": "ayyyrro",
+        "team_handle": "DUEL_Iroh",
+        "aliases": ["Iroh", "ayyyrro", "DUEL_Iroh"]
+      },
+      {
+        "name": "Kein",
+        "playing_as": "Ke1n-_-",
+        "team_handle": "DUEL_Kein",
+        "aliases": ["Kein", "Ke1n-_-", "DUEL_Kein"]
+      },
+      {
+        "name": "Woo1y",
+        "playing_as": "Woo1y",
+        "team_handle": "DUEL_Woo1y",
+        "aliases": ["Woo1y", "DUEL_Woo1y"]
+      }
+    ]
+  },
+  "DOTS": {
+    "tag": "DOTS",
+    "players": [
+      {
+        "name": "shane_doe",
+        "playing_as": "shane_doe",
+        "team_handle": null,
+        "aliases": ["shane_doe"]
+      },
+      {
+        "name": "sKZ974",
+        "playing_as": "sKZ974",
+        "team_handle": null,
+        "aliases": ["sKZ974"]
+      },
+      {
+        "name": "TheSpectro",
+        "playing_as": "TheSpectro",
+        "team_handle": null,
+        "aliases": ["TheSpectro"]
+      },
+      {
+        "name": "M1anHuala-",
+        "playing_as": "OtosakaYu-",
+        "team_handle": null,
+        "aliases": ["M1anHuala-", "OtosakaYu-"]
+      }
+    ]
+  },
+  "Athletes of Christ": {
+    "tag": "FE",
+    "players": [
+      {
+        "name": "lfp1s2A",
+        "playing_as": "lfp1s2A",
+        "team_handle": "FE_lfp1",
+        "aliases": ["lfp1s2A", "FE_lfp1"]
+      },
+      {
+        "name": "fanafps",
+        "playing_as": "fanafps",
+        "team_handle": "FE_fana",
+        "aliases": ["fanafps", "FE_fana"]
+      },
+      {
+        "name": "Tny7_",
+        "playing_as": "Tny7_",
+        "team_handle": "FE_Tny7",
+        "aliases": ["Tny7_", "FE_Tny7"]
+      },
+      {
+        "name": "Haven_-",
+        "playing_as": "Haven_-",
+        "team_handle": "FE_Haven",
+        "aliases": ["Haven_-", "FE_Haven"]
+      }
+    ]
+  },
+  "Team FATE": {
+    "tag": "FATE",
+    "players": [
+      {
+        "name": "TATER-_-",
+        "playing_as": "B-25J",
+        "team_handle": null,
+        "aliases": ["TATER-_-", "B-25J"]
+      },
+      {
+        "name": "xennny-",
+        "playing_as": "xennny-",
+        "team_handle": null,
+        "aliases": ["xennny-"]
+      },
+      {
+        "name": "Myo0",
+        "playing_as": "Myo0",
+        "team_handle": null,
+        "aliases": ["Myo0"]
+      },
+      {
+        "name": "TimFee",
+        "playing_as": "TimFee",
+        "team_handle": null,
+        "aliases": ["TimFee"]
+      }
+    ]
+  },
+  "IAM BOLIVIA": {
+    "tag": "BO",
+    "players": [
+      {
+        "name": "4DR",
+        "playing_as": "Imsfck1ngbd",
+        "team_handle": "BO_Imsfck1ngbd",
+        "aliases": ["4DR", "Imsfck1ngbd", "BO_Imsfck1ngbd"]
+      },
+      {
+        "name": "Neyzhera",
+        "playing_as": "Neyzhera",
+        "team_handle": "BO_Neyzhera",
+        "aliases": ["Neyzhera", "BO_Neyzhera"]
+      },
+      {
+        "name": "C4MB4",
+        "playing_as": "C4MB4",
+        "team_handle": "BO_C4MB4",
+        "aliases": ["C4MB4", "BO_C4MB4"]
+      },
+      {
+        "name": "V-I-R-I",
+        "playing_as": "V-I-R-I",
+        "team_handle": "BO_V-I-R-I",
+        "aliases": ["V-I-R-I", "BO_V-I-R-I"]
+      }
+    ]
+  },
+  "Affinity": {
+    "tag": "AFi",
+    "players": [
+      {
+        "name": "Mizbo",
+        "playing_as": "Mizbo",
+        "team_handle": "AFi_Mizbo",
+        "aliases": ["Mizbo", "AFi_Mizbo"]
+      },
+      {
+        "name": "NDucky-",
+        "playing_as": "NDucky-",
+        "team_handle": "AFi_NDucky",
+        "aliases": ["NDucky-", "AFi_NDucky"]
+      },
+      {
+        "name": "gh0wst",
+        "playing_as": "HOWSTHUNTAZ",
+        "team_handle": "AFi_Ghowst",
+        "aliases": ["gh0wst", "HOWSTHUNTAZ", "AFi_Ghowst"]
+      },
+      {
+        "name": "Zalody",
+        "playing_as": "Zalody-",
+        "team_handle": "AFi_Zalody",
+        "aliases": ["Zalody", "Zalody-", "AFi_Zalody"]
+      }
+    ]
+  }
+}
