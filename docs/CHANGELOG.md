@@ -3,12 +3,14 @@
 
 ---
 
-## Estado Atual — 15/04/2026 (fim de sessão)
+## Estado Atual — 16/04/2026 (fim de sessão)
 
 ### Próximas tarefas operacionais
 - Ajustar preço do hwinn manualmente via AdminPricingPanel (valor ~13.24 — confirmar)
 - Após primeira partida 17/04: validar Steam names via `manage_player_accounts.py`
 - Após primeira partida 17/04: atualizar `account_id` e `shard` do Gustav (PlayerAccount id=308, atualmente PENDING_Gustav/pending)
+- Após Dia 1: adicionar os 8 times piores ao roster do Stage 16 e abrir lineup (ver OPERACOES_EVENTO.md)
+- Após Dia 2: adicionar times do Dia 2 ao roster do Stage 17 e abrir lineup
 
 ### Backlog imediato
 1. Corrigir comentário `scoring.py` linha ~14: `×1.25` → `×1.30`
@@ -16,9 +18,34 @@
 3. **Debt técnico UI restante:**
    - Cores Categoria B sem token: `#0f1219`, `#1a1f2e`, `#2a3046` — ~30 ocorrências em index.css e JSX
    - LandingPage: cores de paleta própria (`#08090d`, `#f1f5f9`, `#475569`, `#e2e8f0`) — não substituir por tokens
+4. **Person aliases**: criar tabela `person_alias` ou coluna JSON para registrar nomes alternativos (ex: DadBuff = Palecks)
 
 ### Skills disponíveis
 - `frontend-design` já ativa em `/mnt/skills/public/frontend-design` — usar em todo trabalho de UI/mobile
+
+---
+
+## Sessão 16/04/2026 — Correções de roster + UX Dashboard + bugs de display
+
+### Backend (banco direto — sem migration)
+- **Stage 16 → preview**: 8 times populados (Affinity, Chupinskys, Collector, IAM BOLIVIA, Injected, RENT FREE, Team FATE, Tempest) — 31 jogadores
+- **Stage 17 → preview**: 5 times populados (Also Known As, DOTS, Dream One, For Nothing, Nevermind) — 20 jogadores
+- **FATE roster corrigido**: Myo0 e xennny- removidos; DadBuff (= Palecks, person id=152) movido do Tempest para o FATE
+- **Tempest roster corrigido**: ASMR removido; `abdou`→`TMP_abdou`, `K1lawi`→`TMP_K1lawi`; TMP_HUGHLIGAN e TMP_xQnn criados (person ids 211/212) e adicionados; tag = TMP
+- **backfill-stats endpoint**: `POST /admin/stages/{id}/backfill-stats` adicionado em `app/routers/admin/scoring.py`
+- **ensure_participant_stats**: `app/services/lineup_scoring.py` — cria UserDayStat/UserStageStat com 0pts na submissão do lineup (fix leaderboard)
+
+### Frontend
+- **`formatTeamTag`** em `LineupBuilder.jsx`: adicionado `TEAM_NAME_TO_TAG` mapeando nome completo → tag curta; lookup por nome tem prioridade sobre extração do person_name (fix times sem tag TEAM_Name)
+- **`formatPlayerName`** em `LineupBuilder.jsx`: mesma lógica — só extrai após `_` se prefixo sem hífen E corresponde à tag esperada do time (fix `-_-`, trailing `_`, e `J4M_d-_-b`)
+- **Logos Day 2**: `insk.png`, `fate.png`, `clr.png`, `inj.png`, `tmp.png` adicionados/atualizados em `/logos/PAS/`
+- **Logos Day 3**: `aka.png`, `dots.png`, `nvm.png`, `fn.png`, `one.png` commitados
+- **Dashboard preview cards**: cards menores (logo 28px, título 15px, padding compacto), recuo `clamp(32px, 15%, 120px)` à esquerda, marginTop 10px
+- **Auth session expiry**: global event bus `auth:session-expired`; token com 1 ano de validade; mensagem amigável na LandingPage
+- **Lineup sort**: default por `effective_cost` DESC
+
+### Docs
+- **`docs/OPERACOES_EVENTO.md`** criado: guia de operações manuais durante PAS1 Playoffs (endpoints, horários, fluxo por dia)
 
 ---
 

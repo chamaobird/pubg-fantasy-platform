@@ -142,14 +142,17 @@ POST  /admin/stages/{id}/force-status   ← aceita: closed | open | locked | pre
 - Championship: PUBG Americas Series 1 2026 - Playoffs 1 (id=7, shard=steam)
   - 3 Stages: Playoffs 1 Dia 1(15), Dia 2(16), Dia 3(17)
   - Stage 15: lineup_status=**open** (aberto em 14/04)
-  - Stage 16 e 17: lineup_status=closed
+  - Stage 16: lineup_status=**preview** — 8 times, 31 jogadores (Affinity, Chupinskys, Collector, IAM BOLIVIA, Injected, RENT FREE, Team FATE, Tempest)
+  - Stage 17: lineup_status=**preview** — 5 times, 20 jogadores (Also Known As, DOTS, Dream One, For Nothing, Nevermind)
   - Datas: Dia 1 = 18/04 01:00 UTC, Dia 2 = 19/04 01:00 UTC, Dia 3 = 20/04 01:00 UTC
   - 3 StageDays: 17/04, 18/04, 19/04 (horário local do evento: 21:00 EDT)
-  - Preços por tier: high=33, mid=28, open=18 (TGLTN fixado em 35 via cost_override)
+  - Preços por tier: high=33, mid=28, open=18 (TGLTN fixado em 35 via cost_override); Stage 16/17: custo fixo 15.00
   - Scripts: `scripts/pubg/populate_pas1_playoffs.py`, `scripts/pubg/manage_player_accounts.py`
   - shard=steam para scrims públicas; shard do Esports Server a confirmar após 1ª partida
   - **Roster swap 14/04:** Gustav (Person id=202) entrou na FLC; hwinn (id=39) movido para WOLF (display_name: WOLF_hwinn); Sayfoo removido da stage 15 (Person id=122 preservada)
-  - 200 Persons, 308 PlayerAccounts — Gustav tem PlayerAccount id=308 com account_id=PENDING_Gustav (atualizar após 1ª partida)
+  - **Roster fix 16/04 Stage 16:** DadBuff (= Palecks, person id=152) movido do Tempest para Team FATE; Myo0/xennny- removidos do FATE; Tempest: ASMR removido, TMP_abdou/TMP_K1lawi renomeados, TMP_HUGHLIGAN(211)/TMP_xQnn(212) adicionados
+  - 212 Persons, 308 PlayerAccounts — Gustav tem PlayerAccount id=308 com account_id=PENDING_Gustav (atualizar após 1ª partida)
+  - **DadBuff = Palecks** (mesmo jogador, person id=152) — aliases não modelados ainda no DB (backlog)
 
 ## Notas importantes
 - `pricing_n_matches`: campo DEPRECATED no modelo Stage
@@ -176,3 +179,8 @@ POST  /admin/stages/{id}/force-status   ← aceita: closed | open | locked | pre
 - Detecção de logo no Dashboard usa `includes('AMERICAS')` para PAS e `includes('GLOBAL SERIES')` para PGS
 - Datas no Dashboard exibidas no fuso local do usuário (sem timeZone fixo)
 - `TournamentLeaderboard`: dropdown hierárquico por fase; helpers `extractPhase`, `extractDayLabel`, `extractChampCode`; endpoint routes via `selectedKeys` Set (`__champ__`, `stage_N`)
+- `TEAM_NAME_TO_TAG` em `LineupBuilder.jsx`: mapeamento nome completo → tag curta para times sem formato `TEAM_PlayerName` nos display_names (ex: "RENT FREE"→"FR", "Injected"→"INJ", "Tempest"→"TMP")
+- `formatTeamTag` e `formatPlayerName` em `LineupBuilder.jsx`: só extraem prefixo do person_name se não contiver hífen, não for trailing `_`, E corresponder à tag esperada do time — evita bugs com IGNs como `Choppy-_-`, `J4M_d-_-b`
+- Logos PAS: `/logos/PAS/` contém tags em lowercase — ex: `fr.png`, `inj.png`, `tmp.png`, `aka.png`
+- Dashboard: cards preview com recuo `clamp(32px, 15%, 120px)` à esquerda para hierarquia visual abaixo do open card
+- `POST /admin/stages/{id}/backfill-stats`: cria UserDayStat/UserStageStat com 0pts para usuários sem registros no leaderboard
