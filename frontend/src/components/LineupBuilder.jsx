@@ -81,8 +81,8 @@ export default function LineupBuilder({
 
   // ── UI ──────────────────────────────────────────────────────────────────
   const [searchName,   setSearchName]   = useState('')
-  const [sortKey,      setSortKey]      = useState('team')
-  const [sortDir,      setSortDir]      = useState('asc')
+  const [sortKey,      setSortKey]      = useState('effective_cost')
+  const [sortDir,      setSortDir]      = useState('desc')
   const [saveLoading,  setSaveLoading]  = useState(false)
   const [saveError,    setSaveError]    = useState('')
   const [saveSuccess,  setSaveSuccess]  = useState(null)
