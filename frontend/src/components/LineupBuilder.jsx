@@ -24,7 +24,7 @@ const TEAM_NAME_TO_TAG = {
   'Nevermind':     'NVM',
   'RENT FREE':     'FR',
   'Team FATE':     'FATE',
-  'Tempest':       'TEMP',
+  'Tempest':       'TMP',
 }
 
 function formatPlayerName(name, team) {
