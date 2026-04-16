@@ -24,9 +24,9 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import require_admin
-from app.services.lineup_scoring import rescore_stage, score_stage_day
+from app.services.lineup_scoring import rescore_stage, score_stage_day, ensure_participant_stats
 from app.jobs.scoring_job import _has_match_stats
-from app.models import StageDay
+from app.models import Lineup, StageDay
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/admin/stages", tags=["Admin — Scoring"])
@@ -145,3 +145,46 @@ def rescore_stage_endpoint(
         "stage_id": stage_id,
         **summary,
     }
+
+
+# ---------------------------------------------------------------------------
+# Backfill de stats para usuários sem registros (lineup sem UserStageStat)
+# ---------------------------------------------------------------------------
+
+@router.post(
+    "/{stage_id}/backfill-stats",
+    summary="Criar stats placeholder para usuários sem registros no leaderboard",
+    description=(
+        "Para cada usuário que tem lineup em algum StageDay da stage mas ainda não "
+        "tem UserDayStat/UserStageStat (e.g., stage ainda aberta, scoring não rodou), "
+        "cria registros com 0 pontos. Garante que apareçam no leaderboard imediatamente. "
+        "Idempotente — não altera stats de usuários já pontuados."
+    ),
+)
+def backfill_stats(
+    stage_id: int,
+    db: Session = Depends(get_db),
+    _admin=Depends(require_admin),
+):
+    days = (
+        db.query(StageDay)
+        .filter(StageDay.stage_id == stage_id)
+        .all()
+    )
+    if not days:
+        raise HTTPException(status_code=404, detail=f"Stage {stage_id} não encontrada ou sem days")
+
+    processed = 0
+    for day in days:
+        lineups = (
+            db.query(Lineup)
+            .filter(Lineup.stage_day_id == day.id, Lineup.is_valid == True)  # noqa: E712
+            .all()
+        )
+        for lineup in lineups:
+            ensure_participant_stats(db, lineup.user_id, day.id, stage_id)
+            processed += 1
+
+    db.commit()
+    logger.info("[AdminScoring] backfill-stats: stage=%s — %d lineups processados", stage_id, processed)
+    return {"ok": True, "stage_id": stage_id, "lineups_processed": processed}

@@ -35,6 +35,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.models import Lineup, LineupPlayer, Roster, Stage, StageDay
+from app.services.lineup_scoring import ensure_participant_stats
 
 logger = logging.getLogger(__name__)
 
@@ -153,6 +154,9 @@ def submit_lineup(
         is_captain  = False,
         locked_cost = reserva.effective_cost,
     ))
+
+    # Garante que o usuário aparece nos leaderboards imediatamente
+    ensure_participant_stats(db, user_id, stage_day_id, stage.id)
 
     db.commit()
     db.refresh(lineup)
@@ -300,6 +304,9 @@ def replicate_lineup_for_day(
             is_captain  = False,
             locked_cost = roster.effective_cost if roster else None,
         ))
+
+    # Garante que o usuário aparece nos leaderboards após replicação
+    ensure_participant_stats(db, user_id, stage_day_id, stage_day.stage_id)
 
     db.commit()
     db.refresh(new_lineup)

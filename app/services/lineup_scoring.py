@@ -275,6 +275,43 @@ def _upsert_user_stage_stat(
 
 
 # ---------------------------------------------------------------------------
+# Placeholder de stats — chamado na submissão do lineup (#040)
+# ---------------------------------------------------------------------------
+
+def ensure_participant_stats(
+    db: Session,
+    user_id: str,
+    stage_day_id: int,
+    stage_id: int,
+) -> None:
+    """
+    Garante que o usuário aparece nos leaderboards imediatamente após submeter
+    um lineup, mesmo antes do scoring rodar.
+
+    - Cria UserDayStat com 0 pontos para o dia, se ainda não existir
+      (não sobrescreve se o scoring já rodou e populou pontos reais)
+    - Recalcula UserStageStat a partir de todos os UserDayStat do usuário
+      (cria o registro se não existir, atualiza days_played se já existir)
+
+    Idempotente — seguro chamar múltiplas vezes.
+    """
+    existing_day = (
+        db.query(UserDayStat)
+        .filter(
+            UserDayStat.user_id == user_id,
+            UserDayStat.stage_day_id == stage_day_id,
+        )
+        .first()
+    )
+    if not existing_day:
+        _upsert_user_day_stat(db, user_id, stage_day_id, Decimal("0"), 0, Decimal("0"))
+        db.flush()
+
+    _upsert_user_stage_stat(db, user_id, stage_id)
+    db.flush()
+
+
+# ---------------------------------------------------------------------------
 # Recálculo completo de uma stage (admin / reprocess)
 # ---------------------------------------------------------------------------
 
