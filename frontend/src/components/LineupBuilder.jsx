@@ -410,7 +410,7 @@ export default function LineupBuilder({
           </div>
 
           {/* Slots de titulares + reserva em linha */}
-          <div className="xlb-hslots-row" style={{ padding: '12px 16px 0', display: 'flex', gap: 8 }}>
+          <div className="xlb-hslots-row" style={{ padding: '12px 16px 0', display: 'flex', gap: 8, alignItems: 'stretch' }}>
             {Array.from({ length: 4 }).map((_, i) => {
               const p = selectedPlayers[i]
               const isCap = p && p.id === captainId
@@ -447,7 +447,7 @@ export default function LineupBuilder({
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 4, minWidth: 0 }}>
                     <div style={{ marginBottom: 6 }}>
-                      <TeamLogo teamName={formatTeamTag(p.person_name, p.team_name)} size={28} />
+                      <TeamLogo teamName={formatTeamTag(p.person_name, p.team_name)} size={42} />
                     </div>
                     <div className="xlb-hslot-name" style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-xama-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, textAlign: 'center', width: '100%' }}>
                       {formatPlayerName(p.person_name)}
@@ -482,12 +482,13 @@ export default function LineupBuilder({
                 flex: 1, background: 'var(--surface-2)',
                 border: '1px solid rgba(96,165,250,0.3)',
                 borderRadius: 8, padding: '8px 10px', position: 'relative', minHeight: 120,
+                marginLeft: 12,
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                   <span style={{
-                    fontSize: 10, fontWeight: 700, letterSpacing: '0.08em',
+                    fontSize: 9, fontWeight: 700, letterSpacing: '0.10em',
                     color: 'var(--color-xama-blue)', textTransform: 'uppercase',
-                  }}>RES</span>
+                  }}>RESERVA</span>
                   <button
                     className="xlb-remove-btn"
                     onClick={removeReserve}
@@ -495,7 +496,7 @@ export default function LineupBuilder({
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 4, minWidth: 0 }}>
                   <div style={{ marginBottom: 6 }}>
-                    <TeamLogo teamName={formatTeamTag(reservePlayer.person_name, reservePlayer.team_name)} size={28} />
+                    <TeamLogo teamName={formatTeamTag(reservePlayer.person_name, reservePlayer.team_name)} size={42} />
                   </div>
                   <div className="xlb-hslot-name" style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-xama-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, textAlign: 'center', width: '100%' }}>
                     {formatPlayerName(reservePlayer.person_name)}
@@ -520,8 +521,9 @@ export default function LineupBuilder({
                 borderRadius: 8, padding: '8px 10px',
                 display: 'flex', flexDirection: 'column',
                 alignItems: 'center', justifyContent: 'center', gap: 4, minHeight: 120,
+                marginLeft: 12,
               }}>
-                <span style={{ fontSize: 9, color: 'var(--color-xama-blue)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>RES</span>
+                <span style={{ fontSize: 9, color: 'var(--color-xama-blue)', letterSpacing: '0.10em', textTransform: 'uppercase' }}>RESERVA</span>
                 <span style={{ fontSize: 10, color: 'rgba(96,165,250,0.6)', fontStyle: 'italic' }}>— vazio —</span>
               </div>
             )}
