@@ -9,15 +9,39 @@ import PlayerHistoryModal from './PlayerHistoryModal'
 import ScoringRulesModal from './ScoringRulesModal'
 
 // ── Helpers ────────────────────────────────────────────────────────────────
+
+// Mapeamento de nome completo do time → tag curta para times sem formato TEAM_PlayerName
+const TEAM_NAME_TO_TAG = {
+  'Affinity':      'AFi',
+  'Also Known As': 'AKA',
+  'Chupinskys':    'INSK',
+  'Collector':     'CLR',
+  'DOTS':          'DOTS',
+  'Dream One':     'ONE',
+  'For Nothing':   'FN',
+  'IAM BOLIVIA':   'BO',
+  'Injected':      'INJ',
+  'Nevermind':     'NVM',
+  'RENT FREE':     'FR',
+  'Team FATE':     'FATE',
+  'Tempest':       'TEMP',
+}
+
 function formatPlayerName(name) {
   if (!name) return ''
   const idx = name.indexOf('_')
   return idx !== -1 ? name.slice(idx + 1) : name
 }
 function formatTeamTag(name, team) {
+  // 1. Lookup direto pelo nome completo do time
+  if (team && TEAM_NAME_TO_TAG[team]) return TEAM_NAME_TO_TAG[team]
+  // 2. Extrair prefixo do person_name (formato TEAM_PlayerName)
+  //    Prefixo válido: não contém hífen, underscore não está no fim
   if (name) {
     const idx = name.indexOf('_')
-    if (idx !== -1) return name.slice(0, idx)
+    if (idx > 0 && idx < name.length - 1 && !name.slice(0, idx).includes('-')) {
+      return name.slice(0, idx)
+    }
   }
   return team || ''
 }
