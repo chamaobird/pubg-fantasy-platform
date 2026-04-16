@@ -216,6 +216,70 @@ function StageRow({ stage, onClick, champName, userScore, userRank }) {
   )
 }
 
+// ── TreeConnector — SVG com bezier curves do open card para cada preview card ────
+//
+// Geometria (todas as medidas em px, relativas ao container preview):
+//   TOP_GAP  — quanto o SVG sobe acima do container (espaço entre open e preview)
+//   PAD_T    — paddingTop do bloco interno
+//   CARD_H   — altura estimada de cada PreviewCard (padding + conteúdo)
+//   CARD_GAP — gap entre cards
+//   W        — largura do SVG = paddingLeft do bloco = onde os cards começam
+//
+// Cada curva: M (origem) C cp1 cp2 (endpoint no centro vertical do card)
+//   cp1 desce quase verticalmente (x fixo, y ≈ 65% do caminho)
+//   cp2 chega horizontalmente ao alvo (x ≈ 40% de W, y = cardCenter)
+
+function TreeConnector({ count, hasOpen }) {
+  const TOP_GAP  = 20
+  const PAD_T    = 10
+  const CARD_H   = 68   // padding 22px + badge 14px + título 18px + data 13px ≈ 67px
+  const CARD_GAP = 8
+  const W        = 16   // = paddingLeft do bloco
+
+  const svgH = TOP_GAP + PAD_T + count * CARD_H + Math.max(0, count - 1) * CARD_GAP
+
+  // Centro vertical de cada card em coordenadas SVG (SVG.top = container.top - TOP_GAP)
+  const centers = Array.from({ length: count }, (_, i) =>
+    TOP_GAP + PAD_T + i * (CARD_H + CARD_GAP) + CARD_H / 2
+  )
+
+  if (!hasOpen) return null   // sem open card, não exibir conector
+
+  return (
+    <svg
+      width={W}
+      height={svgH}
+      viewBox={`0 0 ${W} ${svgH}`}
+      style={{
+        position: 'absolute',
+        left: 0,
+        top: -TOP_GAP,
+        pointerEvents: 'none',
+        overflow: 'visible',
+        zIndex: 1,
+      }}
+      fill="none"
+    >
+      {centers.map((cy, i) => {
+        const cp1x = 1
+        const cp1y = cy * 0.62          // desce verticalmente ~62% antes de dobrar
+        const cp2x = W * 0.38           // dobra horizontalmente a 38% da largura
+        const cp2y = cy                  // já na altura alvo
+        return (
+          <path
+            key={i}
+            d={`M 1 0 C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${W} ${cy}`}
+            stroke="rgba(249,115,22,0.32)"
+            strokeWidth="1.5"
+            fill="none"
+            strokeLinecap="round"
+          />
+        )
+      })}
+    </svg>
+  )
+}
+
 // ── PreviewCard — card compacto para stages em preview (hierarquia abaixo do open) ─
 function PreviewCard({ s, champMap, navigate }) {
   const champ     = champMap[s.id]
@@ -528,27 +592,15 @@ export default function Dashboard() {
               </div>
             )}
 
-            {/* Cards preview — compactos, recuados e conectados ao open */}
+            {/* Cards preview — compactos, recuados, conectados via SVG bezier */}
             {previewStages.length > 0 && (
-              <div style={{ position: 'relative', marginLeft: 'clamp(32px, 15%, 120px)', marginTop: openStages.length > 0 ? '0' : '0' }}>
+              <div style={{ position: 'relative', marginLeft: 'clamp(32px, 15%, 120px)', marginTop: '6px' }}>
 
-                {/* Linha conectora vertical: desce do open card até o bloco de preview */}
-                {openStages.length > 0 && (
-                  <div style={{
-                    position: 'absolute',
-                    left: -1,
-                    bottom: '50%',
-                    top: '-16px',
-                    width: '2px',
-                    background: 'linear-gradient(to bottom, rgba(249,115,22,0.0), rgba(249,115,22,0.25))',
-                    borderRadius: '1px',
-                    pointerEvents: 'none',
-                  }} />
-                )}
+                {/* SVG tree connector: curvas de bezier do open card até o centro de cada preview */}
+                <TreeConnector count={previewStages.length} hasOpen={openStages.length > 0} />
 
-                {/* Bloco de preview com borda-esquerda contínua */}
+                {/* Bloco de preview */}
                 <div style={{
-                  borderLeft: '2px solid rgba(249,115,22,0.15)',
                   paddingLeft: '16px',
                   paddingTop: '10px',
                   paddingBottom: '4px',
