@@ -216,79 +216,72 @@ function StageRow({ stage, onClick, champName, userScore, userRank }) {
   )
 }
 
-// ── PreviewCard — card médio para stages em preview ──────────────────────────
-
+// ── PreviewCard — card compacto para stages em preview (hierarquia abaixo do open) ─
 function PreviewCard({ s, champMap, navigate }) {
   const champ     = champMap[s.id]
   const dateLabel = buildDateLabel(s)
 
   return (
-    <div className="xama-open-card xama-preview-card" style={{
+    <div style={{
       background: 'var(--surface-1)',
-      border: '1px solid rgba(249,115,22,0.3)',
-      borderLeft: '3px solid var(--color-xama-orange)',
+      border: '1px solid rgba(249,115,22,0.18)',
+      borderLeft: '2px solid rgba(249,115,22,0.35)',
       borderRadius: 'var(--radius-card)',
-      padding: '20px 20px 18px',
+      padding: '11px 14px 11px 16px',
       display: 'flex',
-      gap: '16px',
+      gap: '12px',
       alignItems: 'center',
-      position: 'relative',
-      overflow: 'hidden',
     }}>
-      {/* Glow sutil */}
-      <div style={{
-        position: 'absolute', top: 0, right: 0,
-        width: '160px', height: '160px',
-        background: 'radial-gradient(circle, rgba(249,115,22,0.05) 0%, transparent 70%)',
-        pointerEvents: 'none',
-      }} />
-
-      {/* Logo grande */}
-      <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 60, height: 60 }}>
-        <StageChampLogo champName={champ?.name} size={56} />
+      {/* Logo pequena */}
+      <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, opacity: 0.7 }}>
+        <StageChampLogo champName={champ?.name} size={28} />
       </div>
 
       {/* Info central */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        {/* Badge + campeonato */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px', flexWrap: 'wrap' }}>
           <span style={{
-            fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em',
-            padding: '2px 8px', borderRadius: 4,
-            background: 'rgba(249,115,22,0.12)', border: '1px solid rgba(249,115,22,0.25)',
-            color: 'var(--color-xama-orange)', fontFamily: 'JetBrains Mono, monospace',
-          }}>⏳ EM PREVIEW</span>
+            fontSize: '10px', fontWeight: 700, letterSpacing: '0.07em',
+            padding: '1px 6px', borderRadius: 3,
+            background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.18)',
+            color: 'rgba(249,115,22,0.65)', fontFamily: 'JetBrains Mono, monospace',
+          }}>EM BREVE</span>
           {champ && (
-            <span style={{ fontSize: '11px', color: 'rgba(249,115,22,0.6)', fontFamily: 'JetBrains Mono, monospace', fontWeight: 500 }}>
+            <span style={{ fontSize: '10px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace' }}>
               {champ.name}
             </span>
           )}
         </div>
 
-        {/* Nome da stage */}
         <div style={{
-          fontSize: '22px', fontWeight: 700, color: 'var(--color-xama-text)',
-          lineHeight: 1.2, marginBottom: '4px',
+          fontSize: '15px', fontWeight: 600, color: 'var(--color-xama-text)',
+          opacity: 0.75, lineHeight: 1.2,
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>{s.name}</div>
 
-        {/* Data */}
         {dateLabel && (
-          <div style={{ fontSize: '12px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace' }}>
+          <div style={{ fontSize: '11px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace', marginTop: '2px' }}>
             {dateLabel}
           </div>
         )}
-
-        {/* Mensagem */}
-        <div style={{ fontSize: '13px', color: 'var(--color-xama-muted)', marginTop: '6px', lineHeight: 1.4 }}>
-          Lineup aguardando confirmação — a montagem será liberada em breve.
-        </div>
       </div>
 
-      {/* Botão */}
+      {/* Botão discreto */}
       <div style={{ flexShrink: 0 }}>
-        <Button variant="primary" size="sm" onClick={() => navigate(`/tournament/${s.id}`)}>
+        <button
+          onClick={() => navigate(`/tournament/${s.id}`)}
+          style={{
+            background: 'none', border: '1px solid rgba(249,115,22,0.2)',
+            borderRadius: 6, padding: '4px 10px',
+            fontSize: '11px', fontWeight: 700, letterSpacing: '0.06em',
+            color: 'rgba(249,115,22,0.55)', cursor: 'pointer',
+            fontFamily: 'JetBrains Mono, monospace', transition: 'border-color 0.15s, color 0.15s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(249,115,22,0.45)'; e.currentTarget.style.color = 'var(--color-xama-orange)' }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(249,115,22,0.2)'; e.currentTarget.style.color = 'rgba(249,115,22,0.55)' }}
+        >
           VER LOBBY
-        </Button>
+        </button>
       </div>
     </div>
   )
@@ -522,7 +515,7 @@ export default function Dashboard() {
 
             {/* Cards open — grandes, em grid */}
             {openStages.length > 0 && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px', marginBottom: previewStages.length > 0 ? '12px' : '0' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
                 {openStages.map(s => (
                   <OpenCard
                     key={s.id}
@@ -535,17 +528,43 @@ export default function Dashboard() {
               </div>
             )}
 
-            {/* Cards preview — médios, em lista */}
+            {/* Cards preview — compactos, recuados e conectados ao open */}
             {previewStages.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {previewStages.map(s => (
-                  <PreviewCard
-                    key={s.id}
-                    s={s}
-                    champMap={champMap}
-                    navigate={navigate}
-                  />
-                ))}
+              <div style={{ position: 'relative', marginLeft: 'clamp(32px, 15%, 120px)', marginTop: openStages.length > 0 ? '0' : '0' }}>
+
+                {/* Linha conectora vertical: desce do open card até o bloco de preview */}
+                {openStages.length > 0 && (
+                  <div style={{
+                    position: 'absolute',
+                    left: -1,
+                    bottom: '50%',
+                    top: '-16px',
+                    width: '2px',
+                    background: 'linear-gradient(to bottom, rgba(249,115,22,0.0), rgba(249,115,22,0.25))',
+                    borderRadius: '1px',
+                    pointerEvents: 'none',
+                  }} />
+                )}
+
+                {/* Bloco de preview com borda-esquerda contínua */}
+                <div style={{
+                  borderLeft: '2px solid rgba(249,115,22,0.15)',
+                  paddingLeft: '16px',
+                  paddingTop: '10px',
+                  paddingBottom: '4px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                }}>
+                  {previewStages.map(s => (
+                    <PreviewCard
+                      key={s.id}
+                      s={s}
+                      champMap={champMap}
+                      navigate={navigate}
+                    />
+                  ))}
+                </div>
               </div>
             )}
           </div>
