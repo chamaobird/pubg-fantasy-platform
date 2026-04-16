@@ -216,66 +216,68 @@ function StageRow({ stage, onClick, champName, userScore, userRank }) {
   )
 }
 
-// ── TreeConnector — SVG com bezier curves do open card para cada preview card ────
+// ── TreeConnector — tronco vertical + galhos com canto arredondado por card ────
 //
-// Geometria (todas as medidas em px, relativas ao container preview):
-//   TOP_GAP  — quanto o SVG sobe acima do container (espaço entre open e preview)
-//   PAD_T    — paddingTop do bloco interno
-//   CARD_H   — altura estimada de cada PreviewCard (padding + conteúdo)
-//   CARD_GAP — gap entre cards
-//   W        — largura do SVG = paddingLeft do bloco = onde os cards começam
+// Estrutura visual:
+//   │  tronco vertical (x=1)
+//   │
+//   ╰──  galho: desce reto, Q-bezier no canto, horizontal até a borda do card
+//   │
+//   ╰──  idem para o próximo card
 //
-// Cada curva: M (origem) C cp1 cp2 (endpoint no centro vertical do card)
-//   cp1 desce quase verticalmente (x fixo, y ≈ 65% do caminho)
-//   cp2 chega horizontalmente ao alvo (x ≈ 40% de W, y = cardCenter)
+// W = paddingLeft do bloco interno = onde cada card começa (endpoint dos galhos)
+// CARD_H = altura estimada do PreviewCard: padding 22px + conteúdo ~48px ≈ 70px
+// R = raio do canto arredondado do galho
 
 function TreeConnector({ count, hasOpen }) {
-  const TOP_GAP  = 20
+  if (!hasOpen || count === 0) return null
+
   const PAD_T    = 10
-  const CARD_H   = 68   // padding 22px + badge 14px + título 18px + data 13px ≈ 67px
+  const CARD_H   = 70
   const CARD_GAP = 8
-  const W        = 16   // = paddingLeft do bloco
+  const W        = 16   // = paddingLeft
+  const R        = 8    // raio do canto arredondado
 
-  const svgH = TOP_GAP + PAD_T + count * CARD_H + Math.max(0, count - 1) * CARD_GAP
-
-  // Centro vertical de cada card em coordenadas SVG (SVG.top = container.top - TOP_GAP)
   const centers = Array.from({ length: count }, (_, i) =>
-    TOP_GAP + PAD_T + i * (CARD_H + CARD_GAP) + CARD_H / 2
+    PAD_T + i * (CARD_H + CARD_GAP) + CARD_H / 2
   )
-
-  if (!hasOpen) return null   // sem open card, não exibir conector
+  const trunkEnd = centers[centers.length - 1]
+  const svgH = trunkEnd + 6
 
   return (
     <svg
-      width={W}
+      width={W + 1}
       height={svgH}
-      viewBox={`0 0 ${W} ${svgH}`}
+      viewBox={`0 0 ${W + 1} ${svgH}`}
       style={{
         position: 'absolute',
         left: 0,
-        top: -TOP_GAP,
+        top: 0,
         pointerEvents: 'none',
         overflow: 'visible',
-        zIndex: 1,
       }}
       fill="none"
     >
-      {centers.map((cy, i) => {
-        const cp1x = 1
-        const cp1y = cy * 0.62          // desce verticalmente ~62% antes de dobrar
-        const cp2x = W * 0.38           // dobra horizontalmente a 38% da largura
-        const cp2y = cy                  // já na altura alvo
-        return (
-          <path
-            key={i}
-            d={`M 1 0 C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${W} ${cy}`}
-            stroke="rgba(249,115,22,0.32)"
-            strokeWidth="1.5"
-            fill="none"
-            strokeLinecap="round"
-          />
-        )
-      })}
+      {/* Tronco vertical: desce da borda superior até o último galho */}
+      <line
+        x1={1} y1={0}
+        x2={1} y2={trunkEnd}
+        stroke="rgba(249,115,22,0.20)"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+
+      {/* Galho por card: vertical → canto Q-bezier → horizontal até borda do card */}
+      {centers.map((cy, i) => (
+        <path
+          key={i}
+          d={`M 1 ${cy - R} Q 1 ${cy} ${1 + R} ${cy} L ${W} ${cy}`}
+          stroke="rgba(249,115,22,0.30)"
+          strokeWidth="1.5"
+          fill="none"
+          strokeLinecap="round"
+        />
+      ))}
     </svg>
   )
 }
@@ -592,9 +594,9 @@ export default function Dashboard() {
               </div>
             )}
 
-            {/* Cards preview — compactos, recuados, conectados via SVG bezier */}
+            {/* Cards preview — compactos, recuados, conectados via SVG tree */}
             {previewStages.length > 0 && (
-              <div style={{ position: 'relative', marginLeft: 'clamp(32px, 15%, 120px)', marginTop: '6px' }}>
+              <div style={{ position: 'relative', marginLeft: 'clamp(32px, 15%, 120px)', marginTop: '10px' }}>
 
                 {/* SVG tree connector: curvas de bezier do open card até o centro de cada preview */}
                 <TreeConnector count={previewStages.length} hasOpen={openStages.length > 0} />
