@@ -141,18 +141,25 @@ POST  /admin/stages/{id}/force-status   ← aceita: closed | open | locked | pre
   - Datas populadas via migration 0013 (start_date/end_date preenchidos)
 - Championship: PUBG Americas Series 1 2026 - Playoffs 1 (id=7, shard=steam)
   - 3 Stages: Playoffs 1 Dia 1(15), Dia 2(16), Dia 3(17)
-  - Stage 15: lineup_status=**open** (aberto em 14/04)
-  - Stage 16: lineup_status=**preview** — 8 times, 31 jogadores (Affinity, Chupinskys, Collector, IAM BOLIVIA, Injected, RENT FREE, Team FATE, Tempest)
+  - Stage 15: lineup_status=**locked** — encerrado
+  - Stage 16: lineup_status=**open** — 8 times, 31 jogadores (Affinity, Chupinskys, Collector, IAM BOLIVIA, Injected, RENT FREE, Team FATE, Tempest)
   - Stage 17: lineup_status=**preview** — 5 times, 20 jogadores (Also Known As, DOTS, Dream One, For Nothing, Nevermind)
-  - Datas: Dia 1 = 18/04 01:00 UTC, Dia 2 = 19/04 01:00 UTC, Dia 3 = 20/04 01:00 UTC
-  - 3 StageDays: 17/04, 18/04, 19/04 (horário local do evento: 21:00 EDT)
   - Preços por tier: high=33, mid=28, open=18 (TGLTN fixado em 35 via cost_override); Stage 16/17: custo fixo 15.00
   - Scripts: `scripts/pubg/populate_pas1_playoffs.py`, `scripts/pubg/manage_player_accounts.py`
-  - shard=steam para scrims públicas; shard do Esports Server a confirmar após 1ª partida
-  - **Roster swap 14/04:** Gustav (Person id=202) entrou na FLC; hwinn (id=39) movido para WOLF (display_name: WOLF_hwinn); Sayfoo removido da stage 15 (Person id=122 preservada)
-  - **Roster fix 16/04 Stage 16:** DadBuff (= Palecks, person id=152) movido do Tempest para Team FATE; Myo0/xennny- removidos do FATE; Tempest: ASMR removido, TMP_abdou/TMP_K1lawi renomeados, TMP_HUGHLIGAN(211)/TMP_xQnn(212) adicionados
-  - 212 Persons, 308 PlayerAccounts — Gustav tem PlayerAccount id=308 com account_id=PENDING_Gustav (atualizar após 1ª partida)
-  - **DadBuff = Palecks** (mesmo jogador, person id=152) — aliases não modelados ainda no DB (backlog)
+  - **Gustav** (Person id=202, PlayerAccount id=308): account_id=PENDING_Gustav — atualizar após 1ª partida
+  - **DadBuff = Palecks** (mesmo jogador, person id=152) — aliases não modelados ainda (backlog)
+- Championship: PEC Spring Playoffs 1 (id=8, shard=pc-tournament, tier_weight=1.0)
+  - Tournament PUBG API: `eu-pecs26`
+  - 3 Stages: Spring Playoffs 1 Dia 1(21), Dia 2(22), Dia 3(23)
+  - 3 StageDays: 22 (D1/17abr), 23 (D2/18abr), 24 (D3/19abr)
+  - price_min=12, price_max=35, newcomer_cost=15, pricing_distribution=linear (sem aspas)
+  - Stage 21: lineup_status=**locked** — 64 jogadores (16 times), 5 partidas importadas
+  - Stage 22: lineup_status=**open** — 64 jogadores (8 D2 originais + 8 rebaixados D1), pricing calculado
+  - Stage 23: lineup_status=**preview** — 20 jogadores (5 times: VPX, RL, GN, PBRU, EVER), todos a 15.00
+  - Persons PEC: ids 213–256 (D1 novos), 257–308 (D2+D3). Times PGS reutilizados: NAVI(63-66), VIT(95-98), VP(99-102), S2G(71-74)
+  - Scripts: `scripts/pubg/import_pec_day.py`, `scripts/pubg/insert_pec_d2d3_roster.py`, `scripts/pubg/open_pec_d2.py`
+  - Import D2: `python scripts/pubg/import_pec_day.py --stage-id 22 --stage-day-id 23 --watch 5`
+  - Import D3: `python scripts/pubg/import_pec_day.py --stage-id 23 --stage-day-id 24 --watch 5`
 
 ## Notas importantes
 - `pricing_n_matches`: campo DEPRECATED no modelo Stage

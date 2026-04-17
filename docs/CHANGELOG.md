@@ -3,14 +3,25 @@
 
 ---
 
-## Estado Atual — 17/04/2026 (fim de sessão)
+## Estado Atual — 17/04/2026 (noite, fim de sessão)
+
+### PEC Spring Playoffs 1 — estado atual
+- **Stage 21 (D1):** `locked` — 5 partidas importadas, 64/64 jogadores resolvidos ✅
+- **Stage 22 (D2):** `open` — 64 jogadores (32 D2 originais + 32 rebaixados do D1), pricing calculado ✅
+- **Stage 23 (D3):** `preview` — 20 jogadores (5 times), todos a 15.00 ✅
+
+### PAS Playoffs 1 — estado atual
+- **Stage 15 (D1):** `locked` — partidas importadas, encerrado
+- **Stage 16 (D2):** `open` — aberto, aguardando partidas (18/04)
+- **Stage 17 (D3):** `preview`
 
 ### Próximas tarefas operacionais
-- Ajustar preço do hwinn manualmente via AdminPricingPanel (valor ~13.24 — confirmar; painel agora funciona)
-- Após primeira partida 17/04: validar Steam names via `manage_player_accounts.py`
-- Após primeira partida 17/04: atualizar `account_id` e `shard` do Gustav (PlayerAccount id=308, atualmente PENDING_Gustav/pending)
-- Após Dia 1: adicionar os 8 times piores ao roster do Stage 16 e abrir lineup (ver OPERACOES_EVENTO.md)
-- Após Dia 2: adicionar times do Dia 2 ao roster do Stage 17 e abrir lineup
+- **PEC D2 (18/04):** importar partidas → `python scripts/pubg/import_pec_day.py --stage-id 22 --stage-day-id 23 --watch 5`
+- **PEC D2 fim:** identificar rebaixados → adicionar ao Stage 23 → pricing → abrir Stage 23
+- **PAS D2 (18/04):** importar partidas → identificar rebaixados → abrir Stage 16 (já aberta, confirmar fluxo)
+- **Gustav (PlayerAccount id=308):** atualizar `account_id` e `shard` após 1ª partida PAS D1
+- **hwinn:** ajustar preço via AdminPricingPanel (~13.24 — confirmar)
+- **Ao final das playoffs:** finalizar `docs/AUTOMATION_LEARNINGS.md`
 
 ### Backlog imediato
 1. Corrigir comentário `scoring.py` linha ~14: `×1.25` → `×1.30`
@@ -19,9 +30,63 @@
    - Cores Categoria B sem token: `#0f1219`, `#1a1f2e`, `#2a3046` — ~30 ocorrências em index.css e JSX
    - LandingPage: cores de paleta própria (`#08090d`, `#f1f5f9`, `#475569`, `#e2e8f0`) — não substituir por tokens
 4. **Person aliases**: criar tabela `person_alias` ou coluna JSON para registrar nomes alternativos (ex: DadBuff = Palecks)
+5. **Reconciliação PENDING_:** script para atualizar `account_id` real após 1ª partida dos jogadores PEC
 
 ### Skills disponíveis
 - `frontend-design` já ativa em `/mnt/skills/public/frontend-design` — usar em todo trabalho de UI/mobile
+
+---
+
+## Sessão 17/04/2026 (noite) — PEC Spring Playoffs 1: setup completo D1→D2
+
+### PEC Championship criado
+- Championship id=8: "PEC: Spring Playoffs" / short_name="PEC1" / shard="pc-tournament" / tier_weight=1.0
+- 3 stages: 21 (D1/17abr), 22 (D2/18abr), 23 (D3/19abr) — price_min=12, price_max=35, newcomer_cost=15
+- 3 stage_days: 22 (D1), 23 (D2), 24 (D3)
+- Tournament PUBG API: `eu-pecs26` (shard `pc-tournament`)
+- `pricing_distribution` corrigido de `'linear'` (com aspas extras) para `linear` nas 3 stages
+
+### PEC D1 — Roster e Import
+- 64 jogadores criados (Person + PlayerAccount PENDING_ + Roster) para 16 times do D1
+- Times PGS reutilizados: NAVI (63-66), VIT (95-98), VP (99-102), S2G (71-74), S8UL (93+254-256), TWIS (91,92,94+229)
+- 22 novos times: 44 Person/PlayerAccount criados (NMSS, HIVE, BW, SLCK, JB, VIS, WORK, HOWL, ACE, TMO)
+- Tags in-game confirmadas via PUBG API (diferem das tags "oficiais": NMS→NMSS, TM→TWIS, NSLK→SLCK, ACEND→ACE, CW→WORK, EXHWL→HOWL)
+- 5 partidas importadas, 64/64 jogadores resolvidos
+
+### PEC D2 — Roster, Pricing e Abertura
+- Times rebaixados identificados: JB, ACE, BW, HOWL, S2G, TMO, WORK, VIT (8 piores do D1)
+- 32 jogadores D1 adicionados ao roster da Stage 22 via `scripts/pubg/open_pec_d2.py`
+- 32 times D2 originais criados: YO, NOT, BORZ, PGG, BAL, GTG, SQU, STS (via `insert_pec_d2d3_roster.py`)
+- Pricing calculado: D1 losers → [12–35] baseado em performance; D2 originais → 15 (newcomer)
+  - Top: slqven (JB) 35.00, Ketter (ACE) 34.00, Lev4nte (VIT) 33.03
+  - Bottom: TeaBone (ACE) 12.00, crossberk (BW) 15.77
+- Stage 22 aberta (`lineup_status = 'open'`)
+- Stage 23: 20 jogadores (5 times D3: VPX, RL, GN, PBRU, EVER) a 15.00 cada
+
+### Frontend — Dashboard e Championships
+- `Dashboard.jsx`: championship grouping — PAS e PEC como blocos independentes com card grande + cards preview recuados
+- `LockedActiveCard`: novo componente para stage locked "EM JOGO" (com pulse dot laranja)
+- Botão expand/collapse nos cards principais para mostrar/ocultar etapas seguintes (expandido por padrão)
+- Logos: `PASshort.png` no Dashboard/Championships; `PECshort.png` para PEC; `PEC.png` nos tournament headers
+- `TournamentHeader.jsx`: suporte a PEC (logo PEC.png, mesmas dimensões da PAS)
+- `Championships.jsx`: PEC detectado com logo PECshort; PAS sempre acima de PEC; "EM JOGO" só quando sem stage open irmã
+- Fix: stage locked com open irmã → vai para Resultados (não some do Dashboard)
+- Fix: "EM JOGO" apagado quando próximo dia abre
+
+### Frontend — Tags e Logos de Time
+- `frontend/src/utils/teamUtils.js` criado: fonte única para `TEAM_NAME_TO_TAG`, `formatTeamTag`, `formatPlayerName`
+- `LineupBuilder.jsx` e `PlayerStatsPage.jsx` agora importam de `teamUtils.js`
+- Bug corrigido: `PlayerStatsPage` tinha `formatTeamTag` local sem lookup → times PEC mostravam iniciais
+- `TeamLogo.jsx`: pasta `/logos/PEC/` adicionada como fallback (além de PAS e PGS)
+- 29 logos de times PEC commitadas em `frontend/public/logos/PEC/`
+- `vpx.png` renomeado de `bpx.png`; tag TMO corrigida para "The Myth of"
+
+### Docs e Scripts
+- `docs/AUTOMATION_LEARNINGS.md` criado: análise do ciclo operacional completo para base de automação futura
+- `scripts/pubg/import_pec_day.py`: script de import com polling para PEC
+- `scripts/pubg/insert_pec_d2d3_roster.py`: insert de 52 jogadores para D2 e D3
+- `scripts/pubg/open_pec_d2.py`: adiciona rebaixados, roda pricing, abre D2
+- `scripts/pubg/check_pgs_data.py` e `check_pgs_retry.py` removidos (debug descartável)
 
 ---
 
