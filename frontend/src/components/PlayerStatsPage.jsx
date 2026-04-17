@@ -7,25 +7,13 @@ import { useState, useEffect, useMemo } from 'react'
 import { API_BASE_URL as API_BASE } from '../config'
 import TeamLogo from './TeamLogo'
 import PlayerHistoryModal from './PlayerHistoryModal'
+import { formatTeamTag, formatPlayerName } from '../utils/teamUtils'
 
 if (!document.getElementById('xama-fonts')) {
   const link = document.createElement('link')
   link.id = 'xama-fonts'; link.rel = 'stylesheet'
   link.href = 'https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@400;600&display=swap'
   document.head.appendChild(link)
-}
-
-// ── Helpers de formatação ──────────────────────────────────────────────────
-
-const formatPlayerName = (name) => {
-  if (!name) return '—'
-  const parts = name.split('_')
-  return parts.length > 1 ? parts.slice(1).join('_') : name
-}
-const formatTeamTag = (name, teamFromApi) => {
-  if (!name) return teamFromApi || '—'
-  const parts = name.split('_')
-  return parts.length > 1 ? parts[0] : (teamFromApi || '—')
 }
 const placementColorHex = (val) => {
   if (val == null) return '#dce1ea'
