@@ -10,11 +10,7 @@ function ChampionshipLogo({ shortName, width = 32, height = 32 }) {
     : (upper.startsWith('PAS') || upper.startsWith('PO')) ? 'PAS'
     : upper.startsWith('PEC') ? 'PEC'
     : null
-  // PAS usa versão short no header; PEC usa PEC.png completo
-  const candidates = folder === 'PAS' ? [
-    '/logos/Tournaments/PASshort.png',
-    '/logos/Tournaments/PAS.png',
-  ] : folder ? [
+  const candidates = folder ? [
     `/logos/Tournaments/${folder}.webp`,
     `/logos/Tournaments/${folder}.png`,
   ] : []
