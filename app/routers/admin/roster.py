@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
 from app.dependencies import require_admin
@@ -94,13 +94,34 @@ def list_roster(
     include_unavailable: bool = False,
     db: Session = Depends(get_db),
     _admin: User = Depends(require_admin),
-) -> list[Roster]:
+) -> list[RosterResponse]:
     _get_stage_or_404(db, stage_id)
 
-    q = db.query(Roster).filter(Roster.stage_id == stage_id)
+    q = (
+        db.query(Roster)
+        .options(joinedload(Roster.person))
+        .filter(Roster.stage_id == stage_id)
+    )
     if not include_unavailable:
         q = q.filter(Roster.is_available == True)  # noqa: E712
-    return q.order_by(Roster.id).all()
+    rosters = q.order_by(Roster.id).all()
+
+    return [
+        RosterResponse(
+            id=r.id,
+            stage_id=r.stage_id,
+            person_id=r.person_id,
+            person_name=r.person.display_name if r.person else None,
+            team_name=r.team_name,
+            fantasy_cost=float(r.fantasy_cost) if r.fantasy_cost is not None else None,
+            cost_override=float(r.cost_override) if r.cost_override is not None else None,
+            effective_cost=float(r.effective_cost) if r.effective_cost is not None else None,
+            newcomer_to_tier=r.newcomer_to_tier,
+            is_available=r.is_available,
+            created_at=r.created_at,
+        )
+        for r in rosters
+    ]
 
 
 @router.patch("/{roster_id}", response_model=RosterResponse)

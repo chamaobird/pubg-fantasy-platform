@@ -46,10 +46,11 @@ class RosterResponse(BaseModel):
     id: int
     stage_id: int
     person_id: int
+    person_name: Optional[str] = None
     team_name: Optional[str]
-    fantasy_cost: Optional[int]
-    cost_override: Optional[int]
-    effective_cost: Optional[int]
+    fantasy_cost: Optional[float]
+    cost_override: Optional[float]
+    effective_cost: Optional[float]
     newcomer_to_tier: bool
     is_available: bool
     created_at: datetime
