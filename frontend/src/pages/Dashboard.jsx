@@ -580,7 +580,7 @@ export default function Dashboard() {
                     key={s.id}
                     stage={s}
                     champName={champMap[s.id]?.name}
-                    onClick={() => navigate(`/tournament/${s.id}`)}
+                    onClick={() => navigate(`/tournament/${s.id}?tab=leaderboard`)}
                     userScore={lineup?.total_points}
                     userRank={lineup?.rank}
                   />

@@ -1,6 +1,6 @@
 // frontend/src/pages/TournamentHub.jsx
 import { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../App'
 import { API_BASE_URL } from '../config'
 import TournamentLayout from '../components/TournamentLayout'
@@ -28,8 +28,9 @@ export default function TournamentHub() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { token, setToken } = useAuth()
+  const [searchParams] = useSearchParams()
 
-  const [tab,   setTab]   = useState(TAB_LINEUP)
+  const [tab,   setTab]   = useState(() => searchParams.get('tab') || TAB_LINEUP)
   const [stage, setStage] = useState(null)
   const [siblingStages, setSiblingStages] = useState([])
   const [myRank, setMyRank] = useState(null)
@@ -108,6 +109,7 @@ export default function TournamentHub() {
             championshipId={stage?.championship_id ?? null}
             championshipShortName={stage?.championship_short_name ?? ''}
             siblingStages={siblingStages}
+            onMyRankFound={(position, total_points) => setMyRank({ position, total_points })}
           />
         )}
         {activeTab === TAB_STATS && (

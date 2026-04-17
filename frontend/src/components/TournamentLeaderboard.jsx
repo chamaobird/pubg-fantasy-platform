@@ -1,7 +1,7 @@
 // frontend/src/components/TournamentLeaderboard.jsx
 // XAMA Fantasy — Leaderboard com filtro hierárquico por campeonato/fase/dia
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { API_BASE_URL } from '../config'
 
 const RANK_COLORS = { 1: '#f0c040', 2: '#b4bcc8', 3: '#cd7f50' }
@@ -92,6 +92,7 @@ export default function TournamentLeaderboard({
   championshipId        = null,
   championshipShortName = '',
   siblingStages         = [],
+  onMyRankFound         = null,
 }) {
   const isOpen   = lineupStatus === 'open'
   const champCode = extractChampCode(championshipShortName)
@@ -110,6 +111,9 @@ export default function TournamentLeaderboard({
   const [submissions,        setSubmissions]  = useState([])
   const [submissionsLoading, setSubLoading]   = useState(false)
 
+  const myRowRef      = useRef(null)
+  const hasScrolledRef = useRef(false)
+
   const showSubmissions = isOpen
     && selectedKeys.size === 1
     && selectedKeys.has(`stage_${stageId}`)
@@ -120,6 +124,7 @@ export default function TournamentLeaderboard({
     setRankings([])
     setError(null)
     setSubmissions([])
+    hasScrolledRef.current = false
   }, [stageId])
 
   // ── Fechar painel ao clicar fora ────────────────────────────────────────
@@ -141,6 +146,23 @@ export default function TournamentLeaderboard({
       .then(d => { if (d?.id) setMyUserId(d.id) })
       .catch(() => {})
   }, [token])
+
+  // ── Callback myRank + auto-scroll para linha "EU" ──────────────────────
+  useEffect(() => {
+    if (!myUserId || rankings.length === 0) return
+    const myEntry = rankings.find(e => e.user_id === myUserId)
+    if (!myEntry) return
+    // Notificar TournamentHub do rank/pts do usuário
+    if (onMyRankFound) {
+      const pos = myEntry.rank ?? (rankings.indexOf(myEntry) + 1)
+      onMyRankFound(pos, getPoints(myEntry))
+    }
+    // Scroll para a linha "EU" (apenas uma vez por conjunto de rankings)
+    if (!hasScrolledRef.current && myRowRef.current) {
+      hasScrolledRef.current = true
+      myRowRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }, [rankings, myUserId]) // eslint-disable-line
 
   // ── Submissões ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -474,6 +496,7 @@ export default function TournamentLeaderboard({
                     const badge  = getBadge(entry)
                     return (
                       <tr key={entry.user_id}
+                        ref={isMe ? myRowRef : null}
                         style={{
                           borderBottom: '1px solid #13161f',
                           background: isMe ? 'rgba(20,184,166,0.06)' : isTop3 ? RANK_BG[pos] : 'transparent',

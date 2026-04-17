@@ -335,6 +335,16 @@ export default function LineupBuilder({
     }
   }
 
+  // Id do titular mais barato — usado para destacar quando há erro de reserva
+  const cheapestStarterId = useMemo(() => {
+    if (selectedPlayers.length === 0) return null
+    return selectedPlayers.reduce((min, p) =>
+      Number(p.effective_cost) < Number(min.effective_cost) ? p : min
+    ).id
+  }, [selectedPlayers])
+
+  const isReserveError = saveError && saveError.toLowerCase().includes('reserva')
+
   const budgetUsedPct  = Math.min((totalCost / BUDGET_CAP) * 100, 100)
   const budgetBarColor = isOverBudget ? '#f87171' : totalCost / BUDGET_CAP > 0.85
     ? 'var(--color-xama-gold)' : 'var(--color-xama-orange)'
@@ -454,11 +464,14 @@ export default function LineupBuilder({
             {Array.from({ length: 4 }).map((_, i) => {
               const p = selectedPlayers[i]
               const isCap = p && p.id === captainId
+              const isCheapest = p && isReserveError && p.id === cheapestStarterId
               return p ? (
                 <div key={p.id} className="xlb-hslot" style={{
                   flex: 1, background: 'var(--surface-2)',
-                  border: `1px solid ${isCap ? 'var(--color-xama-gold)' : 'var(--color-xama-border)'}`,
+                  border: `1px solid ${isCap ? 'var(--color-xama-gold)' : isCheapest ? 'rgba(249,115,22,0.7)' : 'var(--color-xama-border)'}`,
+                  boxShadow: isCheapest ? '0 0 0 2px rgba(249,115,22,0.18)' : 'none',
                   borderRadius: 8, padding: '8px 10px', position: 'relative', minHeight: 120,
+                  transition: 'border-color 0.2s, box-shadow 0.2s',
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                     <button
@@ -565,6 +578,15 @@ export default function LineupBuilder({
               }}>
                 <span style={{ fontSize: 9, color: 'var(--color-xama-blue)', letterSpacing: '0.10em', textTransform: 'uppercase' }}>RESERVA</span>
                 <span style={{ fontSize: 10, color: 'rgba(96,165,250,0.6)', fontStyle: 'italic' }}>— vazio —</span>
+                {selectedPlayers.length > 0 && (
+                  <span style={{
+                    fontSize: 9, color: 'rgba(96,165,250,0.5)',
+                    textAlign: 'center', lineHeight: 1.4,
+                    fontFamily: "'JetBrains Mono', monospace",
+                  }}>
+                    custo ≤ {fmtCost(minStarterCost)}
+                  </span>
+                )}
               </div>
             )}
           </div>
@@ -692,6 +714,7 @@ export default function LineupBuilder({
                     const isConflicted   = !isSelected && conflictedTeams.has(playerTag) && conflictedTeams.size > 0
                     const isCap          = p.id === captainId
                     // Em preview: todos os botões de ação ficam desabilitados
+                    const titularDisabled     = isLocked || isConflicted || (selectedPlayers.length >= 4 && !isSelected)
                     const btnDisabled         = isLocked || isConflicted
                     const isReserveHighlighted = !btnDisabled && selectedPlayers.length === 4 && !isSelected && !isConflicted && Number(p.effective_cost) <= minStarterCost
                     const isBudgetFade        = !isSelected && !isReserveHighlighted && Number(p.effective_cost) > (BUDGET_CAP - totalCost)
@@ -751,8 +774,9 @@ export default function LineupBuilder({
                             )}
                             <button
                               className={`xlb-action-btn${isConflicted ? ' xlb-action-btn--conflict' : ''}`}
-                              disabled={btnDisabled || isSelected}
-                              onClick={() => !btnDisabled && !isSelected && addPlayer(p)}>
+                              disabled={titularDisabled || isSelected}
+                              title={selectedPlayers.length >= 4 && !isSelected ? '4 titulares já selecionados' : undefined}
+                              onClick={() => !titularDisabled && !isSelected && addPlayer(p)}>
                               Titular
                             </button>
                             <button
