@@ -9,6 +9,7 @@ import TournamentLeaderboard from '../components/TournamentLeaderboard'
 import PlayerStatsPage from '../components/PlayerStatsPage'
 import AdminPricingPanel from '../components/AdminPricingPanel'
 import PriceHistoryModal from '../components/PriceHistoryModal'
+import LineupResultsPage from './LineupResultsPage'
 
 const TAB_LINEUP      = 'lineup'
 const TAB_LEADERBOARD = 'leaderboard'
@@ -64,7 +65,7 @@ export default function TournamentHub() {
   const showLineupTab = !isFinished
 
   const ALL_TABS = [
-    ...(showLineupTab ? [{ id: TAB_LINEUP, label: isPreview ? 'Lineup' : 'Montar Lineup', icon: '⚔️' }] : []),
+    ...(showLineupTab ? [{ id: TAB_LINEUP, label: isPreview ? 'Lineup' : isLocked ? 'Meus Resultados' : 'Montar Lineup', icon: isLocked ? '📊' : '⚔️' }] : []),
     { id: TAB_LEADERBOARD, label: 'Leaderboard', icon: '🏆' },
     { id: TAB_STATS,       label: 'Stats',        icon: '📊' },
     ...(isAdmin ? [{ id: TAB_ADMIN, label: 'Admin', icon: '⚙️' }] : []),
@@ -92,13 +93,17 @@ export default function TournamentHub() {
         onTabChange={setTab}
       >
         {activeTab === TAB_LINEUP && (
-          <LineupBuilder
-            token={token}
-            stageId={Number(id)}
-            canEdit={canEdit}
-            isPreview={isPreview}
-            onPlayerInfoClick={(roster) => setPriceModalRoster(roster)}
-          />
+          isLocked ? (
+            <LineupResultsPage token={token} stageId={String(id)} embedded />
+          ) : (
+            <LineupBuilder
+              token={token}
+              stageId={Number(id)}
+              canEdit={canEdit}
+              isPreview={isPreview}
+              onPlayerInfoClick={(roster) => setPriceModalRoster(roster)}
+            />
+          )
         )}
         {activeTab === TAB_LEADERBOARD && (
           <TournamentLeaderboard

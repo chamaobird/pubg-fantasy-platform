@@ -2,7 +2,7 @@
 // XAMA Fantasy — Lineup Builder (Fase 6)
 // Consome os novos endpoints: /stages/, /stages/{id}/roster, /stages/{id}/days, /lineups/
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { API_BASE_URL } from '../config'
 import TeamLogo from './TeamLogo'
 import PlayerHistoryModal from './PlayerHistoryModal'
@@ -58,6 +58,30 @@ function formatTeamTag(name, team) {
   }
   return team || ''
 }
+// ── Countdown ──────────────────────────────────────────────────────────────
+function computeCountdown(targetIso) {
+  if (!targetIso) return null
+  const diff = new Date(targetIso).getTime() - Date.now()
+  if (diff <= 0) return null
+  const totalMins = Math.floor(diff / 60_000)
+  const hours = Math.floor(totalMins / 60)
+  const mins = totalMins % 60
+  const days = Math.floor(hours / 24)
+  return { diff, days, hours: hours % 24, mins }
+}
+
+function useCountdown(targetIso) {
+  const [remaining, setRemaining] = useState(() => computeCountdown(targetIso))
+  useEffect(() => {
+    setRemaining(computeCountdown(targetIso))
+    const timer = setInterval(() => setRemaining(computeCountdown(targetIso)), 30_000)
+    return () => clearInterval(timer)
+  }, [targetIso])
+  return remaining
+}
+
+const TUTORIAL_KEY = 'xama_lb_tutorial_seen'
+
 function parseErrorMessage(err) {
   if (typeof err === 'string') return err
   if (err && typeof err === 'object' && 'message' in err) return String(err.message)
@@ -118,6 +142,7 @@ export default function LineupBuilder({
 
   // ── UI ──────────────────────────────────────────────────────────────────
   const [searchName,   setSearchName]   = useState('')
+  const [teamFilter,   setTeamFilter]   = useState(null)   // null = todos os times
   const [sortKey,      setSortKey]      = useState('effective_cost')
   const [sortDir,      setSortDir]      = useState('desc')
   const [saveLoading,  setSaveLoading]  = useState(false)
@@ -125,6 +150,9 @@ export default function LineupBuilder({
   const [saveSuccess,  setSaveSuccess]  = useState(null)
   const [historyPlayer, setHistoryPlayer] = useState(null)
   const [showScoringRules, setShowScoringRules] = useState(false)
+  const [tutorialDismissed, setTutorialDismissed] = useState(
+    () => localStorage.getItem(TUTORIAL_KEY) === '1'
+  )
 
   // ── Ref para evitar re-popular o builder após edições do usuário ────────
   const loadedLineupIdRef = useRef(null)
@@ -166,15 +194,30 @@ export default function LineupBuilder({
     return teams
   }, [selectedPlayers, reservePlayer])
 
+  // ── Derived — lista de times únicos para pills ──────────────────────────
+  const teamTags = useMemo(() => {
+    const tags = new Set()
+    players.forEach(p => tags.add(formatTeamTag(p.person_name, p.team_name)))
+    return [...tags].filter(Boolean).sort()
+  }, [players])
+
+  // ── Derived — countdown para fechamento ────────────────────────────────
+  const closeTarget = stage?.start_date || null
+  const countdown = useCountdown(closeTarget)
+
   // ── Derived — tabela filtrada e ordenada ────────────────────────────────
   const filteredPlayers = useMemo(() => {
+    let list = players
+    if (teamFilter) {
+      list = list.filter(p => formatTeamTag(p.person_name, p.team_name) === teamFilter)
+    }
     const q = searchName.trim().toLowerCase()
-    if (!q) return players
-    return players.filter(p =>
+    if (!q) return list
+    return list.filter(p =>
       String(p.person_name || '').toLowerCase().includes(q) ||
       String(p.team_name || '').toLowerCase().includes(q)
     )
-  }, [players, searchName])
+  }, [players, searchName, teamFilter])
 
   const sortedPlayers = useMemo(() => {
     return [...filteredPlayers].sort((a, b) => {
@@ -376,6 +419,42 @@ export default function LineupBuilder({
         {/* ── Cabeçalho sticky com lineup montado ──────────────────────── */}
         <div className="xlb-sticky-header">
 
+          {/* Banner tutorial — primeiros passos (dispensável, salvo em localStorage) */}
+          {!tutorialDismissed && !isLocked && (
+            <div style={{
+              background: 'rgba(96,165,250,0.06)',
+              border: '1px solid rgba(96,165,250,0.2)',
+              borderRadius: 8, padding: '12px 16px', marginBottom: 12,
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-xama-blue)', marginBottom: 8 }}>
+                  📋 Como montar seu lineup
+                </div>
+                <button
+                  onClick={() => { setTutorialDismissed(true); localStorage.setItem(TUTORIAL_KEY, '1') }}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    color: 'var(--color-xama-muted)', fontSize: 16, lineHeight: 1,
+                    padding: 0, flexShrink: 0,
+                  }}
+                  title="Dispensar">×</button>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                {[
+                  '4 titulares + 1 reserva dentro do budget de 100',
+                  'A reserva deve custar ≤ ao titular mais barato',
+                  'Clique ⭐ num slot para definir o Capitão — ele recebe ×1.30 nos pontos',
+                  'Pontos: Kill +10 · Assist +1 · Knock +1 · Dano ×0.03',
+                ].map(tip => (
+                  <div key={tip} style={{ fontSize: 12, color: 'var(--color-xama-muted)', display: 'flex', gap: 6 }}>
+                    <span style={{ color: 'var(--color-xama-blue)', flexShrink: 0 }}>›</span>
+                    {tip}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Banner preview — aguardando confirmação */}
           {isPreview && (
             <div style={{
@@ -423,10 +502,32 @@ export default function LineupBuilder({
           {/* Budget bar */}
           <div style={{ padding: '12px 16px 0' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 11, color: 'var(--color-xama-muted)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
                   Budget
                 </span>
+                {countdown && canEdit && (() => {
+                  const { diff, days, hours, mins } = countdown
+                  let label, color, border, bg
+                  if (diff > 24 * 3_600_000) {
+                    label = `Fecha em ${days}d ${hours}h`; color = 'var(--color-xama-muted)'
+                    bg = 'rgba(148,163,184,0.06)'; border = 'rgba(148,163,184,0.15)'
+                  } else if (diff > 3_600_000) {
+                    label = `Fecha em ${hours}h ${mins}min`; color = 'var(--color-xama-orange)'
+                    bg = 'rgba(249,115,22,0.08)'; border = 'rgba(249,115,22,0.25)'
+                  } else {
+                    label = `⚠ ${hours > 0 ? `${hours}h ` : ''}${mins}min`; color = '#f87171'
+                    bg = 'rgba(248,113,113,0.08)'; border = 'rgba(248,113,113,0.25)'
+                  }
+                  return (
+                    <span style={{
+                      fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
+                      fontFamily: "'JetBrains Mono', monospace",
+                      padding: '1px 6px', borderRadius: 4,
+                      background: bg, border: `1px solid ${border}`, color,
+                    }}>{label}</span>
+                  )
+                })()}
                 {stage?.captain_multiplier && (
                   <span title={`Capitão recebe ×${Number(stage.captain_multiplier).toFixed(2)} nos pontos`} style={{
                     fontSize: 10, fontWeight: 700, letterSpacing: '0.05em',
@@ -631,13 +732,47 @@ export default function LineupBuilder({
         {/* ── Pool de jogadores ──────────────────────────────────────── */}
         <div className="xlb-panel">
 
+          {/* Pills de filtro por time */}
+          {teamTags.length > 1 && (
+            <div style={{
+              padding: '8px 12px 0',
+              display: 'flex', gap: 6, flexWrap: 'wrap',
+            }}>
+              <button
+                onClick={() => setTeamFilter(null)}
+                style={{
+                  fontSize: 11, fontWeight: 700, letterSpacing: '0.06em',
+                  padding: '3px 10px', borderRadius: 20, border: 'none', cursor: 'pointer',
+                  background: teamFilter === null ? 'var(--color-xama-orange)' : 'var(--surface-3)',
+                  color: teamFilter === null ? '#fff' : 'var(--color-xama-muted)',
+                  transition: 'background 0.12s, color 0.12s',
+                }}>
+                Todos
+              </button>
+              {teamTags.map(tag => (
+                <button
+                  key={tag}
+                  onClick={() => setTeamFilter(prev => prev === tag ? null : tag)}
+                  style={{
+                    fontSize: 11, fontWeight: 700, letterSpacing: '0.06em',
+                    padding: '3px 10px', borderRadius: 20, border: 'none', cursor: 'pointer',
+                    background: teamFilter === tag ? 'var(--color-xama-orange)' : 'var(--surface-3)',
+                    color: teamFilter === tag ? '#fff' : 'var(--color-xama-muted)',
+                    transition: 'background 0.12s, color 0.12s',
+                  }}>
+                  {tag}
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* Barra de busca */}
           <div className="xlb-search-row">
             <input
               className="xlb-search-input"
               value={searchName}
               onChange={e => setSearchName(e.target.value)}
-              placeholder="Buscar jogador ou time..."
+              placeholder="Buscar jogador..."
             />
             <span className="xlb-count">{filteredPlayers.length}/{players.length}</span>
             <button

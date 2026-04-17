@@ -40,8 +40,9 @@ async function get(url, token) {
 
 // ── component ─────────────────────────────────────────────────────────────────
 
-export default function LineupResultsPage({ token = '' }) {
-  const { stageId } = useParams()
+export default function LineupResultsPage({ token = '', stageId: stageIdProp, embedded = false }) {
+  const { stageId: stageIdParam } = useParams()
+  const stageId = stageIdProp ?? stageIdParam
 
   const [stage,     setStage]     = useState(null)
   const [days,      setDays]      = useState([])
@@ -91,7 +92,7 @@ export default function LineupResultsPage({ token = '' }) {
 
   // ── render ────────────────────────────────────────────────────────────────
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--surface-0)', padding: '24px 0' }}>
+    <div style={embedded ? { padding: '24px 0' } : { minHeight: '100vh', background: 'var(--surface-0)', padding: '24px 0' }}>
       <div className="xama-container" style={{ maxWidth: 680 }}>
 
         {/* Header */}

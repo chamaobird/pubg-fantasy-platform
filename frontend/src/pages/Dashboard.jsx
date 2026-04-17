@@ -39,6 +39,63 @@ if (!document.getElementById('xama-dash-anim')) {
 
 const fmt1 = (v) => v != null ? Number(v).toFixed(1) : '—'
 
+// ── Countdown ─────────────────────────────────────────────────────────────────
+
+function computeRemaining(targetIso) {
+  if (!targetIso) return null
+  const diff = new Date(targetIso).getTime() - Date.now()
+  if (diff <= 0) return null
+  const totalMins = Math.floor(diff / 60_000)
+  const hours = Math.floor(totalMins / 60)
+  const mins = totalMins % 60
+  const days = Math.floor(hours / 24)
+  return { diff, days, hours: hours % 24, mins }
+}
+
+function useCountdown(targetIso) {
+  const [remaining, setRemaining] = useState(() => computeRemaining(targetIso))
+  useEffect(() => {
+    setRemaining(computeRemaining(targetIso))
+    const timer = setInterval(() => setRemaining(computeRemaining(targetIso)), 30_000)
+    return () => clearInterval(timer)
+  }, [targetIso])
+  return remaining
+}
+
+function CountdownBadge({ targetIso }) {
+  const r = useCountdown(targetIso)
+  if (!r) return null
+
+  let label, color, bg, border
+  if (r.diff > 24 * 3_600_000) {
+    label = `Fecha em ${r.days}d ${r.hours}h`
+    color = 'var(--color-xama-muted)'
+    bg    = 'rgba(148,163,184,0.06)'
+    border = 'rgba(148,163,184,0.15)'
+  } else if (r.diff > 3_600_000) {
+    label = `Fecha em ${r.hours}h ${r.mins}min`
+    color = 'var(--color-xama-orange)'
+    bg    = 'rgba(249,115,22,0.08)'
+    border = 'rgba(249,115,22,0.25)'
+  } else {
+    label = `⚠ Fecha em ${r.hours > 0 ? `${r.hours}h ` : ''}${r.mins}min`
+    color = '#f87171'
+    bg    = 'rgba(248,113,113,0.08)'
+    border = 'rgba(248,113,113,0.25)'
+  }
+
+  return (
+    <span style={{
+      fontSize: '11px', fontWeight: 700, letterSpacing: '0.06em',
+      fontFamily: 'JetBrains Mono, monospace',
+      padding: '2px 8px', borderRadius: 4,
+      background: bg, border: `1px solid ${border}`, color,
+    }}>
+      {label}
+    </span>
+  )
+}
+
 // Formata "Qui, 17 abr" a partir de ISO string
 function fmtDateFull(iso) {
   if (!iso) return null
@@ -344,6 +401,9 @@ function OpenCard({ s, lineup, champMap, navigate }) {
             {dateLabel && <span>{dateLabel}</span>}
           </div>
         )}
+        <div style={{ marginTop: '8px' }}>
+          <CountdownBadge targetIso={s.start_date || s.lineup_open_at} />
+        </div>
       </div>
 
       {/* Coluna 3 — Status + CTA */}
