@@ -3,10 +3,10 @@
 
 ---
 
-## Estado Atual — 16/04/2026 (fim de sessão)
+## Estado Atual — 17/04/2026 (fim de sessão)
 
 ### Próximas tarefas operacionais
-- Ajustar preço do hwinn manualmente via AdminPricingPanel (valor ~13.24 — confirmar)
+- Ajustar preço do hwinn manualmente via AdminPricingPanel (valor ~13.24 — confirmar; painel agora funciona)
 - Após primeira partida 17/04: validar Steam names via `manage_player_accounts.py`
 - Após primeira partida 17/04: atualizar `account_id` e `shard` do Gustav (PlayerAccount id=308, atualmente PENDING_Gustav/pending)
 - Após Dia 1: adicionar os 8 times piores ao roster do Stage 16 e abrir lineup (ver OPERACOES_EVENTO.md)
@@ -22,6 +22,27 @@
 
 ### Skills disponíveis
 - `frontend-design` já ativa em `/mnt/skills/public/frontend-design` — usar em todo trabalho de UI/mobile
+
+---
+
+## Sessão 17/04/2026 — UX quick wins + fix AdminPricingPanel
+
+### Bug fix crítico — AdminPricingPanel (backend)
+- **Causa raiz**: `RosterResponse` em `app/schemas/roster.py` declarava `fantasy_cost`, `cost_override` e `effective_cost` como `Optional[int]`. Valores com casa decimal (ex: hwinn ~13.24) causavam `ValidationError` no Pydantic v2 → FastAPI retornava 500 → frontend mostrava "Erro ao carregar roster"
+- **Fix**: campos de custo alterados para `Optional[float]`; adicionado `person_name: Optional[str] = None`
+- **Fix**: endpoint `GET /admin/stages/{id}/roster` agora usa `joinedload(Roster.person)` e serialização explícita, alinhado com o endpoint público — player names aparecem corretamente no painel
+
+### UX — Sessão 1 (quick wins, 0 backend)
+- **[2F]** LineupBuilder: botão "Titular" desabilitado com `title` tooltip quando 4/4 slots cheios; botão "Reserva" continua ativo
+- **[1B]** LineupBuilder: hint dinâmico `"custo ≤ X.XX"` no slot vazio de Reserva; borda laranja + glow no titular mais barato quando erro de reserva
+- **[2B]** Dashboard: stages locked navegam com `?tab=leaderboard`; TournamentHub lê tab inicial do query param
+- **[2C]** TournamentLeaderboard: auto-scroll suave para linha "EU"; callback `onMyRankFound` popula `myRank` no TournamentHeader (pontos + posição do usuário)
+
+### UX — Sessão 2 (countdown, tutorial, filtros, resultados integrados)
+- **[2A]** Dashboard + LineupBuilder: `CountdownBadge` / countdown inline com cores por urgência (cinza >24h, laranja 1–24h, vermelho <1h); atualiza a cada 30s
+- **[1A]** LineupBuilder: banner tutorial dispensável (localStorage `xama_lb_tutorial_seen`), 4 dicas fundamentais
+- **[2E]** LineupBuilder: pills de filtro por time acima da busca, geradas dinamicamente do roster; cumulativas com texto
+- **[2D]** TournamentHub: aba "Montar Lineup" → "📊 Meus Resultados" quando locked; renderiza `LineupResultsPage` embutida
 
 ---
 
