@@ -51,7 +51,7 @@ const TEAM_NAME_TO_TAG = {
   'Construction Workers': 'WORK',
   'exhowl':               'HOWL',
   'NATUS VINCERE':        'NAVI',
-  'The Myth of':          'MYTH',
+  'The Myth of':          'TMO',
   'Virtus.pro':           'VP',
   'ACEND Club':           'ACE',
   'Team Vitality':        'VIT',
