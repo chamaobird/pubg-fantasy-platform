@@ -30,19 +30,21 @@ function stageDateStr(stage) {
 
 const LOGO_CANDIDATES = {
   PGS: ['/logos/Tournaments/PGS.webp', '/logos/Tournaments/PGS.png'],
-  PAS: ['/logos/Tournaments/PAS.png'],
+  PAS: ['/logos/Tournaments/PASshort.png', '/logos/Tournaments/PAS.png'],
+  PEC: ['/logos/Tournaments/PECshort.png'],
 }
 
 function ChampLogo({ name = '', size = 48 }) {
   const upper = name.toUpperCase()
   const key = (upper.includes('PAS') || upper.includes('AMERICAS')) ? 'PAS'
     : (upper.includes('PGS') || upper.includes('PGC') || upper.includes('PUBG') || upper.includes('GLOBAL SERIES')) ? 'PGS'
+    : (upper.includes('PEC') || upper.includes('EMEA')) ? 'PEC'
     : null
   const candidates = key ? LOGO_CANDIDATES[key] : []
   const [idx, setIdx] = useState(0)
   const [failed, setFailed] = useState(false)
 
-  const fallbackEmoji = upper.includes('PAS') ? '🥇' : '🏆'
+  const fallbackEmoji = upper.includes('PAS') ? '🥇' : upper.includes('PEC') ? '🌍' : '🏆'
 
   if (!key || failed || candidates.length === 0) {
     return <span style={{ fontSize: size * 0.7, lineHeight: 1 }}>{fallbackEmoji}</span>
@@ -67,10 +69,13 @@ function ChampLogo({ name = '', size = 48 }) {
 
 // ── StageRow ──────────────────────────────────────────────────────────────────
 
-function StageRow({ stage, champName, navigate }) {
-  const st = statusConfig(stage.lineup_status)
+function StageRow({ stage, champName, navigate, isLive = false }) {
   const isOpen    = stage.lineup_status === 'open'
   const isPreview = stage.lineup_status === 'preview'
+  const rawSt = statusConfig(stage.lineup_status)
+  const st = isLive
+    ? { color: 'var(--color-xama-orange)', bg: 'rgba(249,115,22,0.1)', border: 'rgba(249,115,22,0.35)', label: 'EM JOGO' }
+    : rawSt
   const dateStr = stageDateStr(stage)
 
   const borderDefault  = isOpen ? 'rgba(74,222,128,0.15)' : isPreview ? 'rgba(249,115,22,0.2)' : 'var(--color-xama-border)'
@@ -154,6 +159,8 @@ function ChampionshipCard({ championship, navigate }) {
   const hasOpen    = championship.stages.some(s => s.lineup_status === 'open')
   const hasPreview = championship.stages.some(s => s.lineup_status === 'preview')
   const allLocked  = championship.stages.every(s => s.lineup_status === 'locked')
+  // Um stage locked com stages irmãs em preview = está "EM JOGO" agora
+  const hasLive    = hasPreview && championship.stages.some(s => s.lineup_status === 'locked')
 
   // Ordena: open primeiro, preview, depois por data de abertura (cronológico), depois por id
   const stageOrder = { open: 0, preview: 1, closed: 2, locked: 3 }
@@ -219,6 +226,7 @@ function ChampionshipCard({ championship, navigate }) {
               stage={stage}
               champName={championship.name}
               navigate={navigate}
+              isLive={hasLive && stage.lineup_status === 'locked'}
             />
           ))}
         </div>
@@ -283,7 +291,15 @@ export default function Championships() {
           <>
             {active.length > 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 48 }}>
-                {active.map(c => (
+                {[...active]
+                  .sort((a, b) => {
+                    // Campeonatos com stage open primeiro, depois por ID crescente
+                    const aOpen = a.stages.some(s => s.lineup_status === 'open') ? 0 : 1
+                    const bOpen = b.stages.some(s => s.lineup_status === 'open') ? 0 : 1
+                    if (aOpen !== bOpen) return aOpen - bOpen
+                    return a.id - b.id
+                  })
+                  .map(c => (
                   <ChampionshipCard key={c.id} championship={c} navigate={navigate} />
                 ))}
               </div>
