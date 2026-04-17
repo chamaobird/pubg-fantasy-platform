@@ -159,8 +159,9 @@ function ChampionshipCard({ championship, navigate }) {
   const hasOpen    = championship.stages.some(s => s.lineup_status === 'open')
   const hasPreview = championship.stages.some(s => s.lineup_status === 'preview')
   const allLocked  = championship.stages.every(s => s.lineup_status === 'locked')
-  // Um stage locked com stages irmãs em preview = está "EM JOGO" agora
-  const hasLive    = hasPreview && championship.stages.some(s => s.lineup_status === 'locked')
+  // Um stage locked está "EM JOGO" apenas se não há stage open no campeonato.
+  // Se já existe um open (próximo dia aberto), o locked está encerrado.
+  const hasLive    = !hasOpen && hasPreview && championship.stages.some(s => s.lineup_status === 'locked')
 
   // Ordena: open primeiro, preview, depois por data de abertura (cronológico), depois por id
   const stageOrder = { open: 0, preview: 1, closed: 2, locked: 3 }

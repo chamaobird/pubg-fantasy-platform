@@ -709,8 +709,11 @@ export default function Dashboard() {
 
   // Locked sem preview filhos → vai para Resultados
   const pureLockedStages = useMemo(() => {
+    // Só exclui de Resultados o locked que é "EM JOGO" agora:
+    // locked sem stage open no mesmo campeonato (LockedActiveCard).
+    // Se o campeonato já tem um open, o locked está encerrado → vai para Resultados.
     const activeLockedIds = new Set(
-      activeChampGroups.filter(g => g.locked).map(g => g.locked.id)
+      activeChampGroups.filter(g => g.locked && !g.open).map(g => g.locked.id)
     )
     return sortByDate(stages.filter(s => s.lineup_status === 'locked' && !activeLockedIds.has(s.id)))
   }, [stages, activeChampGroups])
