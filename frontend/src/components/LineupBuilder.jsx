@@ -12,6 +12,7 @@ import ScoringRulesModal from './ScoringRulesModal'
 
 // Mapeamento de nome completo do time → tag curta para times sem formato TEAM_PlayerName
 const TEAM_NAME_TO_TAG = {
+  // PAS stages
   'Affinity':      'AFi',
   'Also Known As': 'AKA',
   'Chupinskys':    'INSK',
@@ -25,6 +26,36 @@ const TEAM_NAME_TO_TAG = {
   'RENT FREE':     'FR',
   'Team FATE':     'FATE',
   'Tempest':       'TMP',
+  // PEC Spring Playoffs
+  'Redline':              'RL',
+  'Vuptrox':              'VPX',
+  'GoNext Esports':       'GN',
+  'PBRU':                 'PBRU',
+  'Everlong':             'EVER',
+  'YOOO':                 'YO',
+  'NoTag Team':           'NOT',
+  'BORZ':                 'BORZ',
+  'PGG':                  'PGG',
+  'Baldinini':            'BAL',
+  'Ghetto Gang':          'GTG',
+  'Storm on Request':     'SQU',
+  'Starry SKY':           'STS',
+  'Team Nemesis':         'NMSS',
+  'HiVE':                 'HIVE',
+  'Twisted Minds':        'TWIS',
+  'Bushido Wildcats':     'BW',
+  'noslack':              'SLCK',
+  'Joga Bonito':          'JB',
+  'S2G Esports':          'S2G',
+  'Vis':                  'VIS',
+  'Construction Workers': 'WORK',
+  'exhowl':               'HOWL',
+  'NATUS VINCERE':        'NAVI',
+  'The Myth of':          'MYTH',
+  'Virtus.pro':           'VP',
+  'ACEND Club':           'ACE',
+  'Team Vitality':        'VIT',
+  'S8UL':                 'S8UL',
 }
 
 function formatPlayerName(name, team) {

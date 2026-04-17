@@ -12,6 +12,8 @@ import { useState } from 'react'
 
 const JPEG_TEAMS = new Set(['afi', 'op'])   // times com .jpeg em vez de .png
 
+const ALL_FOLDERS = ['PAS', 'PGS', 'PEC']
+
 function buildCandidates(teamName, shortName, logoUrlProp) {
   if (!teamName) return []
 
@@ -23,9 +25,10 @@ function buildCandidates(teamName, shortName, logoUrlProp) {
     const upper = shortName.toUpperCase()
     if (upper.startsWith('PGS')) primaryFolder = 'PGS'
     else if (upper.startsWith('PAS') || upper.startsWith('PO')) primaryFolder = 'PAS'
+    else if (upper.startsWith('PEC')) primaryFolder = 'PEC'
   }
 
-  const ext = (folder) => JPEG_TEAMS.has(tag) ? 'jpeg' : 'png'
+  const ext = () => JPEG_TEAMS.has(tag) ? 'jpeg' : 'png'
 
   const candidates = []
 
@@ -33,20 +36,20 @@ function buildCandidates(teamName, shortName, logoUrlProp) {
 
   if (primaryFolder) {
     candidates.push(`/logos/${primaryFolder}/${tag}.webp`)
-    candidates.push(`/logos/${primaryFolder}/${tag}.${ext(primaryFolder)}`)
+    candidates.push(`/logos/${primaryFolder}/${tag}.${ext()}`)
   }
 
-  // Fallbacks nas outras pastas
-  for (const folder of ['PAS', 'PGS']) {
+  // Fallbacks em todas as pastas (PAS, PGS, PEC)
+  for (const folder of ALL_FOLDERS) {
     if (folder === primaryFolder) continue
     candidates.push(`/logos/${folder}/${tag}.webp`)
-    candidates.push(`/logos/${folder}/${tag}.${ext(folder)}`)
+    candidates.push(`/logos/${folder}/${tag}.${ext()}`)
   }
 
   // Fallback jpeg explícito se png falhar
   if (!JPEG_TEAMS.has(tag)) {
     if (primaryFolder) candidates.push(`/logos/${primaryFolder}/${tag}.jpeg`)
-    for (const folder of ['PAS', 'PGS']) {
+    for (const folder of ALL_FOLDERS) {
       if (folder === primaryFolder) continue
       candidates.push(`/logos/${folder}/${tag}.jpeg`)
     }
