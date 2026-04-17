@@ -143,7 +143,7 @@ function buildDateRange(stage) {
 
 const LOGO_CANDIDATES = {
   PGS: ['/logos/Tournaments/PGS.webp', '/logos/Tournaments/PGS.png'],
-  PAS: ['/logos/Tournaments/PAS.png'],
+  PAS: ['/logos/Tournaments/PASshort.png', '/logos/Tournaments/PAS.png'],
   PEC: ['/logos/Tournaments/PECshort.png'],
 }
 
