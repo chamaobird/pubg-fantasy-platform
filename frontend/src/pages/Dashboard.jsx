@@ -144,12 +144,14 @@ function buildDateRange(stage) {
 const LOGO_CANDIDATES = {
   PGS: ['/logos/Tournaments/PGS.webp', '/logos/Tournaments/PGS.png'],
   PAS: ['/logos/Tournaments/PAS.png'],
+  PEC: ['/logos/Tournaments/PECshort.png'],
 }
 
 function StageChampLogo({ champName = '', size = 28 }) {
   const upper = (champName || '').toUpperCase()
   const key = (upper.includes('PAS') || upper.includes('AMERICAS')) ? 'PAS'
     : (upper.includes('PGS') || upper.includes('GLOBAL SERIES') || upper.includes('PGC')) ? 'PGS'
+    : (upper.includes('PEC') || upper.includes('EMEA')) ? 'PEC'
     : null
   const candidates = key ? LOGO_CANDIDATES[key] : []
   const [idx, setIdx] = useState(0)
@@ -346,7 +348,7 @@ function PreviewCard({ s, champMap, navigate }) {
 
 // ── OpenCard — card grande para stages com lineup aberta ─────────────────────
 
-function OpenCard({ s, lineup, champMap, navigate }) {
+function OpenCard({ s, lineup, champMap, navigate, previewCount = 0, expanded = true, onToggle }) {
   const hasLineup = !!lineup
   const champ     = champMap[s.id]
   const dateLabel = buildDateLabel(s)
@@ -448,6 +450,150 @@ function OpenCard({ s, lineup, champMap, navigate }) {
           {hasLineup ? 'VER TORNEIO' : 'MONTAR LINEUP'}
         </Button>
       </div>
+
+      {/* Linha expand/collapse — só aparece se houver etapas em preview */}
+      {previewCount > 0 && (
+        <div style={{
+          flexBasis: '100%', width: '100%',
+          borderTop: '1px solid rgba(249,115,22,0.12)',
+          paddingTop: '10px', marginTop: '2px',
+        }}>
+          <button
+            onClick={e => { e.stopPropagation(); onToggle && onToggle() }}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: '7px',
+              color: 'var(--color-xama-muted)', fontSize: '12px',
+              fontWeight: 600, letterSpacing: '0.05em',
+              fontFamily: 'JetBrains Mono, monospace',
+              padding: '0', transition: 'color 0.15s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--color-xama-orange)'}
+            onMouseLeave={e => e.currentTarget.style.color = 'var(--color-xama-muted)'}
+          >
+            <span style={{ transition: 'transform 0.2s ease', display: 'inline-block', transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+            {expanded
+              ? 'Ocultar etapas seguintes'
+              : `Ver ${previewCount} etapa${previewCount > 1 ? 's' : ''} seguinte${previewCount > 1 ? 's' : ''}`}
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── LockedActiveCard — card grande para stage locked com dias em preview ──────
+
+function LockedActiveCard({ s, lineup, champMap, navigate, previewCount = 0, expanded = true, onToggle }) {
+  const champ     = champMap[s.id]
+  const dateLabel = buildDateLabel(s)
+  const hasLineup = !!lineup
+
+  return (
+    <div className="xama-open-card" style={{
+      background: 'var(--surface-1)',
+      border: '1px solid rgba(249,115,22,0.30)',
+      borderRadius: 'var(--radius-card)',
+      padding: '18px 22px',
+      position: 'relative', overflow: 'hidden',
+      display: 'flex', alignItems: 'center', gap: '22px',
+      flexWrap: 'wrap',
+    }}>
+      <div style={{
+        position: 'absolute', inset: 0,
+        background: 'radial-gradient(circle at 80% 50%, rgba(249,115,22,0.07) 0%, transparent 65%)',
+        pointerEvents: 'none',
+      }} />
+
+      {/* Coluna 1 — Logo */}
+      <div style={{
+        flexShrink: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        width: '108px', height: '108px',
+      }}>
+        <StageChampLogo champName={champ?.name} size={100} />
+      </div>
+
+      {/* Coluna 2 — Título + subtítulo */}
+      <div style={{ flex: 1, minWidth: '160px' }}>
+        <div style={{
+          fontSize: '26px', fontWeight: 700,
+          color: 'var(--color-xama-text)',
+          lineHeight: 1.15, letterSpacing: '-0.02em',
+          marginBottom: '6px',
+        }}>
+          {s.name}
+        </div>
+        <div style={{ fontSize: '12px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace', lineHeight: 1.5 }}>
+          {champ && <span style={{ color: 'rgba(249,115,22,0.7)', fontWeight: 600 }}>{champ.name}</span>}
+          {champ && dateLabel && <span style={{ margin: '0 5px', opacity: 0.4 }}>·</span>}
+          {dateLabel && <span>{dateLabel}</span>}
+        </div>
+      </div>
+
+      {/* Coluna 3 — Status + CTA */}
+      <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px' }}>
+        {/* Badge EM JOGO */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+          <span className="xama-pulse" style={{
+            width: '6px', height: '6px', borderRadius: '50%',
+            background: 'var(--color-xama-orange)', display: 'inline-block',
+          }} />
+          <span style={{
+            fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em',
+            color: 'var(--color-xama-orange)', textTransform: 'uppercase',
+            fontFamily: 'JetBrains Mono, monospace',
+          }}>EM JOGO</span>
+        </div>
+
+        {hasLineup && lineup.total_points != null && (
+          <span style={{
+            fontSize: '20px', fontWeight: 700,
+            color: 'var(--color-xama-orange)',
+            fontFamily: 'JetBrains Mono, monospace',
+          }}>{fmt1(lineup.total_points)} pts</span>
+        )}
+        {!hasLineup && (
+          <span style={{
+            fontSize: '11px', fontWeight: 700, letterSpacing: '0.06em',
+            padding: '3px 10px', borderRadius: '20px',
+            background: 'rgba(107,114,128,0.12)', border: '1px solid rgba(107,114,128,0.2)',
+            color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace',
+          }}>SEM LINEUP</span>
+        )}
+
+        <Button variant="primary" size="sm" onClick={() => navigate(`/tournament/${s.id}?tab=leaderboard`)}>
+          VER RESULTADO
+        </Button>
+      </div>
+
+      {/* Linha expand/collapse — só aparece se houver etapas em preview */}
+      {previewCount > 0 && (
+        <div style={{
+          flexBasis: '100%', width: '100%',
+          borderTop: '1px solid rgba(249,115,22,0.12)',
+          paddingTop: '10px', marginTop: '2px',
+        }}>
+          <button
+            onClick={e => { e.stopPropagation(); onToggle && onToggle() }}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: '7px',
+              color: 'var(--color-xama-muted)', fontSize: '12px',
+              fontWeight: 600, letterSpacing: '0.05em',
+              fontFamily: 'JetBrains Mono, monospace',
+              padding: '0', transition: 'color 0.15s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--color-xama-orange)'}
+            onMouseLeave={e => e.currentTarget.style.color = 'var(--color-xama-muted)'}
+          >
+            <span style={{ transition: 'transform 0.2s ease', display: 'inline-block', transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+            {expanded
+              ? 'Ocultar etapas seguintes'
+              : `Ver ${previewCount} etapa${previewCount > 1 ? 's' : ''} seguinte${previewCount > 1 ? 's' : ''}`}
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -459,11 +605,15 @@ export default function Dashboard() {
   const navigate  = useNavigate()
   const H = { Authorization: `Bearer ${token}` }
 
-  const [user,      setUser]      = useState(null)
-  const [stages,    setStages]    = useState([])
-  const [champMap,  setChampMap]  = useState({})
-  const [myLineups, setMyLineups] = useState({})
-  const [loading,   setLoading]   = useState(true)
+  const [user,           setUser]           = useState(null)
+  const [stages,         setStages]         = useState([])
+  const [champMap,       setChampMap]       = useState({})
+  const [myLineups,      setMyLineups]      = useState({})
+  const [loading,        setLoading]        = useState(true)
+  const [expandedChamps, setExpandedChamps] = useState({})
+
+  const toggleChamp = (champId) =>
+    setExpandedChamps(prev => ({ ...prev, [champId]: !(prev[champId] !== false) }))
 
   useEffect(() => {
     if (!token) return
@@ -521,13 +671,51 @@ export default function Dashboard() {
     return da - db
   })
 
-  const openStages    = useMemo(() => sortByDate(stages.filter(s => s.lineup_status === 'open')), [stages])
-  const previewStages = useMemo(() => sortByDate(stages.filter(s => s.lineup_status === 'preview')), [stages])
-  const closedStages  = useMemo(() => sortByDate(stages.filter(s => s.lineup_status === 'closed')), [stages])
-  const lockedStages  = useMemo(() => sortByDate(stages.filter(s => s.lineup_status === 'locked')), [stages])
+  const closedStages = useMemo(() => sortByDate(stages.filter(s => s.lineup_status === 'closed')), [stages])
 
-  // Seção 1 tem conteúdo se houver open ou preview
-  const hasActive = openStages.length > 0 || previewStages.length > 0
+  // Agrupa stages por campeonato para exibição hierárquica
+  const champGroups = useMemo(() => {
+    const groups = {}
+    stages.forEach(s => {
+      const c = champMap[s.id]
+      if (!c) return
+      const cid = c.id
+      if (!groups[cid]) groups[cid] = { champ: c, open: null, locked: null, previews: [], closeds: [] }
+      if (s.lineup_status === 'open')         groups[cid].open = s
+      else if (s.lineup_status === 'locked')  groups[cid].locked = s
+      else if (s.lineup_status === 'preview') groups[cid].previews.push(s)
+      else if (s.lineup_status === 'closed')  groups[cid].closeds.push(s)
+    })
+    Object.values(groups).forEach(g => {
+      g.previews = sortByDate(g.previews)
+    })
+    return groups
+  }, [stages, champMap])
+
+  // Campeonatos com stage "ativa": open, ou locked com previews filhos
+  const activeChampGroups = useMemo(() =>
+    Object.values(champGroups)
+      .filter(g => g.open || (g.locked && g.previews.length > 0))
+      .sort((a, b) => {
+        // open primeiro, depois locked
+        if (a.open && !b.open) return -1
+        if (!a.open && b.open) return 1
+        const sa = a.open || a.locked
+        const sb = b.open || b.locked
+        return new Date(sa?.start_date || '9999') - new Date(sb?.start_date || '9999')
+      }),
+    [champGroups]
+  )
+
+  // Locked sem preview filhos → vai para Resultados
+  const pureLockedStages = useMemo(() => {
+    const activeLockedIds = new Set(
+      activeChampGroups.filter(g => g.locked).map(g => g.locked.id)
+    )
+    return sortByDate(stages.filter(s => s.lineup_status === 'locked' && !activeLockedIds.has(s.id)))
+  }, [stages, activeChampGroups])
+
+  const hasActive = activeChampGroups.length > 0
 
   const displayName = user?.display_name || user?.username
     || (user?.email ? user.email.split('@')[0] : 'jogador')
@@ -558,7 +746,7 @@ export default function Dashboard() {
           </p>
         </div>
 
-        {/* ── SEÇÃO 1 — LINEUP ABERTA / EM PREVIEW ── */}
+        {/* ── SEÇÃO 1 — CAMPEONATOS ATIVOS ── */}
         {hasActive && (
           <div style={{ marginBottom: '48px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px' }}>
@@ -570,46 +758,61 @@ export default function Dashboard() {
                 fontSize: '16px', fontWeight: 700, padding: '2px 10px',
                 borderRadius: '20px', background: 'rgba(249,115,22,0.15)',
                 color: 'var(--color-xama-orange)', fontFamily: 'JetBrains Mono, monospace',
-              }}>{openStages.length + previewStages.length}</span>
+              }}>{activeChampGroups.length}</span>
             </div>
 
-            {/* Cards open — grandes, em grid */}
-            {openStages.length > 0 && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
-                {openStages.map(s => (
-                  <OpenCard
-                    key={s.id}
-                    s={s}
-                    lineup={myLineups[s.id]}
-                    champMap={champMap}
-                    navigate={navigate}
-                  />
-                ))}
-              </div>
-            )}
+            {/* Um bloco por campeonato ativo */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              {activeChampGroups.map(g => {
+                const isExpanded = expandedChamps[g.champ.id] !== false  // default: expanded
+                const toggle = () => toggleChamp(g.champ.id)
+                return (
+                  <div key={g.champ.id}>
+                    {/* Card principal — grande */}
+                    {g.open && (
+                      <OpenCard
+                        s={g.open}
+                        lineup={myLineups[g.open.id]}
+                        champMap={champMap}
+                        navigate={navigate}
+                        previewCount={g.previews.length}
+                        expanded={isExpanded}
+                        onToggle={toggle}
+                      />
+                    )}
+                    {!g.open && g.locked && (
+                      <LockedActiveCard
+                        s={g.locked}
+                        lineup={myLineups[g.locked.id]}
+                        champMap={champMap}
+                        navigate={navigate}
+                        previewCount={g.previews.length}
+                        expanded={isExpanded}
+                        onToggle={toggle}
+                      />
+                    )}
 
-            {/* Cards preview — compactos e recuados */}
-            {previewStages.length > 0 && (
-              <div style={{ marginLeft: 'clamp(32px, 15%, 120px)', marginTop: '10px' }}>
-                <div style={{
-                  paddingLeft: '16px',
-                  paddingTop: '10px',
-                  paddingBottom: '4px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '8px',
-                }}>
-                  {previewStages.map(s => (
-                    <PreviewCard
-                      key={s.id}
-                      s={s}
-                      champMap={champMap}
-                      navigate={navigate}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
+                    {/* Cards preview — compactos e recuados, colapsáveis */}
+                    {g.previews.length > 0 && isExpanded && (
+                      <div style={{ marginLeft: 'clamp(32px, 15%, 120px)', marginTop: '10px' }}>
+                        <div style={{
+                          paddingLeft: '16px',
+                          paddingTop: '10px',
+                          paddingBottom: '4px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '8px',
+                        }}>
+                          {g.previews.map(s => (
+                            <PreviewCard key={s.id} s={s} champMap={champMap} navigate={navigate} />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
           </div>
         )}
 
@@ -629,11 +832,11 @@ export default function Dashboard() {
           </CollapseSection>
         )}
 
-        {/* ── SEÇÃO 3 — RESULTADOS (locked) ── */}
-        {lockedStages.length > 0 && (
-          <CollapseSection title="Resultados" icon="📊" count={lockedStages.length} defaultOpen={false}>
+        {/* ── SEÇÃO 3 — RESULTADOS (locked sem previews filhos) ── */}
+        {pureLockedStages.length > 0 && (
+          <CollapseSection title="Resultados" icon="📊" count={pureLockedStages.length} defaultOpen={false}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {lockedStages.map(s => {
+              {pureLockedStages.map(s => {
                 const lineup = myLineups[s.id]
                 return (
                   <StageRow
