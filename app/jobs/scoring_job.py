@@ -16,7 +16,7 @@ Nunca lança exceção — erros são logados para não derrubar o scheduler.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 
@@ -49,7 +49,8 @@ def run_scoring_job() -> None:
 
 
 def _process_pending_scoring(db: Session, now: datetime) -> None:
-    today = now.date()
+    today     = now.date()
+    yesterday = today - timedelta(days=1)
 
     # Stages travadas hoje
     locked_stages = (
@@ -59,11 +60,13 @@ def _process_pending_scoring(db: Session, now: datetime) -> None:
     )
 
     for stage in locked_stages:
+        # Aceita date == hoje OU ontem — cobre partidas noturnas que
+        # começam antes de meia-noite UTC e terminam no dia seguinte
         stage_day = (
             db.query(StageDay)
             .filter(
                 StageDay.stage_id == stage.id,
-                StageDay.date == today,
+                StageDay.date.in_([today, yesterday]),
             )
             .first()
         )
