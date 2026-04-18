@@ -134,6 +134,7 @@ POST  /admin/stages/{id}/score-day
 POST  /admin/stages/{id}/rescore
 POST  /admin/stages/{id}/force-status          ← aceita: closed | open | locked | preview
 POST  /admin/stages/{id}/notify-lineup-open    ← reenvio manual de email "lineup aberta"
+POST  /admin/stages/{id}/extend-deadline       ← body: {"minutes": int} — estende lineup_close_at em N minutos
 PUT   /admin/stage-days/{day_id}/match-schedule ← salvar JSON schedule de matches do dia
 ```
 
@@ -158,12 +159,15 @@ PUT   /admin/stage-days/{day_id}/match-schedule ← salvar JSON schedule de matc
   - 3 StageDays: 22 (D1/17abr), 23 (D2/18abr), 24 (D3/19abr)
   - price_min=12, price_max=35, newcomer_cost=15, pricing_distribution=linear (sem aspas)
   - Stage 21: lineup_status=**locked** — 64 jogadores (16 times), 5 partidas importadas
-  - Stage 22: lineup_status=**open** — 64 jogadores (8 D2 originais + 8 rebaixados D1), pricing calculado
-  - Stage 23: lineup_status=**preview** — 20 jogadores (5 times: VPX, RL, GN, PBRU, EVER), todos a 15.00
-  - Persons PEC: ids 213–256 (D1 novos), 257–308 (D2+D3). Times PGS reutilizados: NAVI(63-66), VIT(95-98), VP(99-102), S2G(71-74)
-  - Scripts: `scripts/pubg/import_pec_day.py`, `scripts/pubg/insert_pec_d2d3_roster.py`, `scripts/pubg/open_pec_d2.py`
-  - Import D2: `python scripts/pubg/import_pec_day.py --stage-id 22 --stage-day-id 23 --watch 5`
-  - Import D3: `python scripts/pubg/import_pec_day.py --stage-id 23 --stage-day-id 24 --watch 5`
+  - Stage 22: lineup_status=**locked** — 5 partidas, 63/64 resolvidos (Blazor- intencional PENDING/sub GTG_anybodezz)
+  - Stage 23: lineup_status=**open** — 64 jogadores (16 times: 5 D3-originais + 11 vindos D2), pricing por performance D2
+    - 5 originais (EVER/GN/PBRU/RL/VPX): custo 15 (sem historico D1)
+    - 11 D2 promotes: custo 8–22 conforme pts D2 (>=100=22, >=70=18, >=50=14, >=30=11, <30=8)
+    - 4 PENDING: BR1GHTS1D3(EVER), Paidaros2(GN), Sallen(PBRU), annico(VPX) — resolver apos 1a partida D3
+    - Extras fora do roster (disponiveis para sub): rinazxc, Acaliptos, quintx, Mikzenn
+  - Persons PEC: ids 213–310 (D1 novos), 257–314 (D2+D3). Times PGS reutilizados: NAVI(63-66), VIT(95-98), VP(99-102), S2G(71-74)
+  - Scripts: `scripts/pubg/import_pec_day.py`, `scripts/pubg/insert_pec_d2d3_roster.py`, `scripts/pubg/insert_pec_d2_to_d3_roster.py`, `scripts/pubg/open_pec_d2.py`
+  - Import D3: `python scripts/pubg/import_pec_day.py --stage-id 23 --stage-day-id 24`
 
 ## Notas importantes
 - `pricing_n_matches`: campo DEPRECATED no modelo Stage

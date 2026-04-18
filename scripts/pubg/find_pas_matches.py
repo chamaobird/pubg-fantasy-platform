@@ -36,6 +36,8 @@ import json
 import os
 import sys
 import time
+sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+sys.stderr.reconfigure(encoding='utf-8', errors='replace')
 from collections import Counter
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
@@ -73,11 +75,11 @@ engine = create_engine(DATABASE_URL)
 _last_request_at = 0.0
 
 def _throttle():
-    """Garante no mínimo 0.7s entre requests (respeita ~10 req/min do plano free)."""
+    """Garante no mínimo 6.5s entre requests (~9 req/min, abaixo do limite de 10/min)."""
     global _last_request_at
     elapsed = time.time() - _last_request_at
-    if elapsed < 0.7:
-        time.sleep(0.7 - elapsed)
+    if elapsed < 6.5:
+        time.sleep(6.5 - elapsed)
     _last_request_at = time.time()
 
 
@@ -86,8 +88,9 @@ def api_get(url: str, params: dict = None) -> dict:
     _throttle()
     resp = requests.get(url, headers=HEADERS, params=params, timeout=15)
     if resp.status_code == 429:
-        print("  ⏳ Rate limit — aguardando 10s...")
-        time.sleep(10)
+        print("  [rate limit] aguardando 65s...")
+        time.sleep(65)
+        _throttle()
         resp = requests.get(url, headers=HEADERS, params=params, timeout=15)
     resp.raise_for_status()
     return resp.json()

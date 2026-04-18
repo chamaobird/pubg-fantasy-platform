@@ -245,6 +245,12 @@ preço = linear(ppm_ponderado, ppm_min, ppm_max, price_min, price_max)
 | PEC D1 sumindo do Dashboard quando D2 abriu | `pureLockedStages` excluía todos os locked em `activeChampGroups` | Excluir só locked sem `open` irmão |
 | PEC D1 mostrando "EM JOGO" após D2 abrir | `hasLive` não verificava presença de `open` | Adicionar `!hasOpen` à condição |
 | Logo PAS virou PASshort nos tournaments | TournamentHeader alterado junto com Dashboard | Reverter — short só no Dashboard/Championships |
+| Dropdown branco-sobre-branco no AdminOpsPanel | select com background transparente; OS renderiza opcoes com fundo branco | Usar background solido (#1a1f2e) + colorScheme: dark |
+| Resultados mostrando dia mais antigo primeiro | pureLockedStages nao ordenava desc | Adicionar desc=true ao sortByDate |
+| 32 jogadores D2 PEC sem stats | 32 accounts com PENDING_ bloqueavam match_stat | Fetch participants API, normalizar aliases, UPDATE player_account + force_reprocess=True |
+| Sequencias PostgreSQL dessincronizadas | INSERTs diretos via psql nao avancam sequences SQLAlchemy | setval(pg_get_serial_sequence(table,id), MAX(id)) antes de insercoes em lote |
+| import_pec_day.py reimportava todos os matches | known_ids vazio a cada execucao | Importar IDs especificos via import_stage_matches() ou inicializar known_ids do banco |
+| find_pas_matches.py falhava com UnicodeError | Faltava sys.stdout.reconfigure(encoding=utf-8) | Adicionado no topo do script |
 
 ---
 
@@ -256,6 +262,10 @@ preço = linear(ppm_ponderado, ppm_min, ppm_max, price_min, price_max)
 - [ ] **Múltiplos championships simultâneos**: comportamento do Dashboard testado (PAS + PEC), mas pode ter edge cases adicionais
 - [ ] **Pricing inter-championships**: como o `tier_weight` deve variar entre PAS e PEC? Atualmente ambos a 1.0
 - [ ] **Encerramento de um championship completo**: quando todas as stages ficam `locked`, o championship some da seção ativa — comportamento correto?
+- [ ] **Jogador extra (5o integrante)**: hoje removemos do roster manualmente; no futuro, campo `is_substitute` em Roster para filtrar no lineup builder sem remover do DB
+- [ ] **Historico de aliases**: nomes mudam entre campeonatos (sniipZEKO -> ZEKO, MAXXXXXXXXX- -> MAXXX); nao ha registro de que sao o mesmo jogador alem do account_id
+- [ ] **Validacao de roster vs fonte oficial**: hoje comparamos manualmente com Wasdefy; no futuro, endpoint que compara roster DB com lista de inscricao do torneio
+- [x] **Reconciliacao de PENDING_ apos D2**: fluxo documentado e executado com sucesso no PEC D2 (23/32 automatico, 6 manual, 3 intencional)
 - [ ] **Erro de import `skipped` misterioso**: `18ad5b28` foi skipped na primeira rodada e só foi pego na segunda — investigar se é race condition ou match incompleto
 - [ ] **Shard discovery automático**: ao criar championship, chamar API para detectar shard automaticamente em vez de exigir input manual
 - [ ] **Checklist pre-event automatizado**: script que valida antes do lineup abrir: todos os jogadores têm account cadastrado? todos os times têm logo? tournament_id retorna matches?
@@ -353,3 +363,52 @@ Baseado nos erros que cometemos, esta é a ordem correta de operações antes de
 [ ] 20. Setar lineup_open_at e lineup_close_at do próximo stage
 [ ] 21. Abrir próximo stage
 ```
+
+---
+
+## 8. Padroes Descobertos no PEC D2/D3 (18/04/2026)
+
+### Jogador Extra (5o integrante)
+
+Times inscritos em torneios frequentemente tem 5 jogadores, sendo 1 reserva. O padrao correto:
+- Os 4 titulares entram no **Roster** da stage (aparecem no lineup builder)
+- O 5o jogador existe como **Person + PlayerAccount** no banco, mas **NAO entra no Roster**
+- Se houver substituicao: adicionar ao Roster da stage corrente e remover o substituido
+
+Identificacao: a fonte oficial (Wasdefy, site do torneio) lista os 5; identificar qual e o extra
+por contexto (geralmente o ultimo listado, ou o que fica de fora das partidas).
+
+### Pricing por Performance para Dias Seguintes
+
+Para stages D2/D3 onde os jogadores tem historico do dia anterior:
+
+Times sem historico (ex: D3 originais que nao jogaram D1/D2 no sistema) recebem custo neutro (15.0).
+
+### Aliases Oficiais via PUBG API
+
+Nomes de jogadores com traco  ou sufixos especiais costumam ser editados:
+-  ->   
+-  -> 
+-  -> 
+-  -> 
+
+**Regra:** o nome retornado pela PUBG API no  dos participants e o nome oficial.
+Sempre atualizar  e  para o valor da API apos o primeiro import.
+
+### Correto Fluxo de Import quando Matches ja Existem no Tournament
+
+O endpoint  retorna TODOS os matches do evento (D1+D2+D3 juntos).
+Para importar apenas matches de um dia especifico, usar a funcao diretamente com os IDs filtrados:
+
+
+
+O script  assume known_ids vazio e tenta importar tudo,
+causando UniqueViolation se matches ja existem. Correcao futura: inicializar known_ids do banco.
+
+### Sequencias PostgreSQL Dessincronizadas
+
+Insercoes via psql direto (ou migrations com IDs explicitos) podem deixar sequences para tras.
+Sintoma: .
+Prevencao: rodar antes de qualquer insercao em lote via SQLAlchemy:
+
+

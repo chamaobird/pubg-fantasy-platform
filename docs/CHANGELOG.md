@@ -3,37 +3,82 @@
 
 ---
 
-## Estado Atual — 18/04/2026 (dia das partidas PAS D2 + PEC D2)
+## Estado Atual — 18/04/2026 (noite) — PEC D2 encerrado, D3 aberto; PAS D2 em andamento
 
 ### PEC Spring Playoffs 1 — estado atual
-- **Stage 21 (D1):** `locked` — 5 partidas importadas, 64/64 jogadores resolvidos ✅
-- **Stage 22 (D2):** `open` — 64 jogadores (32 D2 originais + 32 rebaixados do D1), pricing calculado ✅
-- **Stage 23 (D3):** `preview` — 20 jogadores (5 times), todos a 15.00 ✅
+- **Stage 21 (D1):** `locked` — 5 partidas, 64/64 jogadores resolvidos
+- **Stage 22 (D2):** `locked` — 5 partidas, 63/64 resolvidos (Blazor- substituido por GTG_anybodezz, intencional), scoring completo
+- **Stage 23 (D3):** `open` — 64 jogadores (16 times: 5 originais + 11 do D2), lineup aberto
+  - 4 PENDING a resolver na 1a partida: BR1GHTS1D3, Paidaros2, Sallen, annico
 
 ### PAS Playoffs 1 — estado atual
-- **Stage 15 (D1):** `locked` — partidas importadas, encerrado
-- **Stage 16 (D2):** `open` — 8 times, 32 jogadores (fl8nkr adicionado) — partidas hoje
+- **Stage 15 (D1):** `locked` — encerrado
+- **Stage 16 (D2):** `open` — 8 times, 32 jogadores (fl8nkr adicionado) — partidas hoje a noite
 - **Stage 17 (D3):** `preview` — 5 times, 20 jogadores
 
-### Próximas tarefas operacionais
-- **PAS D2 (18/04 tarde):** fechar lineup às 7pm EDT → importar partidas → scoring → verificar PENDING accounts
-- **PEC D2 (18/04 tarde):** importar partidas → `python scripts/pubg/import_pec_day.py --stage-id 22 --stage-day-id 23 --watch 5`
-- **PEC D2 fim:** identificar rebaixados → adicionar ao Stage 23 → pricing → abrir Stage 23
-- **Accounts PENDING PAS D2:** após import, rodar script para atualizar account_ids dos jogadores que não jogaram D1
+### Proximas tarefas operacionais
+- **PEC D3 (19/04):** importar partidas -> Recalcular Stats -> Rescore Completo -> resolver 4 PENDING
+  - `python scripts/pubg/import_pec_day.py --stage-id 23 --stage-day-id 24`
+- **PAS D2 (18/04 noite):** fechar lineup 23h UTC -> importar -> scoring -> resolver PENDING (Gustav, fl8nkr)
+- **PAS D2 fim:** identificar rebaixados -> adicionar ao Stage 17 -> pricing -> abrir Stage 17
 
 ### Backlog imediato
-1. Corrigir comentário `scoring.py` linha ~14: `×1.25` → `×1.30`
+1. Corrigir comentario `scoring.py` linha ~14: x1.25 -> x1.30
 2. **Mobile Fase 2** — LineupBuilder cards, tabelas responsivas, navbar mobile
-3. **Debt técnico UI restante:**
-   - Cores Categoria B sem token: `#0f1219`, `#1a1f2e`, `#2a3046` — ~30 ocorrências em index.css e JSX
-   - LandingPage: cores de paleta própria (`#08090d`, `#f1f5f9`, `#475569`, `#e2e8f0`) — não substituir por tokens
+3. **Debt tecnico UI restante:**
+   - Cores Categoria B sem token: `#0f1219`, `#1a1f2e`, `#2a3046` — ~30 ocorrencias em index.css e JSX
+   - LandingPage: cores de paleta propria (`#08090d`, `#f1f5f9`, `#475569`, `#e2e8f0`) — nao substituir por tokens
 4. **Person aliases**: criar tabela `person_alias` ou coluna JSON para registrar nomes alternativos (ex: DadBuff = Palecks)
-5. **Reconciliação PENDING_:** script para atualizar `account_id` real após 1ª partida dos jogadores PEC
+5. **Reconciliacao PENDING_ automatica:** script que roda apos import e resolve os 4 PEC D3 + Gustav/fl8nkr PAS
 
-### Skills disponíveis
-- `frontend-design` já ativa em `/mnt/skills/public/frontend-design` — usar em todo trabalho de UI/mobile
-
+### Skills disponiveis
+- `frontend-design` ja ativa em `/mnt/skills/public/frontend-design` — usar em todo trabalho de UI/mobile
 ---
+
+## Sessão 18/04/2026 (noite) — PEC D2 completo + D3 abertura
+
+### PEC D2 — Import, Resolucao de Accounts e Scoring
+- **5 partidas importadas** (stage_id=22, stage_day_id=23): matches 94-96 (manha) + 100-101 (tarde)
+- **32 jogadores D2 originais com PENDING_** identificados e resolvidos:
+  - 23 resolvidos automaticamente via normalizacao de alias
+  - 6 resolvidos manualmente com matchs de confianca alta
+  - GTG_Blazor: intencional PENDING (substituido por GTG_anybodezz — sera resolvido se jogar D3)
+  - STS_N1tro = TOP4IK_PB; STS_Momme = KnorkiS (confirmado pelo usuario)
+- **force_reprocess=True** nos 3 matches iniciais apos resolucao de accounts
+- **Recalcular Stats:** 63 pessoas, 313 match_stats (5 partidas)
+- **Rescore:** 2 lineups pontuados
+- Fluxo minimo por ciclo: Rescore Completo (so pontos managers) | + Recalcular Stats (stats jogadores tambem)
+
+### PEC D2 — Transicao para D3
+- Top 5 que avancam: PGG, ACEND Club, BORZ, Starry SKY, Bushido Wildcats
+- 11 times para o D3: TMO, SQU, NOT, YO, S2G, WORK, BAL, GTG, VIT, HOWL, JB
+- **Script novo:** `scripts/pubg/insert_pec_d2_to_d3_roster.py` — copia 11 times D2 para Stage 23 com pricing por performance
+  - Pricing por pts D2: >=100pts=22, >=70=18, >=50=14, >=30=11, <30=8
+  - 44 jogadores adicionados ao Stage 23
+- **Stage 22:** fechada (`locked`)
+- **Stage 23:** aberta (`open`) com 64 jogadores (16 times x 4)
+
+### PEC D3 — Ajuste de Roster (5 times originais)
+- Validacao contra Wasdefy revelou diferencas entre dados iniciais e roster oficial:
+  - **EVER:** youngwhitetrash = fantasia (mesmo jogador); rinazxc movido para “5o extra” fora do roster
+  - **GN:** Acaliptos movido para extra; Paidaros2 adicionado
+  - **PBRU:** quintx movido para extra; Sallen adicionado
+  - **RL:** sniipZEKO = ZEKO (mesmo jogador confirmado)
+  - **VPX:** Mikzenn movido para extra; annico adicionado
+- **10 aliases atualizados** em Person.display_name + PlayerAccount.alias:
+  - fantasia, saintxd, IZIO, MAXXX, F1Nee, Nabat, karxx, DYNNO, ZEKO, Blissed
+- **4 novos jogadores criados** (Person + PENDING_ account + Roster D3):
+  - BR1GHTS1D3 (EVER), Paidaros2 (GN), Sallen (PBRU), annico (VPX)
+- **4 extras removidos do roster D3** (ficam como Person/account para sub): rinazxc, Acaliptos, quintx, Mikzenn
+- Correcao de sequencias PostgreSQL dessincronizadas (`setval` em person, player_account, roster)
+
+### Aprendizado chave desta sessao
+- Nomes com traco `-` (DYNNO-, F1Nee-, etc.) costumam ser editados na PUBG API — sempre usar versao da API como oficial
+- 5o jogador de cada time = “extra” para substituicao: existe como Person/account mas NAO entra no Roster da stage
+- Sequencias PostgreSQL podem desincronizar quando insercoes sao feitas fora do SQLAlchemy (psql direto) — rodar `setval` preventivamente antes de insercoes em lote
+- `import_pec_day.py` tenta reimportar todos os matches do tournament — usar import direto por IDs especificos quando quiser so os novos
+- find_pas_matches.py nao funcionava no PEC por falta de `sys.stdout.reconfigure` e por usar shard errado (steam vs pc-tournament)
+
 
 ## Sessão 18/04/2026 — PAS D2: infra de automação + fl8nkr + horários corrigidos
 

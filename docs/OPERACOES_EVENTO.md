@@ -187,3 +187,76 @@ POST /admin/stages/{stage_id}/force-status
 | 19h30            | 22h30     |
 | **20h00**        | **23h00** |
 | 21h00            | 00h00+1   |
+
+
+---
+
+## PEC Spring Playoffs 1 (referencia)
+
+### Stages e IDs
+
+| Stage ID | Nome               | StageDay ID | Status       |
+|----------|--------------------|-------------|--------------|
+| **21**   | Dia 1 (17/04)      | 22          | locked       |
+| **22**   | Dia 2 (18/04)      | 23          | locked       |
+| **23**   | Dia 3 (19/04)      | 24          | open         |
+
+Tournament PUBG API: `eu-pecs26`
+
+### Import de partidas PEC
+
+```bash
+python scripts/pubg/import_pec_day.py --stage-id 23 --stage-day-id 24
+python scripts/pubg/import_pec_day.py --stage-id 23 --stage-day-id 24 --watch 5
+```
+
+ATENCAO: o script tenta importar todos os matches do tournament. Se der UniqueViolation,
+importar IDs especificos diretamente (ver AUTOMATION_LEARNINGS.md secao 8).
+
+### Ciclo por partida (D3)
+
+Minimo (so pontos dos managers):
+1. Importar partida
+2. POST /admin/stages/23/rescore
+
+Completo (pontos + stats de jogadores):
+1. Importar partida
+2. Recalcular Stats (AdminOpsPanel)
+3. POST /admin/stages/23/rescore
+4. POST /admin/stages/23/backfill-stats
+
+### Contas PENDING no D3
+
+4 jogadores com PENDING_ a resolver apos a 1a partida:
+- BR1GHTS1D3 (Everlong)
+- Paidaros2 (GoNext Esports)
+- Sallen (PBRU)
+- annico (Vuptrox)
+
+Rodar reconciliacao igual ao D2: buscar participants da partida na API, identificar aliases, UPDATE player_account.
+
+### Substituto GTG Blazor-
+
+Blazor- foi substituido por GTG_anybodezz. Se jogar no D3, sera skip=1 no import.
+Para resolver: adicionar GTG_anybodezz como novo Person + account + roster antes do import.
+
+---
+
+## Fluxo generico de transicao entre dias
+
+```
+[Fim do dia N]
+1. Identificar X piores times (soma de pontos do time na stage)
+2. Copiar jogadores para stage D+1 (Roster com pricing por performance)
+3. Verificar PENDING: SELECT pa.account_id FROM roster r
+   JOIN person p ON r.person_id = p.id
+   JOIN player_account pa ON pa.person_id = p.id
+   WHERE r.stage_id = <D+1> AND pa.account_id LIKE 'PENDING%'
+4. POST /admin/pricing/stages/<id>/recalculate-pricing
+5. POST /admin/stages/<id>/force-status { "status": "open" }
+
+[Durante/apos partidas]
+6. Importar partidas
+7. POST /admin/stages/<id>/rescore
+8. POST /admin/stages/<id>/backfill-stats
+```
