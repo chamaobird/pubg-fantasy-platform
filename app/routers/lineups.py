@@ -23,8 +23,8 @@ import logging
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, field_validator
-from sqlalchemy.orm import Session
+from pydantic import BaseModel, field_validator, model_validator
+from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
 from app.dependencies import get_current_user, require_admin
@@ -79,8 +79,27 @@ class LineupPlayerOut(BaseModel):
     is_captain:    bool
     locked_cost:   Optional[int]
     points_earned: Optional[float]
+    person_name:   Optional[str] = None
+    team_name:     Optional[str] = None
 
     model_config = {"from_attributes": True}
+
+    @model_validator(mode='before')
+    @classmethod
+    def _enrich_from_roster(cls, v):
+        """Popula person_name e team_name a partir da relação ORM roster → person."""
+        if not hasattr(v, 'roster') or v.roster is None:
+            return v
+        roster = v.roster
+        try:
+            object.__setattr__(v, 'person_name', roster.person.display_name if roster.person else None)
+        except Exception:
+            pass
+        try:
+            object.__setattr__(v, 'team_name', roster.team_name)
+        except Exception:
+            pass
+        return v
 
 
 class LineupOut(BaseModel):
@@ -144,6 +163,11 @@ def get_my_lineup(
 ):
     lineup = (
         db.query(Lineup)
+        .options(
+            selectinload(Lineup.players)
+            .selectinload("roster")
+            .selectinload("person")
+        )
         .filter(
             Lineup.user_id      == str(current_user.id),
             Lineup.stage_day_id == stage_day_id,
@@ -171,6 +195,11 @@ def get_my_lineups_for_stage(
     lineups = (
         db.query(Lineup)
         .join(StageDay, Lineup.stage_day_id == StageDay.id)
+        .options(
+            selectinload(Lineup.players)
+            .selectinload("roster")
+            .selectinload("person")
+        )
         .filter(
             StageDay.stage_id == stage_id,
             Lineup.user_id    == str(current_user.id),
