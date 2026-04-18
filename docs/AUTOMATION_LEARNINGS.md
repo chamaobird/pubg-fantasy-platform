@@ -1,5 +1,6 @@
 # Learnings — Automação de Championships
 > Documento de trabalho. Iniciado em 17/04/2026 durante PEC Spring Playoffs 1 + PAS Playoffs 1.
+> Atualizado em 17/04/2026 após encerramento do PAS Playoffs Dia 1.
 > **Status:** em progresso — será finalizado ao término das playoffs.
 
 ---
@@ -7,7 +8,7 @@
 ## Contexto
 
 Primeira vez que operamos dois championships simultâneos com shards diferentes:
-- **PAS Playoffs 1** — shard `steam`, torneio regional, stages 15/16/17
+- **PAS Playoffs 1** — shard `pc-tournament`, torneio esports, stages 15/16/17 (**corrigido**: era `steam` no setup inicial — ver bug log)
 - **PEC Spring Playoffs 1** — shard `pc-tournament`, torneio esports, stages 21/22/23
 
 O ciclo completo (setup → população → import → pricing → abertura → encerramento) foi executado manualmente e revelou padrões e fricções que guiarão a automação futura.
@@ -52,9 +53,18 @@ PREVIEW → OPEN → LOCKED → (aparece em Resultados)
 - `tier_weight` do championship afeta o peso das partidas no pricing futuro
 
 **Fonte de verdade para `shard`:**
-- Torneios regionais (PAS, PAS Americas, PAS EMEA): `steam`
-- Torneios esports oficiais (PGS, PEC, PGC): `pc-tournament`
-- Confirmar via endpoint: `GET /tournaments/{tournament_id}` → `data.relationships.matches.data[0]` → fetch match → campo `data.attributes.shardId`
+- ~~Torneios regionais (PAS, PAS Americas, PAS EMEA): `steam`~~ **ERRADO** — ver abaixo
+- **REGRA CORRETA:** qualquer torneio acessível via `GET /tournaments/{id}` na PUBG API usa `pc-tournament`
+- Torneios `steam` são exclusivamente partidas públicas ranqueadas/casual
+- Torneios esports oficiais **e regionais** (PGS, PEC, PGC, PAS, FACEIT, etc.): `pc-tournament`
+- **Sempre confirmar antes de criar o championship:**
+  ```
+  GET /tournaments/{tournament_id}
+  → data.relationships.matches.data[0].id  (pegar um match_id)
+  GET /pc-tournament/matches/{match_id}    (confirmar que retorna 200)
+  GET /steam/matches/{match_id}            (deve retornar 404 se for pc-tournament)
+  ```
+- Se o endpoint `/tournaments/{id}` retorna os matches → o shard é `pc-tournament`, sem exceção
 
 ---
 
@@ -74,6 +84,25 @@ PREVIEW → OPEN → LOCKED → (aparece em Resultados)
 **Padrão descoberto:**
 - Criar roster com `PENDING_<nome>` antes do torneio funciona bem
 - Após a primeira partida: rodar reconciliação para substituir `PENDING_` pelo `account_id` real
+
+**Aliases e nomes in-game divergem frequentemente:**
+
+Times que rebranding/renomeação entre campeonatos é comum. Exemplos do PAS D1:
+| Nome no roster | Nome real in-game (PUBG API) | Ação necessária |
+|---|---|---|
+| LB_andriu- | LxB_andreww | Novo account_id |
+| LB_AleeRv | LxB_arv10 | Novo account_id |
+| NA_ega | NA_Poonage | Novo account_id |
+| NA_Balefrost | NA_xxxxxxxxxppppp | Novo account_id |
+| X10_kl4uZeera | X10_Sukehiro-- | Novo account_id |
+| DUEL_Iroh | (não jogou — substituído por DUEL_Sharpshot4K) | Novo person + account |
+
+**Times sul-americanos:** costumam ter accounts Steam no DB (histórico PGS). Para tournaments `pc-tournament`, precisam de account_id separado com `shard='pc-tournament'`. O import resolve automaticamente quem já tem account de torneio cadastrado — os sem account viram `skip=1` e precisam de reconciliação manual.
+
+**Fluxo de reconciliação após skip:**
+1. Identificar `account_id` dos não-resolvidos via PUBG API (buscar pelo participant do torneio)
+2. `INSERT INTO player_account (person_id, account_id, shard, alias)` para cada um
+3. Rodar `reprocess_match` com `force_reprocess=True` para reprocessar os matches com skip
 
 ---
 
@@ -112,25 +141,64 @@ python scripts/pubg/import_pec_day.py --stage-id <X> --stage-day-id <Y> --watch 
 | D2 (18/04) | 22 | 23 | eu-pecs26 |
 | D3 (19/04) | 23 | 24 | eu-pecs26 |
 
+**Mapeamento PAS Playoffs 1 (referência):**
+| Dia | stage_id | stage_day_id | tournament_id | Horário início |
+|---|---|---|---|---|
+| D1 (17/04) | 15 | 16 | am-pas126 | ~23:00 UTC (20h BRT) |
+| D2 (18/04) | 16 | 17 | am-pas126 | 23:00 UTC (20h BRT) |
+| D3 (19/04) | 17 | 18 | am-pas126 | 23:00 UTC (20h BRT) |
+
+**Descoberta do tournament_id:**
+- O endpoint `GET /tournaments/{id}` é a forma confiável de obter match IDs
+- Para descobrir o ID de um torneio desconhecido: tentar variações do padrão `{region}-{nome}{ano}` (ex: `am-pas126`, `eu-pecs26`)
+- Alternativa: buscar no histórico de partidas dos jogadores conhecidos
+
 **Crítico:**
 - Um match pode aparecer na API antes de estar finalizado — o import pode retornar `pts=0` e status `skipped` → re-rodar após o término resolve
-- A PUBG API acumula todos os matches do torneio no mesmo `tournament_id` — o script filtra por `known_ids` para não reimportar
+- A PUBG API acumula todos os matches do torneio no mesmo `tournament_id` — filtrar por `known_ids` para não reimportar
 - Partidas com `force_reprocess=False` são ignoradas se já importadas — usar `True` apenas para correções
+- **Rate limit:** PUBG API = 10 req/min. Throttle de 6.5s entre requests (9 req/min) é seguro. Throttle de 0.7s causa HTTP 429
 
 **Encoding (Windows):**
-- Caracteres especiais em strings de print (`→`, `──`) causam `UnicodeEncodeError` no Windows cp1252
-- Solução: evitar caracteres fora do ASCII em scripts Python destinados a execução local
+- Caracteres especiais em strings de print (`->`, emojis, `──`) causam `UnicodeEncodeError` no Windows cp1252
+- Solução: evitar caracteres fora do ASCII em scripts Python, ou rodar com `PYTHONIOENCODING=utf-8`
 
 ---
 
 ### Fase E — Transição entre Dias (fim de cada dia)
 
 **O que fazer:**
-1. Verificar se todos os matches foram importados
-2. Identificar os N times rebaixados (piores por pontuação total)
-3. Adicionar esses times ao roster da próxima stage (persons já existem)
-4. Rodar pricing na próxima stage
-5. Abrir a próxima stage (`lineup_status = 'open'`)
+1. Verificar `ok=64 skip=0` em todos os matches importados
+2. Rodar scoring manual se o scoring job não disparou (partidas noturnas — ver bug log)
+3. Identificar os N times rebaixados (piores por pontuação total)
+4. Copiar roster dos times rebaixados da stage anterior para a próxima stage
+5. **Revisar accounts dos jogadores que vão ao próximo dia** (ver checklist abaixo)
+6. Marcar substitutos como `is_available=False` no roster do próximo dia
+7. Rodar pricing na próxima stage
+8. Abrir a próxima stage (`lineup_status = 'open'`)
+9. Fechar/trancar a stage anterior (`lineup_status = 'locked'`)
+
+**Checklist pré-D2 — Revisão de accounts:**
+```python
+# Para cada time rebaixado, verificar:
+# 1. Todos os jogadores têm account pc-tournament cadastrado?
+# 2. Todos apareceram nos stats do D1 (ok=64)?
+# 3. Houve substituições? O substituto tem account? O titular deve ser is_available=False?
+
+SELECT p.display_name, pa.account_id
+FROM roster r
+JOIN person p ON r.person_id = p.id
+LEFT JOIN player_account pa ON pa.person_id = p.id AND pa.shard = 'pc-tournament'
+WHERE r.stage_id = <stage_d1_id>
+  AND r.team_name IN (<times rebaixados>)
+ORDER BY r.team_name, p.display_name;
+-- Resultado esperado: nenhuma linha com account_id NULL
+```
+
+**Regra de substituições:**
+- Jogador substituto no D1 → adicionar `Person` + `PlayerAccount(pc-tournament)` antes do import
+- Titular substituído → manter no roster D1 (marcação histórica), mas no roster D2 setar `is_available=False`
+- Nunca remover o titular do roster D1 — afetaria lineups já submetidos
 
 **Crítico:**
 - Pricing usa `MIN_VALID_MATCHES = 5` — jogadores com menos de 5 partidas históricas viram newcomers (custo fixo)
@@ -138,6 +206,17 @@ python scripts/pubg/import_pec_day.py --stage-id <X> --stage-day-id <Y> --watch 
 - O algoritmo usa **todas** as partidas dos últimos 150 dias com decay exponencial — histórico PGS afeta o preço mesmo em stages PEC
 - Times newcomers (sem histórico algum) = `newcomer_cost` fixo — correto, pois não há base para avaliação
 - Após abertura do D2, o D1 deve aparecer em Resultados automaticamente (corrigido no frontend)
+
+**Configuração de horários (obrigatório ao criar stages com horário fixo):**
+```python
+# 20h BRT = 23h UTC
+stage_d2.lineup_close_at = datetime(2026, 4, 18, 23, 0, 0, tzinfo=timezone.utc)
+stage_d3.lineup_open_at  = datetime(2026, 4, 19, 12, 0, 0, tzinfo=timezone.utc)  # 09h BRT
+stage_d3.lineup_close_at = datetime(2026, 4, 19, 23, 0, 0, tzinfo=timezone.utc)
+```
+- `lineup_close_at` no Stage → APScheduler fecha o lineup automaticamente
+- `lineup_open_at` no Stage → APScheduler abre o lineup automaticamente
+- Sem esses campos: a transição depende de `force_stage_status` manual
 
 **Fórmula de pricing (referência):**
 ```
@@ -153,8 +232,14 @@ preço = linear(ppm_ponderado, ppm_min, ppm_max, price_min, price_max)
 | Bug | Causa | Correção |
 |---|---|---|
 | PEC com shard `steam` | Inserção manual errada | UPDATE championship + stages |
+| PAS com shard `steam` | Assumimos regional = steam; na verdade toda partida de torneio é `pc-tournament` | UPDATE stages 15/16/17 + shard no DB |
 | `pricing_distribution = "'linear'"` | SQL com aspas duplas aninhadas | UPDATE direto, validação futura |
-| 48 jogadores não resolvidos no D1 | Roster de times TWIS/S8UL não estava na stage 21 | Adicionar ao roster antes do import |
+| 48 jogadores não resolvidos no D1 PEC | Roster de times TWIS/S8UL não estava na stage 21 | Adicionar ao roster antes do import |
+| 53 jogadores não resolvidos no D1 PAS | Times sul-americanos só tinham account `steam`, precisavam de `pc-tournament` | Buscar participants do torneio na API, inserir player_accounts |
+| `FUR_zkraken` mapeado para person errada | account_id estava linked a person_id=50 (zkraken) em vez de 109 (FUR_zKraken) | UPDATE player_account SET person_id=109 |
+| Scoring job não rodou automaticamente no D1 PAS | StageDay.date=17/04 mas matches terminaram às 00:04 UTC 18/04 (date==hoje falhou) | Corrigido: scoring_job agora checa `date IN (hoje, ontem)` |
+| "Meu Resultados" mostrando apenas `—` | `LineupPlayerOut` não retornava `person_name`/`team_name`; selectinload com strings inválido no SQLAlchemy 2.0 | Reescrever model_validator → dict; usar model class refs no selectinload |
+| `selectinload("roster")` quebrando endpoint | Strings não aceitas no SQLAlchemy 2.0 → `ArgumentError` em runtime | Usar `selectinload(LineupPlayer.roster).selectinload(Roster.person)` |
 | Logos PEC não aparecendo | Arquivos não commitados no git | git add + push |
 | Tags exibidas como nome completo | `PlayerStatsPage` tinha `formatTeamTag` local sem lookup | Centralizar em `teamUtils.js` |
 | PEC D1 sumindo do Dashboard quando D2 abriu | `pureLockedStages` excluía todos os locked em `activeChampGroups` | Excluir só locked sem `open` irmão |
@@ -165,13 +250,16 @@ preço = linear(ppm_ponderado, ppm_min, ppm_max, price_min, price_max)
 
 ## 4. Lacunas Identificadas (a investigar)
 
-- [ ] **Reconciliação de `PENDING_`**: como e quando atualizar `account_id` e `shard` após a primeira partida (ex: Gustav na PAS)
-- [ ] **Validação de tags via API**: confirmar aliases antes de criar PlayerAccounts
+- [ ] **Reconciliação de `PENDING_`**: como e quando atualizar `account_id` e `shard` após a primeira partida (ex: Gustav na PAS) — hoje é manual
+- [ ] **Validação de tags via API**: confirmar aliases antes de criar PlayerAccounts — hoje dependemos de comparação manual
 - [ ] **Times D2/D3 desconhecidos**: se o admin não tem os nomes antes do evento, o roster fica vazio — como sinalizar isso para o usuário?
 - [ ] **Múltiplos championships simultâneos**: comportamento do Dashboard testado (PAS + PEC), mas pode ter edge cases adicionais
-- [ ] **Pricing inter-championships**: como o `tier_weight` deve variar entre PAS (regional) e PEC (esports)? Atualmente ambos a 1.0
+- [ ] **Pricing inter-championships**: como o `tier_weight` deve variar entre PAS e PEC? Atualmente ambos a 1.0
 - [ ] **Encerramento de um championship completo**: quando todas as stages ficam `locked`, o championship some da seção ativa — comportamento correto?
 - [ ] **Erro de import `skipped` misterioso**: `18ad5b28` foi skipped na primeira rodada e só foi pego na segunda — investigar se é race condition ou match incompleto
+- [ ] **Shard discovery automático**: ao criar championship, chamar API para detectar shard automaticamente em vez de exigir input manual
+- [ ] **Checklist pre-event automatizado**: script que valida antes do lineup abrir: todos os jogadores têm account cadastrado? todos os times têm logo? tournament_id retorna matches?
+- [ ] **Substituições**: não há fluxo formalizado para substituições mid-event — hoje é UPDATE manual em `player_account` + `is_available=False` no roster
 
 ---
 
@@ -229,6 +317,39 @@ manage_championship.py validate --file champ.yaml          # Checklist pré-aber
 
 - [ ] Completar lacunas da seção 4 com o que aprendermos nos dias seguintes
 - [ ] Validar a estrutura do YAML com um caso real completo (PEC D2 e D3)
-- [ ] Documentar o fluxo PAS (diferenças de shard, estrutura de stages)
+- [x] Documentar o fluxo PAS (shard correto, estrutura de stages, horários BRT/UTC)
 - [ ] Decidir nível de automação: script único vs painel admin no frontend
 - [ ] Registrar quaisquer novos bugs ou comportamentos inesperados
+- [ ] Documentar o fluxo completo de D2/D3 PAS após conclusão das playoffs
+
+---
+
+## 7. Ordem de Operações Recomendada (checklist pré-evento)
+
+Baseado nos erros que cometemos, esta é a ordem correta de operações antes de qualquer dia de torneio:
+
+```
+[ ] 1. Confirmar shard via PUBG API (tournament_id → match → shardId)
+[ ] 2. Criar championship e stages com shard correto
+[ ] 3. Criar Persons + PlayerAccounts + Rosters para TODOS os jogadores do dia
+[ ] 4. Verificar logos: arquivo existe? nome = tag.lower().png?
+[ ] 5. TEAM_NAME_TO_TAG atualizado em teamUtils.js?
+[ ] 6. Commitar e fazer push de logos e código
+[ ] 7. Setar lineup_close_at na Stage (20h BRT = 23h UTC)
+[ ] 8. Abrir lineup (force_status = 'open')
+--- DURANTE O EVENTO ---
+[ ] 9. Acompanhar matches via GET /tournaments/{id} polling
+[ ] 10. Importar matches (force_reprocess=False); verificar ok=64 skip=0
+[ ] 11. Se skip > 0: identificar players na API, inserir player_accounts, reprocessar
+[ ] 12. Após último match: fechar stage (force_status = 'locked')
+[ ] 13. Confirmar que scoring_job rodou (verificar total_points nos lineups)
+[ ] 14. Se scoring não rodou automaticamente: chamar score_stage_day + calculate_day_ranks manual
+--- TRANSIÇÃO PARA O PRÓXIMO DIA ---
+[ ] 15. Identificar times rebaixados
+[ ] 16. Copiar roster stage anterior → próxima stage para times rebaixados
+[ ] 17. Checar accounts: todo jogador rebaixado tem pc-tournament account?
+[ ] 18. Marcar substitutos como is_available=False no roster do próximo dia
+[ ] 19. Rodar pricing no próximo stage
+[ ] 20. Setar lineup_open_at e lineup_close_at do próximo stage
+[ ] 21. Abrir próximo stage
+```
