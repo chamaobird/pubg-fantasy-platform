@@ -159,9 +159,13 @@ function ChampionshipCard({ championship, navigate }) {
   const hasOpen    = championship.stages.some(s => s.lineup_status === 'open')
   const hasPreview = championship.stages.some(s => s.lineup_status === 'preview')
   const allLocked  = championship.stages.every(s => s.lineup_status === 'locked')
-  // Um stage locked está "EM JOGO" apenas se não há stage open no campeonato.
-  // Se já existe um open (próximo dia aberto), o locked está encerrado.
-  const hasLive    = !hasOpen && hasPreview && championship.stages.some(s => s.lineup_status === 'locked')
+  // Somente o locked mais recente (maior start_date) é "EM JOGO" — quando não há stage open.
+  // Locked mais antigos são "encerrado".
+  const mostRecentLockedId = !hasOpen && hasPreview
+    ? championship.stages
+        .filter(s => s.lineup_status === 'locked')
+        .sort((a, b) => new Date(b.start_date) - new Date(a.start_date))[0]?.id
+    : null
 
   // Ordena: open primeiro, preview, depois por data de abertura (cronológico), depois por id
   const stageOrder = { open: 0, preview: 1, closed: 2, locked: 3 }
@@ -227,7 +231,7 @@ function ChampionshipCard({ championship, navigate }) {
               stage={stage}
               champName={championship.name}
               navigate={navigate}
-              isLive={hasLive && stage.lineup_status === 'locked'}
+              isLive={stage.id === mostRecentLockedId}
             />
           ))}
         </div>

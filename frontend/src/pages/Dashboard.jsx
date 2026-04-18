@@ -682,7 +682,11 @@ export default function Dashboard() {
       const cid = c.id
       if (!groups[cid]) groups[cid] = { champ: c, open: null, locked: null, previews: [], closeds: [] }
       if (s.lineup_status === 'open')         groups[cid].open = s
-      else if (s.lineup_status === 'locked')  groups[cid].locked = s
+      else if (s.lineup_status === 'locked') {
+        // Manter sempre o locked mais recente (maior start_date) como "ativo"
+        const cur = groups[cid].locked
+        if (!cur || new Date(s.start_date) > new Date(cur.start_date)) groups[cid].locked = s
+      }
       else if (s.lineup_status === 'preview') groups[cid].previews.push(s)
       else if (s.lineup_status === 'closed')  groups[cid].closeds.push(s)
     })
