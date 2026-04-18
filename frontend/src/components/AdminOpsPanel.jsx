@@ -81,9 +81,26 @@ function fmtUtc(iso) {
 
 // ── Componente principal ──────────────────────────────────────────────────────
 
+function fmtBrt(iso) {
+  if (!iso) return '—'
+  try {
+    return new Date(iso).toLocaleString('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      day: '2-digit', month: 'short',
+      hour: '2-digit', minute: '2-digit',
+    }) + ' BRT'
+  } catch { return iso }
+}
+
 export default function AdminOpsPanel({ stageId, token }) {
   const [days,      setDays]      = useState([])
   const [daysError, setDaysError] = useState('')
+
+  // Stage state (for lineup_close_at)
+  const [stageData,      setStageData]      = useState(null)
+  const [extendMins,     setExtendMins]     = useState('')
+  const [extendLoading,  setExtendLoading]  = useState(false)
+  const [extendResult,   setExtendResult]   = useState(null)
 
   // Import state
   const [importDay,      setImportDay]      = useState('')
@@ -138,7 +155,15 @@ export default function AdminOpsPanel({ stageId, token }) {
       .catch(() => setDaysError('Erro ao carregar dias da stage'))
   }, [stageId])
 
-  useEffect(() => { loadDays() }, [loadDays])
+  const loadStage = useCallback(() => {
+    if (!stageId) return
+    fetch(`${API_BASE_URL}/stages/${stageId}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setStageData(data) })
+      .catch(() => {})
+  }, [stageId])
+
+  useEffect(() => { loadDays(); loadStage() }, [loadDays, loadStage])
 
   // Quando muda o dia selecionado no schedule, preenche o JSON atual
   useEffect(() => {
@@ -263,6 +288,35 @@ export default function AdminOpsPanel({ stageId, token }) {
     }
   }
 
+  async function handleExtendDeadline(mins) {
+    const minutes = Number(mins)
+    if (!minutes || minutes <= 0) return setExtendResult({ ok: false, message: 'Informe um número positivo de minutos.' })
+    setExtendLoading(true)
+    setExtendResult(null)
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/stages/${stageId}/extend-deadline`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ minutes }),
+      })
+      const data = await res.json().catch(() => null)
+      if (!res.ok) {
+        setExtendResult({ ok: false, message: data?.detail || `HTTP ${res.status}` })
+      } else {
+        setExtendResult({
+          ok: true,
+          message: `+${minutes}min aplicado\nNovo prazo: ${fmtBrt(data.new_lineup_close_at)}`,
+        })
+        setExtendMins('')
+        loadStage()
+      }
+    } catch (e) {
+      setExtendResult({ ok: false, message: e.message })
+    } finally {
+      setExtendLoading(false)
+    }
+  }
+
   async function handleSaveSchedule() {
     if (!scheduleDay) return setScheduleResult({ ok: false, message: 'Selecione um dia.' })
     let parsed
@@ -308,6 +362,69 @@ export default function AdminOpsPanel({ stageId, token }) {
 
   return (
     <div style={{ maxWidth: '600px' }}>
+
+      {/* ── Prazo de Fechamento ── */}
+      <div style={card}>
+        <div style={sectionTitle}>Prazo de Fechamento</div>
+        <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', marginBottom: '12px' }}>
+          Estenda o <code style={{ color: _orange }}>lineup_close_at</code> em tempo real — útil quando há
+          atrasos no início da partida. O countdown no lineup dos usuários atualiza automaticamente.
+        </div>
+
+        {/* Prazo atual */}
+        <div style={{
+          marginBottom: '14px', padding: '10px 14px', borderRadius: '8px',
+          background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(249,115,22,0.15)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px',
+        }}>
+          <div>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginBottom: '2px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Prazo atual
+            </div>
+            <div style={{ fontSize: '14px', fontWeight: 700, fontFamily: 'monospace', color: stageData?.lineup_close_at ? 'var(--color-xama-orange)' : 'rgba(255,255,255,0.3)' }}>
+              {stageData?.lineup_close_at ? fmtBrt(stageData.lineup_close_at) : '—'}
+            </div>
+          </div>
+          <button
+            style={{ ...btn('ghost'), fontSize: '11px', padding: '4px 10px' }}
+            onClick={loadStage}
+          >↻ atualizar</button>
+        </div>
+
+        {/* Botões rápidos */}
+        <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', marginBottom: '8px' }}>
+          Extensão rápida:
+        </div>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
+          {[10, 15, 30, 60].map(m => (
+            <button
+              key={m}
+              style={btn('secondary', { fontSize: '12px', padding: '5px 12px' })}
+              onClick={() => handleExtendDeadline(m)}
+              disabled={extendLoading}
+            >+{m}min</button>
+          ))}
+        </div>
+
+        {/* Campo custom */}
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <input
+            type='number'
+            min='1'
+            placeholder='minutos'
+            style={{ ...input_, width: '100px', flex: 'none' }}
+            value={extendMins}
+            onChange={e => setExtendMins(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleExtendDeadline(extendMins)}
+          />
+          <button
+            style={btn('primary')}
+            onClick={() => handleExtendDeadline(extendMins)}
+            disabled={extendLoading || !extendMins}
+          >{extendLoading ? 'Aplicando…' : 'Estender'}</button>
+        </div>
+        <StatusBadge result={extendResult} />
+      </div>
 
       {/* ── Match Schedule ── */}
       <div style={card}>

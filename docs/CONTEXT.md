@@ -5,7 +5,7 @@
 - Backend: FastAPI + Python 3.11 + SQLAlchemy síncrono (Session) + PostgreSQL (Render)
 - Frontend: React 18 + Vite 5 + Tailwind CSS v4
 - Auth: JWT (bcrypt + SHA256 prehash) + Google OAuth (redirect flow) + email verification (Resend)
-- Scheduler: APScheduler — lineup_control (1min), scoring (1min), pricing (30min)
+- Scheduler: APScheduler — lineup_control (1min), scoring (1min), pricing (30min), match_import (2min)
 - Deploy: Render.com — backend + db + frontend (auto-deploy no push)
 
 ## Comandos essenciais
@@ -34,12 +34,13 @@ rtk gain   # ver economia de tokens ao fim da sessão
 - PowerShell: usar `;` em vez de `&&` para encadear comandos
 
 ## Migrations (cadeia real)
-`0001 → 0002 → 4bfb4ef75223 → 0003 → 0004 → 0005 → 0006 → 0007 → 0008 → 0009 → 0010 → 0011 → 0012 → 0013 → 0014 → 0015`
+`0001 → 0002 → 4bfb4ef75223 → 0003 → 0004 → 0005 → 0006 → 0007 → 0008 → 0009 → 0010 → 0011 → 0012 → 0013 → 0014 → 0015 → 0016`
 - `0014`: `survival_secs` + `captain_pts` em `user_stage_stat`
 - `0015`: `survival_secs` + `captain_pts` em `user_day_stat`
-- Próxima: `revision = "0016"`, `down_revision = "0015"`
+- `0016`: `match_schedule` (JSONB) + `last_import_at` em `stage_day`
+- Próxima: `revision = "0017"`, `down_revision = "0016"`
 - Sempre rodar `python -m alembic` da raiz
-- Verificar antes de criar: `Get-Content alembic\versions\0015_*.py | Select-Object -First 15`
+- Verificar antes de criar: `Get-Content alembic\versions\0016_*.py | Select-Object -First 15`
 
 ## Entidades principais
 ```
@@ -131,7 +132,9 @@ POST  /admin/stages/{id}/import-matches
 POST  /admin/stages/{id}/reprocess-match
 POST  /admin/stages/{id}/score-day
 POST  /admin/stages/{id}/rescore
-POST  /admin/stages/{id}/force-status   ← aceita: closed | open | locked | preview
+POST  /admin/stages/{id}/force-status          ← aceita: closed | open | locked | preview
+POST  /admin/stages/{id}/notify-lineup-open    ← reenvio manual de email "lineup aberta"
+PUT   /admin/stage-days/{day_id}/match-schedule ← salvar JSON schedule de matches do dia
 ```
 
 ## Dados reais no banco
@@ -142,11 +145,12 @@ POST  /admin/stages/{id}/force-status   ← aceita: closed | open | locked | pre
 - Championship: PUBG Americas Series 1 2026 - Playoffs 1 (id=7, shard=steam)
   - 3 Stages: Playoffs 1 Dia 1(15), Dia 2(16), Dia 3(17)
   - Stage 15: lineup_status=**locked** — encerrado
-  - Stage 16: lineup_status=**open** — 8 times, 31 jogadores (Affinity, Chupinskys, Collector, IAM BOLIVIA, Injected, RENT FREE, Team FATE, Tempest)
+  - Stage 16: lineup_status=**open** — 8 times, 32 jogadores (Affinity, Chupinskys, Collector, IAM BOLIVIA, Injected, RENT FREE, Team FATE, Tempest) — fl8nkr (id=310, pa=457) adicionado ao FATE
   - Stage 17: lineup_status=**preview** — 5 times, 20 jogadores (Also Known As, DOTS, Dream One, For Nothing, Nevermind)
   - Preços por tier: high=33, mid=28, open=18 (TGLTN fixado em 35 via cost_override); Stage 16/17: custo fixo 15.00
   - Scripts: `scripts/pubg/populate_pas1_playoffs.py`, `scripts/pubg/manage_player_accounts.py`
-  - **Gustav** (Person id=202, PlayerAccount id=308): account_id=PENDING_Gustav — atualizar após 1ª partida
+  - **Gustav** (Person id=202, PlayerAccount id=308): account_id=PENDING_Gustav — atualizar após D2 (não jogou D1)
+  - **fl8nkr** (Person id=310, PlayerAccount id=457): account_id=pending_fl8nkr, shard=pc-tournament — atualizar após D2
   - **DadBuff = Palecks** (mesmo jogador, person id=152) — aliases não modelados ainda (backlog)
 - Championship: PEC Spring Playoffs 1 (id=8, shard=pc-tournament, tier_weight=1.0)
   - Tournament PUBG API: `eu-pecs26`

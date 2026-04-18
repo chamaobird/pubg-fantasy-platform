@@ -22,6 +22,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from datetime import timedelta
+
 from app.database import get_db
 from app.dependencies import require_admin
 from app.services.lineup_scoring import rescore_stage, score_stage_day, ensure_participant_stats
@@ -38,6 +40,10 @@ router = APIRouter(prefix="/admin/stages", tags=["Admin — Scoring"])
 
 class ScoreDayRequest(BaseModel):
     stage_day_id: int
+
+
+class ExtendDeadlineRequest(BaseModel):
+    minutes: int
 
 
 # ---------------------------------------------------------------------------
@@ -227,3 +233,56 @@ def notify_lineup_open(
         raise HTTPException(status_code=500, detail=f"Erro ao enviar emails: {exc}")
 
     return {"ok": True, "stage_id": stage_id, **result}
+
+
+# ---------------------------------------------------------------------------
+# Extensão de prazo de fechamento (lineup_close_at)
+# ---------------------------------------------------------------------------
+
+@router.post(
+    "/{stage_id}/extend-deadline",
+    summary="Estender prazo de fechamento do lineup",
+    description=(
+        "Adiciona N minutos ao lineup_close_at atual da stage. "
+        "Útil durante eventos com atrasos de transmissão ou delay de início. "
+        "Só funciona se lineup_close_at já estiver definido."
+    ),
+)
+def extend_deadline(
+    stage_id: int,
+    body: ExtendDeadlineRequest,
+    db: Session = Depends(get_db),
+    _admin=Depends(require_admin),
+):
+    stage = db.query(Stage).filter(Stage.id == stage_id).first()
+    if not stage:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Stage {stage_id} não encontrada")
+
+    if not stage.lineup_close_at:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Stage não possui lineup_close_at definido. Defina-o antes de estender.",
+        )
+
+    if body.minutes <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="minutes deve ser um valor positivo",
+        )
+
+    old_close = stage.lineup_close_at
+    stage.lineup_close_at = old_close + timedelta(minutes=body.minutes)
+    db.commit()
+
+    logger.info(
+        "[AdminScoring] extend-deadline stage=%s: %s → %s (+%dmin)",
+        stage_id, old_close.isoformat(), stage.lineup_close_at.isoformat(), body.minutes,
+    )
+
+    return {
+        "ok": True,
+        "stage_id": stage_id,
+        "extended_by_minutes": body.minutes,
+        "old_lineup_close_at": old_close.isoformat(),
+        "new_lineup_close_at": stage.lineup_close_at.isoformat(),
+    }

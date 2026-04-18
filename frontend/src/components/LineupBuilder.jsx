@@ -13,18 +13,27 @@ function computeCountdown(targetIso) {
   if (!targetIso) return null
   const diff = new Date(targetIso).getTime() - Date.now()
   if (diff <= 0) return null
-  const totalMins = Math.floor(diff / 60_000)
-  const hours = Math.floor(totalMins / 60)
-  const mins = totalMins % 60
-  const days = Math.floor(hours / 24)
-  return { diff, days, hours: hours % 24, mins }
+  const totalSecs = Math.floor(diff / 1_000)
+  const days  = Math.floor(totalSecs / 86_400)
+  const hours = Math.floor((totalSecs % 86_400) / 3_600)
+  const mins  = Math.floor((totalSecs % 3_600) / 60)
+  const secs  = totalSecs % 60
+  return { diff, days, hours, mins, secs }
 }
 
 function useCountdown(targetIso) {
   const [remaining, setRemaining] = useState(() => computeCountdown(targetIso))
   useEffect(() => {
     setRemaining(computeCountdown(targetIso))
-    const timer = setInterval(() => setRemaining(computeCountdown(targetIso)), 30_000)
+    // Tick a cada segundo quando <1h, a cada 10s até 24h, a cada 30s acima
+    const interval = () => {
+      const r = computeCountdown(targetIso)
+      setRemaining(r)
+      return r
+    }
+    const r = interval()
+    const tickMs = r && r.diff < 3_600_000 ? 1_000 : r && r.diff < 86_400_000 ? 10_000 : 30_000
+    const timer = setInterval(interval, tickMs)
     return () => clearInterval(timer)
   }, [targetIso])
   return remaining
@@ -226,6 +235,22 @@ export default function LineupBuilder({
     const interval = setInterval(ping, 10 * 60 * 1000)
     return () => clearInterval(interval)
   }, [])
+
+  // ── Effects — polling lineup_close_at (para capturar extensões do admin) ─
+  useEffect(() => {
+    if (!stageId || !canEdit) return
+    const poll = () => {
+      httpJson(`${API_BASE_URL}/stages/${stageId}`)
+        .then(data => setStage(prev => {
+          // Só atualiza se lineup_close_at mudou para não re-renderizar desnecessariamente
+          if (prev && data.lineup_close_at === prev.lineup_close_at) return prev
+          return data
+        }))
+        .catch(() => {})
+    }
+    const timer = setInterval(poll, 30_000)
+    return () => clearInterval(timer)
+  }, [stageId, canEdit])
 
   // ── Effects — popular builder com lineup existente ───────────────────────
   useEffect(() => {
@@ -437,6 +462,50 @@ export default function LineupBuilder({
             </div>
           )}
 
+          {/* ── Banner countdown proeminente (apenas quando open + <2h) ── */}
+          {canEdit && countdown && countdown.diff < 2 * 3_600_000 && (() => {
+            const { diff, hours, mins, secs } = countdown
+            const urgent   = diff < 10 * 60_000   // < 10min
+            const warning  = diff < 30 * 60_000   // < 30min
+            const color    = urgent  ? '#f87171'
+                           : warning ? 'var(--color-xama-gold)'
+                           : 'var(--color-xama-orange)'
+            const bg       = urgent  ? 'rgba(248,113,113,0.08)'
+                           : warning ? 'rgba(250,204,21,0.07)'
+                           : 'rgba(249,115,22,0.08)'
+            const border   = urgent  ? 'rgba(248,113,113,0.35)'
+                           : warning ? 'rgba(250,204,21,0.25)'
+                           : 'rgba(249,115,22,0.25)'
+            const timeStr = hours > 0
+              ? `${hours}h ${String(mins).padStart(2,'0')}min`
+              : mins > 0
+                ? `${mins}min ${String(secs).padStart(2,'0')}s`
+                : `${String(secs).padStart(2,'0')}s`
+            return (
+              <div
+                className={urgent ? 'xama-pulse' : undefined}
+                style={{
+                  background: bg, border: `1px solid ${border}`,
+                  borderRadius: 8, padding: '10px 16px', marginBottom: 12,
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 16 }}>{urgent ? '🚨' : warning ? '⚠️' : '⏱'}</span>
+                  <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>
+                    {urgent ? 'Encerrando em breve' : 'Lineup fecha em'}
+                  </span>
+                </div>
+                <span style={{
+                  fontSize: 18, fontWeight: 800,
+                  fontFamily: "'JetBrains Mono', monospace",
+                  color, letterSpacing: '0.04em',
+                  minWidth: 90, textAlign: 'right',
+                }}>{timeStr}</span>
+              </div>
+            )
+          })()}
+
           {/* Banner de lineup já submetido */}
           {currentDayLineup && (
             <div style={{
@@ -457,7 +526,7 @@ export default function LineupBuilder({
                   Budget
                 </span>
                 {countdown && canEdit && (() => {
-                  const { diff, days, hours, mins } = countdown
+                  const { diff, days, hours, mins, secs } = countdown
                   let label, color, border, bg
                   if (diff > 24 * 3_600_000) {
                     label = `Fecha em ${days}d ${hours}h`; color = 'var(--color-xama-muted)'
@@ -465,9 +534,12 @@ export default function LineupBuilder({
                   } else if (diff > 3_600_000) {
                     label = `Fecha em ${hours}h ${mins}min`; color = 'var(--color-xama-orange)'
                     bg = 'rgba(249,115,22,0.08)'; border = 'rgba(249,115,22,0.25)'
-                  } else {
-                    label = `⚠ ${hours > 0 ? `${hours}h ` : ''}${mins}min`; color = '#f87171'
+                  } else if (diff > 60_000) {
+                    label = `⚠ ${mins}min ${String(secs).padStart(2,'0')}s`; color = '#f87171'
                     bg = 'rgba(248,113,113,0.08)'; border = 'rgba(248,113,113,0.25)'
+                  } else {
+                    label = `⚠ ${String(secs).padStart(2,'0')}s`; color = '#f87171'
+                    bg = 'rgba(248,113,113,0.15)'; border = 'rgba(248,113,113,0.35)'
                   }
                   return (
                     <span style={{

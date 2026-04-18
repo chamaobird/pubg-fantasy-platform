@@ -3,7 +3,7 @@
 
 ---
 
-## Estado Atual — 17/04/2026 (noite, fim de sessão)
+## Estado Atual — 18/04/2026 (dia das partidas PAS D2 + PEC D2)
 
 ### PEC Spring Playoffs 1 — estado atual
 - **Stage 21 (D1):** `locked` — 5 partidas importadas, 64/64 jogadores resolvidos ✅
@@ -12,16 +12,14 @@
 
 ### PAS Playoffs 1 — estado atual
 - **Stage 15 (D1):** `locked` — partidas importadas, encerrado
-- **Stage 16 (D2):** `open` — aberto, aguardando partidas (18/04)
-- **Stage 17 (D3):** `preview`
+- **Stage 16 (D2):** `open` — 8 times, 32 jogadores (fl8nkr adicionado) — partidas hoje
+- **Stage 17 (D3):** `preview` — 5 times, 20 jogadores
 
 ### Próximas tarefas operacionais
-- **PEC D2 (18/04):** importar partidas → `python scripts/pubg/import_pec_day.py --stage-id 22 --stage-day-id 23 --watch 5`
+- **PAS D2 (18/04 tarde):** fechar lineup às 7pm EDT → importar partidas → scoring → verificar PENDING accounts
+- **PEC D2 (18/04 tarde):** importar partidas → `python scripts/pubg/import_pec_day.py --stage-id 22 --stage-day-id 23 --watch 5`
 - **PEC D2 fim:** identificar rebaixados → adicionar ao Stage 23 → pricing → abrir Stage 23
-- **PAS D2 (18/04):** importar partidas → identificar rebaixados → abrir Stage 16 (já aberta, confirmar fluxo)
-- **Gustav (PlayerAccount id=308):** atualizar `account_id` e `shard` após 1ª partida PAS D1
-- **hwinn:** ajustar preço via AdminPricingPanel (~13.24 — confirmar)
-- **Ao final das playoffs:** finalizar `docs/AUTOMATION_LEARNINGS.md`
+- **Accounts PENDING PAS D2:** após import, rodar script para atualizar account_ids dos jogadores que não jogaram D1
 
 ### Backlog imediato
 1. Corrigir comentário `scoring.py` linha ~14: `×1.25` → `×1.30`
@@ -34,6 +32,52 @@
 
 ### Skills disponíveis
 - `frontend-design` já ativa em `/mnt/skills/public/frontend-design` — usar em todo trabalho de UI/mobile
+
+---
+
+## Sessão 18/04/2026 — PAS D2: infra de automação + fl8nkr + horários corrigidos
+
+### Backend — APScheduler: auto-import de matches
+- **Migration 0016** (`alembic/versions/0016_stage_day_match_schedule.py`): adicionou `match_schedule` (JSONB) e `last_import_at` a `stage_day`
+- **`app/models/stage_day.py`**: campos `match_schedule` e `last_import_at` adicionados
+- **`app/schemas/stage_day.py`**: `StageDayResponse` expõe ambos os campos
+- **`app/services/match_discovery.py`** (novo): descobre match IDs via overlap de jogadores (steam, MIN_OVERLAP=3, amostra 6 players) ou tournament API (pc-tournament)
+- **`app/jobs/match_import_job.py`** (novo): job APScheduler, a cada 2min processa entradas de `match_schedule` onde `import_after <= now`; auto-scoring após todos importados
+- **`app/services/scheduler.py`**: job `match_import` registrado (2min interval)
+- **`app/routers/admin/stage_days.py`**: `PUT /{stage_day_id}/match-schedule` para salvar schedule via frontend
+
+### Backend — Email notifications
+- **`app/services/email.py`**: `broadcast_lineup_open()` — envia email HTML para todos os usuários verificados com deadline BRT e botão para a stage
+- **`app/routers/admin/scoring.py`**: `POST /{stage_id}/notify-lineup-open` para reenvio manual
+- **Scheduler**: ao transicionar stage `closed → open`, dispara automaticamente `broadcast_lineup_open()`
+- **EMAIL_FROM**: corrigido de `onboarding@resend.dev` para `noreply@chamaobird.xyz` (produção)
+
+### Frontend — AdminOpsPanel
+- **`frontend/src/components/AdminOpsPanel.jsx`** (novo): painel admin com seções:
+  - **Schedule**: editor JSON de `match_schedule` com badges de status por match (pending/imported/scheduled)
+  - **Import Manual**: botão para importar matches e reprocessar match_id específico
+  - **Stats & Scoring**: score-day, rescore completo, backfill-stats
+  - **Notificações**: reenviar email lineup-open manual
+  - **Controle de Lineup**: force-status (closed/preview/open/locked) com confirmação
+- **`TournamentHub.jsx`**: `AdminOpsPanel` adicionado lado a lado com `AdminPricingPanel` na aba admin
+
+### Horários corrigidos (PAS D2 e D3)
+- Stage 16 (`start_date`): corrigido de `01:00 UTC` → `22:45 UTC` (6:45pm EDT)
+- Stage 16 (`lineup_close_at`): `23:00 UTC` (7pm EDT)
+- Stage 16 (`end_date`): `02:15 UTC` (10:15pm EDT)
+- Stage 17: mesmos ajustes aplicados
+- **`LineupBuilder.jsx`**: countdown usa `lineup_close_at` como fonte primária (antes usava `start_date`)
+
+### PAS D2 — fl8nkr (FATE)
+- **Person id=310**: `display_name = 'fl8nkr'`
+- **PlayerAccount id=457**: `alias='fl8nkr'`, `account_id='pending_fl8nkr'`, `shard='pc-tournament'`
+- **Roster Stage 16**: Team FATE, `fantasy_cost=15.00`
+- Steam alias público: `fl8nkr-_-`; servidores oficiais: `fl8nkr`
+
+### PAS D1 — Resolução de accounts PENDING
+- 43 PlayerAccounts atualizados de `pending_*` → `account.xxx` com `shard='pc-tournament'`
+- Gustav (pa_id=308): PENDENTE — não jogou D1, será resolvido após D2
+- fl8nkr (pa_id=457): PENDENTE — novo jogador, será resolvido após D2
 
 ---
 

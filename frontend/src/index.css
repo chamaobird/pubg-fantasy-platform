@@ -703,6 +703,13 @@ body {
 .xlb-search-input:focus { border-color: #3d4d6e; }
 .xlb-count { font-size: 11px; color: var(--color-xama-muted); font-family: 'JetBrains Mono', monospace; white-space: nowrap; }
 
+/* ── XAMA Utilitários de animação global ───────────────────────────────── */
+@keyframes xama-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.4; }
+}
+.xama-pulse { animation: xama-pulse 1.5s ease-in-out infinite; }
+
 /* ── XAMA Atmospheric — Scan line + utilitários ────────────────────────── */
 @keyframes xama-scan-global {
   0%   { top: -2px; opacity: 0; }
