@@ -6,6 +6,8 @@ import { API_BASE_URL } from '../config'
 
 // ── Estilos ──────────────────────────────────────────────────────────────────
 
+const _orange = 'var(--color-xama-orange)'
+
 const btn = (variant = 'primary', extra = {}) => ({
   padding: '6px 16px',
   borderRadius: '6px',
@@ -107,6 +109,10 @@ export default function AdminOpsPanel({ stageId, token }) {
   const [lcStatus,  setLcStatus]  = useState('')
   const [lcLoading, setLcLoading] = useState(false)
   const [lcResult,  setLcResult]  = useState(null)
+
+  // Notificação state
+  const [notifLoading, setNotifLoading] = useState(false)
+  const [notifResult,  setNotifResult]  = useState(null)
 
   // Schedule state
   const [scheduleDay,     setScheduleDay]     = useState('')
@@ -224,6 +230,16 @@ export default function AdminOpsPanel({ stageId, token }) {
     callApi(`/admin/stages/${stageId}/rescore`, null, 'POST',
       setRescoreLoading, setRescoreResult,
       d => `Rescore completo: ${d.days_scored ?? 'ok'} dias`,
+    )
+  }
+
+  function handleNotifyLineupOpen() {
+    if (!window.confirm('Enviar email de "Lineup aberta" para todos os usuários?')) return
+    callApi(
+      `/admin/stages/${stageId}/notify-lineup-open`,
+      null, 'POST',
+      setNotifLoading, setNotifResult,
+      d => `Emails enviados: ${d.sent ?? 0} ✓  falhas: ${d.failed ?? 0}`,
     )
   }
 
@@ -452,6 +468,19 @@ export default function AdminOpsPanel({ stageId, token }) {
           </button>
           <StatusBadge result={rescoreResult} />
         </div>
+      </div>
+
+      {/* ── Notificações ── */}
+      <div style={card}>
+        <div style={sectionTitle}>Notificações</div>
+        <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', marginBottom: '10px' }}>
+          Envia email de <strong style={{ color: _orange }}>"Lineup aberta"</strong> para todos os usuários verificados.
+          O job automático já faz isso ao abrir a stage — use aqui apenas para reenviar.
+        </div>
+        <button style={btn('secondary')} onClick={handleNotifyLineupOpen} disabled={notifLoading}>
+          {notifLoading ? 'Enviando…' : 'Enviar notificação de lineup aberta'}
+        </button>
+        <StatusBadge result={notifResult} />
       </div>
 
       {/* ── Controle de Lineup ── */}

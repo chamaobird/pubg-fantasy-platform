@@ -26,7 +26,7 @@ from app.database import get_db
 from app.dependencies import require_admin
 from app.services.lineup_scoring import rescore_stage, score_stage_day, ensure_participant_stats
 from app.jobs.scoring_job import _has_match_stats
-from app.models import Lineup, StageDay
+from app.models import Lineup, Stage, StageDay
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/admin/stages", tags=["Admin — Scoring"])
@@ -188,3 +188,42 @@ def backfill_stats(
     db.commit()
     logger.info("[AdminScoring] backfill-stats: stage=%s — %d lineups processados", stage_id, processed)
     return {"ok": True, "stage_id": stage_id, "lineups_processed": processed}
+
+
+# ---------------------------------------------------------------------------
+# Notificação manual de lineup aberta
+# ---------------------------------------------------------------------------
+
+@router.post(
+    "/{stage_id}/notify-lineup-open",
+    summary="Disparar notificação de lineup aberta manualmente",
+    description=(
+        "Envia email de 'lineup aberta' para todos os usuários verificados. "
+        "Útil quando a stage já estava open antes desta feature existir, "
+        "ou para reenviar uma notificação perdida. Idempotente."
+    ),
+)
+def notify_lineup_open(
+    stage_id: int,
+    db: Session = Depends(get_db),
+    _admin=Depends(require_admin),
+):
+    stage = db.query(Stage).filter(Stage.id == stage_id).first()
+    if not stage:
+        raise HTTPException(status_code=404, detail=f"Stage {stage_id} não encontrada")
+
+    from app.services.email import broadcast_lineup_open
+    close_iso = stage.lineup_close_at.isoformat() if stage.lineup_close_at else None
+
+    try:
+        result = broadcast_lineup_open(
+            db=db,
+            stage_name=stage.name,
+            stage_id=stage_id,
+            close_iso=close_iso,
+        )
+    except Exception as exc:
+        logger.exception("[AdminScoring] Erro ao enviar notificações stage=%s", stage_id)
+        raise HTTPException(status_code=500, detail=f"Erro ao enviar emails: {exc}")
+
+    return {"ok": True, "stage_id": stage_id, **result}

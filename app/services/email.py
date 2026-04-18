@@ -173,3 +173,96 @@ def send_password_reset_email(to_email: str, token: str) -> bool:
       </p>
     """
     return _send(to_email, "XAMA Fantasy — Redefinir senha", _html(content))
+
+
+def send_lineup_open_notification(
+    to_email: str,
+    stage_name: str,
+    stage_id: int,
+    close_iso: str | None,
+) -> bool:
+    """
+    Avisa um usuário que a montagem de lineup abriu para uma stage.
+
+    Args:
+        to_email:   endereço de destino
+        stage_name: nome legível da stage (ex: "PAS Playoffs — Dia 2")
+        stage_id:   ID da stage (para gerar o link)
+        close_iso:  ISO 8601 do horário de fechamento (ex: "2026-04-18T23:00:00Z"), ou None
+    """
+    stage_url = f"{settings.FRONTEND_URL}/tournament/{stage_id}"
+
+    if close_iso:
+        try:
+            from datetime import datetime, timezone
+            dt = datetime.fromisoformat(close_iso.replace("Z", "+00:00"))
+            # Formata em horário de Brasília (UTC-3) para o usuário
+            from datetime import timedelta
+            brt = dt - timedelta(hours=3)
+            close_label = brt.strftime("%d/%m às %H:%M (Brasília)")
+        except Exception:
+            close_label = close_iso
+        deadline_html = f"""
+          <p class="text" style="margin-bottom: 8px;">
+            Você tem até <strong style="color: {_TEXT};">{close_label}</strong> para salvar seu lineup.
+          </p>
+        """
+    else:
+        deadline_html = ""
+
+    content = f"""
+      <h2 class="title">Lineup aberta</h2>
+      <p class="text">
+        A montagem de lineup para <strong style="color: {_TEXT};">{stage_name}</strong> está aberta.<br>
+        Monte seu time e escolha seu capitão antes do início das partidas.
+      </p>
+      {deadline_html}
+      <div class="btn-wrap">
+        <a href="{stage_url}" class="btn">Montar lineup &rarr;</a>
+      </div>
+      <p class="expiry">
+        Você está recebendo este email por ser participante da XAMA Fantasy League.
+      </p>
+    """
+    return _send(to_email, f"XAMA Fantasy — Lineup aberta: {stage_name}", _html(content))
+
+
+def broadcast_lineup_open(db, stage_name: str, stage_id: int, close_iso: str | None) -> dict:
+    """
+    Envia notificação de lineup aberta para todos os usuários verificados e ativos.
+
+    Args:
+        db:         sessão SQLAlchemy
+        stage_name: nome legível da stage
+        stage_id:   ID da stage
+        close_iso:  ISO do fechamento ou None
+
+    Returns:
+        {"sent": N, "failed": N}
+    """
+    from sqlalchemy import text
+
+    rows = db.execute(
+        text("""
+            SELECT email FROM "user"
+            WHERE email_verified = true
+              AND is_active = true
+              AND email IS NOT NULL
+              AND email != ''
+        """)
+    ).fetchall()
+
+    sent = failed = 0
+    for (email,) in rows:
+        ok = send_lineup_open_notification(email, stage_name, stage_id, close_iso)
+        if ok:
+            sent += 1
+        else:
+            failed += 1
+            logger.warning("[Email] Falha ao enviar lineup_open para %s", email)
+
+    logger.info(
+        "[Email] broadcast_lineup_open stage=%s — %d enviados, %d falhas",
+        stage_id, sent, failed,
+    )
+    return {"sent": sent, "failed": failed}
