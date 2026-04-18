@@ -3,6 +3,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { API_BASE_URL } from '../config'
+import TeamLogo from './TeamLogo'
 
 const RANK_COLORS = { 1: '#f0c040', 2: '#b4bcc8', 3: '#cd7f50' }
 const RANK_BG     = {
@@ -111,6 +112,12 @@ export default function TournamentLeaderboard({
   const [submissions,        setSubmissions]  = useState([])
   const [submissionsLoading, setSubLoading]   = useState(false)
 
+  // Modal: ver time de outro manager (apenas quando locked)
+  const isLocked = lineupStatus === 'locked'
+  const [viewUser,      setViewUser]      = useState(null)   // { userId, username }
+  const [userLineups,   setUserLineups]   = useState([])
+  const [lineupLoading, setLineupLoading] = useState(false)
+
   const myRowRef      = useRef(null)
   const hasScrolledRef = useRef(false)
 
@@ -180,6 +187,28 @@ export default function TournamentLeaderboard({
       .catch(() => setSubmissions([]))
       .finally(() => setSubLoading(false))
   }, [isOpen, stageId]) // eslint-disable-line
+
+  // ── Fetch lineup do manager selecionado ────────────────────────────────
+  useEffect(() => {
+    if (!viewUser || !stageId || !token) return
+    setLineupLoading(true)
+    setUserLineups([])
+    fetch(`${API_BASE_URL}/lineups/stage/${stageId}/user/${viewUser.userId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.ok ? r.json() : [])
+      .then(data => setUserLineups(Array.isArray(data) ? data : []))
+      .catch(() => setUserLineups([]))
+      .finally(() => setLineupLoading(false))
+  }, [viewUser]) // eslint-disable-line
+
+  // ── Fechar modal com Esc ────────────────────────────────────────────────
+  useEffect(() => {
+    if (!viewUser) return
+    const h = (e) => { if (e.key === 'Escape') setViewUser(null) }
+    document.addEventListener('keydown', h)
+    return () => document.removeEventListener('keydown', h)
+  }, [viewUser])
 
   // ── Fetch ao mudar seleção ──────────────────────────────────────────────
   useEffect(() => { fetchLeaderboard() }, [selectedKeys, championshipId]) // eslint-disable-line
@@ -266,6 +295,7 @@ export default function TournamentLeaderboard({
   }
 
   return (
+    <>
     <div className="min-h-screen" style={{ background: 'transparent' }}>
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
@@ -489,21 +519,24 @@ export default function TournamentLeaderboard({
                 </thead>
                 <tbody>
                   {rankings.map((entry, idx) => {
-                    const pos    = entry.rank ?? (idx + 1)
-                    const isTop3 = pos <= 3
-                    const isMe   = entry.user_id === myUserId
-                    const pts    = getPoints(entry)
-                    const badge  = getBadge(entry)
+                    const pos      = entry.rank ?? (idx + 1)
+                    const isTop3   = pos <= 3
+                    const isMe     = entry.user_id === myUserId
+                    const pts      = getPoints(entry)
+                    const badge    = getBadge(entry)
+                    const canClick = isLocked && token && !isMe
                     return (
                       <tr key={entry.user_id}
                         ref={isMe ? myRowRef : null}
+                        onClick={canClick ? () => setViewUser({ userId: entry.user_id, username: ownerLabel(entry) }) : undefined}
                         style={{
                           borderBottom: '1px solid #13161f',
                           background: isMe ? 'rgba(20,184,166,0.06)' : isTop3 ? RANK_BG[pos] : 'transparent',
                           outline: isMe ? '1px solid rgba(20,184,166,0.18)' : 'none',
                           outlineOffset: '-1px',
+                          cursor: canClick ? 'pointer' : 'default',
                         }}
-                        onMouseEnter={e => { if (!isMe) e.currentTarget.style.background = '#161b27' }}
+                        onMouseEnter={e => { if (!isMe) e.currentTarget.style.background = canClick ? '#1e2435' : '#161b27' }}
                         onMouseLeave={e => { e.currentTarget.style.background = isMe ? 'rgba(20,184,166,0.06)' : isTop3 ? RANK_BG[pos] : 'transparent' }}>
                         <td className="px-4 py-[13px]">
                           <span className="text-[13px] font-bold tabular-nums"
@@ -513,13 +546,19 @@ export default function TournamentLeaderboard({
                         </td>
                         <td className="px-4 py-[13px]">
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <span className="text-[13px]" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-muted)' }}>
+                            <span className="text-[13px]" style={{ fontFamily: "'JetBrains Mono', monospace", color: canClick ? 'var(--color-xama-text)' : 'var(--color-xama-muted)' }}>
                               {ownerLabel(entry)}
                             </span>
                             {isMe && (
                               <span className="text-[10px] font-bold tracking-[0.06em] px-2 py-0.5 rounded"
                                 style={{ background: 'rgba(20,184,166,0.18)', border: '1px solid rgba(20,184,166,0.4)', color: '#2dd4bf' }}>
                                 EU
+                              </span>
+                            )}
+                            {canClick && (
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded"
+                                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'var(--color-xama-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
+                                ver time
                               </span>
                             )}
                             {badge && (
@@ -557,6 +596,17 @@ export default function TournamentLeaderboard({
       )}
 
     </div>
+
+    {/* ── Modal: time do manager ─────────────────────────────────────────── */}
+    {viewUser && (
+      <ManagerLineupModal
+        username={viewUser.username}
+        lineups={userLineups}
+        loading={lineupLoading}
+        onClose={() => setViewUser(null)}
+      />
+    )}
+    </>
   )
 }
 
@@ -627,5 +677,214 @@ function PhaseHeader({ label, allChecked, someChecked, onClick }) {
         {label}
       </span>
     </button>
+  )
+}
+
+// ── ManagerLineupModal ─────────────────────────────────────────────────────
+
+function fmtName(name) {
+  if (!name) return '—'
+  const idx = name.indexOf('_')
+  return idx !== -1 ? name.slice(idx + 1) : name
+}
+function fmtTag(name) {
+  if (!name) return null
+  const idx = name.indexOf('_')
+  return idx !== -1 ? name.slice(0, idx) : null
+}
+
+function ManagerLineupModal({ username, lineups, loading, onClose }) {
+  return (
+    <div
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 1000,
+        background: 'rgba(0,0,0,0.72)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '24px 16px',
+        backdropFilter: 'blur(2px)',
+      }}>
+      <div style={{
+        background: 'var(--color-xama-surface)',
+        border: '1px solid var(--color-xama-border)',
+        borderRadius: 14,
+        width: '100%', maxWidth: 520,
+        maxHeight: '80vh',
+        display: 'flex', flexDirection: 'column',
+        overflow: 'hidden',
+        boxShadow: '0 24px 64px rgba(0,0,0,0.6)',
+      }}>
+        {/* Header do modal */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '14px 18px',
+          borderBottom: '1px solid var(--color-xama-border)',
+          background: 'var(--surface-2)',
+        }}>
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--color-xama-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
+              Time de
+            </div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-xama-text)', fontFamily: "'JetBrains Mono', monospace" }}>
+              {username}
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: 8, width: 32, height: 32,
+              color: 'var(--color-xama-muted)', fontSize: 16, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+            ×
+          </button>
+        </div>
+
+        {/* Conteúdo */}
+        <div style={{ overflowY: 'auto', padding: '12px 16px', flex: 1 }}>
+          {loading && (
+            <p style={{ textAlign: 'center', padding: '40px 0', color: 'var(--color-xama-muted)', fontSize: 13 }}>
+              Carregando…
+            </p>
+          )}
+          {!loading && lineups.length === 0 && (
+            <p style={{ textAlign: 'center', padding: '40px 0', color: 'var(--color-xama-muted)', fontSize: 13 }}>
+              Nenhum lineup encontrado para esta stage.
+            </p>
+          )}
+          {!loading && lineups.map(lineup => (
+            <ModalLineupCard key={lineup.id} lineup={lineup} />
+          ))}
+        </div>
+
+        {/* Footer */}
+        <div style={{
+          padding: '10px 18px',
+          borderTop: '1px solid var(--color-xama-border)',
+          background: 'rgba(0,0,0,0.2)',
+          fontSize: 10, color: 'var(--color-xama-muted)', textAlign: 'center',
+          fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.06em', textTransform: 'uppercase',
+        }}>
+          Clique fora ou pressione Esc para fechar
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ModalLineupCard({ lineup }) {
+  const titulares = (lineup.players || [])
+    .filter(p => p.slot_type === 'titular')
+    .sort((a, b) => {
+      if (a.is_captain) return -1
+      if (b.is_captain) return 1
+      return (b.points_earned ?? -Infinity) - (a.points_earned ?? -Infinity)
+    })
+  const reserva  = (lineup.players || []).find(p => p.slot_type === 'reserve')
+  const isPending = lineup.total_points == null
+
+  return (
+    <div style={{
+      background: 'var(--surface-1)', border: '1px solid var(--color-xama-border)',
+      borderRadius: 10, overflow: 'hidden', marginBottom: 14,
+    }}>
+      {/* Cabeçalho do card */}
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        padding: '9px 14px',
+        background: 'var(--surface-2)', borderBottom: '1px solid var(--color-xama-border)',
+      }}>
+        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--color-xama-muted)' }}>
+          Total do dia
+        </span>
+        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 20, fontWeight: 700, color: isPending ? 'var(--color-xama-muted)' : 'var(--color-xama-orange)' }}>
+          {isPending ? '—' : Number(lineup.total_points).toFixed(2)}
+          {!isPending && <span style={{ fontSize: 11, color: 'var(--color-xama-muted)', marginLeft: 4 }}>pts</span>}
+        </span>
+      </div>
+
+      {/* Jogadores */}
+      <div style={{ padding: '6px 0' }}>
+        {titulares.map(lp => <ModalPlayerRow key={lp.id} lp={lp} />)}
+      </div>
+
+      {/* Reserva */}
+      {reserva && (
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', background: 'rgba(0,0,0,0.15)' }}>
+          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--color-xama-muted)', padding: '6px 14px 0' }}>
+            Reserva
+          </div>
+          <div style={{ padding: '4px 0 6px' }}>
+            <ModalPlayerRow lp={reserva} isReserve />
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ModalPlayerRow({ lp, isReserve = false }) {
+  const name    = lp.person_name || '—'
+  const tag     = fmtTag(name)
+  const pts     = lp.points_earned != null ? Number(lp.points_earned) : null
+  const captainColor = 'var(--color-xama-gold)'
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 8,
+      padding: '6px 14px',
+      borderBottom: '1px solid rgba(255,255,255,0.03)',
+      opacity: isReserve ? 0.65 : 1,
+      background: lp.is_captain ? 'rgba(240,192,64,0.04)' : 'transparent',
+    }}>
+      <TeamLogo teamName={tag} size={22} />
+
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span style={{
+            fontSize: 12, fontWeight: 600,
+            color: lp.is_captain ? captainColor : isReserve ? 'var(--color-xama-muted)' : 'var(--color-xama-text)',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 160,
+          }}>
+            {fmtName(name)}
+          </span>
+          {lp.is_captain && (
+            <span style={{
+              fontSize: 8, fontWeight: 800, color: captainColor,
+              background: 'rgba(240,192,64,0.14)', border: '1px solid rgba(240,192,64,0.35)',
+              borderRadius: 3, padding: '1px 4px', letterSpacing: '0.06em', flexShrink: 0,
+            }}>
+              CAP
+            </span>
+          )}
+          {isReserve && (
+            <span style={{
+              fontSize: 8, fontWeight: 700, color: 'var(--color-xama-muted)',
+              background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: 3, padding: '1px 4px', letterSpacing: '0.05em', flexShrink: 0,
+            }}>
+              RES
+            </span>
+          )}
+        </div>
+        {tag && (
+          <div style={{ fontSize: 10, color: 'var(--color-xama-muted)', marginTop: 1 }}>{tag}</div>
+        )}
+      </div>
+
+      <div style={{ textAlign: 'right', flexShrink: 0, minWidth: 52 }}>
+        {pts != null ? (
+          <span style={{
+            fontSize: 13, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace",
+            color: lp.is_captain ? captainColor : isReserve ? 'var(--color-xama-muted)' : 'var(--color-xama-text)',
+          }}>
+            {pts.toFixed(2)}
+          </span>
+        ) : (
+          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.15)', fontFamily: "'JetBrains Mono', monospace" }}>—</span>
+        )}
+      </div>
+    </div>
   )
 }

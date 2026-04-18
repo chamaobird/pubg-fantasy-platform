@@ -30,6 +30,8 @@ from app.database import get_db
 from app.dependencies import get_current_user, require_admin
 from app.jobs.lineup_control import force_stage_status
 from app.models import Lineup, Stage, StageDay
+from app.models.lineup import LineupPlayer
+from app.models.roster import Roster
 from app.services.lineup import submit_lineup
 
 logger = logging.getLogger(__name__)
@@ -79,6 +81,7 @@ class LineupPlayerOut(BaseModel):
     is_captain:    bool
     locked_cost:   Optional[int]
     points_earned: Optional[float]
+    person_id:     Optional[int] = None
     person_name:   Optional[str] = None
     team_name:     Optional[str] = None
 
@@ -87,19 +90,21 @@ class LineupPlayerOut(BaseModel):
     @model_validator(mode='before')
     @classmethod
     def _enrich_from_roster(cls, v):
-        """Popula person_name e team_name a partir da relação ORM roster → person."""
-        if not hasattr(v, 'roster') or v.roster is None:
+        """Converte ORM LineupPlayer → dict com person_id/person_name/team_name."""
+        if not hasattr(v, 'roster'):
             return v
         roster = v.roster
-        try:
-            object.__setattr__(v, 'person_name', roster.person.display_name if roster.person else None)
-        except Exception:
-            pass
-        try:
-            object.__setattr__(v, 'team_name', roster.team_name)
-        except Exception:
-            pass
-        return v
+        return {
+            "id":            v.id,
+            "roster_id":     v.roster_id,
+            "slot_type":     v.slot_type,
+            "is_captain":    v.is_captain,
+            "locked_cost":   v.locked_cost,
+            "points_earned": float(v.points_earned) if v.points_earned is not None else None,
+            "person_id":     roster.person_id if roster else None,
+            "person_name":   (roster.person.display_name if roster and roster.person else None),
+            "team_name":     (roster.team_name if roster else None),
+        }
 
 
 class LineupOut(BaseModel):
@@ -165,8 +170,8 @@ def get_my_lineup(
         db.query(Lineup)
         .options(
             selectinload(Lineup.players)
-            .selectinload("roster")
-            .selectinload("person")
+            .selectinload(LineupPlayer.roster)
+            .selectinload(Roster.person)
         )
         .filter(
             Lineup.user_id      == str(current_user.id),
@@ -180,6 +185,48 @@ def get_my_lineup(
             detail="Nenhum lineup encontrado para este dia",
         )
     return lineup
+
+
+@router.get(
+    "/lineups/stage/{stage_id}/user/{user_id}",
+    response_model=list[LineupOut],
+    summary="Ver lineup de outro manager (apenas quando stage locked)",
+    description=(
+        "Retorna os lineups de qualquer usuário para a stage informada. "
+        "Só funciona quando lineup_status='locked' — protege a composição dos adversários "
+        "durante o período de montagem e enquanto as partidas estão abertas."
+    ),
+)
+def get_user_lineups_for_stage(
+    stage_id: int,
+    user_id: str,
+    db: Session = Depends(get_db),
+    _current_user = Depends(get_current_user),
+):
+    stage = db.query(Stage).filter(Stage.id == stage_id).first()
+    if not stage:
+        raise HTTPException(status_code=404, detail="Stage não encontrada")
+    if stage.lineup_status != "locked":
+        raise HTTPException(
+            status_code=403,
+            detail="Lineup de outros managers só visível após encerramento da stage",
+        )
+    lineups = (
+        db.query(Lineup)
+        .join(StageDay, Lineup.stage_day_id == StageDay.id)
+        .options(
+            selectinload(Lineup.players)
+            .selectinload(LineupPlayer.roster)
+            .selectinload(Roster.person)
+        )
+        .filter(
+            StageDay.stage_id == stage_id,
+            Lineup.user_id    == user_id,
+        )
+        .order_by(StageDay.day_number)
+        .all()
+    )
+    return lineups
 
 
 @router.get(
@@ -197,8 +244,8 @@ def get_my_lineups_for_stage(
         .join(StageDay, Lineup.stage_day_id == StageDay.id)
         .options(
             selectinload(Lineup.players)
-            .selectinload("roster")
-            .selectinload("person")
+            .selectinload(LineupPlayer.roster)
+            .selectinload(Roster.person)
         )
         .filter(
             StageDay.stage_id == stage_id,
