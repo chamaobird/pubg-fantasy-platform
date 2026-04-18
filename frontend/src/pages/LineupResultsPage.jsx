@@ -5,17 +5,13 @@ import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { API_BASE_URL } from '../config'
 import TeamLogo from '../components/TeamLogo'
+import { formatTeamTag, formatPlayerName } from '../utils/teamUtils'
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
 function fmt(name) {
   if (!name) return '—'
-  const idx = name.indexOf('_')
-  return idx !== -1 ? name.slice(idx + 1) : name
-}
-function tag(name, teamName) {
-  if (name) { const idx = name.indexOf('_'); if (idx !== -1) return name.slice(0, idx) }
-  return teamName || '—'
+  return formatPlayerName(name, null) || name
 }
 async function get(url, token) {
   const res = await fetch(url, {
@@ -354,7 +350,7 @@ function StatPill({ value, color, bg, borderColor }) {
 
 function PlayerRow({ lp, captainMultiplier, isPending, isReserve = false, rank = null, playerStat = null }) {
   const name    = lp.person_name || '—'
-  const teamTag = tag(lp.person_name, lp.team_name)
+  const teamTag = formatTeamTag(lp.person_name, lp.team_name)
   const pts     = lp.points_earned != null ? Number(lp.points_earned) : null
   const basePts = lp.is_captain && pts != null ? pts / captainMultiplier : null
 

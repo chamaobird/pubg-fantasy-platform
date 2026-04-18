@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { API_BASE_URL } from '../config'
 import TeamLogo from './TeamLogo'
+import { formatTeamTag } from '../utils/teamUtils'
 
 const RANK_COLORS = { 1: '#f0c040', 2: '#b4bcc8', 3: '#cd7f50' }
 const RANK_BG     = {
@@ -826,7 +827,7 @@ function ModalLineupCard({ lineup }) {
 
 function ModalPlayerRow({ lp, isReserve = false }) {
   const name    = lp.person_name || '—'
-  const tag     = fmtTag(name)
+  const tag     = formatTeamTag(lp.person_name, lp.team_name)
   const pts     = lp.points_earned != null ? Number(lp.points_earned) : null
   const captainColor = 'var(--color-xama-gold)'
 

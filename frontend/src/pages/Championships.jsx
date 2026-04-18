@@ -159,12 +159,13 @@ function ChampionshipCard({ championship, navigate }) {
   const hasOpen    = championship.stages.some(s => s.lineup_status === 'open')
   const hasPreview = championship.stages.some(s => s.lineup_status === 'preview')
   const allLocked  = championship.stages.every(s => s.lineup_status === 'locked')
-  // Somente o locked mais recente (maior start_date) é "EM JOGO" — quando não há stage open.
+  // Somente o locked mais recente (maior id) é "EM JOGO" — quando não há stage open.
   // Locked mais antigos são "encerrado".
+  // Nota: start_date não está no schema StagePublic; usamos id como proxy (maior id = mais recente).
   const mostRecentLockedId = !hasOpen && hasPreview
     ? championship.stages
         .filter(s => s.lineup_status === 'locked')
-        .sort((a, b) => new Date(b.start_date) - new Date(a.start_date))[0]?.id
+        .sort((a, b) => b.id - a.id)[0]?.id
     : null
 
   // Ordena: open primeiro, preview, depois por data de abertura (cronológico), depois por id
