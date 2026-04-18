@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Optional
 from datetime import date, datetime
 
+from typing import Any
 from pydantic import BaseModel, field_validator, model_validator
 
 
@@ -45,6 +46,8 @@ class StageDayResponse(BaseModel):
     day_number: int
     date: date
     lineup_close_at: Optional[datetime]
+    match_schedule: Optional[list[Any]] = None
+    last_import_at: Optional[datetime] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

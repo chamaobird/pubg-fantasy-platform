@@ -152,7 +152,7 @@ export default function LineupBuilder({
   }, [players])
 
   // ── Derived — countdown para fechamento ────────────────────────────────
-  const closeTarget = stage?.start_date || null
+  const closeTarget = stage?.lineup_close_at || stage?.start_date || null
   const countdown = useCountdown(closeTarget)
 
   // ── Derived — tabela filtrada e ordenada ────────────────────────────────

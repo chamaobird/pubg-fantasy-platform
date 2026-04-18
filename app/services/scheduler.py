@@ -116,6 +116,13 @@ def _pricing_job() -> None:
     run_pricing_job()
 
 
+# ── Job 4: match_import ───────────────────────────────────────────────────────
+
+def _match_import_job() -> None:
+    from app.jobs.match_import_job import run_match_import_job
+    run_match_import_job()
+
+
 # ── Factory ───────────────────────────────────────────────────────────────────
 
 def create_scheduler() -> BackgroundScheduler:
@@ -149,6 +156,16 @@ def create_scheduler() -> BackgroundScheduler:
         name="Fantasy cost recalculation (Fase 5)",
         max_instances=1,
         misfire_grace_time=120,
+    )
+
+    scheduler.add_job(
+        _match_import_job,
+        trigger="interval",
+        minutes=2,
+        id="match_import",
+        name="Auto match import via stage_day.match_schedule",
+        max_instances=1,
+        misfire_grace_time=60,
     )
 
     return scheduler

@@ -1,8 +1,9 @@
 # app/routers/admin/stage_days.py
 from __future__ import annotations
-from typing import Optional
+from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -125,6 +126,48 @@ def update_stage_day(
     for field, value in updates.items():
         setattr(stage_day, field, value)
 
+    db.commit()
+    db.refresh(stage_day)
+    return stage_day
+
+
+class MatchScheduleRequest(BaseModel):
+    schedule: list[Any]
+
+
+@router.put("/{stage_day_id}/match-schedule", response_model=StageDayResponse)
+def set_match_schedule(
+    stage_day_id: int,
+    body: MatchScheduleRequest,
+    db: Session = Depends(get_db),
+    _admin: User = Depends(require_admin),
+) -> StageDay:
+    """
+    Define ou substitui o match_schedule de um StageDay.
+
+    Formato esperado de cada entrada:
+      { "match_number": 1, "import_after": "2026-04-18T23:25:00Z", "pubg_match_id": null }
+
+    Campos opcionais:
+      - pubg_match_id: se preenchido, o job importa diretamente sem descoberta
+      - processed_at:  preenchido automaticamente pelo job após import bem-sucedido
+    """
+    stage_day = _get_or_404(db, stage_day_id)
+
+    # Valida estrutura mínima de cada entrada
+    for i, entry in enumerate(body.schedule):
+        if not isinstance(entry, dict):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Entrada {i} deve ser um objeto JSON",
+            )
+        if "import_after" not in entry:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Entrada {i} precisa do campo 'import_after'",
+            )
+
+    stage_day.match_schedule = body.schedule
     db.commit()
     db.refresh(stage_day)
     return stage_day

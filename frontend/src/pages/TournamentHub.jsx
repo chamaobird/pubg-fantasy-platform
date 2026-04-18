@@ -8,6 +8,7 @@ import LineupBuilder from '../components/LineupBuilder'
 import TournamentLeaderboard from '../components/TournamentLeaderboard'
 import PlayerStatsPage from '../components/PlayerStatsPage'
 import AdminPricingPanel from '../components/AdminPricingPanel'
+import AdminOpsPanel from '../components/AdminOpsPanel'
 import PriceHistoryModal from '../components/PriceHistoryModal'
 import LineupResultsPage from './LineupResultsPage'
 
@@ -121,7 +122,14 @@ export default function TournamentHub() {
           <PlayerStatsPage stageId={Number(id)} shortName={stage?.short_name ?? ''} />
         )}
         {activeTab === TAB_ADMIN && isAdmin && (
-          <AdminPricingPanel stageId={Number(id)} token={token} />
+          <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+            <div style={{ flex: '1 1 340px', minWidth: '300px' }}>
+              <AdminOpsPanel stageId={Number(id)} token={token} />
+            </div>
+            <div style={{ flex: '2 1 420px', minWidth: '320px' }}>
+              <AdminPricingPanel stageId={Number(id)} token={token} />
+            </div>
+          </div>
         )}
       </TournamentLayout>
 

@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, List, Optional
 import datetime
 
 from sqlalchemy import Date, DateTime, ForeignKey, Integer, SmallInteger, UniqueConstraint, text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -32,6 +33,16 @@ class StageDay(Base):
         DateTime(timezone=True),
         nullable=True,
         comment="Matches first match start time for this day",
+    )
+    match_schedule: Mapped[Optional[list]] = mapped_column(
+        JSONB,
+        nullable=True,
+        comment="[{match_number, import_after, pubg_match_id?, processed_at?}, ...]",
+    )
+    last_import_at: Mapped[Optional[DateTime]] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="Timestamp do último import automático bem-sucedido neste dia",
     )
     created_at: Mapped[DateTime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=text("now()")
