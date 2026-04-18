@@ -41,13 +41,14 @@ const sectionTitle = {
 
 const label  = { fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginBottom: '4px', display: 'block' }
 const select = {
-  background: 'rgba(255,255,255,0.05)',
+  background: '#1a1f2e',
   border: '1px solid rgba(249,115,22,0.2)',
   borderRadius: '6px',
   color: '#fff',
   padding: '6px 10px',
   fontSize: '13px',
   width: '100%',
+  colorScheme: 'dark',
 }
 const input_ = { ...select, width: '100%', boxSizing: 'border-box' }
 const textarea_ = { ...input_, resize: 'vertical', fontFamily: 'monospace', fontSize: '12px', minHeight: '80px' }

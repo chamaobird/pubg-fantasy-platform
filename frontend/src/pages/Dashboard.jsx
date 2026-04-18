@@ -665,10 +665,10 @@ export default function Dashboard() {
     })
   }, [stages, token])
 
-  const sortByDate = (arr) => [...arr].sort((a, b) => {
+  const sortByDate = (arr, desc = false) => [...arr].sort((a, b) => {
     const da = new Date(a.start_date || a.lineup_open_at || '9999').getTime()
     const db = new Date(b.start_date || b.lineup_open_at || '9999').getTime()
-    return da - db
+    return desc ? db - da : da - db
   })
 
   const closedStages = useMemo(() => sortByDate(stages.filter(s => s.lineup_status === 'closed')), [stages])
@@ -715,7 +715,7 @@ export default function Dashboard() {
     const activeLockedIds = new Set(
       activeChampGroups.filter(g => g.locked && !g.open).map(g => g.locked.id)
     )
-    return sortByDate(stages.filter(s => s.lineup_status === 'locked' && !activeLockedIds.has(s.id)))
+    return sortByDate(stages.filter(s => s.lineup_status === 'locked' && !activeLockedIds.has(s.id)), true)
   }, [stages, activeChampGroups])
 
   const hasActive = activeChampGroups.length > 0
