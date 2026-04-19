@@ -259,13 +259,23 @@ export default function LineupBuilder({
 
     loadedLineupIdRef.current = currentDayLineup.id
 
+    // Ao carregar lineup existente, sobrescreve effective_cost com locked_cost
+    // para que o budget exibido reflita o preço no momento do envio,
+    // não o preço atual (que pode ter mudado por repricing posterior).
+    const withLockedCost = (player, lp) =>
+      player && lp.locked_cost != null
+        ? { ...player, effective_cost: lp.locked_cost }
+        : player
+
     const titulares = currentDayLineup.players
       .filter(lp => lp.slot_type === 'titular')
-      .map(lp => players.find(p => p.id === lp.roster_id))
+      .map(lp => withLockedCost(players.find(p => p.id === lp.roster_id), lp))
       .filter(Boolean)
 
     const reserveEntry = currentDayLineup.players.find(lp => lp.slot_type === 'reserve')
-    const reserve = reserveEntry ? (players.find(p => p.id === reserveEntry.roster_id) || null) : null
+    const reserve = reserveEntry
+      ? withLockedCost(players.find(p => p.id === reserveEntry.roster_id) || null, reserveEntry)
+      : null
 
     const captainEntry = currentDayLineup.players.find(lp => lp.is_captain)
 
