@@ -4,10 +4,11 @@
 
 export const STATUS_COLOR = {
   // lineup_status
-  open:     'var(--color-xama-green)',
-  preview:  'var(--color-xama-orange)',
-  closed:   'var(--color-xama-orange)',
-  locked:   'var(--color-xama-muted)',
+  open:        'var(--color-xama-green)',
+  preview:     'var(--color-xama-orange)',
+  live: 'var(--color-xama-orange)',
+  closed:      'var(--color-xama-orange)',
+  locked:      'var(--color-xama-muted)',
   // tournament status (legado Navbar)
   active:   'var(--color-xama-green)',
   upcoming: 'var(--color-xama-orange)',
@@ -15,23 +16,25 @@ export const STATUS_COLOR = {
 }
 
 export const STATUS_LABEL = {
-  active:   'AO VIVO',
-  upcoming: 'EM BREVE',
-  finished: 'ENCERRADO',
-  open:     'ABERTA',
-  preview:  'EM PREVIEW',
-  closed:   'EM BREVE',
-  locked:   'ENCERRADO',
+  active:      'AO VIVO',
+  upcoming:    'EM BREVE',
+  finished:    'ENCERRADO',
+  open:        'ABERTA',
+  preview:     'EM PREVIEW',
+  live: 'EM JOGO',
+  closed:      'EM BREVE',
+  locked:      'ENCERRADO',
 }
 
 // Configuração completa para cards e badges.
 // bg/border usam rgba derivado das cores dos tokens (CSS vars puras não suportam canal
 // alpha sem color-mix, que requer suporte explícito de browser).
 export const STATUS_CONFIG = {
-  open:    { color: 'var(--color-xama-green)',  bg: 'rgba(74,222,128,0.1)',   border: 'rgba(74,222,128,0.3)',   label: 'ABERTO'     },
-  preview: { color: 'var(--color-xama-orange)', bg: 'rgba(249,115,22,0.1)',   border: 'rgba(249,115,22,0.35)',  label: 'EM PREVIEW' },
-  locked:  { color: 'var(--color-xama-muted)',  bg: 'rgba(107,114,128,0.1)',  border: 'rgba(107,114,128,0.3)',  label: 'ENCERRADO'  },
-  closed:  { color: 'var(--color-xama-muted)',  bg: 'rgba(107,114,128,0.07)', border: 'rgba(107,114,128,0.2)',  label: 'EM BREVE'   },
+  open:        { color: 'var(--color-xama-green)',  bg: 'rgba(74,222,128,0.1)',   border: 'rgba(74,222,128,0.3)',   label: 'ABERTO'     },
+  preview:     { color: 'var(--color-xama-orange)', bg: 'rgba(249,115,22,0.1)',   border: 'rgba(249,115,22,0.35)',  label: 'EM PREVIEW' },
+  live: { color: 'var(--color-xama-orange)', bg: 'rgba(249,115,22,0.1)',   border: 'rgba(249,115,22,0.35)',  label: 'EM JOGO'    },
+  locked:      { color: 'var(--color-xama-muted)',  bg: 'rgba(107,114,128,0.1)',  border: 'rgba(107,114,128,0.3)',  label: 'ENCERRADO'  },
+  closed:      { color: 'var(--color-xama-muted)',  bg: 'rgba(107,114,128,0.07)', border: 'rgba(107,114,128,0.2)',  label: 'EM BREVE'   },
 }
 
 export function statusConfig(status) {

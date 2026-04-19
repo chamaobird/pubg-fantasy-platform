@@ -682,8 +682,8 @@ export default function Dashboard() {
       const cid = c.id
       if (!groups[cid]) groups[cid] = { champ: c, open: null, locked: null, previews: [], closeds: [] }
       if (s.lineup_status === 'open')         groups[cid].open = s
-      else if (s.lineup_status === 'locked') {
-        // Manter sempre o locked mais recente (maior start_date) como "ativo"
+      else if (s.lineup_status === 'locked' || s.lineup_status === 'live') {
+        // Manter sempre o locked/live mais recente (maior start_date) como "ativo"
         const cur = groups[cid].locked
         if (!cur || new Date(s.start_date) > new Date(cur.start_date)) groups[cid].locked = s
       }
@@ -696,10 +696,10 @@ export default function Dashboard() {
     return groups
   }, [stages, champMap])
 
-  // Campeonatos com stage "ativa": open, ou locked com previews filhos
+  // Campeonatos com stage "ativa": open, ou live, ou locked com previews filhos
   const activeChampGroups = useMemo(() =>
     Object.values(champGroups)
-      .filter(g => g.open || (g.locked && g.previews.length > 0))
+      .filter(g => g.open || g.locked?.lineup_status === 'live' || (g.locked && g.previews.length > 0))
       .sort((a, b) => {
         // open primeiro, depois locked
         if (a.open && !b.open) return -1
@@ -711,15 +711,15 @@ export default function Dashboard() {
     [champGroups]
   )
 
-  // Locked sem preview filhos → vai para Resultados
+  // Locked sem preview filhos → vai para Resultados (live nunca vai para Resultados)
   const pureLockedStages = useMemo(() => {
-    // Só exclui de Resultados o locked que é "EM JOGO" agora:
-    // locked sem stage open no mesmo campeonato (LockedActiveCard).
-    // Se o campeonato já tem um open, o locked está encerrado → vai para Resultados.
     const activeLockedIds = new Set(
       activeChampGroups.filter(g => g.locked && !g.open).map(g => g.locked.id)
     )
-    return sortByDate(stages.filter(s => s.lineup_status === 'locked' && !activeLockedIds.has(s.id)), true)
+    return sortByDate(
+      stages.filter(s => s.lineup_status === 'locked' && !activeLockedIds.has(s.id)),
+      true
+    )
   }, [stages, activeChampGroups])
 
   const hasActive = activeChampGroups.length > 0

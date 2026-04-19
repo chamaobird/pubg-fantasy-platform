@@ -63,7 +63,7 @@ class Stage(Base):
         String(10),
         nullable=False,
         server_default="'closed'",
-        comment="closed | open | locked",
+        comment="closed | open | locked | live",
     )
     lineup_size: Mapped[int] = mapped_column(
         SmallInteger,

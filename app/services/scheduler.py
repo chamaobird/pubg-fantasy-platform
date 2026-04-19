@@ -40,7 +40,7 @@ def _lineup_control_job() -> None:
         now = datetime.now(tz=timezone.utc)
         stages = (
             db.query(Stage)
-            .filter(Stage.lineup_status != "locked")
+            .filter(Stage.lineup_status.notin_(["locked", "live"]))
             .all()
         )
         if not stages:
@@ -70,8 +70,8 @@ def _process_stage_status(db, stage, now: datetime) -> None:
     if stage.lineup_status == "open":
         if stage.lineup_close_at and now >= stage.lineup_close_at:
             _replicate_missing_lineups(db, stage, now)
-            stage.lineup_status = "locked"
-            logger.info("lineup_control: stage %s (%s) → locked", stage.id, stage.name)
+            stage.lineup_status = "live"
+            logger.info("lineup_control: stage %s (%s) → live", stage.id, stage.name)
 
     if stage.lineup_status != old_status:
         db.add(stage)

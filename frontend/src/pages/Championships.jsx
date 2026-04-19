@@ -156,20 +156,20 @@ function StageRow({ stage, champName, navigate, isLive = false }) {
 // ── ChampionshipCard ──────────────────────────────────────────────────────────
 
 function ChampionshipCard({ championship, navigate }) {
-  const hasOpen    = championship.stages.some(s => s.lineup_status === 'open')
-  const hasPreview = championship.stages.some(s => s.lineup_status === 'preview')
-  const allLocked  = championship.stages.every(s => s.lineup_status === 'locked')
-  // Somente o locked mais recente (maior id) é "EM JOGO" — quando não há stage open.
-  // Locked mais antigos são "encerrado".
-  // Nota: start_date não está no schema StagePublic; usamos id como proxy (maior id = mais recente).
-  const mostRecentLockedId = !hasOpen && hasPreview
+  const hasOpen        = championship.stages.some(s => s.lineup_status === 'open')
+  const hasPreview     = championship.stages.some(s => s.lineup_status === 'preview')
+  const hasInProgress  = championship.stages.some(s => s.lineup_status === 'live')
+  const allLocked      = !hasInProgress && championship.stages.every(s => s.lineup_status === 'locked')
+  // live stages são sempre "EM JOGO". Para locked sem live: o mais recente é EM JOGO
+  // quando há previews filhos (próximos dias ainda por jogar).
+  const mostRecentLockedId = !hasOpen && hasPreview && !hasInProgress
     ? championship.stages
         .filter(s => s.lineup_status === 'locked')
         .sort((a, b) => b.id - a.id)[0]?.id
     : null
 
-  // Ordena: open primeiro, preview, depois por data de abertura (cronológico), depois por id
-  const stageOrder = { open: 0, preview: 1, closed: 2, locked: 3 }
+  // Ordena: open/live primeiro, preview, depois por data de abertura (cronológico), depois por id
+  const stageOrder = { open: 0, live: 0, preview: 1, closed: 2, locked: 3 }
   const sortedStages = [...championship.stages].sort((a, b) => {
     const statusDiff = (stageOrder[a.lineup_status] ?? 3) - (stageOrder[b.lineup_status] ?? 3)
     if (statusDiff !== 0) return statusDiff
@@ -185,7 +185,7 @@ function ChampionshipCard({ championship, navigate }) {
       background: 'rgba(18, 21, 28, 0.82)',
       backdropFilter: 'blur(8px)',
       WebkitBackdropFilter: 'blur(8px)',
-      border: `1px solid ${hasOpen ? 'rgba(74,222,128,0.2)' : hasPreview ? 'rgba(249,115,22,0.2)' : 'rgba(249,115,22,0.12)'}`,
+      border: `1px solid ${hasOpen ? 'rgba(74,222,128,0.2)' : (hasPreview || hasInProgress) ? 'rgba(249,115,22,0.2)' : 'rgba(249,115,22,0.12)'}`,
       boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
       borderRadius: 12, overflow: 'hidden',
       position: 'relative',
@@ -213,7 +213,10 @@ function ChampionshipCard({ championship, navigate }) {
             {hasOpen && (
               <span style={{ marginLeft: 8, color: STATUS_COLOR.open, fontWeight: 700 }}>• lineup aberto</span>
             )}
-            {!hasOpen && hasPreview && (
+            {hasInProgress && !hasOpen && (
+              <span style={{ marginLeft: 8, color: STATUS_COLOR.live, fontWeight: 700 }}>• em jogo</span>
+            )}
+            {!hasOpen && !hasInProgress && hasPreview && (
               <span style={{ marginLeft: 8, color: STATUS_COLOR.preview, fontWeight: 700 }}>• em preview</span>
             )}
             {allLocked && (
@@ -232,7 +235,7 @@ function ChampionshipCard({ championship, navigate }) {
               stage={stage}
               champName={championship.name}
               navigate={navigate}
-              isLive={stage.id === mostRecentLockedId}
+              isLive={stage.lineup_status === 'live' || stage.id === mostRecentLockedId}
             />
           ))}
         </div>
@@ -264,7 +267,7 @@ export default function Championships() {
       .catch(() => { setError('Erro ao carregar campeonatos'); setLoading(false) })
   }, [])
 
-  const active   = championships.filter(c => c.stages.some(s => ['open', 'preview', 'closed'].includes(s.lineup_status)))
+  const active   = championships.filter(c => c.stages.some(s => ['open', 'preview', 'live', 'closed'].includes(s.lineup_status)))
   const finished = championships.filter(c => c.stages.length === 0 || c.stages.every(s => s.lineup_status === 'locked'))
 
   return (

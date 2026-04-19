@@ -104,18 +104,17 @@ def now() -> str:
 
 
 def load_known_ids_from_db(stage_id: int) -> set[str]:
-    """Carrega do banco todos os pubg_match_ids já importados para a stage."""
+    """Carrega todos os pubg_match_ids já importados no shard pc-tournament.
+
+    Usa o shard inteiro (não filtra por stage) para evitar tentar reimportar
+    partidas de dias anteriores do mesmo torneio, o que causaria UniqueViolation.
+    O stage_id é recebido apenas para compatibilidade de assinatura.
+    """
     from sqlalchemy import text as sql_text
     db = SessionLocal()
     try:
         rows = db.execute(
-            sql_text("""
-                SELECT m.pubg_match_id
-                FROM match m
-                JOIN stage_day sd ON sd.id = m.stage_day_id
-                WHERE sd.stage_id = :stage_id
-            """),
-            {"stage_id": stage_id},
+            sql_text("SELECT pubg_match_id FROM match WHERE shard = 'pc-tournament'"),
         ).fetchall()
         return {r[0] for r in rows}
     finally:
