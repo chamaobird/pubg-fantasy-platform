@@ -126,16 +126,36 @@ POST /auth/resend-verification
 
 ## Endpoints admin
 ```
-PATCH /admin/pricing/rosters/{id}/cost-override
-POST  /admin/pricing/stages/{id}/recalculate-pricing
-POST  /admin/stages/{id}/import-matches
-POST  /admin/stages/{id}/reprocess-match
-POST  /admin/stages/{id}/score-day
-POST  /admin/stages/{id}/rescore
-POST  /admin/stages/{id}/force-status          ← aceita: closed | open | locked | preview
-POST  /admin/stages/{id}/notify-lineup-open    ← reenvio manual de email "lineup aberta"
-POST  /admin/stages/{id}/extend-deadline       ← body: {"minutes": int} — estende lineup_close_at em N minutos
-PUT   /admin/stage-days/{day_id}/match-schedule ← salvar JSON schedule de matches do dia
+GET   /admin/championships/detect-shard?tournament_id=X  ← detecta shard via PUBG API (probe)
+POST  /admin/championships/                               ← criar championship
+PATCH /admin/championships/{id}                           ← editar championship
+GET   /admin/championships/                               ← listar (include_inactive param)
+POST  /admin/stages/                                      ← criar stage
+PATCH /admin/stages/{id}                                  ← editar stage
+GET   /admin/stages/                                      ← listar
+POST  /admin/stage-days/                                  ← criar stage day
+PATCH /admin/stage-days/{id}                              ← editar stage day
+PUT   /admin/stage-days/{id}/match-schedule               ← salvar JSON schedule de matches
+POST  /admin/persons/                                     ← criar person
+PATCH /admin/persons/{id}                                 ← editar person
+GET   /admin/persons/                                     ← buscar persons (search, include_inactive)
+POST  /admin/persons/{id}/accounts                        ← adicionar player account
+PATCH /admin/persons/{id}/accounts/{account_id}           ← fechar account
+POST  /admin/stages/{id}/roster                           ← adicionar jogador ao roster
+PATCH /admin/stages/{id}/roster/{roster_id}               ← editar entrada do roster
+DELETE /admin/stages/{id}/roster/{roster_id}              ← remover do roster
+PATCH /admin/pricing/rosters/{id}/cost-override           ← custo manual override
+POST  /admin/pricing/stages/{id}/recalculate-pricing      ← recalcular pricing da stage
+POST  /admin/stages/{id}/import-matches                   ← importar lista de match IDs
+POST  /admin/stages/{id}/reprocess-match                  ← reprocessar match específico
+POST  /admin/stages/{id}/reprocess-all-matches            ← reprocessar todos os matches (pós PENDING_)
+POST  /admin/stages/{id}/recalculate-stage-stats          ← reconstruir PERSON_STAGE_STAT do zero
+POST  /admin/stages/{id}/score-day                        ← pontuar dia específico
+POST  /admin/stages/{id}/rescore                          ← repontuar todos os dias
+POST  /admin/stages/{id}/backfill-stats                   ← criar 0pts para usuários sem registros
+POST  /admin/stages/{id}/force-status                     ← aceita: closed | open | locked | preview
+POST  /admin/stages/{id}/notify-lineup-open               ← reenvio manual de email "lineup aberta"
+POST  /admin/stages/{id}/extend-deadline                  ← body: {"minutes": int}
 ```
 
 ## Dados reais no banco
@@ -168,6 +188,45 @@ PUT   /admin/stage-days/{day_id}/match-schedule ← salvar JSON schedule de matc
   - Persons PEC: ids 213–310 (D1 novos), 257–314 (D2+D3). Times PGS reutilizados: NAVI(63-66), VIT(95-98), VP(99-102), S2G(71-74)
   - Scripts: `scripts/pubg/import_pec_day.py`, `scripts/pubg/insert_pec_d2d3_roster.py`, `scripts/pubg/insert_pec_d2_to_d3_roster.py`, `scripts/pubg/open_pec_d2.py`
   - Import D3: `python scripts/pubg/import_pec_day.py --stage-id 23 --stage-day-id 24`
+
+## Scripts operacionais
+```bash
+# Validação pré-evento (PENDING_, logos, teamUtils, shard, lineup_close_at)
+python scripts/pubg/validate_event.py --stage-id X --tournament-id eu-pecs26
+
+# Ressincronizar sequences PostgreSQL após inserts em lote
+python scripts/fix_sequences.py --dry-run   # preview
+python scripts/fix_sequences.py             # executa
+
+# Import de partidas PEC (inicializa known_ids do banco)
+python scripts/pubg/import_pec_day.py --stage-id 23 --stage-day-id 24 --watch 5
+
+# Import de partidas PAS (polling)
+python scripts/pubg/watch_pas_matches.py --stage-id 17 --stage-day-id 18 --watch 3
+
+# Lembrete por email
+python -m scripts.broadcast_last_day_reminder
+```
+
+## PUBG API — referências
+```
+# Busca matches de um torneio (pc-tournament e steam)
+GET https://api.pubg.com/tournaments/{tournament_id}
+  → PEC: eu-pecs26  |  PAS1 Playoffs: am-pas126
+
+# Busca match pelo shard
+GET https://api.pubg.com/shards/pc-tournament/matches/{match_id}
+GET https://api.pubg.com/shards/steam/matches/{match_id}
+
+# Lookup de account_id por nome de jogador (APENAS steam — não funciona em pc-tournament)
+GET https://api.pubg.com/shards/steam/players?filter[playerNames]=nome1,nome2,...
+  → Máximo 10 nomes por request | rate limit: 10 req/min
+  → Resolve PENDING_ antes do evento para qualificatórias steam
+
+# Confirmação de shard (use detect-shard endpoint em vez de fazer manualmente)
+GET https://api.pubg.com/tournaments/{id}         → pegar primeiro match_id
+GET https://api.pubg.com/shards/pc-tournament/matches/{match_id}  → 200 = pc-tournament, 404 = steam
+```
 
 ## Notas importantes
 - `pricing_n_matches`: campo DEPRECATED no modelo Stage

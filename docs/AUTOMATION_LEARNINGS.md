@@ -334,35 +334,112 @@ manage_championship.py validate --file champ.yaml          # Checklist pré-aber
 
 ---
 
-## 7. Ordem de Operações Recomendada (checklist pré-evento)
+## 7. Melhorias estruturais implementadas (19/04/2026)
+
+Cinco melhorias aplicadas após os primeiros dias das Playoffs 1 (PAS + PEC):
+
+| Melhoria | Arquivo | O que resolve |
+|---|---|---|
+| `GET /admin/championships/detect-shard` | `app/routers/admin/championships.py` | Shard errado no setup |
+| `known_ids` do banco no startup | `scripts/pubg/import_pec_day.py` | UniqueViolation ao re-executar |
+| `validate_event.py` | `scripts/pubg/validate_event.py` | Visibilidade do estado antes de abrir lineup |
+| `fix_sequences.py` | `scripts/fix_sequences.py` | IntegrityError após inserts em lote |
+| `POST reprocess-all-matches` | `app/routers/import_.py` | Reprocessar sem precisar de Claude |
+
+**Uso do validate_event (obrigatório antes de abrir qualquer lineup):**
+```bash
+python scripts/pubg/validate_event.py --stage-id X --tournament-id eu-pecs26
+```
+Saída: lista jogadores PENDING_, times sem logo, times sem teamUtils, pricing_distribution errado, lineup_close_at ausente, shard divergente.
+
+---
+
+## 8. Ordem de Operações Recomendada (checklist pré-evento)
 
 Baseado nos erros que cometemos, esta é a ordem correta de operações antes de qualquer dia de torneio:
 
 ```
-[ ] 1. Confirmar shard via PUBG API (tournament_id → match → shardId)
+[ ] 1. Usar GET /admin/championships/detect-shard?tournament_id=X para confirmar shard
 [ ] 2. Criar championship e stages com shard correto
 [ ] 3. Criar Persons + PlayerAccounts + Rosters para TODOS os jogadores do dia
+       - Shard steam: resolver account_id via API ANTES do evento (ver seção 9)
+       - Shard pc-tournament: usar PENDING_<nome> e resolver após 1a partida
 [ ] 4. Verificar logos: arquivo existe? nome = tag.lower().png?
 [ ] 5. TEAM_NAME_TO_TAG atualizado em teamUtils.js?
 [ ] 6. Commitar e fazer push de logos e código
 [ ] 7. Setar lineup_close_at na Stage (20h BRT = 23h UTC)
-[ ] 8. Abrir lineup (force_status = 'open')
+[ ] 8. Rodar: python scripts/pubg/validate_event.py --stage-id X --tournament-id Y
+       → deve retornar zero problemas antes de abrir
+[ ] 9. Abrir lineup (force_status = 'open')
 --- DURANTE O EVENTO ---
-[ ] 9. Acompanhar matches via GET /tournaments/{id} polling
-[ ] 10. Importar matches (force_reprocess=False); verificar ok=64 skip=0
-[ ] 11. Se skip > 0: identificar players na API, inserir player_accounts, reprocessar
-[ ] 12. Após último match: fechar stage (force_status = 'locked')
-[ ] 13. Confirmar que scoring_job rodou (verificar total_points nos lineups)
-[ ] 14. Se scoring não rodou automaticamente: chamar score_stage_day + calculate_day_ranks manual
+[ ] 10. Acompanhar matches via GET /tournaments/{id} polling (ou watch script)
+[ ] 11. Importar matches (force_reprocess=False); verificar ok=64 skip=0
+[ ] 12. Se skip > 0: identificar players na API, inserir player_accounts
+        → POST /admin/stages/{id}/reprocess-all-matches (sem precisar de script manual)
+[ ] 13. Após último match: fechar stage (force_status = 'locked')
+[ ] 14. Confirmar que scoring_job rodou (verificar total_points nos lineups)
+[ ] 15. Se scoring não rodou: POST /admin/stages/{id}/score-day + rescore
 --- TRANSIÇÃO PARA O PRÓXIMO DIA ---
-[ ] 15. Identificar times rebaixados
-[ ] 16. Copiar roster stage anterior → próxima stage para times rebaixados
-[ ] 17. Checar accounts: todo jogador rebaixado tem pc-tournament account?
-[ ] 18. Marcar substitutos como is_available=False no roster do próximo dia
-[ ] 19. Rodar pricing no próximo stage
-[ ] 20. Setar lineup_open_at e lineup_close_at do próximo stage
-[ ] 21. Abrir próximo stage
+[ ] 16. Identificar times rebaixados
+[ ] 17. Copiar roster stage anterior → próxima stage para times rebaixados
+[ ] 18. Checar accounts: todo jogador rebaixado tem account no shard correto?
+[ ] 19. Marcar substitutos como is_available=False no roster do próximo dia
+[ ] 20. POST /admin/pricing/stages/{id}/recalculate-pricing
+[ ] 21. Setar lineup_open_at e lineup_close_at do próximo stage
+[ ] 22. Abrir próximo stage
 ```
+
+---
+
+## 9. Qualificatórias Steam — fluxo diferente de pc-tournament
+
+A partir dos próximos regionais (PAS 2, etc.), a fase de qualificatória usa shard `steam`.
+Isso muda o fluxo de identidade de forma importante:
+
+### Steam tem player lookup por nome (pc-tournament não tem)
+```
+GET https://api.pubg.com/shards/steam/players?filter[playerNames]=nome1,nome2,...
+→ Retorna account_id de cada jogador pelo nome in-game
+→ Máximo 10 nomes por request | rate limit: 10 req/min
+→ 160 jogadores = 16 requests = ~2 minutos
+```
+
+**Consequência:** para qualificatórias steam, **não é necessário PENDING_**. É possível resolver todos os account_ids antes do evento, eliminando o skip=1 no import.
+
+### Fluxo pré-evento para steam
+```
+1. Obter lista de times/jogadores (Wasdefy ou fonte oficial do torneio)
+2. Chamar GET /shards/steam/players para cada batch de 10 nomes
+3. Criar Person + PlayerAccount(steam) com account_id real (não PENDING_)
+4. Criar Roster na stage
+5. validate_event.py → deve retornar zero PENDING_
+```
+
+### Mesmo jogador em steam e pc-tournament
+Um jogador que joga qualificatória (steam) e depois Playoffs (pc-tournament) terá **dois PlayerAccount** para o mesmo Person:
+- `PlayerAccount(person_id=X, shard='steam', account_id='account.steam.xxx')`
+- `PlayerAccount(person_id=X, shard='pc-tournament', account_id='account.pctournament.xxx')`
+
+O sistema de identidade (`build_lookup`) já filtra por shard da stage — isso funciona corretamente sem mudança de modelo.
+
+### Estrutura de championship para regionais semanais
+```
+PAS 2 - Open Qualify WEEK #1  (championship, shard=steam)
+  ├── Stage 1 — Dia 1  (40+ times, ~160 jogadores)
+  ├── Stage 2 — Dia 2  (40+ times, preço ajustado pelo D1)
+  ├── Stage 3 — Dia 3  (40+ times, preço ajustado pelo D1+D2)
+  └── Stage 4 — Final  (16 melhores times das stages 1-3, subconjunto do roster)
+
+PAS 2 - Playoffs 1  (championship, shard=pc-tournament)
+  └── ... como já operamos hoje
+```
+
+**Por que championship por semana (não um championship único com muitas stages)?**
+- Shard diferente (steam vs pc-tournament) entre fases é incompatível no mesmo championship
+- Precificação e lineup por semana = contexto isolado e correto
+- Playoffs e Grand Final como championships separados = mapeamento direto com a realidade do torneio
+
+**Pricing entre semanas:** funciona automaticamente via decay exponencial (150 dias). Semana 2 já considera performance da Semana 1 com peso menor. Não precisa configurar `carries_stats_from` explicitamente.
 
 ---
 

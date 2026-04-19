@@ -3,7 +3,75 @@
 
 ---
 
-## Estado Atual — 18/04/2026 (noite) — PEC D2 encerrado, D3 aberto; PAS D2 em andamento
+## Estado Atual — 19/04/2026 — PEC D3 em jogo; PAS D3 em jogo (último dia das Playoffs 1)
+
+### PEC Spring Playoffs 1 — estado atual
+- **Stage 21 (D1):** `locked` — 5 partidas, 64/64 resolvidos, encerrado
+- **Stage 22 (D2):** `locked` — 5 partidas, 63/64 resolvidos (GTG_Blazor- sub intencional), encerrado
+- **Stage 23 (D3):** `open` → partidas hoje — 64 jogadores (16 times)
+  - 4 PENDING a resolver na 1a partida: BR1GHTS1D3 (EVER), Paidaros2 (GN), Sallen (PBRU), annico (VPX)
+  - Substituto GTG: se GTG_anybodezz jogar, será skip=1 até resolver account
+  - Import: `python scripts/pubg/import_pec_day.py --stage-id 23 --stage-day-id 24`
+
+### PAS Playoffs 1 — estado atual
+- **Stage 15 (D1):** `locked` — encerrado
+- **Stage 16 (D2):** `locked` — encerrado
+- **Stage 17 (D3):** `open` → partidas hoje (~23h UTC) — 5 times, 20 jogadores
+  - Gustav (id=202, pa=308): PENDING — resolver após 1a partida
+  - fl8nkr (id=310, pa=457): PENDING — resolver após 1a partida
+  - Import: `python scripts/pubg/watch_pas_matches.py --stage-id 17 --stage-day-id 18 --watch 3`
+
+### Proximas tarefas operacionais (hoje)
+**PEC D3:**
+1. `python scripts/pubg/import_pec_day.py --stage-id 23 --stage-day-id 24 --watch 5`
+2. Resolver 4 PENDING_ após 1a partida (buscar participants na API)
+3. `POST /admin/stages/23/reprocess-all-matches` após reconciliação
+4. `POST /admin/stages/23/rescore`
+5. `POST /admin/stages/23/backfill-stats`
+
+**PAS D3:**
+1. `python scripts/pubg/watch_pas_matches.py --stage-id 17 --stage-day-id 18 --watch 3`
+2. Resolver Gustav e fl8nkr após 1a partida
+3. `POST /admin/stages/17/reprocess-all-matches` após reconciliação
+4. `POST /admin/stages/17/rescore`
+5. `POST /admin/stages/17/backfill-stats`
+
+### Backlog imediato (pós-playoffs)
+→ Ver `docs/ROADMAP_POST_PLAYOFFS.md` para o plano completo
+
+1. **Steam player lookup service** — resolver PENDING_ automaticamente para shards steam (pré-evento)
+2. **Bulk roster import** — criar 160+ roster entries para qualificatórias regionais sem processo manual
+3. **Página admin** — UI de gestão de championships/stages/persons/roster/import/scoring/pricing
+4. Corrigir comentário `scoring.py` linha ~14: x1.25 → x1.30
+5. **Mobile Fase 2** — LineupBuilder cards, tabelas responsivas, navbar mobile
+6. **Person aliases** — tabela `person_alias` ou coluna JSON para nomes alternativos (ex: DadBuff = Palecks)
+7. Cores Categoria B sem token: `#0f1219`, `#1a1f2e`, `#2a3046` — ~30 ocorrências
+
+---
+
+## Sessão 19/04/2026 — Melhorias estruturais + discussão de roadmap pós-playoffs
+
+### 5 melhorias estruturais implementadas
+- **`GET /admin/championships/detect-shard?tournament_id=X`**: proba PUBG API e retorna shard correto antes de criar championship — elimina bug de shard errado na origem
+- **`import_pec_day.py`**: `known_ids` inicializado do banco no startup — re-execução não tenta reimportar matches já existentes
+- **`scripts/pubg/validate_event.py --stage-id X`**: checklist pré-evento (PENDING_, logos, teamUtils, pricing_distribution, lineup_close_at, shard via API)
+- **`scripts/fix_sequences.py`**: ressincroniza sequences PostgreSQL após inserts em lote fora do SQLAlchemy (`--dry-run` disponível)
+- **`POST /admin/stages/{id}/reprocess-all-matches`**: reprocessa todos os matches da stage — útil após reconciliar PENDING_
+
+### Email broadcast disparado
+- Lembrete "último dia das Playoffs 1 (PAS & PEC)" enviado para 6 usuários verificados
+- Script: `scripts/broadcast_last_day_reminder.py`
+
+### Decisões estruturais tomadas (ver ROADMAP_POST_PLAYOFFS.md para detalhes)
+- **Championship por semana** para qualificatórias regionais (ex: "PAS 2 - Open Qualify WEEK #1")
+- **Shard no championship** (não na stage) continua correto com esse modelo
+- **Steam player lookup** resolve PENDING_ antes do evento para shards steam
+- **Stage 4 = Final de semana** com 16 times (subconjunto do roster das stages 1-3)
+- **Lineup por stage** (por dia) — modelo atual já suporta
+
+---
+
+## Sessão 18/04/2026 (noite) — PEC D2 encerrado, D3 aberto; PAS D2 em andamento
 
 ### PEC Spring Playoffs 1 — estado atual
 - **Stage 21 (D1):** `locked` — 5 partidas, 64/64 jogadores resolvidos
