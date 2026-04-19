@@ -144,6 +144,67 @@ def reprocess_match_endpoint(
 
 
 @router.post(
+    "/{stage_id}/reprocess-all-matches",
+    summary="Reprocessar todos os matches de uma Stage",
+    description=(
+        "Rebusca cada match da PUBG API e recalcula MATCH_STAT + PERSON_STAGE_STAT. "
+        "Útil após reconciliar PENDING_ accounts: todos os jogadores que antes foram "
+        "skippados passam a ser resolvidos. Idempotente — pode ser chamado múltiplas vezes. "
+        "Retorna um resumo por match."
+    ),
+)
+def reprocess_all_matches_endpoint(
+    stage_id: int,
+    db: Session = Depends(get_db),
+    _admin = Depends(require_admin),
+):
+    from sqlalchemy import text as sql_text
+
+    # Busca todos os pubg_match_ids da stage
+    rows = db.execute(
+        sql_text("""
+            SELECT m.pubg_match_id
+            FROM match m
+            JOIN stage_day sd ON sd.id = m.stage_day_id
+            WHERE sd.stage_id = :stage_id
+            ORDER BY m.played_at ASC NULLS LAST, m.id ASC
+        """),
+        {"stage_id": stage_id},
+    ).fetchall()
+
+    if not rows:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Nenhum match encontrado para stage_id={stage_id}.",
+        )
+
+    results = []
+    errors = []
+    for (pubg_match_id,) in rows:
+        try:
+            r = reprocess_match(db=db, pubg_match_id=pubg_match_id, stage_id=stage_id)
+            results.append(r)
+        except Exception as exc:
+            logger.exception("[reprocess-all] Erro em match=%s stage=%s", pubg_match_id, stage_id)
+            errors.append({"pubg_match_id": pubg_match_id, "error": str(exc)})
+
+    total_ok    = sum(1 for r in results if r.get("status") in ("reprocessed", "imported"))
+    total_skip  = sum(r.get("players_skipped", 0) for r in results)
+    total_pts   = sum(r.get("total_pts", 0.0) for r in results)
+
+    return {
+        "stage_id":        stage_id,
+        "matches_total":   len(rows),
+        "matches_ok":      total_ok,
+        "matches_errored": len(errors),
+        "players_skipped_total": total_skip,
+        "total_pts":       round(total_pts, 2),
+        "errors":          errors,
+        "matches":         results,
+    }
+
+
+@router.post(
     "/{stage_id}/recalculate-stage-stats",
     summary="Recalcular PERSON_STAGE_STAT do zero",
     description=(
