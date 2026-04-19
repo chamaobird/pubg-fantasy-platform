@@ -3,8 +3,12 @@
 Job de recálculo automático de pricing — #053
 
 Roda a cada 30 minutos (agendado via APScheduler).
-Recalcula o fantasy_cost de todas as stages ativas cujo lineup ainda não
-está locked — onde o pricing ainda pode impactar decisões de usuário.
+Recalcula o fantasy_cost apenas de stages com lineup_status='closed'
+(janela de lineup ainda não aberta).
+
+NÃO roda em stages 'open': preços não devem mudar enquanto usuários
+estão montando lineup — qualquer repricing após o envio de um lineup
+causaria divergência entre o preço exibido e o locked_cost salvo.
 """
 from __future__ import annotations
 
@@ -35,7 +39,7 @@ def _recalculate_active_stages(db) -> None:
         db.query(Stage)
         .filter(
             Stage.is_active == True,  # noqa: E712
-            Stage.lineup_status.in_(["closed", "open"]),
+            Stage.lineup_status == "closed",
         )
         .all()
     )
