@@ -52,10 +52,10 @@ def _process_pending_scoring(db: Session, now: datetime) -> None:
     today     = now.date()
     yesterday = today - timedelta(days=1)
 
-    # Stages travadas hoje
+    # Stages com lineup travado (locked) ou em andamento (live) — ambas elegíveis para scoring
     locked_stages = (
         db.query(Stage)
-        .filter(Stage.lineup_status == "locked")
+        .filter(Stage.lineup_status.in_(["locked", "live"]))
         .all()
     )
 
