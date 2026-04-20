@@ -78,7 +78,13 @@ export default function AdminPricingPanel({ stageId, token }) {
         }
       )
       const data = await res.json().catch(() => null)
-      if (!res.ok) throw new Error(data?.detail || `HTTP ${res.status}`)
+      if (!res.ok) {
+        const detail = data?.detail
+        const msg = Array.isArray(detail)
+          ? detail.map(e => e.msg || JSON.stringify(e)).join('; ')
+          : (detail || `HTTP ${res.status}`)
+        throw new Error(msg)
+      }
 
       // Atualiza o roster local com o novo effective_cost
       setRoster(prev => prev.map(r =>

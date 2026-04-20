@@ -42,9 +42,9 @@ class CostOverrideRequest(BaseModel):
 
 class CostOverrideResponse(BaseModel):
     roster_id: int
-    fantasy_cost: Optional[int]
-    cost_override: Optional[int]
-    effective_cost: Optional[int]
+    fantasy_cost: Optional[float]
+    cost_override: Optional[float]
+    effective_cost: Optional[float]
 
     model_config = {"from_attributes": True}
 
