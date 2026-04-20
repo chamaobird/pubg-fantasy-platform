@@ -598,6 +598,106 @@ function LockedActiveCard({ s, lineup, champMap, navigate, previewCount = 0, exp
   )
 }
 
+// ── ClosedPrimaryCard — card destaque para o 1º dia de uma championship em breve ─
+
+function ClosedPrimaryCard({ s, champMap, navigate, nextCount = 0, expanded = true, onToggle }) {
+  const champ     = champMap[s.id]
+  const dateLabel = buildDateLabel(s)
+
+  return (
+    <div style={{
+      background: 'var(--surface-1)',
+      border: '1px solid rgba(148,163,184,0.14)',
+      borderRadius: 'var(--radius-card)',
+      padding: '18px 22px',
+      position: 'relative', overflow: 'hidden',
+      display: 'flex', alignItems: 'center', gap: '22px',
+      flexWrap: 'wrap',
+    }}>
+      {/* Logo */}
+      <div style={{
+        flexShrink: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        width: '80px', height: '80px', opacity: 0.55,
+      }}>
+        <StageChampLogo champName={champ?.name} size={72} />
+      </div>
+
+      {/* Info */}
+      <div style={{ flex: 1, minWidth: '160px' }}>
+        <div style={{
+          fontSize: '22px', fontWeight: 700,
+          color: 'var(--color-xama-text)', opacity: 0.75,
+          lineHeight: 1.15, letterSpacing: '-0.02em',
+          marginBottom: '4px',
+        }}>
+          {s.name}
+        </div>
+        <div style={{ fontSize: '12px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace' }}>
+          {champ && <span style={{ color: 'rgba(249,115,22,0.5)', fontWeight: 600 }}>{champ.name}</span>}
+          {champ && dateLabel && <span style={{ margin: '0 5px', opacity: 0.4 }}>·</span>}
+          {dateLabel && <span>{dateLabel}</span>}
+        </div>
+        <div style={{ marginTop: '6px' }}>
+          <CountdownBadge targetIso={s.start_date || s.lineup_open_at} />
+        </div>
+      </div>
+
+      {/* Badge + botão */}
+      <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+        <span style={{
+          fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em',
+          padding: '3px 10px', borderRadius: 4,
+          background: 'rgba(148,163,184,0.06)', border: '1px solid rgba(148,163,184,0.15)',
+          color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace',
+        }}>EM BREVE</span>
+        <button
+          onClick={() => navigate(`/tournament/${s.id}`)}
+          style={{
+            background: 'none', border: '1px solid rgba(148,163,184,0.2)',
+            borderRadius: 6, padding: '5px 12px',
+            fontSize: '11px', fontWeight: 700, letterSpacing: '0.06em',
+            color: 'var(--color-xama-muted)', cursor: 'pointer',
+            fontFamily: 'JetBrains Mono, monospace', transition: 'border-color 0.15s, color 0.15s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(249,115,22,0.35)'; e.currentTarget.style.color = 'var(--color-xama-orange)' }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(148,163,184,0.2)'; e.currentTarget.style.color = 'var(--color-xama-muted)' }}
+        >
+          VER LOBBY
+        </button>
+      </div>
+
+      {/* Expand/collapse próximos dias */}
+      {nextCount > 0 && (
+        <div style={{
+          flexBasis: '100%', width: '100%',
+          borderTop: '1px solid rgba(148,163,184,0.08)',
+          paddingTop: '10px', marginTop: '2px',
+        }}>
+          <button
+            onClick={e => { e.stopPropagation(); onToggle?.() }}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: '7px',
+              color: 'var(--color-xama-muted)', fontSize: '12px',
+              fontWeight: 600, letterSpacing: '0.05em',
+              fontFamily: 'JetBrains Mono, monospace',
+              padding: '0', transition: 'color 0.15s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--color-xama-orange)'}
+            onMouseLeave={e => e.currentTarget.style.color = 'var(--color-xama-muted)'}
+          >
+            <span style={{ transition: 'transform 0.2s ease', display: 'inline-block', transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+            {expanded
+              ? 'Ocultar próximas etapas'
+              : `Ver ${nextCount} próxima${nextCount > 1 ? 's' : ''} etapa${nextCount > 1 ? 's' : ''}`}
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Main ─────────────────────────────────────────────────────────────────────
 
 export default function Dashboard() {
@@ -671,7 +771,27 @@ export default function Dashboard() {
     return desc ? db - da : da - db
   })
 
-  const closedStages = useMemo(() => sortByDate(stages.filter(s => s.lineup_status === 'closed')), [stages])
+  // Championships em breve com múltiplos dias — agrupados hierarquicamente
+  const closedChampGroupsList = useMemo(() => {
+    const groups = Object.values(champGroups)
+      .filter(g => !g.open && !g.locked && g.closeds.length > 0)
+      .map(g => ({ ...g, closeds: sortByDate(g.closeds) }))
+    return groups.sort((a, b) => {
+      const da = new Date(a.closeds[0]?.start_date || a.closeds[0]?.lineup_open_at || '9999').getTime()
+      const db = new Date(b.closeds[0]?.start_date || b.closeds[0]?.lineup_open_at || '9999').getTime()
+      return da - db
+    })
+  }, [champGroups])
+
+  // Closed sem championship group (stages soltas sem agrupamento)
+  const closedStages = useMemo(() => {
+    const groupedChampIds = new Set(closedChampGroupsList.map(g => g.champ.id))
+    return sortByDate(stages.filter(s => {
+      if (s.lineup_status !== 'closed') return false
+      const c = champMap[s.id]
+      return !c || !groupedChampIds.has(c.id)
+    }))
+  }, [stages, champMap, closedChampGroupsList])
 
   // Agrupa stages por campeonato para exibição hierárquica
   const champGroups = useMemo(() => {
@@ -824,9 +944,45 @@ export default function Dashboard() {
         )}
 
         {/* ── SEÇÃO 2 — AGUARDANDO ABERTURA ── */}
-        {closedStages.length > 0 && (
-          <CollapseSection title="Aguardando Abertura" icon="📅" count={closedStages.length} defaultOpen={true}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {(closedChampGroupsList.length > 0 || closedStages.length > 0) && (
+          <CollapseSection
+            title="Aguardando Abertura"
+            icon="📅"
+            count={closedChampGroupsList.length + closedStages.length}
+            defaultOpen={true}
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+
+              {/* Championships agrupadas — D1 em destaque, D2/D3 como sub-cards */}
+              {closedChampGroupsList.map(g => {
+                const [primary, ...rest] = g.closeds
+                const key = `closed_${g.champ.id}`
+                const isExpanded = expandedChamps[key] !== false
+                const toggle = () => setExpandedChamps(prev => ({ ...prev, [key]: !isExpanded }))
+                return (
+                  <div key={g.champ.id}>
+                    <ClosedPrimaryCard
+                      s={primary}
+                      champMap={champMap}
+                      navigate={navigate}
+                      nextCount={rest.length}
+                      expanded={isExpanded}
+                      onToggle={toggle}
+                    />
+                    {rest.length > 0 && isExpanded && (
+                      <div style={{ marginLeft: 'clamp(32px, 15%, 120px)', marginTop: '10px' }}>
+                        <div style={{ paddingLeft: '16px', paddingTop: '10px', paddingBottom: '4px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          {rest.map(s => (
+                            <PreviewCard key={s.id} s={s} champMap={champMap} navigate={navigate} />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+
+              {/* Stages soltas sem agrupamento */}
               {closedStages.map(s => (
                 <StageRow
                   key={s.id}

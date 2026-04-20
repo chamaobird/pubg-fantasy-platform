@@ -1,0 +1,139 @@
+================================================================
+  PUBG FANTASY PLATFORM — FORMULÁRIO DE SETUP
+  Finals Playoff 1  |  24–26 de Abril de 2026
+================================================================
+
+
+----------------------------------------------------------------
+BLOCO 1 — IDENTIFICAÇÃO DOS CHAMPIONSHIPS
+----------------------------------------------------------------
+
+                              PAS Finals          PEC Finals
+                              ----------          ----------
+Nome completo:                PUBG Americas Series 1 2026 - Finals 1 | PUBG EMEA Championship: 2026 Spring - Finals 1
+
+Nome curto:                   PAS1-F1-26 | PEC1-F1-26
+  (ex: PAS1-PO1F)
+
+Tournament ID (PUBG API):     am-pas126 | eu-pecs26
+
+Tier weight:                  1 | 1        
+  
+----------------------------------------------------------------
+BLOCO 2 — FORMATO DOS JOGOS
+----------------------------------------------------------------
+
+                              PAS Finals          PEC Finals
+                              ----------          ----------
+Nº de times participantes:    16 | 16         
+
+Nº de dias de jogo:          3 dias: 24, 25 e 26 de Abril | 3 dias: 24, 25 e 26 de Abril
+ 
+Nº de partidas por dia:       5 | 5
+
+
+----------------------------------------------------------------
+BLOCO 3 — CONFIGURAÇÃO DE LINEUP
+----------------------------------------------------------------
+
+                              PAS Finals          PEC Finals
+                              ----------          ----------
+Jogadores por lineup:         4 + 1 reserva |  4 + 1 reserva 
+  (lineup_size)
+
+Orçamento mínimo:            12 | 12
+  (price_min)
+
+Orçamento máximo:             35 | 35
+  (price_max)
+
+Multiplicador do capitão:     1.3x | 1.3x
+  (ex: 1.5x)
+
+Horário abertura de lineups:  Não temos informações de horários ainda
+  (mesmo horário todos os dias?)
+
+Horário fechamento de lineups: Não temos informações de horários ainda
+  por dia: (ver Bloco 5)
+
+
+----------------------------------------------------------------
+BLOCO 4 — ROSTER E PRICING
+----------------------------------------------------------------
+
+                              PAS Finals          PEC Finals
+                              ----------          ----------
+Copiar roster de qual fase?  Mesmo roster para todos os dias | Mesmo roster para todos os dias
+  (ex: PAS D3 = Stage 17,
+       PEC D3 = Stage 24)
+
+Pricing baseado em qual stage? baseado na PAS 1 Playoff 1 | baseado na PEC 1 Playoff 1
+  (histórico de qual fase usar
+   para calcular os preços iniciais?
+   Ou calcular do zero?)
+
+Mudanças de roster em relação
+aos playoffs?                 Vamos considerar sem mudanças | Vamos considerar sem mudanças
+  (substituições, jogadores
+   que saíram ou entraram)
+
+
+----------------------------------------------------------------
+BLOCO 5 — DATAS E HORÁRIOS
+----------------------------------------------------------------
+
+PAS Finals:
+
+  Dia 1 — 24/04/2026
+    Horário aproximado de início das partidas: 19h EDT
+    Lineups fecham às:                         19h15 EDT
+    Observações:                               
+
+  Dia 2 — 25/04/2026
+    Horário aproximado de início das partidas: 19h EDT
+    Lineups fecham às:                         19h15 EDT
+    Observações:                               ____________
+
+  Dia 3 — 26/04/2026
+    Horário aproximado de início das partidas: 19h EDT
+    Lineups fecham às:                         19h15 EDT
+    Observações:                              
+
+
+PEC Finals:
+
+  Dia 1 — 24/04/2026
+    Horário aproximado de início das partidas: 12h EDT
+    Lineups fecham às:                         12:15 EDT
+    Observações:                               
+
+  Dia 2 — 25/04/2026
+    Horário aproximado de início das partidas: 12h EDT
+    Lineups fecham às:                         12:15 EDT
+    Observações:                               
+
+  Dia 3 — 26/04/2026
+    Horário aproximado de início das partidas: 12h EDT
+    Lineups fecham às:                         12:15 EDT
+    Observações:                               
+
+
+----------------------------------------------------------------
+BLOCO 6 — OBSERVAÇÕES GERAIS
+----------------------------------------------------------------
+
+Alguma regra diferente das fases anteriores?
+
+Por enquanto não
+
+Times ou jogadores com situação especial (subs, lesionados)?
+
+Por enquanto não
+
+Outros comentários:
+Não
+
+
+================================================================
+  Preenchido por: Bird   Data: 20/Apr/2026
+================================================================

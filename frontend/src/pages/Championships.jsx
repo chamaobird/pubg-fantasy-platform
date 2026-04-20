@@ -37,8 +37,8 @@ const LOGO_CANDIDATES = {
 function ChampLogo({ name = '', size = 48 }) {
   const upper = name.toUpperCase()
   const key = (upper.includes('PAS') || upper.includes('AMERICAS')) ? 'PAS'
-    : (upper.includes('PGS') || upper.includes('PGC') || upper.includes('PUBG') || upper.includes('GLOBAL SERIES')) ? 'PGS'
     : (upper.includes('PEC') || upper.includes('EMEA')) ? 'PEC'
+    : (upper.includes('PGS') || upper.includes('PGC') || upper.includes('PUBG') || upper.includes('GLOBAL SERIES')) ? 'PGS'
     : null
   const candidates = key ? LOGO_CANDIDATES[key] : []
   const [idx, setIdx] = useState(0)
