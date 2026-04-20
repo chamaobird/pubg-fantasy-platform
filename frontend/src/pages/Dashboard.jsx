@@ -771,28 +771,6 @@ export default function Dashboard() {
     return desc ? db - da : da - db
   })
 
-  // Championships em breve com múltiplos dias — agrupados hierarquicamente
-  const closedChampGroupsList = useMemo(() => {
-    const groups = Object.values(champGroups)
-      .filter(g => !g.open && !g.locked && g.closeds.length > 0)
-      .map(g => ({ ...g, closeds: sortByDate(g.closeds) }))
-    return groups.sort((a, b) => {
-      const da = new Date(a.closeds[0]?.start_date || a.closeds[0]?.lineup_open_at || '9999').getTime()
-      const db = new Date(b.closeds[0]?.start_date || b.closeds[0]?.lineup_open_at || '9999').getTime()
-      return da - db
-    })
-  }, [champGroups])
-
-  // Closed sem championship group (stages soltas sem agrupamento)
-  const closedStages = useMemo(() => {
-    const groupedChampIds = new Set(closedChampGroupsList.map(g => g.champ.id))
-    return sortByDate(stages.filter(s => {
-      if (s.lineup_status !== 'closed') return false
-      const c = champMap[s.id]
-      return !c || !groupedChampIds.has(c.id)
-    }))
-  }, [stages, champMap, closedChampGroupsList])
-
   // Agrupa stages por campeonato para exibição hierárquica
   const champGroups = useMemo(() => {
     const groups = {}
@@ -815,6 +793,28 @@ export default function Dashboard() {
     })
     return groups
   }, [stages, champMap])
+
+  // Championships em breve com múltiplos dias — agrupados hierarquicamente
+  const closedChampGroupsList = useMemo(() => {
+    const groups = Object.values(champGroups)
+      .filter(g => !g.open && !g.locked && g.closeds.length > 0)
+      .map(g => ({ ...g, closeds: sortByDate(g.closeds) }))
+    return groups.sort((a, b) => {
+      const da = new Date(a.closeds[0]?.start_date || a.closeds[0]?.lineup_open_at || '9999').getTime()
+      const db = new Date(b.closeds[0]?.start_date || b.closeds[0]?.lineup_open_at || '9999').getTime()
+      return da - db
+    })
+  }, [champGroups])
+
+  // Closed sem championship group (stages soltas sem agrupamento)
+  const closedStages = useMemo(() => {
+    const groupedChampIds = new Set(closedChampGroupsList.map(g => g.champ.id))
+    return sortByDate(stages.filter(s => {
+      if (s.lineup_status !== 'closed') return false
+      const c = champMap[s.id]
+      return !c || !groupedChampIds.has(c.id)
+    }))
+  }, [stages, champMap, closedChampGroupsList])
 
   // Campeonatos com stage "ativa": open, ou live, ou locked com previews filhos
   const activeChampGroups = useMemo(() =>
