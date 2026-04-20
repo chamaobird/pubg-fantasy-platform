@@ -59,11 +59,12 @@ export default function TournamentHub() {
   const isFinished = stage ? (!stage.is_active) : false
   const isLocked   = stage ? (stage.lineup_status === 'locked') : false
   const isPreview  = stage ? (stage.lineup_status === 'preview') : false
+  const isClosed   = stage ? (stage.lineup_status === 'closed')  : false
   const canEdit    = stage ? (stage.lineup_status === 'open') : false
 
+  // closed: não exibe tab de lineup (ainda não está disponível)
   // preview: tab Lineup visível mas com botões travados
-  // closed:  tab Lineup só aparece se stage está ativa (comportamento antigo)
-  const showLineupTab = !isFinished
+  const showLineupTab = !isFinished && !isClosed
 
   const ALL_TABS = [
     ...(showLineupTab ? [{ id: TAB_LINEUP, label: isPreview ? 'Lineup' : isLocked ? 'Meus Resultados' : 'Montar Lineup', icon: isLocked ? '📊' : '⚔️' }] : []),
@@ -84,7 +85,7 @@ export default function TournamentHub() {
       <TournamentLayout
         tournament={stage ? { name: stage.name, status: stage.lineup_status } : null}
         championship={null}
-        championshipName={stage?.championship_id ? siblingStages[0]?.championship_name ?? null : null}
+        championshipName={stage?.championship_name ?? null}
         siblingStages={siblingStages}
         currentStageId={Number(id)}
         phaseLabel={stage?.short_name ?? null}

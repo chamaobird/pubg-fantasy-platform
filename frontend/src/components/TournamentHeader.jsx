@@ -3,13 +3,18 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { StatusBadge } from './ui/Badge'
 
-// Resolve logo do campeonato pelo nome da stage (shortName como fallback)
-function ChampionshipLogo({ shortName, width = 32, height = 32 }) {
-  const upper = (shortName || '').toUpperCase()
-  const folder = upper.startsWith('PGS') ? 'PGS'
-    : (upper.startsWith('PAS') || upper.startsWith('PO')) ? 'PAS'
-    : upper.startsWith('PEC') ? 'PEC'
+// Resolve logo do campeonato: tenta pelo shortName da stage, fallback pelo nome do championship
+function ChampionshipLogo({ shortName, championshipName = '', width = 32, height = 32 }) {
+  const upperShort = (shortName || '').toUpperCase()
+  const upperChamp = (championshipName || '').toUpperCase()
+  const folder = upperShort.startsWith('PGS') ? 'PGS'
+    : (upperShort.startsWith('PAS') || upperShort.startsWith('PO')) ? 'PAS'
+    : upperShort.startsWith('PEC') ? 'PEC'
+    : (upperChamp.includes('PAS') || upperChamp.includes('AMERICAS')) ? 'PAS'
+    : (upperChamp.includes('PEC') || upperChamp.includes('EMEA')) ? 'PEC'
+    : (upperChamp.includes('PGS') || upperChamp.includes('GLOBAL')) ? 'PGS'
     : null
+  // Usa logo completo (PAS.png, PEC.png) — versões maiores para o header
   const candidates = folder ? [
     `/logos/Tournaments/${folder}.webp`,
     `/logos/Tournaments/${folder}.png`,
@@ -27,7 +32,7 @@ function ChampionshipLogo({ shortName, width = 32, height = 32 }) {
       src={candidates[idx]}
       alt=""
       onError={() => idx + 1 < candidates.length ? setIdx(i => i + 1) : setFailed(true)}
-      style={{ width, height, objectFit: 'contain', flexShrink: 0 }}
+      style={{ width, height, objectFit: 'contain', flexShrink: 0, display: 'block' }}
     />
   )
 }
@@ -53,7 +58,7 @@ export default function TournamentHeader({ tournament, championship, championshi
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
 
           {/* Logo do campeonato */}
-          <ChampionshipLogo shortName={phaseLabel} width={155} height="auto" />
+          <ChampionshipLogo shortName={phaseLabel} championshipName={championshipName} width={155} height="auto" />
 
           <div>
             <h2 className="xt-name" style={{ fontSize: '30px', display: 'flex', alignItems: 'center', gap: '8px', position: 'relative' }}>
