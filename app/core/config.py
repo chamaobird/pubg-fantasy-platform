@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     # Auth — JWT
     SECRET_KEY: str = "change-this-in-production"
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 365  # 1 year
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
 
     # Auth — Google OAuth
     GOOGLE_CLIENT_ID: str = ""

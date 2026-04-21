@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 load_dotenv()
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from app.routers.auth import router as auth_router
@@ -97,6 +97,14 @@ body { background: #0f1117 !important; }
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # ── Validações de segurança ───────────────────────────────────────────────
+    from app.core.config import settings as _s
+    if _s.SECRET_KEY == "change-this-in-production":
+        raise RuntimeError(
+            "SECRET_KEY não pode ser o valor padrão. "
+            "Defina uma chave segura no arquivo .env antes de iniciar a API."
+        )
+
     # ── Scheduler ────────────────────────────────────────────────────────────
     from app.services.scheduler import create_scheduler
     scheduler = create_scheduler()
@@ -131,12 +139,18 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=_allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 
-# ── Swagger dark mode ─────────────────────────────────────────────────────────
+# ── Swagger dark mode ────────────────────────────────────────────────────────
+# /docs   — HTML da UI (acessível; sem a spec, não revela nada útil)
+# /openapi.json — spec completa da API, restrita a admins autenticados
+
+from app.dependencies import require_admin
+from app.models.user import User as _User
+
 @app.get("/docs", include_in_schema=False)
 async def custom_swagger_ui() -> HTMLResponse:
     return HTMLResponse(f"""<!DOCTYPE html>
@@ -163,6 +177,12 @@ async def custom_swagger_ui() -> HTMLResponse:
   </script>
 </body>
 </html>""")
+
+
+@app.get("/openapi.json", include_in_schema=False)
+async def openapi_json(_: _User = Depends(require_admin)):
+    """Spec da API — restrita a admins autenticados via Bearer token."""
+    return app.openapi()
 
 
 # ── Routers ───────────────────────────────────────────────────────────────────
