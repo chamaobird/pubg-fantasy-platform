@@ -31,6 +31,9 @@ class User(Base):
     email_verify_token: Mapped[Optional[str]] = mapped_column(
         String(64), nullable=True, index=True
     )
+    email_verify_expires_at: Mapped[Optional[DateTime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     password_reset_token: Mapped[Optional[str]] = mapped_column(
         String(64), nullable=True, index=True
     )

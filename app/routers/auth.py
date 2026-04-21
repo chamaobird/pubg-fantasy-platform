@@ -18,6 +18,7 @@ import logging
 import urllib.parse
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from app.core.limiter import limiter
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -39,6 +40,7 @@ from app.services.auth import (
     create_password_reset_token,
     create_user,
     exchange_google_code,
+    generate_verify_token,
     get_or_create_google_user,
     get_user_by_email,
     reset_password,
@@ -63,7 +65,8 @@ class ResetPasswordRequest(BaseModel):
 # -- Register ------------------------------------------------------------------
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
-def register(body: RegisterRequest, db: Session = Depends(get_db)) -> dict:
+@limiter.limit("5/minute")
+def register(request: Request, body: RegisterRequest, db: Session = Depends(get_db)) -> dict:
     if get_user_by_email(db, body.email):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -81,7 +84,8 @@ def register(body: RegisterRequest, db: Session = Depends(get_db)) -> dict:
 # -- Login ---------------------------------------------------------------------
 
 @router.post("/login", response_model=TokenResponse)
-def login(body: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse:
+@limiter.limit("10/minute")
+def login(request: Request, body: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse:
     user = authenticate_user(db, body.email, body.password)
     if not user:
         raise HTTPException(
@@ -118,7 +122,8 @@ def verify_email(token: str, db: Session = Depends(get_db)):
 # -- Resend verification -------------------------------------------------------
 
 @router.post("/resend-verification")
-def resend_verification(body: LoginRequest, db: Session = Depends(get_db)) -> dict:
+@limiter.limit("3/minute")
+def resend_verification(request: Request, body: LoginRequest, db: Session = Depends(get_db)) -> dict:
     user = authenticate_user(db, body.email, body.password)
     if not user:
         raise HTTPException(
@@ -127,6 +132,12 @@ def resend_verification(body: LoginRequest, db: Session = Depends(get_db)) -> di
         )
     if user.email_verified:
         return {"detail": "Email ja verificado."}
+
+    # Renova token e expiração a cada reenvio
+    new_token, new_expires = generate_verify_token()
+    user.email_verify_token = new_token
+    user.email_verify_expires_at = new_expires
+    db.commit()
 
     sent = send_verification_email(user.email, user.email_verify_token)
     if not sent:
@@ -140,7 +151,8 @@ def resend_verification(body: LoginRequest, db: Session = Depends(get_db)) -> di
 # -- Forgot password -----------------------------------------------------------
 
 @router.post("/forgot-password")
-def forgot_password(body: ForgotPasswordRequest, db: Session = Depends(get_db)) -> dict:
+@limiter.limit("5/minute")
+def forgot_password(request: Request, body: ForgotPasswordRequest, db: Session = Depends(get_db)) -> dict:
     """
     Envia email de reset se o email existir.
     Sempre retorna 200 para nao revelar se email esta cadastrado.

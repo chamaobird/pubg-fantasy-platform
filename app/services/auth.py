@@ -64,8 +64,14 @@ def get_user_by_id(db: Session, user_id: str) -> Optional[User]:
     return db.query(User).filter(User.id == user_id).first()
 
 
-def generate_verify_token() -> str:
-    return secrets.token_urlsafe(32)
+EMAIL_VERIFY_EXPIRE_HOURS = 24
+
+
+def generate_verify_token() -> tuple[str, datetime]:
+    """Retorna (token, expires_at) com validade de EMAIL_VERIFY_EXPIRE_HOURS horas."""
+    token = secrets.token_urlsafe(32)
+    expires_at = datetime.now(tz=timezone.utc) + timedelta(hours=EMAIL_VERIFY_EXPIRE_HOURS)
+    return token, expires_at
 
 
 def create_user(
@@ -76,6 +82,7 @@ def create_user(
     google_id: Optional[str] = None,
 ) -> User:
     is_google = google_id is not None
+    verify_token, verify_expires = (None, None) if is_google else generate_verify_token()
     user = User(
         id=str(uuid.uuid4()),
         email=email,
@@ -83,7 +90,8 @@ def create_user(
         password_hash=hash_password(password) if password else None,
         google_id=google_id,
         email_verified=is_google,
-        email_verify_token=None if is_google else generate_verify_token(),
+        email_verify_token=verify_token,
+        email_verify_expires_at=verify_expires,
     )
     db.add(user)
     db.commit()
@@ -107,8 +115,16 @@ def verify_email_token(db: Session, token: str) -> Optional[User]:
     user = db.query(User).filter(User.email_verify_token == token).first()
     if not user:
         return None
+    # Checa expiração (tokens gerados antes da feature têm expires_at=None — aceitos por compatibilidade)
+    if user.email_verify_expires_at is not None:
+        expires = user.email_verify_expires_at
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+        if datetime.now(tz=timezone.utc) > expires:
+            return None
     user.email_verified = True
     user.email_verify_token = None
+    user.email_verify_expires_at = None
     db.commit()
     db.refresh(user)
     return user
