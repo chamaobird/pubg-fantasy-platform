@@ -1,4 +1,47 @@
 // pages/admin/Modal.jsx — Modal reutilizável para o painel admin
+import { useState } from 'react'
+
+// ── Sorting hook ──────────────────────────────────────────────────────────────
+
+export function useSorting(initialCol = null, initialDir = 'asc') {
+  const [sort, setSort] = useState({ col: initialCol, dir: initialDir })
+  const toggle = (col) => setSort(prev => ({
+    col,
+    dir: prev.col === col && prev.dir === 'asc' ? 'desc' : 'asc',
+  }))
+  const apply = (data, accessors) => {
+    if (!sort.col || !accessors[sort.col]) return data
+    return [...data].sort((a, b) => {
+      const va = accessors[sort.col](a) ?? ''
+      const vb = accessors[sort.col](b) ?? ''
+      const cmp = typeof va === 'string'
+        ? va.localeCompare(vb, 'pt-BR', { sensitivity: 'base' })
+        : (va < vb ? -1 : va > vb ? 1 : 0)
+      return sort.dir === 'asc' ? cmp : -cmp
+    })
+  }
+  return { sort, toggle, apply }
+}
+
+// ── Team logo ─────────────────────────────────────────────────────────────────
+
+export function TeamLogo({ tag, region, size = 22 }) {
+  const base = region && tag ? `/logos/${region}/${tag.toLowerCase()}` : null
+  const [ext, setExt] = useState('png')
+  const [failed, setFailed] = useState(false)
+  if (!base || failed) return <span style={{ display: 'inline-block', width: size, height: size }} />
+  return (
+    <img
+      src={`${base}.${ext}`}
+      alt=""
+      width={size}
+      height={size}
+      style={{ objectFit: 'contain', borderRadius: 2, flexShrink: 0, verticalAlign: 'middle' }}
+      onError={() => ext === 'png' ? setExt('jpeg') : setFailed(true)}
+    />
+  )
+}
+
 export function Modal({ title, onClose, children, width = 520 }) {
   return (
     <div
@@ -151,6 +194,21 @@ export const thStyle = {
 export const tdStyle = {
   padding: '11px 14px', borderBottom: '1px solid rgba(255,255,255,0.04)',
   color: 'var(--color-xama-text)', verticalAlign: 'middle',
+}
+
+export function SortableHeader({ label, col, sort, onSort, style }) {
+  const active = sort.col === col
+  return (
+    <th
+      style={{ ...thStyle, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', ...style }}
+      onClick={() => onSort(col)}
+    >
+      {label}
+      <span style={{ marginLeft: 4, fontSize: 9, opacity: active ? 1 : 0.25 }}>
+        {active && sort.dir === 'desc' ? '▼' : '▲'}
+      </span>
+    </th>
+  )
 }
 
 export function StatusBadge({ status }) {

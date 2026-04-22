@@ -4,6 +4,7 @@ import { API_BASE_URL } from '../../config'
 import {
   Modal, Field, Msg, ActBtn, SaveBtn, SectionHeader,
   inputStyle, selectStyle, tableStyle, thStyle, tdStyle,
+  useSorting, SortableHeader, TeamLogo,
 } from './Modal'
 
 const api = (token) => async (method, path, body) => {
@@ -40,6 +41,7 @@ function RosterPanel({ stage, token }) {
   const [roster, setRoster] = useState([])
   const [loading, setLoading] = useState(true)
   const [msg, setMsg] = useState('')
+  const [teamMap, setTeamMap] = useState({}) // tag → { region }
   // add player
   const [searchQ, setSearchQ] = useState('')
   const [searchResults, setSearchResults] = useState([])
@@ -57,6 +59,18 @@ function RosterPanel({ stage, token }) {
       .catch(() => setRoster([]))
       .finally(() => setLoading(false))
   }, [call, stage.id])
+
+  // Carrega mapa de times para exibir logos
+  useEffect(() => {
+    call('GET', '/admin/teams')
+      .then(data => {
+        if (!Array.isArray(data)) return
+        const map = {}
+        data.forEach(t => { map[t.tag] = t })
+        setTeamMap(map)
+      })
+      .catch(() => {})
+  }, [call])
 
   useEffect(() => { refresh() }, [refresh])
 
@@ -161,9 +175,12 @@ function RosterPanel({ stage, token }) {
                 padding: '6px 10px', background: 'rgba(255,255,255,0.04)',
                 fontSize: 12, fontWeight: 700, color: 'var(--color-xama-orange)',
                 fontFamily: 'JetBrains Mono, monospace',
-                display: 'flex', justifyContent: 'space-between',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6,
               }}>
-                <span>{teamName}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                  <TeamLogo tag={teamName} region={teamMap[teamName]?.region} size={18} />
+                  <span>{teamName}</span>
+                </div>
                 <span style={{ color: 'var(--color-xama-muted)', fontWeight: 400 }}>
                   {byTeam[teamName].filter(r => r.is_available).length}/{byTeam[teamName].length}
                 </span>
@@ -492,6 +509,8 @@ export default function AdminStages({ token }) {
     )
   }
 
+  const { sort: stSort, toggle: stToggle, apply: stApply } = useSorting('id', 'desc')
+
   const loadChampionships = useCallback(async () => {
     try {
       const data = await call('GET', '/admin/championships?include_inactive=true')
@@ -601,16 +620,22 @@ export default function AdminStages({ token }) {
           <table style={tableStyle}>
             <thead>
               <tr>
-                <th style={thStyle}>ID</th>
-                <th style={thStyle}>Champ.</th>
-                <th style={thStyle}>Nome</th>
-                <th style={thStyle}>Início</th>
-                <th style={thStyle}>Status</th>
+                <SortableHeader label="ID" col="id" sort={stSort} onSort={stToggle} />
+                <SortableHeader label="Champ." col="champ" sort={stSort} onSort={stToggle} />
+                <SortableHeader label="Nome" col="name" sort={stSort} onSort={stToggle} />
+                <SortableHeader label="Início" col="start" sort={stSort} onSort={stToggle} />
+                <SortableHeader label="Status" col="status" sort={stSort} onSort={stToggle} />
                 <th style={thStyle}></th>
               </tr>
             </thead>
             <tbody>
-              {stages.map(s => (
+              {stApply(stages, {
+                id: s => s.id,
+                champ: s => champName(s.championship_id),
+                name: s => s.name,
+                start: s => s.start_date || s.lineup_open_at || '',
+                status: s => s.lineup_status,
+              }).map(s => (
                 <Fragment key={s.id}>
                   <tr>
                     <td style={{ ...tdStyle, fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: 'var(--color-xama-muted)' }}>{s.id}</td>

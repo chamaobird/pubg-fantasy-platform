@@ -4,6 +4,7 @@ import { API_BASE_URL } from '../../config'
 import {
   Modal, Field, Msg, ActBtn, SaveBtn, SectionHeader,
   inputStyle, selectStyle, tableStyle, thStyle, tdStyle,
+  useSorting, SortableHeader,
 } from './Modal'
 
 const api = (token) => async (method, path, body) => {
@@ -73,6 +74,8 @@ export default function AdminChampionships({ token }) {
     } catch (e) { alert(e.message) }
   }
 
+  const { sort, toggle, apply } = useSorting('id', 'desc')
+
   const f = (k) => (e) => setForm(prev => ({ ...prev, [k]: e.target.value }))
 
   return (
@@ -89,17 +92,23 @@ export default function AdminChampionships({ token }) {
           <table style={tableStyle}>
             <thead>
               <tr>
-                <th style={thStyle}>ID</th>
-                <th style={thStyle}>Nome</th>
-                <th style={thStyle}>Tag</th>
+                <SortableHeader label="ID" col="id" sort={sort} onSort={toggle} />
+                <SortableHeader label="Nome" col="name" sort={sort} onSort={toggle} />
+                <SortableHeader label="Tag" col="short_name" sort={sort} onSort={toggle} />
                 <th style={thStyle}>Shard</th>
-                <th style={thStyle}>Peso</th>
-                <th style={thStyle}>Status</th>
+                <SortableHeader label="Peso" col="tier_weight" sort={sort} onSort={toggle} />
+                <SortableHeader label="Status" col="status" sort={sort} onSort={toggle} />
                 <th style={thStyle}></th>
               </tr>
             </thead>
             <tbody>
-              {items.map(c => (
+              {apply(items, {
+                id: c => c.id,
+                name: c => c.name,
+                short_name: c => c.short_name,
+                tier_weight: c => c.tier_weight,
+                status: c => c.is_active ? 0 : 1,
+              }).map(c => (
                 <tr key={c.id} style={{ opacity: c.is_active ? 1 : 0.5 }}>
                   <td style={{ ...tdStyle, fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: 'var(--color-xama-muted)' }}>{c.id}</td>
                   <td style={{ ...tdStyle, fontWeight: 600 }}>{c.name}</td>

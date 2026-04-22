@@ -4,6 +4,7 @@ import { API_BASE_URL } from '../../config'
 import {
   Modal, Field, Msg, ActBtn, SaveBtn, SectionHeader, SearchBar,
   inputStyle, selectStyle, tableStyle, thStyle, tdStyle,
+  useSorting, SortableHeader, TeamLogo,
 } from './Modal'
 
 const api = (token) => async (method, path, body) => {
@@ -19,7 +20,7 @@ const api = (token) => async (method, path, body) => {
   return res.status === 204 ? null : res.json()
 }
 
-const REGIONS = ['Americas', 'EMEA', 'Asia', 'Oceania', 'Global']
+const REGIONS = ['PEC', 'PAS', 'Americas', 'EMEA', 'Asia', 'Oceania', 'Global']
 const BLANK = { name: '', tag: '', region: 'Americas', logo_path: '', is_active: true }
 
 export default function AdminTeams({ token }) {
@@ -50,6 +51,8 @@ export default function AdminTeams({ token }) {
   const [importStageId, setImportStageId] = useState('')
   const [importResult, setImportResult] = useState(null)
   const [importing, setImporting] = useState(false)
+
+  const { sort, toggle, apply } = useSorting('name')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -177,18 +180,28 @@ export default function AdminTeams({ token }) {
           <table style={tableStyle}>
             <thead>
               <tr>
-                <th style={thStyle}>Tag</th>
-                <th style={thStyle}>Nome</th>
-                <th style={thStyle}>Região</th>
-                <th style={thStyle}>Membros</th>
-                <th style={thStyle}>Status</th>
+                <SortableHeader label="Tag" col="tag" sort={sort} onSort={toggle} />
+                <th style={thStyle}>Logo</th>
+                <SortableHeader label="Nome" col="name" sort={sort} onSort={toggle} />
+                <SortableHeader label="Região" col="region" sort={sort} onSort={toggle} />
+                <SortableHeader label="Membros" col="members" sort={sort} onSort={toggle} />
+                <SortableHeader label="Status" col="status" sort={sort} onSort={toggle} />
                 <th style={thStyle}></th>
               </tr>
             </thead>
             <tbody>
-              {teams.map(t => (
+              {apply(teams, {
+                tag: t => t.tag,
+                name: t => t.name,
+                region: t => t.region,
+                members: t => t.active_member_count,
+                status: t => t.is_active ? 0 : 1,
+              }).map(t => (
                 <tr key={t.id} style={{ opacity: t.is_active ? 1 : 0.5 }}>
                   <td style={{ ...tdStyle, fontFamily: 'JetBrains Mono, monospace', fontWeight: 700, fontSize: 13 }}>{t.tag}</td>
+                  <td style={{ ...tdStyle, padding: '6px 14px' }}>
+                    <TeamLogo tag={t.tag} region={t.region} size={26} />
+                  </td>
                   <td style={{ ...tdStyle, fontWeight: 600 }}>{t.name}</td>
                   <td style={{ ...tdStyle, color: 'var(--color-xama-muted)', fontSize: 12 }}>{t.region}</td>
                   <td style={{ ...tdStyle, color: 'var(--color-xama-muted)' }}>{t.active_member_count} jogador{t.active_member_count !== 1 ? 'es' : ''}</td>

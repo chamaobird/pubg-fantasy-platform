@@ -4,6 +4,7 @@ import { API_BASE_URL } from '../../config'
 import {
   Modal, Field, Msg, ActBtn, SaveBtn, SectionHeader, SearchBar,
   inputStyle, selectStyle, tableStyle, thStyle, tdStyle, StatusBadge,
+  useSorting, SortableHeader,
 } from './Modal'
 
 const api = (token) => async (method, path, body) => {
@@ -36,6 +37,8 @@ export default function AdminPersons({ token }) {
   const [accForm, setAccForm] = useState({ account_id: '', shard: 'steam', alias: '' })
   const [accMsg, setAccMsg] = useState('')
   const [accSaving, setAccSaving] = useState(false)
+
+  const { sort, toggle, apply } = useSorting('display_name')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -123,15 +126,20 @@ export default function AdminPersons({ token }) {
           <table style={tableStyle}>
             <thead>
               <tr>
-                <th style={thStyle}>ID</th>
-                <th style={thStyle}>Nome</th>
-                <th style={thStyle}>Status</th>
-                <th style={thStyle}>Contas</th>
+                <SortableHeader label="ID" col="id" sort={sort} onSort={toggle} />
+                <SortableHeader label="Nome" col="display_name" sort={sort} onSort={toggle} />
+                <SortableHeader label="Status" col="status" sort={sort} onSort={toggle} />
+                <SortableHeader label="Contas" col="accounts" sort={sort} onSort={toggle} />
                 <th style={thStyle}></th>
               </tr>
             </thead>
             <tbody>
-              {persons.map(p => (
+              {apply(persons, {
+                id: p => p.id,
+                display_name: p => p.display_name,
+                status: p => p.is_active ? 0 : 1,
+                accounts: p => p.accounts?.length ?? 0,
+              }).map(p => (
                 <tr key={p.id} style={{ opacity: p.is_active ? 1 : 0.5 }}>
                   <td style={{ ...tdStyle, color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace', fontSize: 12 }}>{p.id}</td>
                   <td style={{ ...tdStyle, fontWeight: 600 }}>{p.display_name}</td>
