@@ -46,7 +46,7 @@ export default function Admin() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', position: 'relative' }}>
+    <div style={{ minHeight: '100vh', position: 'relative', colorScheme: 'dark' }}>
       <AppBackground />
       <div style={{ position: 'relative', zIndex: 2 }}>
         <Navbar />

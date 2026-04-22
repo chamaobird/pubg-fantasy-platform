@@ -58,6 +58,7 @@ export const inputStyle = {
 
 export const selectStyle = {
   ...inputStyle,
+  background: '#1a1d2a',
   cursor: 'pointer',
   colorScheme: 'dark',
 }
