@@ -20,7 +20,7 @@ const api = (token) => async (method, path, body) => {
   return res.status === 204 ? null : res.json()
 }
 
-const REGIONS = ['Americas', 'EMEA', 'Asia', 'Oceania', 'Global']
+const REGIONS = ['Americas', 'EMEA']
 const BLANK = { name: '', tag: '', region: 'Americas', logo_path: '', is_active: true }
 
 export default function AdminTeams({ token }) {
