@@ -355,6 +355,20 @@ export default function LineupBuilder({
   const canSave = !isLocked && stageId && selectedPlayers.length === 4 &&
     reservePlayer && captainId && token.trim() && !isOverBudget && reserveEligible
 
+  // Detecta se o lineup atual difere do salvo — sem este flag o botão fica "Editar"
+  const hasChangedFromSaved = useMemo(() => {
+    if (!currentDayLineup) return true  // sem lineup salvo: sempre em modo "novo"
+    const savedTitulares = new Set(
+      currentDayLineup.players.filter(p => p.slot_type === 'titular').map(p => p.roster_id)
+    )
+    const savedReserveId = currentDayLineup.players.find(p => p.slot_type === 'reserve')?.roster_id ?? null
+    const savedCaptainId = currentDayLineup.players.find(p => p.is_captain)?.roster_id ?? null
+    const currentTitulares = new Set(selectedPlayers.map(p => p.id))
+    if (savedTitulares.size !== currentTitulares.size) return true
+    for (const id of savedTitulares) { if (!currentTitulares.has(id)) return true }
+    return savedReserveId !== (reservePlayer?.id ?? null) || savedCaptainId !== captainId
+  }, [currentDayLineup, selectedPlayers, reservePlayer, captainId])
+
   function handleSort(key) {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
     else {
@@ -538,27 +552,33 @@ export default function LineupBuilder({
               })()}
 
               {/* Botão salvar / editar */}
-              {!isPreview && (
-                <button
-                  onClick={saveLineup}
-                  disabled={!canSave || saveLoading}
-                  style={{
-                    padding: '9px 20px', borderRadius: 8, flexShrink: 0,
-                    fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
-                    cursor: canSave && !saveLoading ? 'pointer' : 'not-allowed',
-                    transition: 'background 0.15s, border-color 0.15s',
-                    alignSelf: 'center',
-                    ...(canSave && !saveLoading
-                      ? currentDayLineup
-                        ? { background: 'rgba(249,115,22,0.12)', border: '1px solid rgba(249,115,22,0.45)', color: 'var(--color-xama-orange)' }
-                        : { background: 'var(--color-xama-orange)', border: '1px solid transparent', color: '#fff' }
-                      : { background: 'var(--surface-3)', border: '1px solid transparent', color: 'var(--color-xama-muted)' }
-                    ),
-                  }}
-                >
-                  {saveLoading ? '...' : isLocked ? '🔒 Fechado' : currentDayLineup ? '✏ Editar' : 'Salvar'}
-                </button>
-              )}
+              {!isPreview && (() => {
+                // "Editar" quando lineup existe e nada mudou; "Salvar" quando há alteração
+                const isEditMode = !!currentDayLineup && !hasChangedFromSaved
+                const active = !isEditMode && canSave && !saveLoading
+                return (
+                  <button
+                    onClick={isEditMode ? undefined : saveLineup}
+                    disabled={isEditMode || !canSave || saveLoading}
+                    title={isEditMode ? 'Altere jogadores, capitão ou reserva para salvar uma nova versão' : undefined}
+                    style={{
+                      padding: '9px 20px', borderRadius: 8, flexShrink: 0,
+                      fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
+                      cursor: isEditMode ? 'default' : (canSave && !saveLoading ? 'pointer' : 'not-allowed'),
+                      transition: 'background 0.15s, border-color 0.15s, opacity 0.15s',
+                      alignSelf: 'center',
+                      ...(isEditMode
+                        ? { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--color-xama-muted)', opacity: 0.7 }
+                        : active
+                          ? { background: 'var(--color-xama-orange)', border: '1px solid transparent', color: '#fff' }
+                          : { background: 'var(--surface-3)', border: '1px solid transparent', color: 'var(--color-xama-muted)' }
+                      ),
+                    }}
+                  >
+                    {saveLoading ? '...' : isLocked ? '🔒 Fechado' : isEditMode ? '✏ Editar' : 'Salvar'}
+                  </button>
+                )
+              })()}
             </div>
 
             {/* Barra de progresso */}
@@ -621,7 +641,7 @@ export default function LineupBuilder({
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 4, minWidth: 0 }}>
                     <div style={{ marginBottom: 6 }}>
-                      <TeamLogo teamName={formatTeamTag(p.person_name, p.team_name)} size={42} />
+                      <TeamLogo teamName={formatTeamTag(p.person_name, p.team_name)} shortName={stage?.championship_short_name ?? ''} size={42} />
                     </div>
                     <div className="xlb-hslot-name" style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-xama-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, textAlign: 'center', width: '100%' }}>
                       {formatPlayerName(p.person_name, p.team_name)}
@@ -843,7 +863,7 @@ export default function LineupBuilder({
                       <tr key={p.id} className={rowClass}>
                         <td>
                           <div className="flex items-center gap-1.5">
-                            <TeamLogo teamName={playerTag} size={20} />
+                            <TeamLogo teamName={playerTag} shortName={stage?.championship_short_name ?? ''} size={20} />
                             <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--color-xama-muted)' }}>
                               {playerTag || '—'}
                             </span>

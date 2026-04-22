@@ -1,5 +1,5 @@
 // frontend/src/components/TeamLogo.jsx
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 // Tentativas de resolução em ordem:
 //   1. logoUrl explícita (vinda da API)
@@ -61,6 +61,9 @@ function buildCandidates(teamName, shortName, logoUrlProp) {
 export default function TeamLogo({ teamName, logoUrl: logoUrlProp, shortName = '', size = 28 }) {
   const candidates = buildCandidates(teamName, shortName, logoUrlProp)
   const [attemptIdx, setAttemptIdx] = useState(0)
+
+  // Reseta quando o time ou shortName muda (evita usar índice de tentativa de outro time)
+  useEffect(() => { setAttemptIdx(0) }, [teamName, shortName])
 
   const currentUrl = candidates[attemptIdx] ?? null
 
