@@ -55,10 +55,12 @@ class Roster(Base):
     stage: Mapped["Stage"] = relationship("Stage", back_populates="roster_entries")
     person: Mapped["Person"] = relationship("Person", back_populates="roster_entries")
     price_history: Mapped[List["RosterPriceHistory"]] = relationship(
-        "RosterPriceHistory", back_populates="roster", lazy="select"
+        "RosterPriceHistory", back_populates="roster", lazy="select",
+        passive_deletes=True,  # DB-level ondelete=CASCADE handles it; ORM must not SET NULL
     )
     lineup_entries: Mapped[List["LineupPlayer"]] = relationship(
-        "LineupPlayer", back_populates="roster", lazy="select"
+        "LineupPlayer", back_populates="roster", lazy="select",
+        passive_deletes=True,  # DB-level ondelete=RESTRICT; endpoint guards this manually
     )
 
     @property
