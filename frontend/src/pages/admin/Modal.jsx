@@ -59,6 +59,7 @@ export const inputStyle = {
 export const selectStyle = {
   ...inputStyle,
   cursor: 'pointer',
+  colorScheme: 'dark',
 }
 
 export function Msg({ msg }) {

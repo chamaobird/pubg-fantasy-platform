@@ -1,8 +1,8 @@
 // pages/admin/AdminStages.jsx — Stages com mudança de status inline + criação/edição
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Fragment } from 'react'
 import { API_BASE_URL } from '../../config'
 import {
-  Modal, Field, Msg, ActBtn, SaveBtn, SectionHeader, StatusBadge,
+  Modal, Field, Msg, ActBtn, SaveBtn, SectionHeader,
   inputStyle, selectStyle, tableStyle, thStyle, tdStyle,
 } from './Modal'
 
@@ -33,6 +33,187 @@ function fmtDate(iso) {
   return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })
 }
 
+// ── Painel de importação de times ─────────────────────────────────────────────
+
+function ImportPanel({ stage, stages, token }) {
+  const call = useCallback(api(token), [token])
+  const [sourceId, setSourceId] = useState('')
+  const [sourceTeams, setSourceTeams] = useState([])
+  const [targetTeamNames, setTargetTeamNames] = useState([])
+  const [selected, setSelected] = useState(new Set())
+  const [loadingSource, setLoadingSource] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [msg, setMsg] = useState('')
+
+  // Carrega times já no roster destino
+  const refreshTarget = useCallback(() => {
+    call('GET', `/admin/stages/${stage.id}/roster/teams`)
+      .then(data => setTargetTeamNames(data.map(t => t.team_name)))
+      .catch(() => {})
+  }, [call, stage.id])
+
+  useEffect(() => { refreshTarget() }, [refreshTarget])
+
+  // Carrega times da stage de origem quando selecionada
+  useEffect(() => {
+    if (!sourceId) { setSourceTeams([]); setSelected(new Set()); return }
+    setLoadingSource(true)
+    call('GET', `/admin/stages/${sourceId}/roster/teams`)
+      .then(data => { setSourceTeams(data); setSelected(new Set()) })
+      .catch(() => setSourceTeams([]))
+      .finally(() => setLoadingSource(false))
+  }, [call, sourceId])
+
+  const toggle = (name) => setSelected(prev => {
+    const next = new Set(prev)
+    if (next.has(name)) next.delete(name) else next.add(name)
+    return next
+  })
+
+  const selectAll = () => {
+    const notYetIn = sourceTeams.filter(t => !targetTeamNames.includes(t.team_name))
+    setSelected(new Set(notYetIn.map(t => t.team_name)))
+  }
+
+  const handleImport = async () => {
+    if (!selected.size) return
+    setImporting(true); setMsg('')
+    try {
+      const res = await call('POST', `/admin/stages/${stage.id}/roster/copy-from-stage`, {
+        source_stage_id: parseInt(sourceId),
+        team_names: [...selected],
+      })
+      setMsg(`${res.added_teams} times importados — ${res.added_players} jogadores adicionados` +
+        (res.skipped_players ? `, ${res.skipped_players} já existiam` : ''))
+      setSelected(new Set())
+      refreshTarget()
+    } catch (e) {
+      setMsg('!' + e.message)
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  const newCount = selected.size
+  const availableToSelect = sourceTeams.filter(t => !targetTeamNames.includes(t.team_name))
+
+  return (
+    <div style={{
+      padding: '18px 24px 20px',
+      background: 'rgba(249,115,22,0.03)',
+      borderTop: '1px solid rgba(249,115,22,0.15)',
+    }}>
+      {/* Cabeçalho */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-xama-text)' }}>
+          Importar Times
+        </span>
+        <span style={{
+          fontSize: 11, fontWeight: 700, padding: '2px 10px', borderRadius: 20,
+          background: targetTeamNames.length >= 16 ? 'rgba(74,222,128,0.12)' : 'rgba(249,115,22,0.12)',
+          color: targetTeamNames.length >= 16 ? 'var(--color-xama-green)' : 'var(--color-xama-orange)',
+          border: `1px solid ${targetTeamNames.length >= 16 ? 'rgba(74,222,128,0.3)' : 'rgba(249,115,22,0.3)'}`,
+          fontFamily: 'JetBrains Mono, monospace',
+        }}>
+          {targetTeamNames.length} / 16 times no roster
+        </span>
+      </div>
+
+      {/* Seletor de stage de origem */}
+      <div style={{ maxWidth: 440, marginBottom: 16 }}>
+        <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--color-xama-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          Stage de origem
+        </label>
+        <select
+          style={{ ...selectStyle, colorScheme: 'dark' }}
+          value={sourceId}
+          onChange={e => setSourceId(e.target.value)}
+        >
+          <option value="">Selecione uma stage...</option>
+          {stages.filter(s => s.id !== stage.id).map(s => (
+            <option key={s.id} value={s.id}>{s.id} — {s.name}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* Lista de times */}
+      {loadingSource && (
+        <div style={{ fontSize: 13, color: 'var(--color-xama-muted)', marginBottom: 12 }}>Carregando times...</div>
+      )}
+      {sourceTeams.length > 0 && (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+            <span style={{ fontSize: 12, color: 'var(--color-xama-muted)' }}>
+              {sourceTeams.length} times na stage de origem
+            </span>
+            {availableToSelect.length > 0 && (
+              <button
+                onClick={selectAll}
+                style={{ fontSize: 11, color: 'var(--color-xama-orange)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
+              >
+                selecionar todos disponíveis
+              </button>
+            )}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: 7, marginBottom: 16 }}>
+            {sourceTeams.map(t => {
+              const alreadyIn = targetTeamNames.includes(t.team_name)
+              const isSel = selected.has(t.team_name)
+              return (
+                <label
+                  key={t.team_name}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 9,
+                    padding: '8px 11px', borderRadius: 8,
+                    cursor: alreadyIn ? 'default' : 'pointer',
+                    border: `1px solid ${alreadyIn ? 'rgba(74,222,128,0.3)' : isSel ? 'rgba(249,115,22,0.5)' : 'rgba(255,255,255,0.07)'}`,
+                    background: alreadyIn ? 'rgba(74,222,128,0.05)' : isSel ? 'rgba(249,115,22,0.07)' : 'rgba(255,255,255,0.02)',
+                    transition: 'all 0.12s',
+                    userSelect: 'none',
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={alreadyIn || isSel}
+                    disabled={alreadyIn}
+                    onChange={() => !alreadyIn && toggle(t.team_name)}
+                    style={{ accentColor: 'var(--color-xama-orange)', width: 14, height: 14, flexShrink: 0 }}
+                  />
+                  <span style={{ fontSize: 13, flex: 1, color: alreadyIn ? 'var(--color-xama-green)' : 'var(--color-xama-text)' }}>
+                    {t.team_name}
+                  </span>
+                  <span style={{ fontSize: 11, color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace' }}>
+                    {alreadyIn ? '✓' : `${t.player_count}j`}
+                  </span>
+                </label>
+              )
+            })}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <ActBtn onClick={handleImport} disabled={!newCount || importing}>
+              {importing ? 'Importando...' : newCount > 0 ? `Importar ${newCount} time${newCount !== 1 ? 's' : ''}` : 'Selecione times'}
+            </ActBtn>
+            {msg && (
+              <span style={{
+                fontSize: 12, padding: '4px 10px', borderRadius: 6,
+                background: msg.startsWith('!') ? 'rgba(239,68,68,0.1)' : 'rgba(74,222,128,0.1)',
+                color: msg.startsWith('!') ? '#f87171' : 'var(--color-xama-green)',
+                border: `1px solid ${msg.startsWith('!') ? 'rgba(239,68,68,0.3)' : 'rgba(74,222,128,0.3)'}`,
+              }}>
+                {msg.startsWith('!') ? msg.slice(1) : msg}
+              </span>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+// ── Componente principal ───────────────────────────────────────────────────────
+
 export default function AdminStages({ token }) {
   const call = useCallback(api(token), [token])
 
@@ -45,6 +226,7 @@ export default function AdminStages({ token }) {
   const [msg, setMsg] = useState('')
   const [saving, setSaving] = useState(false)
   const [statusChanging, setStatusChanging] = useState(null) // stage id
+  const [expandedStage, setExpandedStage] = useState(null)
 
   const loadChampionships = useCallback(async () => {
     try {
@@ -165,34 +347,47 @@ export default function AdminStages({ token }) {
             </thead>
             <tbody>
               {stages.map(s => (
-                <tr key={s.id}>
-                  <td style={{ ...tdStyle, fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: 'var(--color-xama-muted)' }}>{s.id}</td>
-                  <td style={{ ...tdStyle, color: 'var(--color-xama-muted)', fontSize: 12 }}>{champName(s.championship_id)}</td>
-                  <td style={{ ...tdStyle, fontWeight: 600 }}>{s.name}</td>
-                  <td style={{ ...tdStyle, color: 'var(--color-xama-muted)', fontSize: 12 }}>{fmtDate(s.start_date || s.lineup_open_at)}</td>
-                  <td style={tdStyle}>
-                    {/* Status dropdown inline */}
-                    <select
-                      value={s.lineup_status}
-                      disabled={statusChanging === s.id}
-                      onChange={e => changeStatus(s, e.target.value)}
-                      style={{
-                        padding: '4px 8px', borderRadius: 6, fontSize: 12, fontWeight: 700,
-                        fontFamily: 'JetBrains Mono, monospace', cursor: 'pointer',
-                        border: '1px solid rgba(249,115,22,0.35)',
-                        background: 'rgba(249,115,22,0.08)', color: 'var(--color-xama-orange)',
-                        outline: 'none',
-                      }}
-                    >
-                      {STATUS_OPTIONS.map(st => (
-                        <option key={st} value={st}>{st.toUpperCase()}</option>
-                      ))}
-                    </select>
-                  </td>
-                  <td style={{ ...tdStyle, textAlign: 'right' }}>
-                    <ActBtn small onClick={() => openEdit(s)}>Editar</ActBtn>
-                  </td>
-                </tr>
+                <Fragment key={s.id}>
+                  <tr>
+                    <td style={{ ...tdStyle, fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: 'var(--color-xama-muted)' }}>{s.id}</td>
+                    <td style={{ ...tdStyle, color: 'var(--color-xama-muted)', fontSize: 12 }}>{champName(s.championship_id)}</td>
+                    <td style={{ ...tdStyle, fontWeight: 600 }}>{s.name}</td>
+                    <td style={{ ...tdStyle, color: 'var(--color-xama-muted)', fontSize: 12 }}>{fmtDate(s.start_date || s.lineup_open_at)}</td>
+                    <td style={tdStyle}>
+                      <select
+                        value={s.lineup_status}
+                        disabled={statusChanging === s.id}
+                        onChange={e => changeStatus(s, e.target.value)}
+                        style={{
+                          padding: '4px 8px', borderRadius: 6, fontSize: 12, fontWeight: 700,
+                          fontFamily: 'JetBrains Mono, monospace', cursor: 'pointer',
+                          border: '1px solid rgba(249,115,22,0.35)',
+                          background: 'rgba(249,115,22,0.08)', color: 'var(--color-xama-orange)',
+                          outline: 'none', colorScheme: 'dark',
+                        }}
+                      >
+                        {STATUS_OPTIONS.map(st => (
+                          <option key={st} value={st}>{st.toUpperCase()}</option>
+                        ))}
+                      </select>
+                    </td>
+                    <td style={{ ...tdStyle, textAlign: 'right' }}>
+                      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                        <ActBtn small onClick={() => setExpandedStage(expandedStage === s.id ? null : s.id)}>
+                          {expandedStage === s.id ? '▲ Fechar' : '↓ Importar'}
+                        </ActBtn>
+                        <ActBtn small onClick={() => openEdit(s)}>Editar</ActBtn>
+                      </div>
+                    </td>
+                  </tr>
+                  {expandedStage === s.id && (
+                    <tr>
+                      <td colSpan={6} style={{ padding: 0, borderBottom: '1px solid var(--color-xama-border)' }}>
+                        <ImportPanel stage={s} stages={stages} token={token} />
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
               ))}
             </tbody>
           </table>
