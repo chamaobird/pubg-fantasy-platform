@@ -11,6 +11,12 @@ from app.models.roster import Roster
 from app.models.stage import Stage
 from app.models.user import User
 from app.schemas.roster import RosterCreate, RosterResponse, RosterUpdate
+from app.schemas.team import (
+    ImportTeamRequest,
+    ImportTeamResponse,
+    ImportedPlayer,
+    SkippedPlayer,
+)
 
 router = APIRouter(
     prefix="/admin/stages/{stage_id}/roster",
@@ -141,6 +147,87 @@ def update_roster_entry(
     db.commit()
     db.refresh(roster)
     return roster
+
+
+@router.post("/import-team", status_code=status.HTTP_200_OK)
+def import_team_to_roster(
+    stage_id: int,
+    body: ImportTeamRequest,
+    db: Session = Depends(get_db),
+    _admin: User = Depends(require_admin),
+) -> ImportTeamResponse:
+    """
+    Importa todos os membros ativos de um time para o roster da stage.
+    Jogadores já presentes no roster são reportados em 'skipped' — nunca duplicados.
+    """
+    from app.models.team import Team
+    from app.models.team_member import TeamMember
+
+    _get_stage_or_404(db, stage_id)
+
+    team = db.query(Team).filter(Team.id == body.team_id).first()
+    if not team:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Time {body.team_id} não encontrado",
+        )
+
+    active_members = (
+        db.query(TeamMember)
+        .options(joinedload(TeamMember.person))
+        .filter(TeamMember.team_id == body.team_id, TeamMember.left_at.is_(None))
+        .all()
+    )
+
+    if not active_members:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"O time '{team.name}' não possui membros ativos.",
+        )
+
+    added: list[ImportedPlayer] = []
+    skipped: list[SkippedPlayer] = []
+
+    for member in active_members:
+        person = member.person
+        if not person or not person.is_active:
+            skipped.append(SkippedPlayer(
+                person_id=member.person_id,
+                person_name=person.display_name if person else f"id={member.person_id}",
+                reason="Jogador inativo",
+            ))
+            continue
+
+        existing = (
+            db.query(Roster)
+            .filter(Roster.stage_id == stage_id, Roster.person_id == person.id)
+            .first()
+        )
+        if existing:
+            skipped.append(SkippedPlayer(
+                person_id=person.id,
+                person_name=person.display_name,
+                reason="Já está no roster desta stage",
+            ))
+            continue
+
+        roster_entry = Roster(
+            stage_id=stage_id,
+            person_id=person.id,
+            team_name=team.tag,
+        )
+        db.add(roster_entry)
+        added.append(ImportedPlayer(person_id=person.id, person_name=person.display_name))
+
+    db.commit()
+
+    return ImportTeamResponse(
+        team_id=team.id,
+        team_name=team.name,
+        stage_id=stage_id,
+        added=added,
+        skipped=skipped,
+    )
 
 
 @router.delete("/{roster_id}", status_code=status.HTTP_204_NO_CONTENT)

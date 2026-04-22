@@ -7,6 +7,7 @@ from app.routers.admin.persons import router as persons_router
 from app.routers.admin.roster import router as roster_router
 from app.routers.admin.rosters import router as rosters_router
 from app.routers.admin.scoring import router as scoring_router
+from app.routers.admin.teams import router as teams_router
 
 router = APIRouter()
 router.include_router(championships_router)
@@ -16,3 +17,4 @@ router.include_router(persons_router)
 router.include_router(roster_router)
 router.include_router(rosters_router)
 router.include_router(scoring_router)
+router.include_router(teams_router)
