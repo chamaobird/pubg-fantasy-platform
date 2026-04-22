@@ -25,8 +25,15 @@ export function useSorting(initialCol = null, initialDir = 'asc') {
 
 // ── Team logo ─────────────────────────────────────────────────────────────────
 
+// Mapeamento region → pasta de logos (os arquivos foram organizados por liga)
+const REGION_LOGO_FOLDER = {
+  'Americas': 'PAS',
+  'EMEA': 'PEC',
+}
+
 export function TeamLogo({ tag, region, size = 22 }) {
-  const base = region && tag ? `/logos/${region}/${tag.toLowerCase()}` : null
+  const folder = REGION_LOGO_FOLDER[region] || region  // fallback para o próprio valor
+  const base = folder && tag ? `/logos/${folder}/${tag.toLowerCase()}` : null
   const [ext, setExt] = useState('png')
   const [failed, setFailed] = useState(false)
   if (!base || failed) return <span style={{ display: 'inline-block', width: size, height: size }} />
