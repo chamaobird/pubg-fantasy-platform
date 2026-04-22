@@ -12,6 +12,7 @@ import AuthCallback from './pages/AuthCallback'
 import ResetPasswordPage from './pages/ResetPasswordPage'
 import SetupUsername from './pages/SetupUsername'
 import AppBackground from './components/AppBackground'
+import Admin from './pages/Admin'
 
 export const AuthContext = createContext(null)
 export const useAuth = () => useContext(AuthContext)
@@ -138,6 +139,11 @@ export default function App() {
 
           <Route path="/auth/reset-password" element={
             <ResetPasswordPage />
+          } />
+
+          {/* Admin */}
+          <Route path="/admin" element={
+            <RequireAuth><Admin /></RequireAuth>
           } />
 
           {/* Fallback */}

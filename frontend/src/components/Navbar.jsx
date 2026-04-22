@@ -3,10 +3,15 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../App'
 import { STATUS_COLOR, STATUS_LABEL } from '../utils/statusColors'
 
+function getIsAdmin(token) {
+  try { return JSON.parse(atob(token.split('.')[1])).is_admin === true } catch { return false }
+}
+
 export default function Navbar({ tournament = null }) {
   const navigate = useNavigate()
   const location = useLocation()
-  const { logout } = useAuth()
+  const { token, logout } = useAuth()
+  const isAdmin = getIsAdmin(token)
 
   const isActive = (path) => location.pathname === path
 
@@ -77,6 +82,7 @@ export default function Navbar({ tournament = null }) {
             { label: 'Dashboard',    path: '/dashboard'     },
             { label: 'Campeonatos', path: '/championships' },
             { label: '👤 Perfil',   path: '/profile'       },
+            ...(isAdmin ? [{ label: '⚙ Admin', path: '/admin' }] : []),
           ].map(({ label, path }) => {
             const active = isActive(path)
             return (
