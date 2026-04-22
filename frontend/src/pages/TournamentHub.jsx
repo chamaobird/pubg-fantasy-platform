@@ -120,7 +120,12 @@ export default function TournamentHub() {
           />
         )}
         {activeTab === TAB_STATS && (
-          <PlayerStatsPage stageId={Number(id)} shortName={stage?.short_name ?? ''} />
+          <PlayerStatsPage
+            stageId={Number(id)}
+            shortName={stage?.short_name ?? ''}
+            siblingStages={siblingStages}
+            championshipId={stage?.championship_id ?? null}
+          />
         )}
         {activeTab === TAB_ADMIN && isAdmin && (
           <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start', flexWrap: 'wrap' }}>

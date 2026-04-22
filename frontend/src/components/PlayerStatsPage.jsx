@@ -1,9 +1,9 @@
 // frontend/src/components/PlayerStatsPage.jsx
 // XAMA Fantasy — Player Stats migrado para /stages/ (Fase 7)
 // Hierarquia: Stage → Dia → Partida
-// Extras: sparkline de pts por dia, badge "melhor partida"
+// Championship scope: agrega stats de todas as stages locked do campeonato
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { API_BASE_URL as API_BASE } from '../config'
 import TeamLogo from './TeamLogo'
 import PlayerHistoryModal from './PlayerHistoryModal'
@@ -15,16 +15,25 @@ if (!document.getElementById('xama-fonts')) {
   link.href = 'https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@400;600&display=swap'
   document.head.appendChild(link)
 }
-const placementColorHex = (val) => {
-  if (val == null) return '#dce1ea'
-  if (val <= 5)    return '#4ade80'
-  if (val <= 12)   return '#f0c040'
-  return '#f87171'
-}
+
 const fmt1   = (v) => v != null ? Number(v).toFixed(1) : '—'
 const fmt2   = (v) => v != null ? Number(v).toFixed(2) : '—'
 const fmtInt = (v) => v != null ? Math.round(v) : '—'
-const fmtMin = (secs) => secs != null ? Math.round(Number(secs) / 60) : '—'
+
+// Pontos derivados de sobrevivência = total – kills×10 – assists×1 – knocks×1 – damage×0.03
+// (late game bonus + early death penalty)
+const KILL_PTS   = 10.0
+const ASSIST_PTS  = 1.0
+const KNOCK_PTS   = 1.0
+const DMG_PTS     = 0.03
+function survivalPts(p) {
+  if (p.total_xama_points == null) return null
+  const combatPts = (p.total_kills || 0) * KILL_PTS
+    + (p.total_assists || 0) * ASSIST_PTS
+    + (p.total_knocks  || 0) * KNOCK_PTS
+    + (p.total_damage  || 0) * DMG_PTS
+  return Math.round(((p.total_xama_points || 0) - combatPts) * 100) / 100
+}
 
 const MAP_DISPLAY = {
   Baltic_Main:  { icon: '🌿', name: 'Erangel' },
@@ -53,7 +62,7 @@ function Sparkline({ data, width = 48, height = 18 }) {
         const y = height - barH
         return (
           <rect
-            key={d.day}
+            key={d.day ?? d.stage ?? i}
             x={x} y={y} width={barW} height={barH}
             rx="1"
             fill={d.pts > 0 ? 'var(--color-xama-orange, #f97316)' : '#2a3046'}
@@ -66,13 +75,14 @@ function Sparkline({ data, width = 48, height = 18 }) {
 }
 
 // ── Colunas da tabela ──────────────────────────────────────────────────────
-// Ordem: Preço, PTS XAMA, PTS/G, (sparkline embutida no PTS XAMA), K Total,
-//        ASS, DMG, SURV, Partidas
-// Coluna W (vitórias) e BEST mantidas mas movidas para depois de SURV
+// Ordem: PREÇO, PTS/G, PTS XAMA, K TOTAL, DMG, ASS, PONTOS POR SOBREVIVENCIA
+// (sparkline embutida no PTS XAMA)
 
 const COLUMNS = [
   { key: 'fantasy_cost',
-    label: 'PREÇO',      title: 'Preço fantasy atual',        right: true,
+    label: 'PREÇO',
+    title: 'Preço fantasy atual',
+    right: true,
     render: (p) => (
       <span style={{ color: 'var(--color-xama-gold)', fontWeight: 700 }}>
         {Number(p.fantasy_cost || 0).toFixed(2)}
@@ -80,67 +90,59 @@ const COLUMNS = [
     ),
     sortVal: (p) => Number(p.fantasy_cost || 0) },
 
+  { key: 'pts_per_match',
+    label: 'PTS/G',
+    title: 'Pontos XAMA por jogo',
+    right: true,
+    render: (p) => fmt2(p.pts_per_match) },
+
   { key: 'total_xama_points',
-    label: 'PTS XAMA',   title: 'Pontos XAMA totais',        right: true,
-    render: (p) => (
+    label: 'PTS XAMA',
+    title: 'Pontos XAMA totais',
+    right: true,
+    render: (p, sparkKey) => (
       <span style={{ color: 'var(--color-xama-orange)', display: 'inline-flex', alignItems: 'center' }}>
         {fmt2(p.total_xama_points)}
-        <Sparkline data={p.pts_by_day} />
+        <Sparkline data={sparkKey === 'stage' ? p.pts_by_day : p.pts_by_stage} />
       </span>
     ),
     sortVal: (p) => p.total_xama_points || 0 },
 
-  { key: 'pts_per_match',
-    label: 'PTS/G',      title: 'Pontos XAMA por jogo',      right: true,
-    render: (p) => fmt2(p.pts_per_match) },
-
   { key: 'total_kills',
-    label: 'K Total',    title: 'Total de kills',             right: true,
+    label: 'K TOTAL',
+    title: 'Total de kills',
+    right: true,
     render: (p) => fmtInt(p.total_kills) },
 
-  { key: 'total_assists',
-    label: 'ASS',        title: 'Total de assists',           right: true,
-    render: (p) => fmtInt(p.total_assists) },
-
   { key: 'total_damage',
-    label: 'DMG',        title: 'Dano total',                 right: true,
+    label: 'DMG',
+    title: 'Dano total',
+    right: true,
     render: (p) => fmtInt(p.total_damage) },
 
-  { key: 'avg_survival_secs',
-    label: 'SURV (min)', title: 'Sobrevivência média (min)',  right: true,
-    render: (p) => fmtMin(p.avg_survival_secs),
-    sortVal: (p) => p.avg_survival_secs || 0 },
+  { key: 'total_assists',
+    label: 'ASS',
+    title: 'Total de assists',
+    right: true,
+    render: (p) => fmtInt(p.total_assists) },
 
-  { key: 'matches_played',
-    label: 'P',          title: 'Partidas jogadas',           right: true,
-    render: (p) => p.matches_played ?? '—' },
-
-  // Extras mantidos no final
-  { key: 'total_wins',
-    label: 'W',           title: 'Vitórias (1º lugar)',       right: true,
-    render: (p) => (
-      <span style={{ color: (p.total_wins || 0) > 0 ? '#4ade80' : 'var(--color-xama-muted)' }}>
-        {fmtInt(p.total_wins)}
-      </span>
-    ),
-    sortVal: (p) => p.total_wins || 0 },
-
-  { key: 'avg_placement',
-    label: 'PLACE',      title: 'Colocação média',            right: true,
-    render: (p) => <span style={{ color: placementColorHex(p.avg_placement) }}>{fmt1(p.avg_placement)}</span>,
-    color: (p) => placementColorHex(p.avg_placement) },
-
-  { key: 'total_knocks',
-    label: 'KD',         title: 'Total de knocks',            right: true,
-    render: (p) => fmtInt(p.total_knocks) },
-
-  { key: 'best_match_pts',
-    label: 'BEST',       title: 'Melhor partida individual',  right: true,
+  { key: 'survival_pts',
+    label: 'PTS SOBREV',
+    title: 'Pontos derivados de sobrevivência (late game bonus – early death)',
+    right: true,
     render: (p) => {
-      if (!p.best_match_pts) return '—'
-      return <span style={{ color: '#f0c040', fontWeight: 600 }}>{fmt2(p.best_match_pts)}</span>
+      const sp = survivalPts(p)
+      if (sp == null) return '—'
+      return <span style={{ color: sp >= 0 ? 'var(--color-xama-text)' : '#f87171' }}>{fmt2(sp)}</span>
     },
-    sortVal: (p) => p.best_match_pts || 0 },
+    sortVal: (p) => survivalPts(p) ?? 0 },
+
+  // Coluna de partidas — mantida mas mais compacta
+  { key: 'matches_played',
+    label: 'P',
+    title: 'Partidas jogadas',
+    right: true,
+    render: (p) => p.matches_played ?? '—' },
 ]
 
 function SortIcon({ active, dir }) {
@@ -159,13 +161,67 @@ const selectStyle = {
   outline: 'none',
 }
 
+// ── Aggregação de stats de múltiplas stages ───────────────────────────────
+
+function aggregateStats(allResults) {
+  // allResults: [{stageId, stageIdx, data: PlayerStatOut[]}]
+  const map = new Map()
+  for (const { stageIdx, data } of allResults) {
+    for (const p of data) {
+      if (!map.has(p.person_id)) {
+        map.set(p.person_id, {
+          person_id: p.person_id,
+          person_name: p.person_name,
+          team_name: p.team_name,
+          fantasy_cost: p.fantasy_cost,
+          total_xama_points: 0,
+          matches_played: 0,
+          total_kills: 0,
+          total_assists: 0,
+          total_damage: 0,
+          total_knocks: 0,
+          total_wins: 0,
+          pts_by_stage: [],
+          pts_by_day: [],
+        })
+      }
+      const a = map.get(p.person_id)
+      a.total_xama_points += p.total_xama_points || 0
+      a.matches_played    += p.matches_played || 0
+      a.total_kills       += p.total_kills || 0
+      a.total_assists     += p.total_assists || 0
+      a.total_damage      += p.total_damage || 0
+      a.total_knocks      += p.total_knocks || 0
+      a.total_wins        += p.total_wins || 0
+      if (p.fantasy_cost != null) a.fantasy_cost = p.fantasy_cost  // keep latest
+      a.pts_by_stage[stageIdx] = (a.pts_by_stage[stageIdx] || 0) + (p.total_xama_points || 0)
+    }
+  }
+
+  return Array.from(map.values()).map(a => ({
+    ...a,
+    total_xama_points: Math.round(a.total_xama_points * 100) / 100,
+    total_damage: Math.round(a.total_damage * 10) / 10,
+    pts_per_match: a.matches_played > 0 ? Math.round(a.total_xama_points / a.matches_played * 100) / 100 : 0,
+    pts_by_stage: a.pts_by_stage.map((pts, i) => ({ stage: i + 1, pts: Math.round(pts * 100) / 100 })),
+  }))
+}
+
 // ── Componente principal ───────────────────────────────────────────────────
 
-export default function PlayerStatsPage({ stageId: propStageId = null, shortName = '' }) {
+export default function PlayerStatsPage({
+  stageId: propStageId = null,
+  shortName = '',
+  siblingStages = [],
+  championshipId = null,
+}) {
   const [stageId, setStageId] = useState(propStageId ? Number(propStageId) : null)
   useEffect(() => { setStageId(propStageId ? Number(propStageId) : null) }, [propStageId])
 
-  // ── Hierarquia de filtros ─────────────────────────────────────────────────
+  // Escopo: 'stage' | 'championship'
+  const [scope, setScope] = useState('stage')
+
+  // ── Hierarquia de filtros (escopo stage) ─────────────────────────────────
   const [stageDays, setStageDays]             = useState([])
   const [selectedDayId, setSelectedDayId]     = useState(null)
   const [matches, setMatches]                 = useState([])
@@ -173,21 +229,24 @@ export default function PlayerStatsPage({ stageId: propStageId = null, shortName
 
   // ── Stats ─────────────────────────────────────────────────────────────────
   const [stats, setStats]           = useState([])
+  const [champStats, setChampStats] = useState([])
   const [loading, setLoading]       = useState(false)
+  const [champLoading, setChampLoading] = useState(false)
   const [error, setError]           = useState(null)
 
   // ── Filtros de tabela ─────────────────────────────────────────────────────
   const [search, setSearch]         = useState('')
   const [teamFilter, setTeamFilter] = useState('')
-  const [sortKey, setSortKey]       = useState('team')
-  const [sortDir, setSortDir]       = useState('asc')
+  // Default: ordenar por PTS/G decrescente
+  const [sortKey, setSortKey]       = useState('pts_per_match')
+  const [sortDir, setSortDir]       = useState('desc')
   const [historyPlayer, setHistoryPlayer] = useState(null)
 
   // ── Reset ao trocar stage ─────────────────────────────────────────────────
   useEffect(() => {
     setStageDays([]); setSelectedDayId(null)
     setMatches([]); setSelectedMatchId(null)
-    setStats([]); setError(null)
+    setStats([]); setError(null); setScope('stage')
     if (!stageId) return
 
     fetch(`${API_BASE}/stages/${stageId}/days`)
@@ -206,12 +265,12 @@ export default function PlayerStatsPage({ stageId: propStageId = null, shortName
       .catch(() => {})
   }, [stageId, selectedDayId])
 
-  // ── Busca stats ───────────────────────────────────────────────────────────
+  // ── Busca stats da stage ──────────────────────────────────────────────────
   useEffect(() => {
     if (!stageId) return
     setLoading(true); setError(null); setStats([])
 
-    let url = `${API_BASE}/stages/${stageId}/player-stats?limit=200`
+    let url = `${API_BASE}/stages/${stageId}/player-stats?limit=500`
     if (selectedMatchId) {
       url += `&match_id=${selectedMatchId}`
     } else if (selectedDayId) {
@@ -224,18 +283,54 @@ export default function PlayerStatsPage({ stageId: propStageId = null, shortName
       .catch((e) => { setError(e.message); setLoading(false) })
   }, [stageId, selectedDayId, selectedMatchId])
 
-  // ── Opções de time (ordenadas alfabeticamente) ────────────────────────────
+  // ── Busca stats do campeonato (stages locked) ─────────────────────────────
+  const lockedSiblings = useMemo(() => {
+    if (!siblingStages || siblingStages.length === 0) return []
+    return siblingStages
+      .filter(s => s.lineup_status === 'locked')
+      .sort((a, b) => a.id - b.id)
+  }, [siblingStages])
+
+  const fetchChampStats = useCallback(async () => {
+    if (lockedSiblings.length === 0) return
+    setChampLoading(true)
+    try {
+      const results = await Promise.all(
+        lockedSiblings.map((s, idx) =>
+          fetch(`${API_BASE}/stages/${s.id}/player-stats?limit=500`)
+            .then(r => r.ok ? r.json() : [])
+            .then(data => ({ stageId: s.id, stageIdx: idx, data }))
+            .catch(() => ({ stageId: s.id, stageIdx: idx, data: [] }))
+        )
+      )
+      setChampStats(aggregateStats(results))
+    } finally {
+      setChampLoading(false)
+    }
+  }, [lockedSiblings])
+
+  useEffect(() => {
+    if (scope === 'championship' && champStats.length === 0 && !champLoading) {
+      fetchChampStats()
+    }
+  }, [scope, champStats.length, champLoading, fetchChampStats])
+
+  // ── Dados ativos (stage vs campeonato) ───────────────────────────────────
+  const activeStats  = scope === 'championship' ? champStats : stats
+  const activeLoading = scope === 'championship' ? champLoading : loading
+
+  // ── Opções de time ────────────────────────────────────────────────────────
   const teamOptions = useMemo(() => {
-    const tags = new Set(stats.map((p) => formatTeamTag(p.person_name, p.team_name)).filter(Boolean))
+    const tags = new Set(activeStats.map((p) => formatTeamTag(p.person_name, p.team_name)).filter(Boolean))
     return Array.from(tags).sort()
-  }, [stats])
+  }, [activeStats])
 
   // ── Filtro + sort ─────────────────────────────────────────────────────────
-  const filtered = useMemo(() => stats.filter((p) => {
+  const filtered = useMemo(() => activeStats.filter((p) => {
     const nm = !search || formatPlayerName(p.person_name).toLowerCase().includes(search.toLowerCase())
     const tm = !teamFilter || formatTeamTag(p.person_name, p.team_name) === teamFilter
     return nm && tm
-  }), [stats, search, teamFilter])
+  }), [activeStats, search, teamFilter])
 
   const sorted = useMemo(() => {
     if (!sortKey) return filtered
@@ -243,12 +338,14 @@ export default function PlayerStatsPage({ stageId: propStageId = null, shortName
       let av, bv
 
       if (sortKey === 'team') {
-        // Ordenação por time: tag do time extraída do nome da pessoa
         av = formatTeamTag(a.person_name, a.team_name)
         bv = formatTeamTag(b.person_name, b.team_name)
       } else if (sortKey === 'name') {
         av = formatPlayerName(a.person_name)
         bv = formatPlayerName(b.person_name)
+      } else if (sortKey === 'survival_pts') {
+        av = survivalPts(a)
+        bv = survivalPts(b)
       } else {
         const col = COLUMNS.find((c) => c.key === sortKey)
         if (col?.sortVal) { av = col.sortVal(a); bv = col.sortVal(b) }
@@ -266,7 +363,6 @@ export default function PlayerStatsPage({ stageId: propStageId = null, shortName
     if (sortKey === key) setSortDir((d) => d === 'desc' ? 'asc' : 'desc')
     else {
       setSortKey(key)
-      // Time e nome: asc por padrão; stats numéricas: desc
       setSortDir(key === 'team' || key === 'name' ? 'asc' : 'desc')
     }
   }
@@ -276,13 +372,16 @@ export default function PlayerStatsPage({ stageId: propStageId = null, shortName
   const selectedMatch = matches.find((m) => m.id === selectedMatchId)
 
   const filterLabel = useMemo(() => {
+    if (scope === 'championship') {
+      return `${lockedSiblings.length} stages · Campeonato`
+    }
     if (selectedMatch) return `Partida ${selectedMatch.match_number} — ${new Date(selectedMatch.played_at || '').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}`
     if (selectedDay) {
       const date = selectedDay.date ? new Date(selectedDay.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : ''
       return `Dia ${selectedDay.day_number}${date ? ` · ${date}` : ''}`
     }
     return stageDays.length > 1 ? 'Total' : (stageDays[0] ? `Dia ${stageDays[0].day_number}` : 'Total')
-  }, [selectedMatch, selectedDay, stageDays])
+  }, [scope, selectedMatch, selectedDay, stageDays, lockedSiblings.length])
 
   const thStyle = (col) => ({
     padding: '10px 12px',
@@ -294,6 +393,8 @@ export default function PlayerStatsPage({ stageId: propStageId = null, shortName
     color: sortKey === col?.key ? 'var(--color-xama-orange)' : 'var(--color-xama-muted)',
     transition: 'color 0.15s',
   })
+
+  const hasChampionshipData = lockedSiblings.length > 0
 
   return (
     <div style={{ minHeight: '100vh', background: 'transparent' }}>
@@ -308,7 +409,7 @@ export default function PlayerStatsPage({ stageId: propStageId = null, shortName
                 <h1 className="text-[28px] font-bold tracking-tight" style={{ color: 'var(--color-xama-text)', letterSpacing: '-0.01em' }}>
                   PLAYER STATS
                 </h1>
-                {(selectedDay || selectedMatch) && (
+                {(selectedDay || selectedMatch || scope === 'championship') && (
                   <span className="px-2 py-0.5 rounded text-[10px] font-bold"
                     style={{ fontFamily: "'JetBrains Mono', monospace", background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.3)', color: 'var(--color-xama-blue)' }}>
                     {filterLabel}
@@ -324,8 +425,34 @@ export default function PlayerStatsPage({ stageId: propStageId = null, shortName
           {/* ── Filtros ───────────────────────────────────────────────────── */}
           <div className="flex flex-wrap items-center gap-3">
 
-            {/* Chips de dia */}
-            {stageDays.length > 0 && (
+            {/* Botões de escopo: Stage vs Campeonato */}
+            {hasChampionshipData && (
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setScope('stage')}
+                  style={{
+                    ...selectStyle, padding: '4px 10px', fontWeight: 600,
+                    background: scope === 'stage' ? 'rgba(249,115,22,0.12)' : '#0d0f14',
+                    borderColor: scope === 'stage' ? 'rgba(249,115,22,0.5)' : 'var(--color-xama-border)',
+                    color: scope === 'stage' ? 'var(--color-xama-orange)' : 'var(--color-xama-muted)',
+                  }}>
+                  Stage
+                </button>
+                <button
+                  onClick={() => setScope('championship')}
+                  style={{
+                    ...selectStyle, padding: '4px 10px', fontWeight: 600,
+                    background: scope === 'championship' ? 'rgba(249,115,22,0.12)' : '#0d0f14',
+                    borderColor: scope === 'championship' ? 'rgba(249,115,22,0.5)' : 'var(--color-xama-border)',
+                    color: scope === 'championship' ? 'var(--color-xama-orange)' : 'var(--color-xama-muted)',
+                  }}>
+                  Campeonato ({lockedSiblings.length} stages)
+                </button>
+              </div>
+            )}
+
+            {/* Chips de dia (apenas no escopo de stage) */}
+            {scope === 'stage' && stageDays.length > 0 && (
               <div className="flex items-center gap-1">
                 {stageDays.length > 1 && (
                   <button
@@ -356,7 +483,7 @@ export default function PlayerStatsPage({ stageId: propStageId = null, shortName
             )}
 
             {/* Seletor de partida */}
-            {selectedDayId && matches.length > 0 && (
+            {scope === 'stage' && selectedDayId && matches.length > 0 && (
               <select
                 value={selectedMatchId ?? ''}
                 onChange={(e) => setSelectedMatchId(e.target.value ? Number(e.target.value) : null)}
@@ -410,10 +537,10 @@ export default function PlayerStatsPage({ stageId: propStageId = null, shortName
       {/* ── Conteúdo ───────────────────────────────────────────────────────── */}
       <div style={{ maxWidth: '1600px', margin: '0 auto', padding: '24px 16px' }}>
 
-        {loading && <p className="text-center py-20 text-[14px]" style={{ color: 'var(--color-xama-muted)' }}>Carregando stats...</p>}
-        {error   && <div className="msg-error max-w-lg mx-auto mt-8">Erro: {error}</div>}
+        {activeLoading && <p className="text-center py-20 text-[14px]" style={{ color: 'var(--color-xama-muted)' }}>Carregando stats...</p>}
+        {error        && <div className="msg-error max-w-lg mx-auto mt-8">Erro: {error}</div>}
 
-        {!loading && !error && !stageId && (
+        {!activeLoading && !error && !stageId && (
           <div className="flex flex-col items-center justify-center py-32 gap-4">
             <span style={{ fontSize: '48px' }}>📊</span>
             <p className="text-[16px] font-semibold tracking-[0.06em] uppercase" style={{ color: 'var(--color-xama-muted)' }}>
@@ -422,13 +549,15 @@ export default function PlayerStatsPage({ stageId: propStageId = null, shortName
           </div>
         )}
 
-        {!loading && !error && stageId && sorted.length === 0 && (
+        {!activeLoading && !error && stageId && sorted.length === 0 && (
           <p className="text-center py-20 text-[13px]" style={{ color: 'var(--color-xama-muted)' }}>
-            Nenhum dado disponível para o período selecionado.
+            {scope === 'championship' && lockedSiblings.length === 0
+              ? 'Nenhuma stage encerrada neste campeonato ainda.'
+              : 'Nenhum dado disponível para o período selecionado.'}
           </p>
         )}
 
-        {!loading && !error && sorted.length > 0 && (
+        {!activeLoading && !error && sorted.length > 0 && (
           <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--color-xama-border)', background: 'var(--color-xama-surface)' }}>
             <div style={{ height: '2px', background: 'linear-gradient(90deg, var(--color-xama-orange) 0%, transparent 55%)' }} />
             <div className="overflow-x-auto">
@@ -488,7 +617,7 @@ export default function PlayerStatsPage({ stageId: propStageId = null, shortName
                           </span>
                         </td>
                         {COLUMNS.map((col) => {
-                          const rendered = col.render(p)
+                          const rendered = col.render(p, scope)
                           const cellColor = col.color ? col.color(p) : 'var(--color-xama-text)'
                           return (
                             <td key={col.key} style={{ padding: '10px 12px', textAlign: col.right ? 'right' : 'left', fontFamily: "'JetBrains Mono', monospace", fontVariantNumeric: 'tabular-nums', color: cellColor }}>
@@ -507,7 +636,7 @@ export default function PlayerStatsPage({ stageId: propStageId = null, shortName
                 🔥 XAMA Fantasy
               </span>
               <span className="text-[11px] tabular-nums" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-muted)' }}>
-                {sorted.length} / {stats.length} jogadores · {filterLabel}
+                {sorted.length} / {activeStats.length} jogadores · {filterLabel}
               </span>
             </div>
           </div>
