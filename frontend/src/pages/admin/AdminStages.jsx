@@ -66,7 +66,7 @@ function ImportPanel({ stage, stages, token }) {
 
   const toggle = (name) => setSelected(prev => {
     const next = new Set(prev)
-    if (next.has(name)) next.delete(name) else next.add(name)
+    if (next.has(name)) { next.delete(name) } else { next.add(name) }
     return next
   })
 
