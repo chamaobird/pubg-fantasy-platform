@@ -472,119 +472,99 @@ export default function LineupBuilder({
             </div>
           )}
 
-          {/* ── Banner countdown proeminente (apenas quando open + <2h) ── */}
-          {canEdit && countdown && countdown.diff < 2 * 3_600_000 && (() => {
-            const { diff, hours, mins, secs } = countdown
-            const urgent   = diff < 10 * 60_000   // < 10min
-            const warning  = diff < 30 * 60_000   // < 30min
-            const color    = urgent  ? '#f87171'
-                           : warning ? 'var(--color-xama-gold)'
-                           : 'var(--color-xama-orange)'
-            const bg       = urgent  ? 'rgba(248,113,113,0.08)'
-                           : warning ? 'rgba(250,204,21,0.07)'
-                           : 'rgba(249,115,22,0.08)'
-            const border   = urgent  ? 'rgba(248,113,113,0.35)'
-                           : warning ? 'rgba(250,204,21,0.25)'
-                           : 'rgba(249,115,22,0.25)'
-            const timeStr = hours > 0
-              ? `${hours}h ${String(mins).padStart(2,'0')}min`
-              : mins > 0
-                ? `${mins}min ${String(secs).padStart(2,'0')}s`
-                : `${String(secs).padStart(2,'0')}s`
-            return (
-              <div
-                className={urgent ? 'xama-pulse' : undefined}
-                style={{
-                  background: bg, border: `1px solid ${border}`,
-                  borderRadius: 8, padding: '10px 16px', marginBottom: 12,
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 16 }}>{urgent ? '🚨' : warning ? '⚠️' : '⏱'}</span>
-                  <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>
-                    {urgent ? 'Encerrando em breve' : 'Lineup fecha em'}
-                  </span>
-                </div>
-                <span style={{
-                  fontSize: 18, fontWeight: 800,
-                  fontFamily: "'JetBrains Mono', monospace",
-                  color, letterSpacing: '0.04em',
-                  minWidth: 90, textAlign: 'right',
-                }}>{timeStr}</span>
-              </div>
-            )
-          })()}
-
-          {/* Banner de lineup já submetido */}
-          {currentDayLineup && (
-            <div style={{
-              background: 'rgba(74,222,128,0.08)',
-              border: '1px solid rgba(74,222,128,0.25)',
-              borderRadius: 8, padding: '10px 16px', marginBottom: 12,
-              color: 'var(--color-xama-green)', fontSize: 13, fontWeight: 600, textAlign: 'center',
-            }}>
-              ✅ Lineup já submetido para hoje
-            </div>
-          )}
-
-          {/* Budget bar */}
+          {/* ── Barra unificada: budget + cap + countdown + botão ─────── */}
           <div style={{ padding: '12px 16px 0' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 11, color: 'var(--color-xama-muted)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12, marginBottom: 8 }}>
+
+              {/* Budget */}
+              <div style={{ flexShrink: 0 }}>
+                <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--color-xama-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>
                   Budget
-                </span>
-                {countdown && canEdit && (() => {
-                  const { diff, days, hours, mins, secs } = countdown
-                  let label, color, border, bg
-                  if (diff > 24 * 3_600_000) {
-                    label = `Fecha em ${days}d ${hours}h`; color = 'var(--color-xama-muted)'
-                    bg = 'rgba(148,163,184,0.06)'; border = 'rgba(148,163,184,0.15)'
-                  } else if (diff > 3_600_000) {
-                    label = `Fecha em ${hours}h ${mins}min`; color = 'var(--color-xama-orange)'
-                    bg = 'rgba(249,115,22,0.08)'; border = 'rgba(249,115,22,0.25)'
-                  } else if (diff > 60_000) {
-                    label = `⚠ ${mins}min ${String(secs).padStart(2,'0')}s`; color = '#f87171'
-                    bg = 'rgba(248,113,113,0.08)'; border = 'rgba(248,113,113,0.25)'
-                  } else {
-                    label = `⚠ ${String(secs).padStart(2,'0')}s`; color = '#f87171'
-                    bg = 'rgba(248,113,113,0.15)'; border = 'rgba(248,113,113,0.35)'
-                  }
-                  return (
-                    <span style={{
-                      fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
-                      fontFamily: "'JetBrains Mono', monospace",
-                      padding: '1px 6px', borderRadius: 4,
-                      background: bg, border: `1px solid ${border}`, color,
-                    }}>{label}</span>
-                  )
-                })()}
-                {stage?.captain_multiplier && (
-                  <span title={`Capitão recebe ×${Number(stage.captain_multiplier).toFixed(2)} nos pontos`} style={{
-                    fontSize: 10, fontWeight: 700, letterSpacing: '0.05em',
+                </div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 3, fontFamily: "'JetBrains Mono', monospace", lineHeight: 1 }}>
+                  <span style={{ fontSize: 22, fontWeight: 800, color: isOverBudget ? '#f87171' : 'var(--color-xama-gold)' }}>
+                    {fmtCost(totalCost)}
+                  </span>
+                  <span style={{ fontSize: 13, color: 'var(--color-xama-muted)' }}>/ {BUDGET_CAP}</span>
+                </div>
+              </div>
+
+              {/* CAP pill */}
+              {stage?.captain_multiplier && (
+                <span
+                  title={`Capitão recebe ×${Number(stage.captain_multiplier).toFixed(2)} nos pontos`}
+                  style={{
+                    fontSize: 11, fontWeight: 700, letterSpacing: '0.05em',
                     color: 'var(--color-xama-gold)',
                     background: 'rgba(250,204,21,0.10)',
                     border: '1px solid rgba(250,204,21,0.25)',
-                    borderRadius: 4, padding: '1px 5px',
+                    borderRadius: 4, padding: '3px 7px',
                     fontFamily: "'JetBrains Mono', monospace",
-                    cursor: 'default',
+                    cursor: 'default', alignSelf: 'center', flexShrink: 0,
                   }}>
-                    ⭐ CAP ×{Number(stage.captain_multiplier).toFixed(2)}
-                  </span>
-                )}
-              </div>
-              <span style={{
-                fontSize: 13, fontWeight: 700,
-                fontFamily: "'JetBrains Mono', monospace",
-                color: isOverBudget ? 'var(--color-xama-red)' : 'var(--color-xama-text)',
-              }}>
-                {totalCost} / {BUDGET_CAP}
-              </span>
+                  ⭐ ×{Number(stage.captain_multiplier).toFixed(2)}
+                </span>
+              )}
+
+              <div style={{ flex: 1 }} />
+
+              {/* Countdown — sempre visível enquanto houver tempo */}
+              {canEdit && countdown && (() => {
+                const { diff, days, hours, mins, secs } = countdown
+                const urgent  = diff < 10 * 60_000
+                const warning = diff < 60 * 60_000
+                const color   = urgent ? '#f87171' : warning ? 'var(--color-xama-gold)' : 'var(--color-xama-muted)'
+                const label   = urgent ? 'URGENTE' : warning ? 'fechando' : 'fecha em'
+                const timeStr = diff > 24 * 3_600_000
+                  ? `${days}d ${hours}h`
+                  : diff > 3_600_000
+                    ? `${hours}h${String(mins).padStart(2,'0')}m`
+                    : diff > 60_000
+                      ? `${mins}m${String(secs).padStart(2,'0')}s`
+                      : `00:${String(secs).padStart(2,'0')}`
+                return (
+                  <div
+                    className={urgent ? 'xama-pulse' : undefined}
+                    style={{ textAlign: 'right', flexShrink: 0 }}
+                  >
+                    <div style={{ fontSize: 10, fontWeight: 600, color, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>
+                      {label}
+                    </div>
+                    <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "'JetBrains Mono', monospace", color, lineHeight: 1 }}>
+                      {timeStr}
+                    </div>
+                  </div>
+                )
+              })()}
+
+              {/* Botão salvar / editar */}
+              {!isPreview && (
+                <button
+                  onClick={saveLineup}
+                  disabled={!canSave || saveLoading}
+                  style={{
+                    padding: '9px 20px', borderRadius: 8, flexShrink: 0,
+                    fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
+                    cursor: canSave && !saveLoading ? 'pointer' : 'not-allowed',
+                    transition: 'background 0.15s, border-color 0.15s',
+                    alignSelf: 'center',
+                    ...(canSave && !saveLoading
+                      ? currentDayLineup
+                        ? { background: 'rgba(249,115,22,0.12)', border: '1px solid rgba(249,115,22,0.45)', color: 'var(--color-xama-orange)' }
+                        : { background: 'var(--color-xama-orange)', border: '1px solid transparent', color: '#fff' }
+                      : { background: 'var(--surface-3)', border: '1px solid transparent', color: 'var(--color-xama-muted)' }
+                    ),
+                  }}
+                >
+                  {saveLoading ? '...' : isLocked ? '🔒 Fechado' : currentDayLineup ? '✏ Editar' : 'Salvar'}
+                </button>
+              )}
             </div>
-            <div style={{ height: 6, borderRadius: 3, background: 'var(--surface-3)', overflow: 'hidden' }}>
+
+            {/* Barra de progresso */}
+            <div style={{ height: 4, borderRadius: 2, background: 'var(--surface-3)', overflow: 'hidden' }}>
               <div style={{
-                height: '100%', borderRadius: 3,
+                height: '100%', borderRadius: 2,
                 width: `${budgetUsedPct}%`,
                 background: budgetBarColor,
                 transition: 'width 0.2s ease, background 0.2s ease',
@@ -592,8 +572,16 @@ export default function LineupBuilder({
             </div>
           </div>
 
+          {/* Mensagens de erro / sucesso */}
+          {(saveError || saveSuccess) && (
+            <div style={{ padding: '6px 16px 0' }}>
+              {saveError   && <div className="msg-error">{saveError}</div>}
+              {saveSuccess && <div className="msg-success">Lineup salvo com sucesso!</div>}
+            </div>
+          )}
+
           {/* Slots de titulares + reserva em linha */}
-          <div className="xlb-hslots-row" style={{ padding: '12px 16px 0', display: 'flex', gap: 8, alignItems: 'stretch' }}>
+          <div className="xlb-hslots-row" style={{ padding: '12px 16px 14px', display: 'flex', gap: 8, alignItems: 'stretch' }}>
             {Array.from({ length: 4 }).map((_, i) => {
               const p = selectedPlayers[i]
               const isCap = p && p.id === captainId
@@ -724,41 +712,6 @@ export default function LineupBuilder({
             )}
           </div>
 
-          {/* Feedback + botão salvar */}
-          <div style={{ padding: '10px 16px 14px' }}>
-            {saveError   && <div className="msg-error"   style={{ marginBottom: 8 }}>{saveError}</div>}
-            {saveSuccess && <div className="msg-success" style={{ marginBottom: 8 }}>Lineup salvo com sucesso!</div>}
-
-            {/* Botão desabilitado com mensagem específica para preview */}
-            {isPreview ? (
-              <button
-                disabled
-                style={{
-                  width: '100%', padding: '11px 0',
-                  fontSize: 15, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
-                  borderRadius: 8, border: '1px solid rgba(249,115,22,0.2)',
-                  cursor: 'not-allowed',
-                  background: 'rgba(249,115,22,0.05)',
-                  color: 'var(--color-xama-muted)',
-                }}>
-                ⏳ Lineup desabilitado — Aguardando confirmação
-              </button>
-            ) : (
-              <button
-                onClick={saveLineup}
-                disabled={!canSave || saveLoading}
-                style={{
-                  width: '100%', padding: '11px 0',
-                  fontSize: 15, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
-                  borderRadius: 8, border: 'none', cursor: canSave && !saveLoading ? 'pointer' : 'not-allowed',
-                  background: canSave && !saveLoading ? 'var(--color-xama-orange)' : 'var(--surface-3)',
-                  color: canSave && !saveLoading ? 'var(--color-xama-text)' : 'var(--color-xama-muted)',
-                  transition: 'background 0.15s',
-                }}>
-                {saveLoading ? 'Salvando...' : isLocked ? '🔒 Fechado' : 'Salvar Lineup'}
-              </button>
-            )}
-          </div>
         </div>{/* fim sticky header */}
 
         {/* ── Pool de jogadores ──────────────────────────────────────── */}
