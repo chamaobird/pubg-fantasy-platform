@@ -1,5 +1,5 @@
 // pages/admin/AdminStages.jsx — Stages com mudança de status inline + criação/edição
-import { useState, useEffect, useCallback, Fragment } from 'react'
+import { useState, useEffect, useCallback, Fragment, useRef } from 'react'
 import { API_BASE_URL } from '../../config'
 import {
   Modal, Field, Msg, ActBtn, SaveBtn, SectionHeader,
@@ -32,6 +32,263 @@ function fmtDate(iso) {
   if (!iso) return '—'
   return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })
 }
+
+// ── Painel de roster (visualização + edição) ──────────────────────────────────
+
+function RosterPanel({ stage, token }) {
+  const call = useCallback(api(token), [token])
+  const [roster, setRoster] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [msg, setMsg] = useState('')
+  // add player
+  const [searchQ, setSearchQ] = useState('')
+  const [searchResults, setSearchResults] = useState([])
+  const [searching, setSearching] = useState(false)
+  const [addTeam, setAddTeam] = useState('')
+  const searchRef = useRef(null)
+  // edit inline
+  const [editingId, setEditingId] = useState(null)
+  const [editTeam, setEditTeam] = useState('')
+
+  const refresh = useCallback(() => {
+    setLoading(true)
+    call('GET', `/admin/stages/${stage.id}/roster?include_unavailable=true`)
+      .then(data => setRoster(Array.isArray(data) ? data : []))
+      .catch(() => setRoster([]))
+      .finally(() => setLoading(false))
+  }, [call, stage.id])
+
+  useEffect(() => { refresh() }, [refresh])
+
+  // busca persons com debounce
+  useEffect(() => {
+    if (searchQ.length < 2) { setSearchResults([]); return }
+    const t = setTimeout(() => {
+      setSearching(true)
+      call('GET', `/admin/persons?search=${encodeURIComponent(searchQ)}`)
+        .then(data => setSearchResults(Array.isArray(data) ? data.slice(0, 8) : []))
+        .catch(() => setSearchResults([]))
+        .finally(() => setSearching(false))
+    }, 280)
+    return () => clearTimeout(t)
+  }, [call, searchQ])
+
+  const handleToggleAvailable = async (r) => {
+    try {
+      await call('PATCH', `/admin/stages/${stage.id}/roster/${r.id}`, { is_available: !r.is_available })
+      setRoster(prev => prev.map(x => x.id === r.id ? { ...x, is_available: !r.is_available } : x))
+    } catch (e) { setMsg('!' + e.message) }
+  }
+
+  const handleRemove = async (r) => {
+    if (!confirm(`Remover ${r.person_name} (${r.team_name}) do roster?`)) return
+    try {
+      await call('DELETE', `/admin/stages/${stage.id}/roster/${r.id}`)
+      setRoster(prev => prev.filter(x => x.id !== r.id))
+    } catch (e) { setMsg('!' + e.message) }
+  }
+
+  const handleSaveTeam = async (r) => {
+    try {
+      await call('PATCH', `/admin/stages/${stage.id}/roster/${r.id}`, { team_name: editTeam || null })
+      setRoster(prev => prev.map(x => x.id === r.id ? { ...x, team_name: editTeam || null } : x))
+      setEditingId(null)
+    } catch (e) { setMsg('!' + e.message) }
+  }
+
+  const handleAddPlayer = async (person) => {
+    if (!addTeam.trim()) { setMsg('!Informe o nome do time antes de adicionar.'); return }
+    try {
+      const entry = await call('POST', `/admin/stages/${stage.id}/roster`, {
+        person_id: person.id,
+        team_name: addTeam.trim(),
+      })
+      setRoster(prev => [...prev, { ...entry, person_name: person.display_name }])
+      setSearchQ(''); setSearchResults([]); setMsg(`${person.display_name} adicionado.`)
+    } catch (e) { setMsg('!' + e.message) }
+  }
+
+  // agrupa por time
+  const byTeam = roster.reduce((acc, r) => {
+    const key = r.team_name || '(sem time)'
+    if (!acc[key]) acc[key] = []
+    acc[key].push(r)
+    return acc
+  }, {})
+  const teams = Object.keys(byTeam).sort()
+
+  const totalAvailable = roster.filter(r => r.is_available).length
+  const totalAll = roster.length
+
+  return (
+    <div style={{ padding: '18px 24px 20px', background: 'rgba(74,222,128,0.02)', borderTop: '1px solid rgba(74,222,128,0.12)' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-xama-text)' }}>Roster</span>
+        <span style={{
+          fontSize: 11, fontWeight: 700, padding: '2px 10px', borderRadius: 20,
+          background: 'rgba(74,222,128,0.1)', color: 'var(--color-xama-green)',
+          border: '1px solid rgba(74,222,128,0.3)', fontFamily: 'JetBrains Mono, monospace',
+        }}>
+          {teams.length} times · {totalAvailable}/{totalAll} jogadores
+        </span>
+        {msg && (
+          <span style={{
+            fontSize: 12, padding: '3px 9px', borderRadius: 6,
+            background: msg.startsWith('!') ? 'rgba(239,68,68,0.1)' : 'rgba(74,222,128,0.1)',
+            color: msg.startsWith('!') ? '#f87171' : 'var(--color-xama-green)',
+            border: `1px solid ${msg.startsWith('!') ? 'rgba(239,68,68,0.3)' : 'rgba(74,222,128,0.3)'}`,
+          }}>
+            {msg.startsWith('!') ? msg.slice(1) : msg}
+          </span>
+        )}
+        <button onClick={() => { setMsg(''); refresh() }} style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--color-xama-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
+          ↺ Recarregar
+        </button>
+      </div>
+
+      {loading ? (
+        <div style={{ fontSize: 13, color: 'var(--color-xama-muted)', marginBottom: 16 }}>Carregando...</div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10, marginBottom: 20 }}>
+          {teams.map(teamName => (
+            <div key={teamName} style={{
+              border: '1px solid rgba(255,255,255,0.07)',
+              borderRadius: 8, overflow: 'hidden',
+            }}>
+              {/* cabeçalho do time */}
+              <div style={{
+                padding: '6px 10px', background: 'rgba(255,255,255,0.04)',
+                fontSize: 12, fontWeight: 700, color: 'var(--color-xama-orange)',
+                fontFamily: 'JetBrains Mono, monospace',
+                display: 'flex', justifyContent: 'space-between',
+              }}>
+                <span>{teamName}</span>
+                <span style={{ color: 'var(--color-xama-muted)', fontWeight: 400 }}>
+                  {byTeam[teamName].filter(r => r.is_available).length}/{byTeam[teamName].length}
+                </span>
+              </div>
+              {/* jogadores */}
+              {byTeam[teamName].map(r => (
+                <div key={r.id} style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '5px 10px',
+                  borderTop: '1px solid rgba(255,255,255,0.04)',
+                  opacity: r.is_available ? 1 : 0.45,
+                }}>
+                  {/* nome / edição de time */}
+                  {editingId === r.id ? (
+                    <input
+                      autoFocus
+                      value={editTeam}
+                      onChange={e => setEditTeam(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') handleSaveTeam(r); if (e.key === 'Escape') setEditingId(null) }}
+                      style={{ ...inputStyle, fontSize: 11, padding: '2px 6px', flex: 1, height: 24 }}
+                      placeholder="tag do time"
+                    />
+                  ) : (
+                    <span
+                      style={{ fontSize: 12, flex: 1, color: 'var(--color-xama-text)', cursor: 'default' }}
+                      title={`ID pessoa: ${r.person_id}`}
+                    >
+                      {r.person_name}
+                    </span>
+                  )}
+
+                  {/* custo */}
+                  <span style={{ fontSize: 11, color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace', minWidth: 28, textAlign: 'right' }}>
+                    {r.effective_cost != null ? r.effective_cost : '—'}
+                  </span>
+
+                  {/* ações */}
+                  {editingId === r.id ? (
+                    <>
+                      <button onClick={() => handleSaveTeam(r)} title="Salvar" style={iconBtnStyle('#4ade80')}>✓</button>
+                      <button onClick={() => setEditingId(null)} title="Cancelar" style={iconBtnStyle('#9ca3af')}>✕</button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => { setEditingId(r.id); setEditTeam(r.team_name || '') }}
+                        title="Editar time"
+                        style={iconBtnStyle('var(--color-xama-muted)')}
+                      >✎</button>
+                      <button
+                        onClick={() => handleToggleAvailable(r)}
+                        title={r.is_available ? 'Desativar' : 'Ativar'}
+                        style={iconBtnStyle(r.is_available ? 'var(--color-xama-green)' : '#6b7280')}
+                      >{r.is_available ? '●' : '○'}</button>
+                      <button
+                        onClick={() => handleRemove(r)}
+                        title="Remover do roster"
+                        style={iconBtnStyle('#f87171')}
+                      >✕</button>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Adicionar jogador */}
+      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 14 }}>
+        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-xama-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          Adicionar jogador
+        </div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+          <div style={{ position: 'relative', flex: '0 0 240px' }} ref={searchRef}>
+            <input
+              style={{ ...inputStyle, width: '100%' }}
+              placeholder="Buscar por nome..."
+              value={searchQ}
+              onChange={e => setSearchQ(e.target.value)}
+            />
+            {(searchResults.length > 0 || searching) && (
+              <div style={{
+                position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
+                background: '#1a1d2a', border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: 6, marginTop: 2, overflow: 'hidden',
+              }}>
+                {searching && <div style={{ padding: '8px 12px', fontSize: 12, color: 'var(--color-xama-muted)' }}>Buscando...</div>}
+                {searchResults.map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => handleAddPlayer(p)}
+                    style={{
+                      display: 'block', width: '100%', textAlign: 'left',
+                      padding: '8px 12px', background: 'none', border: 'none',
+                      fontSize: 12, color: 'var(--color-xama-text)', cursor: 'pointer',
+                      borderTop: '1px solid rgba(255,255,255,0.05)',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                  >
+                    {p.display_name}
+                    {p.id && <span style={{ color: 'var(--color-xama-muted)', marginLeft: 8, fontFamily: 'JetBrains Mono, monospace', fontSize: 10 }}>#{p.id}</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <input
+            style={{ ...inputStyle, flex: '0 0 120px' }}
+            placeholder="Tag do time"
+            value={addTeam}
+            onChange={e => setAddTeam(e.target.value)}
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const iconBtnStyle = (color) => ({
+  background: 'none', border: 'none', cursor: 'pointer',
+  color, fontSize: 13, padding: '0 2px', lineHeight: 1,
+  opacity: 0.7, transition: 'opacity 0.1s',
+})
 
 // ── Painel de importação de times ─────────────────────────────────────────────
 
@@ -226,7 +483,14 @@ export default function AdminStages({ token }) {
   const [msg, setMsg] = useState('')
   const [saving, setSaving] = useState(false)
   const [statusChanging, setStatusChanging] = useState(null) // stage id
+  // expandedStage: { id, panel: 'roster' | 'import' } | null
   const [expandedStage, setExpandedStage] = useState(null)
+
+  const togglePanel = (stageId, panel) => {
+    setExpandedStage(prev =>
+      prev?.id === stageId && prev?.panel === panel ? null : { id: stageId, panel }
+    )
+  }
 
   const loadChampionships = useCallback(async () => {
     try {
@@ -373,17 +637,35 @@ export default function AdminStages({ token }) {
                     </td>
                     <td style={{ ...tdStyle, textAlign: 'right' }}>
                       <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                        <ActBtn small onClick={() => setExpandedStage(expandedStage === s.id ? null : s.id)}>
-                          {expandedStage === s.id ? '▲ Fechar' : '↓ Importar'}
+                        <ActBtn
+                          small
+                          onClick={() => togglePanel(s.id, 'roster')}
+                          style={expandedStage?.id === s.id && expandedStage?.panel === 'roster'
+                            ? { borderColor: 'rgba(74,222,128,0.5)', color: 'var(--color-xama-green)' }
+                            : {}}
+                        >
+                          {expandedStage?.id === s.id && expandedStage?.panel === 'roster' ? '▲ Roster' : 'Roster'}
+                        </ActBtn>
+                        <ActBtn
+                          small
+                          onClick={() => togglePanel(s.id, 'import')}
+                          style={expandedStage?.id === s.id && expandedStage?.panel === 'import'
+                            ? { borderColor: 'rgba(249,115,22,0.6)', color: 'var(--color-xama-orange)' }
+                            : {}}
+                        >
+                          {expandedStage?.id === s.id && expandedStage?.panel === 'import' ? '▲ Importar' : '↓ Importar'}
                         </ActBtn>
                         <ActBtn small onClick={() => openEdit(s)}>Editar</ActBtn>
                       </div>
                     </td>
                   </tr>
-                  {expandedStage === s.id && (
+                  {expandedStage?.id === s.id && (
                     <tr>
                       <td colSpan={6} style={{ padding: 0, borderBottom: '1px solid var(--color-xama-border)' }}>
-                        <ImportPanel stage={s} stages={stages} token={token} />
+                        {expandedStage.panel === 'roster'
+                          ? <RosterPanel stage={s} token={token} />
+                          : <ImportPanel stage={s} stages={stages} token={token} />
+                        }
                       </td>
                     </tr>
                   )}

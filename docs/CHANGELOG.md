@@ -3,7 +3,139 @@
 
 ---
 
-## Estado Atual — 19/04/2026 — PEC D3 em jogo; PAS D3 em jogo (último dia das Playoffs 1)
+## Estado Atual — 22/04/2026 — Painel Roster adicionado ao admin
+
+### Próximas tarefas operacionais
+1. **Verificar roster das Finals** — usar botão "Roster" na stage para conferir times e jogadores
+2. **Rodar pricing** se necessário após ajustes nos rosters
+3. **Abrir lineups** das Finals stages quando prontas
+
+### Como usar o painel Roster
+- Na lista de stages, clicar **"Roster"** ao lado de qualquer stage
+- Jogadores aparecem agrupados por time com custo, toggle ativo/inativo e remoção
+- **✎** edita o nome do time do jogador (inline, Enter salva)
+- **●/○** ativa/desativa o jogador no roster (não exclui — apenas oculta)
+- **✕** remove permanentemente (bloqueado se o jogador está em alguma lineup)
+- Campo de busca + tag do time para adicionar jogadores avulsos
+
+### Backlog imediato
+1. **Steam player lookup service** — resolver PENDING_ automaticamente para shards steam (pré-evento)
+2. **Script pré-flight de accounts** — antes de qualquer dia de jogo, validar todos os accounts do roster
+3. **`close_and_open_next_day.py`** — automatizar abertura do próximo dia (copiar roster + pricing + status)
+4. **Mobile Fase 2** — LineupBuilder cards, tabelas responsivas, navbar mobile
+5. **Person aliases** — tabela `person_alias` ou coluna JSON para nomes alternativos (ex: DadBuff = Palecks)
+6. Corrigir comentário `scoring.py` linha ~14: x1.25 → x1.30
+7. Cores Categoria B sem token: `#0f1219`, `#1a1f2e`, `#2a3046` — ~30 ocorrências
+
+---
+
+## Sessão 22/04/2026 (tarde) — Painel Roster no admin
+
+### Admin UI — RosterPanel (AdminStages.jsx)
+- Botão **"Roster"** por stage abre painel inline com jogadores agrupados por time
+- Exibe contagem "X times · Y/Z jogadores" no cabeçalho
+- Por jogador: nome, custo efetivo, três ações:
+  - **✎** edita `team_name` inline (Enter salva, Escape cancela)
+  - **●/○** toggle `is_available` (atualiza via PATCH sem recarregar a lista)
+  - **✕** remove do roster (confirmação; bloqueado pelo backend se estiver em lineup)
+- Seção "Adicionar jogador": busca por nome (debounced 280ms) + campo tag → POST ao selecionar
+- Botão "↺ Recarregar" para sincronizar com estado real do banco
+- Botões "Roster" e "↓ Importar" são independentes: cada um fecha ao clicar de novo
+- Sem mudança de backend — todos os endpoints já existiam
+
+---
+
+## Sessão 22/04/2026 — Teams + TeamMembers populados; scripts de seed finalizados; admin import panel
+
+### Scripts de seed das Finals (backend)
+
+- **`scripts/pubg/extract_finals_teams.py`** — extrai todos os participantes dos torneios PEC/PAS via PUBG API, agrupa por tag (`TAG_playername`), gera draft `.txt` para edição manual
+- **`scripts/pubg/seed_finals_teams.py`** — cria Person + PlayerAccount(PENDING_) + Roster para todos os 232 jogadores das Finals (PAS 29 times, PEC 29 times); idempotente
+- **`scripts/pubg/seed_team_records.py`** — cria Team (58 ao total: 29 PEC + 29 PAS) e TeamMember; idempotente (skipa existentes). Reporta persons não encontrados
+- **`scripts/pubg/rename_persons_canonical.py`** — renomeia `display_name` de Persons para nomes canônicos da API PUBG; 90+ mapeamentos explícitos (remoção de prefixo + variações); suporte a `--dry-run`
+
+### Execução dos scripts
+- `rename_persons_canonical.py` executado: **111 persons renomeadas**, 1 conflito (FUR_zKraken → zkraken já existia corretamente), 7 não encontrados (já estavam corretos)
+- 17 persons genuinamente ausentes criadas inline (roster changes + times novos: `anybodezz`, `Nailqop13`, `Momme`, `N1tro`, `LIP7`, `C4MB4`, `Imsfck1ngbd`, `Neyzhera`, `V-I-R-I`, `MIKSUU-`, `OtosakaYu-`, `Lyel`, `MAURILIO1`, `gats`, `Plushiee`, `LOST`, `demonfrost`)
+- `seed_team_records.py` executado 2x: **58 times criados**, **232 TeamMembers vinculados** (sem pendências)
+
+### Admin UI — Import Panel (AdminStages.jsx)
+- Painel colapsável por linha de stage: botão "↓ Importar" abre `ImportPanel` inline
+- Exibe times disponíveis na source stage com checkbox
+- Times já importados aparecem com borda verde (disabled); selecionados em laranja
+- Contador "X/16 times no roster" muda de cor ao atingir 16
+- Link "selecionar todos disponíveis" para seleção rápida
+- Usa 2 novos endpoints:
+  - `GET /admin/stages/{id}/roster/teams` — lista times distintos no roster
+  - `POST /admin/stages/{id}/roster/copy-from-stage` — copia times selecionados de uma source stage (idempotente)
+
+### Admin UI — Dropdowns (Modal.jsx + Admin.jsx)
+- `selectStyle.background` alterado de `rgba(255,255,255,0.05)` → `#1a1d2a` (fundo escuro explícito)
+- `colorScheme: 'dark'` adicionado ao selectStyle e ao container root de `Admin.jsx` (cascateia para todos os selects nativos)
+- **Bug corrigido:** build esbuild rejeitava `if (x) a else b` sem chaves — substituído por `if (x) { a } else { b }` (hotfix separado)
+
+---
+
+## Sessão 21/04/2026 — Segurança, Times, Admin UI e Championships agrupados
+
+### Championships — Agrupamento visual (frontend only)
+- **`Championships.jsx`** reescrito: PAS e PEC aparecem como **cards pai** com sub-cards por fase
+  - `FeaturedSubCard`: card grande para fase ativa (open/preview)
+  - `ArchivedSubCard`: card compacto colapsável para fases encerradas
+  - `TournamentGroupCard`: card pai com logo, stats agregados e sub-cards filhos
+  - Grouping por pattern matching de nome: `PAS`/`Americas Series` → grupo PAS; `PEC`/`EMEA` → grupo PEC
+  - Championships sem grupo ficam na seção "Outros campeonatos"
+
+### Segurança — hardening (2 commits)
+**Commit 1 — JWT, CORS, Swagger:**
+- Token JWT: expiração 7 dias (era sem validade)
+- `SECRET_KEY`: validação no startup — falha se ainda for o valor padrão
+- CORS: `allow_methods` e `allow_headers` explícitos (era `*`)
+- `/openapi.json` protegido por `require_admin` (Swagger JSON inacessível sem auth admin)
+
+**Commit 2 — Rate limiting, headers, email:**
+- `app/core/limiter.py`: slowapi `Limiter` compartilhado
+- Rate limits em `auth.py`: login=10/min, register=5/min, forgot-password=5/min, resend-verification=3/min
+- Security headers: `X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`, `Referrer-Policy`, `HSTS`
+- Email verification token agora expira em 24h (migration 0018 → coluna `email_verify_expires_at` em `user`)
+- `generate_verify_token()` retorna `tuple[str, datetime]` — token + expiry gerados juntos
+
+### Times — modelo completo (backend + migration 0019)
+- **`app/models/team.py`**: entidade `Team` (id, name, tag, region, logo_path, is_active, created_at)
+- **`app/models/team_member.py`**: `TeamMember` com partial unique index — apenas 1 time ativo por person (`WHERE left_at IS NULL`)
+- **`app/schemas/team.py`**: schemas `TeamCreate`, `TeamUpdate`, `TeamOut`, `TeamDetail`, `ImportTeamRequest`, `ImportTeamResponse`
+- **`app/routers/admin/teams.py`**: CRUD completo — criar, listar, detalhar, editar, adicionar membro, remover membro
+- **`app/routers/admin/roster.py`**: endpoint `POST /import-team` — importa todos os membros ativos de um time para uma stage, reporta `added` e `skipped` com motivo
+
+### Admin UI — página completa (frontend)
+- **`frontend/src/pages/Admin.jsx`**: layout com sidebar sticky (4 seções) + área de conteúdo
+- **`frontend/src/pages/admin/Modal.jsx`**: componentes compartilhados — `Modal`, `Field`, `Msg`, `ActBtn`, `SaveBtn`, `SectionHeader`, `SearchBar`, `StatusBadge` + constantes de estilo
+- **`frontend/src/pages/admin/AdminPersons.jsx`**: CRUD de persons com busca, toggle inactive, modal de edição e sub-seção de accounts
+- **`frontend/src/pages/admin/AdminChampionships.jsx`**: CRUD de championships com activate/deactivate
+- **`frontend/src/pages/admin/AdminStages.jsx`**: gestão de stages com filtro por championship e troca inline de status
+- **`frontend/src/pages/admin/AdminTeams.jsx`**: gestão de times com modal "Gerenciar" (listar membros, adicionar membro, importar time para stage com relatório de added/skipped)
+- **`App.jsx`**: rota `/admin` adicionada
+- **`Navbar.jsx`**: link "⚙ Admin" visível apenas para is_admin=true (decodificado do JWT)
+
+### Investigação de seed data (PAS + PEC Finals)
+Avaliação de dados disponíveis para popular as Finals:
+
+**PEC Finals — 13 times com jogadores identificados:**
+VPX, RL, GN, PBRU, EVER, YO, NOT, BORZ, PGG, BAL, GTG, SQU, STS (dados em `docs/players22-23.txt`)
+Os outros 15 times do `docs/tagnteams.txt` têm tag+nome mas **sem jogadores**.
+
+**PAS Finals — apenas 2 times rastreados:**
+55PD e NW (6 jogadores total, do `scripts/pubg/pas_matches_stage15_2026-04-17.json`)
+Os outros ~14 times PAS não têm dados locais.
+
+**Backlog — Seed script PAS + PEC Finals:**
+- Quando o usuário fornecer os jogadores dos times sem dados, criar `scripts/pubg/seed_finals_teams.py`
+- Script deve: criar `Team` → `Person` → `TeamMember` de forma idempotente
+- Dados necessários: jogadores dos 15 times PEC sem dados + todos os 16 times PAS Finals
+
+---
+
+## Estado Anterior — 19/04/2026 — PEC D3 em jogo; PAS D3 em jogo (último dia das Playoffs 1)
 
 ### PEC Spring Playoffs 1 — estado atual
 - **Stage 21 (D1):** `locked` — 5 partidas, 64/64 resolvidos, encerrado
