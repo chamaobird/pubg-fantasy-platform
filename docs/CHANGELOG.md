@@ -3,7 +3,7 @@
 
 ---
 
-## Estado Atual — 22/04/2026 (noite) — Stats page refinada; próximo passo: Finals
+## Estado Atual — 22/04/2026 (noite) — Tech debt de cores concluído; pronto para Finals
 
 ### Próximas tarefas operacionais
 1. **Importar times nas Finals stages** — admin → "↓ Importar" para stages 24–29 (16 times cada)
@@ -17,8 +17,22 @@
 4. **`close_and_open_next_day.py`** — automatizar abertura do próximo dia (copiar roster + pricing + status)
 5. **Person aliases** — tabela `person_alias` ou coluna JSON para nomes alternativos (ex: DadBuff = Palecks)
 6. **Stats page — coluna "dias jogados"** — mostrar em quantos dias da seleção multi-stage o jogador aparece
-7. Corrigir comentário `scoring.py` linha ~14: x1.25 → x1.30
-8. Cores Categoria B sem token: `#0f1219`, `#1a1f2e`, `#2a3046` — ~30 ocorrências
+
+### ✅ Tech debt concluído nesta sessão
+- ~~Corrigir comentário `scoring.py` linha ~14: x1.25 → x1.30~~ — já estava correto (×1.30)
+- ~~Cores Categoria B sem token~~ — **concluído**: `--surface-4: #2a3046` criado; 28 ocorrências tokenizadas
+
+---
+
+## Sessão 22/04/2026 (noite·2) — Tech debt: tokenização de cores Categoria B
+
+### CSS Design Tokens — surface scale completa
+- `--surface-4: #2a3046` adicionado ao `:root` em `index.css` — completa a escala `surface-0` → `surface-4`
+- **28 ocorrências tokenizadas** em 8 arquivos:
+  - `index.css`: 15 ocorrências nas classes `.dark-*`, `.lb-*`, `.xlb-*`, `.xbtn-ghost`, `.bld-budget-bar`
+  - JSX: `AdminOpsPanel`, `AuthVerified`, `Profile`, `ResetPasswordPage`, `TournamentLeaderboard`, `TournamentSelect`, `PlayerStatsPage`
+- **Exceção mantida:** `PlayerHistoryModal.jsx:129` — atributo SVG `fill="#0f1219"` num `<rect>` de tooltip; atributos SVG não aceitam CSS custom properties
+- **scoring.py**: comentário já estava correto (×1.30) — item de backlog removido
 
 ---
 

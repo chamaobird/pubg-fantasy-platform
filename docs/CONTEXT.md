@@ -34,13 +34,16 @@ rtk gain   # ver economia de tokens ao fim da sessão
 - PowerShell: usar `;` em vez de `&&` para encadear comandos
 
 ## Migrations (cadeia real)
-`0001 → 0002 → 4bfb4ef75223 → 0003 → 0004 → 0005 → 0006 → 0007 → 0008 → 0009 → 0010 → 0011 → 0012 → 0013 → 0014 → 0015 → 0016`
+`0001 → 0002 → 4bfb4ef75223 → 0003 → 0004 → 0005 → 0006 → 0007 → 0008 → 0009 → 0010 → 0011 → 0012 → 0013 → 0014 → 0015 → 0016 → 0017 → 0018 → 0019`
 - `0014`: `survival_secs` + `captain_pts` em `user_stage_stat`
 - `0015`: `survival_secs` + `captain_pts` em `user_day_stat`
 - `0016`: `match_schedule` (JSONB) + `last_import_at` em `stage_day`
-- Próxima: `revision = "0017"`, `down_revision = "0016"`
+- `0017`: `add_live_lineup_status` — live status em stage
+- `0018`: `email_verify_expires_at` (DateTime, nullable) em `user` — tokens de verificação expiram em 24h
+- `0019`: tabelas `team` e `team_member` — modelo de times com membros; partial unique index `uq_team_member_active_person` (1 time ativo por person)
+- Próxima: `revision = "0020"`, `down_revision = "0019"`
 - Sempre rodar `python -m alembic` da raiz
-- Verificar antes de criar: `Get-Content alembic\versions\0016_*.py | Select-Object -First 15`
+- Verificar antes de criar: `Get-Content alembic\versions\0019_*.py | Select-Object -First 15`
 
 ## Entidades principais
 ```
@@ -49,6 +52,7 @@ PERSON / PLAYER_ACCOUNT    (identidade multi-shard)
 ROSTER                     (person × stage, com fantasy_cost Numeric 6,2)
 LINEUP → LINEUP_PLAYER     (4 titulares + 1 reserva, 1 capitão com ×captain_multiplier)
 USER_DAY_STAT / USER_STAGE_STAT / PERSON_STAGE_STAT
+TEAM → TEAM_MEMBER         (times esportivos com membros; 1 time ativo por person via partial unique index)
 ```
 
 ## lineup_status — valores válidos
@@ -102,6 +106,7 @@ EMAIL_FROM=noreply@chamaobird.xyz
 /auth/reset-password  → ResetPasswordPage
 /setup-username       → SetupUsername (forçado pós-OAuth para usuários sem username)
 /profile              → Profile
+/admin                → Admin (requires is_admin=true no JWT; sidebar com Jogadores/Times/Championships/Stages)
 ```
 
 ## Endpoints públicos principais
@@ -144,6 +149,9 @@ PATCH /admin/persons/{id}/accounts/{account_id}           ← fechar account
 POST  /admin/stages/{id}/roster                           ← adicionar jogador ao roster
 PATCH /admin/stages/{id}/roster/{roster_id}               ← editar entrada do roster
 DELETE /admin/stages/{id}/roster/{roster_id}              ← remover do roster
+POST  /admin/stages/{id}/roster/import-team               ← importar todos membros ativos de um time para a stage
+GET   /admin/stages/{id}/roster/teams                     ← listar times distintos já no roster da stage
+POST  /admin/stages/{id}/roster/copy-from-stage           ← copiar times selecionados de outra stage (idempotente; body: {source_stage_id, team_names[]})
 PATCH /admin/pricing/rosters/{id}/cost-override           ← custo manual override
 POST  /admin/pricing/stages/{id}/recalculate-pricing      ← recalcular pricing da stage
 POST  /admin/stages/{id}/import-matches                   ← importar lista de match IDs
@@ -156,7 +164,20 @@ POST  /admin/stages/{id}/backfill-stats                   ← criar 0pts para us
 POST  /admin/stages/{id}/force-status                     ← aceita: closed | open | locked | preview
 POST  /admin/stages/{id}/notify-lineup-open               ← reenvio manual de email "lineup aberta"
 POST  /admin/stages/{id}/extend-deadline                  ← body: {"minutes": int}
+POST  /admin/teams/                                       ← criar time
+GET   /admin/teams/                                       ← listar times (q, region, is_active)
+GET   /admin/teams/{id}                                   ← detalhar time com membros ativos
+PATCH /admin/teams/{id}                                   ← editar time
+POST  /admin/teams/{id}/members                           ← adicionar membro (enforça 1 time ativo por person)
+DELETE /admin/teams/{id}/members/{person_id}              ← remover membro (set left_at)
 ```
+
+## Times no banco (criados em 22/04/2026)
+- **58 Teams** + **232 TeamMembers** — todos os times das Playoffs PAS e PEC
+  - PEC (29 times, ids 1–29): ACE, BAL, BORZ, BW, EVER, GN, GTG, HIVE, HOWL, JB, NAVI, NMSS, NOT, PBRU, PGG, RL, S2G, S8UL, SLCK, SQU, STS, TMO, TWIS, VIS, VIT, VP, VPX, WORK, YO
+  - PAS (29 times, ids 30–58): 55PD, AKA, BO, BST, CLR, DOTS, DUEL, FATE, FE, FLC, FN, FR, FUR, INJ, INSK, NA, NVM, NW, ONE, PEST, ROC, AFi, LxB, TL, TMP, TOYO, WIT, WOLF, X10
+- Scripts usados: `rename_persons_canonical.py` (111 renames) → `seed_team_records.py` (58 teams, 232 members)
+- Próxima ação: usar admin "↓ Importar" para selecionar 16 times por Finals stage
 
 ## Dados reais no banco
 - Championship: PUBG Global Series 2026 (id=2, tier_weight=1.00)
@@ -191,6 +212,21 @@ POST  /admin/stages/{id}/extend-deadline                  ← body: {"minutes": 
 
 ## Scripts operacionais
 ```bash
+# Renomear display_names de Persons para nomes canônicos da API PUBG
+python scripts/pubg/rename_persons_canonical.py --dry-run
+python scripts/pubg/rename_persons_canonical.py
+
+# Criar Teams + TeamMembers (idempotente)
+python scripts/pubg/seed_team_records.py --dry-run
+python scripts/pubg/seed_team_records.py
+
+# Extrair roster de torneio via PUBG API → draft txt para edição
+python scripts/pubg/extract_finals_teams.py
+
+# Seed Finals: Person + PlayerAccount(PENDING_) + Roster
+python scripts/pubg/seed_finals_teams.py --pec-stage-id 27 --pas-stage-id 24 --dry-run
+python scripts/pubg/seed_finals_teams.py --pec-stage-id 27 --pas-stage-id 24
+
 # Validação pré-evento (PENDING_, logos, teamUtils, shard, lineup_close_at)
 python scripts/pubg/validate_event.py --stage-id X --tournament-id eu-pecs26
 
@@ -258,3 +294,5 @@ GET https://api.pubg.com/shards/pc-tournament/matches/{match_id}  → 200 = pc-t
 - Logos PAS: `/logos/PAS/` contém tags em lowercase — ex: `fr.png`, `inj.png`, `tmp.png`, `aka.png`
 - Dashboard: cards preview com recuo `clamp(32px, 15%, 120px)` à esquerda para hierarquia visual abaixo do open card
 - `POST /admin/stages/{id}/backfill-stats`: cria UserDayStat/UserStageStat com 0pts para usuários sem registros no leaderboard
+- Escala de superfícies CSS em `index.css` `:root`: `--surface-0` (transparent) → `--surface-1` (#12151c) → `--surface-2` (#0f1219) → `--surface-3` (#1a1f2e) → `--surface-4` (#2a3046); usar tokens em vez de hex hardcoded
+- `PlayerStatsPage`: dropdown multi-stage com checkboxes (default = Tudo); rótulos "Dia N" por índice; WINS após ASS; zebra nas linhas
