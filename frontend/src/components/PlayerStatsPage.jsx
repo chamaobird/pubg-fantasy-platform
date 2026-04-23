@@ -3,7 +3,7 @@
 // Hierarquia: Stage → Dia → Partida
 // Championship scope: agrega stats de todas as stages locked do campeonato
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { API_BASE_URL as API_BASE } from '../config'
 import TeamLogo from './TeamLogo'
 import PlayerHistoryModal from './PlayerHistoryModal'
@@ -216,6 +216,40 @@ export default function PlayerStatsPage({
   }
   const selectAllStages = () => setSelectedStageIds(allSiblings.map(s => s.id))
 
+  // Auto-inicializa com todas as stages ao carregar (default = Tudo)
+  const didInitStages = useRef(false)
+  useEffect(() => {
+    if (allSiblings.length > 1 && !didInitStages.current) {
+      setSelectedStageIds(allSiblings.map(s => s.id))
+      didInitStages.current = true
+    }
+  }, [allSiblings])
+
+  // Reseta init flag ao trocar de torneio
+  useEffect(() => { didInitStages.current = false }, [propStageId])
+
+  // Dropdown de stages
+  const [stageDropdownOpen, setStageDropdownOpen] = useState(false)
+  const stageDropdownRef = useRef(null)
+  useEffect(() => {
+    if (!stageDropdownOpen) return
+    const handler = (e) => {
+      if (stageDropdownRef.current && !stageDropdownRef.current.contains(e.target)) {
+        setStageDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [stageDropdownOpen])
+
+  const stageDropdownLabel = isAllSelected
+    ? 'Tudo'
+    : selectedStageIds.length === 0
+      ? 'Nenhum'
+      : selectedStageIds.length === 1
+        ? (() => { const idx = allSiblings.findIndex(s => s.id === selectedStageIds[0]); return idx >= 0 ? `Dia ${idx + 1}` : '1 dia' })()
+        : `${selectedStageIds.length} dias`
+
   // ── Hierarquia de filtros (escopo stage) ─────────────────────────────────
   const [stageDays, setStageDays]             = useState([])
   const [selectedDayId, setSelectedDayId]     = useState(null)
@@ -407,36 +441,78 @@ export default function PlayerStatsPage({
           {/* ── Filtros ───────────────────────────────────────────────────── */}
           <div className="flex flex-wrap items-center gap-3">
 
-            {/* Seletor de stages (multi-select) */}
+            {/* Seletor de stages — dropdown com checkboxes */}
             {allSiblings.length > 1 && (
-              <div className="flex flex-wrap items-center gap-1">
+              <div ref={stageDropdownRef} style={{ position: 'relative' }}>
                 <button
-                  onClick={selectAllStages}
+                  onClick={() => setStageDropdownOpen(o => !o)}
                   style={{
-                    ...selectStyle, padding: '4px 10px', fontWeight: 600,
-                    background: isAllSelected ? 'rgba(240,192,64,0.12)' : '#0d0f14',
-                    borderColor: isAllSelected ? 'rgba(240,192,64,0.5)' : 'var(--color-xama-border)',
-                    color: isAllSelected ? '#f0c040' : 'var(--color-xama-muted)',
+                    ...selectStyle, padding: '5px 12px', fontWeight: 600,
+                    display: 'flex', alignItems: 'center', gap: '6px',
+                    background: isAllSelected ? 'rgba(240,192,64,0.08)' : 'rgba(249,115,22,0.08)',
+                    borderColor: isAllSelected ? 'rgba(240,192,64,0.4)' : 'rgba(249,115,22,0.4)',
+                    color: isAllSelected ? '#f0c040' : 'var(--color-xama-orange)',
                   }}>
-                  Tudo
+                  <span style={{ fontSize: '11px' }}>📅</span>
+                  {stageDropdownLabel}
+                  <span style={{ fontSize: '10px', opacity: 0.7, marginLeft: '2px' }}>{stageDropdownOpen ? '▲' : '▼'}</span>
                 </button>
-                {allSiblings.map((s, idx) => {
-                  const isSelected = selectedStageIds.includes(s.id)
-                  const label = s.short_name || `Stage ${idx + 1}`
-                  return (
-                    <button
-                      key={s.id}
-                      onClick={() => toggleStage(s.id)}
-                      style={{
-                        ...selectStyle, padding: '4px 10px', fontWeight: 600,
-                        background: isSelected ? 'rgba(249,115,22,0.12)' : '#0d0f14',
-                        borderColor: isSelected ? 'rgba(249,115,22,0.5)' : 'var(--color-xama-border)',
-                        color: isSelected ? 'var(--color-xama-orange)' : 'var(--color-xama-muted)',
-                      }}>
-                      {label}
-                    </button>
-                  )
-                })}
+
+                {stageDropdownOpen && (
+                  <div style={{
+                    position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 200,
+                    background: '#0d0f14', border: '1px solid var(--color-xama-border)',
+                    borderRadius: '8px', padding: '6px', minWidth: '150px',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+                  }}>
+                    {/* Tudo */}
+                    <label style={{
+                      display: 'flex', alignItems: 'center', gap: '8px',
+                      padding: '6px 10px', cursor: 'pointer', borderRadius: '5px',
+                      background: isAllSelected ? 'rgba(240,192,64,0.08)' : 'transparent',
+                      color: isAllSelected ? '#f0c040' : 'var(--color-xama-muted)',
+                      fontSize: '13px', fontWeight: 600,
+                      transition: 'background 0.1s',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
+                    onMouseLeave={e => e.currentTarget.style.background = isAllSelected ? 'rgba(240,192,64,0.08)' : 'transparent'}>
+                      <input
+                        type="checkbox"
+                        checked={isAllSelected}
+                        onChange={selectAllStages}
+                        style={{ accentColor: '#f0c040', width: '14px', height: '14px', cursor: 'pointer' }}
+                      />
+                      Tudo
+                    </label>
+
+                    <div style={{ borderTop: '1px solid var(--color-xama-border)', margin: '4px 0' }} />
+
+                    {/* Cada stage como "Dia N" */}
+                    {allSiblings.map((s, idx) => {
+                      const isChecked = selectedStageIds.includes(s.id)
+                      return (
+                        <label key={s.id} style={{
+                          display: 'flex', alignItems: 'center', gap: '8px',
+                          padding: '6px 10px', cursor: 'pointer', borderRadius: '5px',
+                          background: isChecked ? 'rgba(249,115,22,0.08)' : 'transparent',
+                          color: isChecked ? 'var(--color-xama-orange)' : 'var(--color-xama-muted)',
+                          fontSize: '13px', fontWeight: 600,
+                          transition: 'background 0.1s',
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
+                        onMouseLeave={e => e.currentTarget.style.background = isChecked ? 'rgba(249,115,22,0.08)' : 'transparent'}>
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => toggleStage(s.id)}
+                            style={{ accentColor: 'var(--color-xama-orange)', width: '14px', height: '14px', cursor: 'pointer' }}
+                          />
+                          Dia {idx + 1}
+                        </label>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
             )}
 
@@ -571,9 +647,9 @@ export default function PlayerStatsPage({
                     const teamTag = formatTeamTag(p.person_name, p.team_name)
                     return (
                       <tr key={p.person_id}
-                        style={{ borderBottom: '1px solid #13161f' }}
+                        style={{ borderBottom: '1px solid #13161f', background: idx % 2 === 1 ? 'rgba(255,255,255,0.02)' : 'transparent' }}
                         onMouseEnter={(e) => e.currentTarget.style.background = '#161b27'}
-                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
+                        onMouseLeave={(e) => e.currentTarget.style.background = idx % 2 === 1 ? 'rgba(255,255,255,0.02)' : 'transparent'}>
                         <td style={{ padding: '10px 12px' }}>
                           <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '13px', fontWeight: 700, color: idx < 3 ? rankColors[idx] : '#2a3046' }}>
                             {String(idx + 1).padStart(2, '0')}
