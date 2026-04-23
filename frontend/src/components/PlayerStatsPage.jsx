@@ -3,7 +3,7 @@
 // Hierarquia: Stage → Dia → Partida
 // Championship scope: agrega stats de todas as stages locked do campeonato
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { API_BASE_URL as API_BASE } from '../config'
 import TeamLogo from './TeamLogo'
 import PlayerHistoryModal from './PlayerHistoryModal'
@@ -46,33 +46,6 @@ const MAP_DISPLAY = {
   Heaven_Main:  { icon: '🏙️', name: 'Haven' },
 }
 
-// ── Sparkline SVG inline ───────────────────────────────────────────────────
-
-function Sparkline({ data, width = 48, height = 18 }) {
-  if (!data || data.length < 2) return null
-  const max = Math.max(...data.map((d) => d.pts), 0.01)
-  const barW = Math.max(2, Math.floor((width - data.length) / data.length))
-  const gap  = Math.max(1, Math.floor((width - data.length * barW) / (data.length - 1)))
-
-  return (
-    <svg width={width} height={height} style={{ display: 'inline-block', verticalAlign: 'middle', marginLeft: '6px' }}>
-      {data.map((d, i) => {
-        const barH = Math.max(2, Math.round((d.pts / max) * (height - 2)))
-        const x = i * (barW + gap)
-        const y = height - barH
-        return (
-          <rect
-            key={d.day ?? d.stage ?? i}
-            x={x} y={y} width={barW} height={barH}
-            rx="1"
-            fill={d.pts > 0 ? 'var(--color-xama-orange, #f97316)' : '#2a3046'}
-            opacity={d.pts > 0 ? 0.8 : 0.4}
-          />
-        )
-      })}
-    </svg>
-  )
-}
 
 // ── Colunas da tabela ──────────────────────────────────────────────────────
 // Ordem: PREÇO, PTS/G, PTS XAMA, K TOTAL, DMG, ASS, PONTOS POR SOBREVIVENCIA
@@ -100,10 +73,9 @@ const COLUMNS = [
     label: 'PTS XAMA',
     title: 'Pontos XAMA totais',
     right: true,
-    render: (p, sparkKey) => (
-      <span style={{ color: 'var(--color-xama-orange)', display: 'inline-flex', alignItems: 'center' }}>
+    render: (p) => (
+      <span style={{ color: 'var(--color-xama-orange)' }}>
         {fmt2(p.total_xama_points)}
-        <Sparkline data={sparkKey === 'stage' ? p.pts_by_day : p.pts_by_stage} />
       </span>
     ),
     sortVal: (p) => p.total_xama_points || 0 },
@@ -125,6 +97,12 @@ const COLUMNS = [
     title: 'Total de assists',
     right: true,
     render: (p) => fmtInt(p.total_assists) },
+
+  { key: 'total_wins',
+    label: 'WINS',
+    title: 'Vitórias',
+    right: true,
+    render: (p) => fmtInt(p.total_wins) },
 
   { key: 'survival_pts',
     label: 'PTS SOBREV',
@@ -218,8 +196,25 @@ export default function PlayerStatsPage({
   const [stageId, setStageId] = useState(propStageId ? Number(propStageId) : null)
   useEffect(() => { setStageId(propStageId ? Number(propStageId) : null) }, [propStageId])
 
-  // Escopo: 'stage' | 'championship'
-  const [scope, setScope] = useState('stage')
+  // Stages selecionados para multi-view
+  const allSiblings = useMemo(() => [...(siblingStages || [])].sort((a, b) => a.id - b.id), [siblingStages])
+  const [selectedStageIds, setSelectedStageIds] = useState(() => propStageId ? [Number(propStageId)] : [])
+  useEffect(() => { setSelectedStageIds(propStageId ? [Number(propStageId)] : []) }, [propStageId])
+
+  // Single-current-stage: exibe filtros de dia/partida, usa fetch existente
+  const isSingleCurrentStage = selectedStageIds.length === 1 && selectedStageIds[0] === (stageId ?? -1)
+  const isAllSelected = allSiblings.length > 0 && allSiblings.every(s => selectedStageIds.includes(s.id))
+
+  const toggleStage = (sid) => {
+    setSelectedStageIds(prev => {
+      if (prev.includes(sid)) {
+        if (prev.length === 1) return prev  // não permite deselecionar todos
+        return prev.filter(s => s !== sid)
+      }
+      return [...prev, sid]
+    })
+  }
+  const selectAllStages = () => setSelectedStageIds(allSiblings.map(s => s.id))
 
   // ── Hierarquia de filtros (escopo stage) ─────────────────────────────────
   const [stageDays, setStageDays]             = useState([])
@@ -228,11 +223,11 @@ export default function PlayerStatsPage({
   const [selectedMatchId, setSelectedMatchId] = useState(null)
 
   // ── Stats ─────────────────────────────────────────────────────────────────
-  const [stats, setStats]           = useState([])
-  const [champStats, setChampStats] = useState([])
-  const [loading, setLoading]       = useState(false)
-  const [champLoading, setChampLoading] = useState(false)
-  const [error, setError]           = useState(null)
+  const [stats, setStats]         = useState([])
+  const [multiStats, setMultiStats] = useState([])
+  const [loading, setLoading]     = useState(false)
+  const [multiLoading, setMultiLoading] = useState(false)
+  const [error, setError]         = useState(null)
 
   // ── Filtros de tabela ─────────────────────────────────────────────────────
   const [search, setSearch]         = useState('')
@@ -246,7 +241,7 @@ export default function PlayerStatsPage({
   useEffect(() => {
     setStageDays([]); setSelectedDayId(null)
     setMatches([]); setSelectedMatchId(null)
-    setStats([]); setError(null); setScope('stage')
+    setStats([]); setError(null)
     if (!stageId) return
 
     fetch(`${API_BASE}/stages/${stageId}/days`)
@@ -283,41 +278,27 @@ export default function PlayerStatsPage({
       .catch((e) => { setError(e.message); setLoading(false) })
   }, [stageId, selectedDayId, selectedMatchId])
 
-  // ── Busca stats do campeonato (stages locked) ─────────────────────────────
-  const lockedSiblings = useMemo(() => {
-    if (!siblingStages || siblingStages.length === 0) return []
-    return siblingStages
-      .filter(s => s.lineup_status === 'locked')
-      .sort((a, b) => a.id - b.id)
-  }, [siblingStages])
-
-  const fetchChampStats = useCallback(async () => {
-    if (lockedSiblings.length === 0) return
-    setChampLoading(true)
-    try {
-      const results = await Promise.all(
-        lockedSiblings.map((s, idx) =>
-          fetch(`${API_BASE}/stages/${s.id}/player-stats?limit=500`)
-            .then(r => r.ok ? r.json() : [])
-            .then(data => ({ stageId: s.id, stageIdx: idx, data }))
-            .catch(() => ({ stageId: s.id, stageIdx: idx, data: [] }))
-        )
-      )
-      setChampStats(aggregateStats(results))
-    } finally {
-      setChampLoading(false)
-    }
-  }, [lockedSiblings])
-
+  // ── Busca stats de múltiplas stages (multi-select) ───────────────────────
   useEffect(() => {
-    if (scope === 'championship' && champStats.length === 0 && !champLoading) {
-      fetchChampStats()
-    }
-  }, [scope, champStats.length, champLoading, fetchChampStats])
+    if (isSingleCurrentStage || selectedStageIds.length === 0) return
+    setMultiLoading(true)
+    setMultiStats([])
+    Promise.all(
+      selectedStageIds.map((sid, idx) =>
+        fetch(`${API_BASE}/stages/${sid}/player-stats?limit=500`)
+          .then(r => r.ok ? r.json() : [])
+          .then(data => ({ stageId: sid, stageIdx: idx, data }))
+          .catch(() => ({ stageId: sid, stageIdx: idx, data: [] }))
+      )
+    ).then(results => {
+      setMultiStats(aggregateStats(results))
+      setMultiLoading(false)
+    }).catch(() => setMultiLoading(false))
+  }, [selectedStageIds, isSingleCurrentStage])
 
-  // ── Dados ativos (stage vs campeonato) ───────────────────────────────────
-  const activeStats  = scope === 'championship' ? champStats : stats
-  const activeLoading = scope === 'championship' ? champLoading : loading
+  // ── Dados ativos ──────────────────────────────────────────────────────────
+  const activeStats   = isSingleCurrentStage ? stats : multiStats
+  const activeLoading = isSingleCurrentStage ? loading : multiLoading
 
   // ── Opções de time ────────────────────────────────────────────────────────
   const teamOptions = useMemo(() => {
@@ -372,8 +353,11 @@ export default function PlayerStatsPage({
   const selectedMatch = matches.find((m) => m.id === selectedMatchId)
 
   const filterLabel = useMemo(() => {
-    if (scope === 'championship') {
-      return `${lockedSiblings.length} stages · Campeonato`
+    if (!isSingleCurrentStage) {
+      const count = selectedStageIds.length
+      return isAllSelected
+        ? `${count} stages · Campeonato`
+        : `${count} stage${count > 1 ? 's' : ''} selecionada${count > 1 ? 's' : ''}`
     }
     if (selectedMatch) return `Partida ${selectedMatch.match_number} — ${new Date(selectedMatch.played_at || '').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}`
     if (selectedDay) {
@@ -381,7 +365,7 @@ export default function PlayerStatsPage({
       return `Dia ${selectedDay.day_number}${date ? ` · ${date}` : ''}`
     }
     return stageDays.length > 1 ? 'Total' : (stageDays[0] ? `Dia ${stageDays[0].day_number}` : 'Total')
-  }, [scope, selectedMatch, selectedDay, stageDays, lockedSiblings.length])
+  }, [isSingleCurrentStage, isAllSelected, selectedStageIds, selectedMatch, selectedDay, stageDays])
 
   const thStyle = (col) => ({
     padding: '10px 12px',
@@ -393,8 +377,6 @@ export default function PlayerStatsPage({
     color: sortKey === col?.key ? 'var(--color-xama-orange)' : 'var(--color-xama-muted)',
     transition: 'color 0.15s',
   })
-
-  const hasChampionshipData = lockedSiblings.length > 0
 
   return (
     <div style={{ minHeight: '100vh', background: 'transparent' }}>
@@ -409,7 +391,7 @@ export default function PlayerStatsPage({
                 <h1 className="text-[28px] font-bold tracking-tight" style={{ color: 'var(--color-xama-text)', letterSpacing: '-0.01em' }}>
                   PLAYER STATS
                 </h1>
-                {(selectedDay || selectedMatch || scope === 'championship') && (
+                {(selectedDay || selectedMatch || !isSingleCurrentStage) && (
                   <span className="px-2 py-0.5 rounded text-[10px] font-bold"
                     style={{ fontFamily: "'JetBrains Mono', monospace", background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.3)', color: 'var(--color-xama-blue)' }}>
                     {filterLabel}
@@ -425,34 +407,41 @@ export default function PlayerStatsPage({
           {/* ── Filtros ───────────────────────────────────────────────────── */}
           <div className="flex flex-wrap items-center gap-3">
 
-            {/* Botões de escopo: Stage vs Campeonato */}
-            {hasChampionshipData && (
-              <div className="flex items-center gap-1">
+            {/* Seletor de stages (multi-select) */}
+            {allSiblings.length > 1 && (
+              <div className="flex flex-wrap items-center gap-1">
                 <button
-                  onClick={() => setScope('stage')}
+                  onClick={selectAllStages}
                   style={{
                     ...selectStyle, padding: '4px 10px', fontWeight: 600,
-                    background: scope === 'stage' ? 'rgba(249,115,22,0.12)' : '#0d0f14',
-                    borderColor: scope === 'stage' ? 'rgba(249,115,22,0.5)' : 'var(--color-xama-border)',
-                    color: scope === 'stage' ? 'var(--color-xama-orange)' : 'var(--color-xama-muted)',
+                    background: isAllSelected ? 'rgba(240,192,64,0.12)' : '#0d0f14',
+                    borderColor: isAllSelected ? 'rgba(240,192,64,0.5)' : 'var(--color-xama-border)',
+                    color: isAllSelected ? '#f0c040' : 'var(--color-xama-muted)',
                   }}>
-                  Stage
+                  Tudo
                 </button>
-                <button
-                  onClick={() => setScope('championship')}
-                  style={{
-                    ...selectStyle, padding: '4px 10px', fontWeight: 600,
-                    background: scope === 'championship' ? 'rgba(249,115,22,0.12)' : '#0d0f14',
-                    borderColor: scope === 'championship' ? 'rgba(249,115,22,0.5)' : 'var(--color-xama-border)',
-                    color: scope === 'championship' ? 'var(--color-xama-orange)' : 'var(--color-xama-muted)',
-                  }}>
-                  Campeonato ({lockedSiblings.length} stages)
-                </button>
+                {allSiblings.map((s, idx) => {
+                  const isSelected = selectedStageIds.includes(s.id)
+                  const label = s.short_name || `Stage ${idx + 1}`
+                  return (
+                    <button
+                      key={s.id}
+                      onClick={() => toggleStage(s.id)}
+                      style={{
+                        ...selectStyle, padding: '4px 10px', fontWeight: 600,
+                        background: isSelected ? 'rgba(249,115,22,0.12)' : '#0d0f14',
+                        borderColor: isSelected ? 'rgba(249,115,22,0.5)' : 'var(--color-xama-border)',
+                        color: isSelected ? 'var(--color-xama-orange)' : 'var(--color-xama-muted)',
+                      }}>
+                      {label}
+                    </button>
+                  )
+                })}
               </div>
             )}
 
-            {/* Chips de dia (apenas no escopo de stage) */}
-            {scope === 'stage' && stageDays.length > 0 && (
+            {/* Chips de dia (apenas quando uma única stage está selecionada) */}
+            {isSingleCurrentStage && stageDays.length > 0 && (
               <div className="flex items-center gap-1">
                 {stageDays.length > 1 && (
                   <button
@@ -483,7 +472,7 @@ export default function PlayerStatsPage({
             )}
 
             {/* Seletor de partida */}
-            {scope === 'stage' && selectedDayId && matches.length > 0 && (
+            {isSingleCurrentStage && selectedDayId && matches.length > 0 && (
               <select
                 value={selectedMatchId ?? ''}
                 onChange={(e) => setSelectedMatchId(e.target.value ? Number(e.target.value) : null)}
@@ -551,9 +540,7 @@ export default function PlayerStatsPage({
 
         {!activeLoading && !error && stageId && sorted.length === 0 && (
           <p className="text-center py-20 text-[13px]" style={{ color: 'var(--color-xama-muted)' }}>
-            {scope === 'championship' && lockedSiblings.length === 0
-              ? 'Nenhuma stage encerrada neste campeonato ainda.'
-              : 'Nenhum dado disponível para o período selecionado.'}
+            Nenhum dado disponível para o período selecionado.
           </p>
         )}
 
@@ -617,7 +604,7 @@ export default function PlayerStatsPage({
                           </span>
                         </td>
                         {COLUMNS.map((col) => {
-                          const rendered = col.render(p, scope)
+                          const rendered = col.render(p)
                           const cellColor = col.color ? col.color(p) : 'var(--color-xama-text)'
                           return (
                             <td key={col.key} style={{ padding: '10px 12px', textAlign: col.right ? 'right' : 'left', fontFamily: "'JetBrains Mono', monospace", fontVariantNumeric: 'tabular-nums', color: cellColor }}>
