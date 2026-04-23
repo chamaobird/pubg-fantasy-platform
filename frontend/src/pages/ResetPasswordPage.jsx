@@ -151,7 +151,7 @@ export default function ResetPasswordPage() {
                   textTransform: 'uppercase',
                   cursor: loading || !token ? 'default' : 'pointer',
                   border: 'none', width: '100%',
-                  background: loading || !token ? '#1a1f2e' : 'var(--color-xama-orange)',
+                  background: loading || !token ? 'var(--surface-3)' : 'var(--color-xama-orange)',
                   color: loading || !token ? 'var(--color-xama-muted)' : 'var(--color-xama-black)',
                   transition: 'all 0.15s',
                 }}

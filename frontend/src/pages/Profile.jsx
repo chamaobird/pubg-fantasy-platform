@@ -35,7 +35,7 @@ const ST = {
 }
 const btnOrange = (disabled) => ({
   padding: '11px 28px', borderRadius: '7px', border: 'none',
-  background: disabled ? '#1a1f2e' : 'var(--color-xama-orange, #f97316)',
+  background: disabled ? 'var(--surface-3)' : 'var(--color-xama-orange, #f97316)',
   color: disabled ? 'var(--color-xama-muted)' : 'var(--color-xama-text)',
   fontWeight: 700, fontSize: '14px',
   letterSpacing: '0.06em', textTransform: 'uppercase',
@@ -173,7 +173,7 @@ export default function Profile() {
               {linked
                 ? <span style={{ fontSize: '13px', padding: '4px 12px', borderRadius: '20px', background: '#14532d', color: 'var(--color-xama-green)', fontWeight: 600 }}>Vinculado</span>
                 : soon
-                  ? <span style={{ fontSize: '13px', padding: '4px 12px', borderRadius: '20px', background: '#1a1f2e', color: 'var(--color-xama-muted)', fontWeight: 600 }}>Em breve</span>
+                  ? <span style={{ fontSize: '13px', padding: '4px 12px', borderRadius: '20px', background: 'var(--surface-3)', color: 'var(--color-xama-muted)', fontWeight: 600 }}>Em breve</span>
                   : <button style={btnOrange(false)}>Vincular</button>
               }
             </div>

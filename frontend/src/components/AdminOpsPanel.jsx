@@ -41,7 +41,7 @@ const sectionTitle = {
 
 const label  = { fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginBottom: '4px', display: 'block' }
 const select = {
-  background: '#1a1f2e',
+  background: 'var(--surface-3)',
   border: '1px solid rgba(249,115,22,0.2)',
   borderRadius: '6px',
   color: '#fff',

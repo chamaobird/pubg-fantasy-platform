@@ -463,7 +463,7 @@ export default function TournamentLeaderboard({
                         onMouseEnter={e => { if (!isMe) e.currentTarget.style.background = '#161b27' }}
                         onMouseLeave={e => { e.currentTarget.style.background = isMe ? 'rgba(20,184,166,0.06)' : 'transparent' }}>
                         <td className="px-4 py-[13px]">
-                          <span className="text-[13px] font-bold tabular-nums" style={{ fontFamily: "'JetBrains Mono', monospace", color: '#2a3046' }}>
+                          <span className="text-[13px] font-bold tabular-nums" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--surface-4)' }}>
                             {String(entry.rank).padStart(2, '0')}
                           </span>
                         </td>
@@ -541,7 +541,7 @@ export default function TournamentLeaderboard({
                         onMouseLeave={e => { e.currentTarget.style.background = isMe ? 'rgba(20,184,166,0.06)' : isTop3 ? RANK_BG[pos] : 'transparent' }}>
                         <td className="px-4 py-[13px]">
                           <span className="text-[13px] font-bold tabular-nums"
-                            style={{ fontFamily: "'JetBrains Mono', monospace", color: isTop3 ? RANK_COLORS[pos] : '#2a3046' }}>
+                            style={{ fontFamily: "'JetBrains Mono', monospace", color: isTop3 ? RANK_COLORS[pos] : 'var(--surface-4)' }}>
                             {String(pos).padStart(2, '0')}
                           </span>
                         </td>

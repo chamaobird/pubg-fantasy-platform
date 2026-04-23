@@ -17,7 +17,7 @@ export default function AuthVerified() {
     }}>
       <div style={{
         textAlign: 'center', padding: '48px 40px',
-        background: '#0f1219', border: '1px solid rgba(74,222,128,0.2)',
+        background: 'var(--surface-2)', border: '1px solid rgba(74,222,128,0.2)',
         borderRadius: '16px', maxWidth: '400px',
       }}>
         <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>

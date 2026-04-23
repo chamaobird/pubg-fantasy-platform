@@ -104,7 +104,7 @@ function TournamentCard({ t, navigate }) {
       <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
         <span style={{ fontSize: '16px', color: 'var(--color-xama-muted)' }}>{REGION_LABEL[t.region] || t.region}</span>
         {t.pubg_id && (
-          <span style={{ fontSize: '14px', color: '#2a3046', fontFamily: "'JetBrains Mono', monospace" }}>
+          <span style={{ fontSize: '14px', color: 'var(--surface-4)', fontFamily: "'JetBrains Mono', monospace" }}>
             {t.pubg_id}
           </span>
         )}

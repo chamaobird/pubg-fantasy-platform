@@ -591,7 +591,7 @@ export default function PlayerStatsPage({
 
             {sorted.length > 0 && (
               <span className="px-2 py-1 rounded text-[12px]"
-                style={{ fontFamily: "'JetBrains Mono', monospace", background: '#1a1f2e', border: '1px solid var(--color-xama-border)', color: 'var(--color-xama-muted)' }}>
+                style={{ fontFamily: "'JetBrains Mono', monospace", background: 'var(--surface-3)', border: '1px solid var(--color-xama-border)', color: 'var(--color-xama-muted)' }}>
                 {sorted.length}
               </span>
             )}
@@ -651,7 +651,7 @@ export default function PlayerStatsPage({
                         onMouseEnter={(e) => e.currentTarget.style.background = '#161b27'}
                         onMouseLeave={(e) => e.currentTarget.style.background = idx % 2 === 1 ? 'rgba(255,255,255,0.02)' : 'transparent'}>
                         <td style={{ padding: '10px 12px' }}>
-                          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '13px', fontWeight: 700, color: idx < 3 ? rankColors[idx] : '#2a3046' }}>
+                          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '13px', fontWeight: 700, color: idx < 3 ? rankColors[idx] : 'var(--surface-4)' }}>
                             {String(idx + 1).padStart(2, '0')}
                           </span>
                         </td>
