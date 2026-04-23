@@ -3,29 +3,46 @@
 
 ---
 
-## Estado Atual — 22/04/2026 — Painel Roster adicionado ao admin
+## Estado Atual — 22/04/2026 (noite) — Stats page refinada; próximo passo: Finals
 
 ### Próximas tarefas operacionais
-1. **Verificar roster das Finals** — usar botão "Roster" na stage para conferir times e jogadores
-2. **Rodar pricing** se necessário após ajustes nos rosters
+1. **Importar times nas Finals stages** — admin → "↓ Importar" para stages 24–29 (16 times cada)
+2. **Rodar pricing** após import do roster (ou definir custo fixo para Finals)
 3. **Abrir lineups** das Finals stages quando prontas
 
-### Como usar o painel Roster
-- Na lista de stages, clicar **"Roster"** ao lado de qualquer stage
-- Jogadores aparecem agrupados por time com custo, toggle ativo/inativo e remoção
-- **✎** edita o nome do time do jogador (inline, Enter salva)
-- **●/○** ativa/desativa o jogador no roster (não exclui — apenas oculta)
-- **✕** remove permanentemente (bloqueado se o jogador está em alguma lineup)
-- Campo de busca + tag do time para adicionar jogadores avulsos
-
-### Backlog imediato
-1. **Steam player lookup service** — resolver PENDING_ automaticamente para shards steam (pré-evento)
-2. **Script pré-flight de accounts** — antes de qualquer dia de jogo, validar todos os accounts do roster
-3. **`close_and_open_next_day.py`** — automatizar abertura do próximo dia (copiar roster + pricing + status)
-4. **Mobile Fase 2** — LineupBuilder cards, tabelas responsivas, navbar mobile
+### Backlog imediato (prioridade)
+1. **Mobile Fase 2** — LineupBuilder cards, tabelas responsivas, navbar mobile
+2. **Steam player lookup service** — resolver PENDING_ automaticamente para shards steam (pré-evento)
+3. **Script pré-flight de accounts** — antes de qualquer dia de jogo, validar todos os accounts do roster
+4. **`close_and_open_next_day.py`** — automatizar abertura do próximo dia (copiar roster + pricing + status)
 5. **Person aliases** — tabela `person_alias` ou coluna JSON para nomes alternativos (ex: DadBuff = Palecks)
-6. Corrigir comentário `scoring.py` linha ~14: x1.25 → x1.30
-7. Cores Categoria B sem token: `#0f1219`, `#1a1f2e`, `#2a3046` — ~30 ocorrências
+6. **Stats page — coluna "dias jogados"** — mostrar em quantos dias da seleção multi-stage o jogador aparece
+7. Corrigir comentário `scoring.py` linha ~14: x1.25 → x1.30
+8. Cores Categoria B sem token: `#0f1219`, `#1a1f2e`, `#2a3046` — ~30 ocorrências
+
+---
+
+## Sessão 22/04/2026 (noite) — Stats page: dropdown multi-stage, WINS, zebra
+
+### PlayerStatsPage — 3 melhorias (frontend only)
+
+**Seletor de stages multi-select (dropdown com checkboxes)**
+- Substitui botões "Stage" / "Campeonato (N stages)" por dropdown compacto
+- Abre painel com: checkbox "Tudo" + um checkbox "Dia N" por stage (ordenado por ID)
+- Rótulos "Dia 1", "Dia 2", "Dia 3" — sem `short_name` feio (ex: `PO1-D1`)
+- Inicializa com todas as stages selecionadas (Tudo) ao entrar na aba
+- Fecha ao clicar fora (click-outside via `useRef` + `mousedown`)
+- Filtros de dia/partida internos continuam aparecendo apenas quando só a stage atual está isolada
+
+**Coluna WINS adicionada**
+- Posição: após ASS (assists), antes de PTS SOBREV
+- Fonte: `total_wins` já agregado em `aggregateStats` (zero mudança de backend)
+
+**Sparkline removida**
+- Gráfico de colunas embutido no PTS XAMA retirado (sem utilidade prática neste momento)
+
+**Zebra stripes**
+- Linhas ímpares com fundo `rgba(255,255,255,0.02)` — facilita leitura da tabela longa
 
 ---
 
