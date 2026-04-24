@@ -658,6 +658,9 @@ body {
 /* ─── Linha atenuada por orçamento insuficiente ─── */
 .xlb-row--budget-fade { opacity: 0.35; filter: grayscale(40%); }
 
+/* Container dos botões de ação */
+.xlb-action-btns { display: flex; gap: 4px; justify-content: flex-end; align-items: center; }
+
 /* Botões de ação dentro da tabela */
 .xlb-action-btn {
   font-size: 12px; font-weight: 700; letter-spacing: 0.05em;
@@ -668,6 +671,34 @@ body {
 .xlb-action-btn:hover:not(:disabled) { color: var(--color-xama-text); border-color: #3d4d6e; }
 .xlb-action-btn:disabled { opacity: 0.3; cursor: default; }
 .xlb-action-btn--conflict { opacity: 0.25; cursor: not-allowed; }
+
+/* ─── Slot card: layout coluna (desktop) ─── */
+.xlb-hslot {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 8px 10px; gap: 6px; min-height: 90px;
+}
+.xlb-hslot-logo { flex-shrink: 0; }
+.xlb-hslot-info {
+  display: flex; flex-direction: column; align-items: center;
+  min-width: 0; width: 100%; gap: 2px;
+}
+.xlb-hslot-tag-label { font-size: 11px; font-weight: 700; color: var(--color-xama-muted); letter-spacing: 0.06em; }
+.xlb-hslot-name {
+  font-size: 14px; font-weight: 700; color: var(--color-xama-text);
+  text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;
+}
+.xlb-hslot-actions { display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 4px; }
+.xlb-hslot-price { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: var(--color-xama-gold); }
+.xlb-captain-btn {
+  background: none; border: none; cursor: pointer; padding: 2px 3px;
+  font-size: 13px; display: flex; align-items: center; gap: 2px; line-height: 1;
+}
+.xlb-cap-multiplier {
+  font-size: 9px; font-weight: 700; color: var(--color-xama-gold);
+  font-family: 'JetBrains Mono', monospace; letter-spacing: 0.04em;
+}
+.xlb-new-badge { margin-left: 4px; font-size: 9px; color: #60a5fa; font-weight: 700; }
+.xlb-hslot-save { display: none; } /* aparece só no mobile */
 
 /* ─── Locked banner ─── */
 .xlb-locked {
@@ -779,4 +810,103 @@ body {
 * {
   scrollbar-width: thin;
   scrollbar-color: rgba(249, 115, 22, 0.35) var(--color-xama-surface);
+}
+
+/* ── Mobile Fase 2 (≤ 640px) ───────────────────────────────────────────── */
+@media (max-width: 640px) {
+
+  /* Navbar: permite wrap em 2 linhas, altura auto */
+  .xnav-inner {
+    height: auto !important;
+    min-height: 54px;
+    flex-wrap: wrap;
+    padding: 8px 16px !important;
+    gap: 4px 0 !important;
+  }
+  /* Contexto do torneio na navbar: esconde em mobile
+     (já aparece no TournamentHeader abaixo) */
+  .xnav-tournament { display: none !important; }
+  /* Links de nav: linha própria, scroll horizontal sem barra */
+  .xnav-links {
+    flex-basis: 100% !important;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 2px 0 6px !important;
+    gap: 2px !important;
+  }
+  .xnav-links::-webkit-scrollbar { display: none; }
+  /* Comprime padding dos botões de nav para caber 3 itens ~100px + Sair em 390px */
+  .xnav-links button { padding: 6px 10px !important; font-size: 15px !important; }
+
+  /* Landing: empilha hero + card de auth verticalmente */
+  .xama-landing-grid {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+  }
+
+  /* LineupBuilder — slots: grade 2×2 + reserva + salvar */
+  .xlb-hslots-row {
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+    padding: 10px 12px 12px !important;
+  }
+  .xlb-hslots-row > .xlb-hslot {
+    flex: 0 0 calc(50% - 3px) !important;
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+  /* Slots preenchidos: linha horizontal [logo | info | actions] */
+  .xlb-hslot:not(.empty):not(.xlb-hslot-save) {
+    flex-direction: row !important;
+    align-items: center !important;
+    padding: 5px 8px !important;
+    gap: 6px !important;
+    min-height: 44px !important;
+  }
+  .xlb-hslot img { width: 24px !important; height: 24px !important; }
+  .xlb-hslot-info {
+    align-items: flex-start !important;
+    flex: 1 !important;
+    min-width: 0 !important;
+    gap: 1px !important;
+  }
+  .xlb-hslot-tag-label--desktop { display: none !important; }
+  .xlb-hslot-name { font-size: 11px !important; text-align: left !important; width: auto !important; }
+  .xlb-hslot-actions { flex-direction: row !important; width: auto !important; flex-shrink: 0 !important; justify-content: flex-end !important; gap: 3px !important; }
+  .xlb-cap-multiplier--desktop { display: none !important; }
+  /* Reserva: 50% width (par com botão salvar) */
+  .xlb-hslot-reserve { flex: 0 0 calc(50% - 3px) !important; margin-left: 0 !important; }
+  /* 6º slot: botão salvar — mobile only */
+  .xlb-hslot-save { display: flex !important; flex: 0 0 calc(50% - 3px) !important; min-height: 44px !important; padding: 0 !important; }
+  /* Botão salvar no sticky header: esconde no mobile */
+  .xlb-header-save-btn { display: none !important; }
+
+  /* Dashboard OpenCard: logo menor, col3 em linha */
+  .dash-open-logo {
+    width: 64px !important;
+    height: 64px !important;
+  }
+  .dash-open-col3 {
+    flex-direction: row !important;
+    align-items: center !important;
+    flex-basis: 100% !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+  }
+
+  /* LineupBuilder tabela: esconde colunas de stats (4-9), mantém Time, Jogador, Preço e Ações */
+  .xlb-table th:nth-child(n+4):not(:last-child),
+  .xlb-table td:nth-child(n+4):not(:last-child) {
+    display: none !important;
+  }
+  /* Botões de ação: empilhar verticalmente e esconder gráfico */
+  .xlb-action-btns { flex-direction: column !important; gap: 3px !important; align-items: stretch !important; }
+  .xlb-action-btn {
+    font-size: 10px !important;
+    padding: 3px 6px !important;
+    text-align: center !important;
+  }
+  .xlb-action-btn--graph { display: none !important; }
+  .xlb-hslot-price { font-size: 7px !important; }
 }

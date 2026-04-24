@@ -558,6 +558,7 @@ export default function LineupBuilder({
                 const active = !isEditMode && canSave && !saveLoading
                 return (
                   <button
+                    className="xlb-header-save-btn"
                     onClick={isEditMode ? undefined : saveLineup}
                     disabled={isEditMode || !canSave || saveLoading}
                     title={isEditMode ? 'Altere jogadores, capitão ou reserva para salvar uma nova versão' : undefined}
@@ -611,49 +612,31 @@ export default function LineupBuilder({
                   flex: 1, background: 'var(--surface-2)',
                   border: `1px solid ${isCap ? 'var(--color-xama-gold)' : isCheapest ? 'rgba(249,115,22,0.7)' : 'var(--color-xama-border)'}`,
                   boxShadow: isCheapest ? '0 0 0 2px rgba(249,115,22,0.18)' : 'none',
-                  borderRadius: 8, padding: '8px 10px', position: 'relative', minHeight: 120,
+                  borderRadius: 8,
                   transition: 'border-color 0.2s, box-shadow 0.2s',
                 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                  <div className="xlb-hslot-logo">
+                    <TeamLogo teamName={formatTeamTag(p.person_name, p.team_name)} shortName={stage?.championship_short_name ?? ''} size={30} />
+                  </div>
+                  <div className="xlb-hslot-info">
+                    <span className="xlb-hslot-tag-label xlb-hslot-tag-label--desktop">{formatTeamTag(p.person_name, p.team_name) || '—'}</span>
+                    <div className="xlb-hslot-name">
+                      {formatPlayerName(p.person_name, p.team_name)}
+                      {p.newcomer_to_tier && <span className="xlb-new-badge">NEW</span>}
+                    </div>
+                  </div>
+                  <div className="xlb-hslot-actions">
+                    <span className="xlb-hslot-price">{fmtCost(p.effective_cost)}</span>
                     <button
+                      className="xlb-captain-btn"
                       onClick={() => toggleCaptain(p.id)}
-                      title={isCap ? 'Remover capitão' : 'Definir como capitão'}
-                      style={{
-                        background: 'none', border: 'none', padding: 0, cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', gap: 3, lineHeight: 1,
-                      }}>
-                      <span style={{ fontSize: 16, color: isCap ? 'var(--color-xama-gold)' : 'var(--color-xama-muted)', lineHeight: 1 }}>
-                        {isCap ? '⭐' : '☆'}
-                      </span>
+                      title={isCap ? 'Remover capitão' : 'Definir como capitão'}>
+                      <span style={{ color: isCap ? 'var(--color-xama-gold)' : 'var(--color-xama-muted)', lineHeight: 1 }}>{isCap ? '⭐' : '☆'}</span>
                       {isCap && stage?.captain_multiplier && (
-                        <span style={{
-                          fontSize: 10, fontWeight: 700, color: 'var(--color-xama-gold)',
-                          fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.04em',
-                        }}>
-                          ×{Number(stage.captain_multiplier).toFixed(2)}
-                        </span>
+                        <span className="xlb-cap-multiplier xlb-cap-multiplier--desktop">×{Number(stage.captain_multiplier).toFixed(2)}</span>
                       )}
                     </button>
-                    <button
-                      className="xlb-remove-btn"
-                      onClick={() => removePlayer(p.id)}
-                      title="Remover">×</button>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 4, minWidth: 0 }}>
-                    <div style={{ marginBottom: 6 }}>
-                      <TeamLogo teamName={formatTeamTag(p.person_name, p.team_name)} shortName={stage?.championship_short_name ?? ''} size={42} />
-                    </div>
-                    <div className="xlb-hslot-name" style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-xama-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, textAlign: 'center', width: '100%' }}>
-                      {formatPlayerName(p.person_name, p.team_name)}
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: 12, color: 'var(--color-xama-muted)' }}>
-                      {formatTeamTag(p.person_name, p.team_name)}
-                    </span>
-                    <span style={{ fontSize: 13, fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-gold)', fontWeight: 700 }}>
-                      {fmtCost(p.effective_cost)}
-                    </span>
+                    <button className="xlb-remove-btn" onClick={() => removePlayer(p.id)} title="Remover">×</button>
                   </div>
                 </div>
               ) : (
@@ -672,44 +655,28 @@ export default function LineupBuilder({
 
             {/* 5º card — reserva */}
             {reservePlayer ? (
-              <div className="xlb-hslot" style={{
+              <div className="xlb-hslot xlb-hslot-reserve" style={{
                 flex: 1, background: 'var(--surface-2)',
                 border: '1px solid rgba(96,165,250,0.3)',
-                borderRadius: 8, padding: '8px 10px', position: 'relative', minHeight: 120,
-                marginLeft: 12,
+                borderRadius: 8, marginLeft: 12,
+                transition: 'border-color 0.2s',
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                  <span style={{
-                    fontSize: 9, fontWeight: 700, letterSpacing: '0.10em',
-                    color: 'var(--color-xama-blue)', textTransform: 'uppercase',
-                  }}>RESERVA</span>
-                  <button
-                    className="xlb-remove-btn"
-                    onClick={removeReserve}
-                    title="Remover reserva">×</button>
+                <div className="xlb-hslot-logo">
+                  <TeamLogo teamName={formatTeamTag(reservePlayer.person_name, reservePlayer.team_name)} size={30} />
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 4, minWidth: 0 }}>
-                  <div style={{ marginBottom: 6 }}>
-                    <TeamLogo teamName={formatTeamTag(reservePlayer.person_name, reservePlayer.team_name)} size={42} />
-                  </div>
-                  <div className="xlb-hslot-name" style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-xama-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, textAlign: 'center', width: '100%' }}>
-                    {formatPlayerName(reservePlayer.person_name, reservePlayer.team_name)}
-                  </div>
+                <div className="xlb-hslot-info">
+                  <span className="xlb-hslot-tag-label" style={{ color: 'var(--color-xama-blue)' }}>RESERVA</span>
+                  <div className="xlb-hslot-name">{formatPlayerName(reservePlayer.person_name, reservePlayer.team_name)}</div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: 12, color: 'var(--color-xama-muted)' }}>
-                    {formatTeamTag(reservePlayer.person_name, reservePlayer.team_name)}
-                  </span>
-                  <span style={{
-                    fontSize: 13, fontFamily: "'JetBrains Mono', monospace",
-                    color: reserveEligible ? 'var(--color-xama-gold)' : 'var(--color-xama-red)', fontWeight: 700,
-                  }}>
+                <div className="xlb-hslot-actions">
+                  <span className="xlb-hslot-price" style={{ color: reserveEligible ? 'var(--color-xama-gold)' : 'var(--color-xama-red)' }}>
                     {fmtCost(reservePlayer.effective_cost)}{!reserveEligible && ' ⚠'}
                   </span>
+                  <button className="xlb-remove-btn" onClick={removeReserve} title="Remover reserva">×</button>
                 </div>
               </div>
             ) : (
-              <div className="xlb-hslot empty" style={{
+              <div className="xlb-hslot xlb-hslot-reserve empty" style={{
                 flex: 1, background: 'rgba(59,130,246,0.08)',
                 border: '1px dashed rgba(96,165,250,0.4)',
                 borderRadius: 8, padding: '8px 10px',
@@ -730,6 +697,35 @@ export default function LineupBuilder({
                 )}
               </div>
             )}
+
+            {/* 6º slot: botão Salvar/Editar — mobile only (desktop usa header) */}
+            {!isPreview && (() => {
+              const isEditMode = !!currentDayLineup && !hasChangedFromSaved
+              const active = !isEditMode && canSave && !saveLoading
+              return (
+                <div className="xlb-hslot xlb-hslot-save" style={{ flex: 1, borderRadius: 8 }}>
+                  <button
+                    onClick={isEditMode ? undefined : saveLineup}
+                    disabled={isEditMode || !canSave || saveLoading}
+                    style={{
+                      width: '100%', height: '100%', minHeight: 44,
+                      borderRadius: 8, border: 'none',
+                      fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
+                      cursor: isEditMode ? 'default' : (canSave && !saveLoading ? 'pointer' : 'not-allowed'),
+                      transition: 'background 0.15s, opacity 0.15s',
+                      ...(isEditMode
+                        ? { background: 'rgba(255,255,255,0.04)', color: 'var(--color-xama-muted)', opacity: 0.7 }
+                        : active
+                          ? { background: 'var(--color-xama-orange)', color: '#fff' }
+                          : { background: 'var(--surface-3)', color: 'var(--color-xama-muted)' }
+                      ),
+                    }}
+                  >
+                    {saveLoading ? '...' : isLocked ? '🔒' : isEditMode ? '✏ Editar' : 'Salvar'}
+                  </button>
+                </div>
+              )
+            })()}
           </div>
 
         </div>{/* fim sticky header */}
@@ -902,10 +898,10 @@ export default function LineupBuilder({
                           </td>
                         ))}
                         <td>
-                          <div className="flex gap-1 justify-end">
+                          <div className="xlb-action-btns">
                             {onPlayerInfoClick && (
                               <button
-                                className="xlb-action-btn"
+                                className="xlb-action-btn xlb-action-btn--graph"
                                 style={{ background: 'rgba(96,165,250,0.08)', borderColor: 'rgba(96,165,250,0.2)', color: 'var(--color-xama-blue)' }}
                                 onClick={() => onPlayerInfoClick(p)}
                                 title="Ver histórico de preços">
