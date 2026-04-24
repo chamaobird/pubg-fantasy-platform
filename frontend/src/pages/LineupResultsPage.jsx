@@ -1,7 +1,7 @@
 // frontend/src/pages/LineupResultsPage.jsx
 // XAMA Fantasy — Resultados por lineup (#092)
 
-import { useEffect, useMemo, useState, useCallback } from 'react'
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { API_BASE_URL } from '../config'
 import TeamLogo from '../components/TeamLogo'
@@ -256,22 +256,74 @@ export default function LineupResultsPage({ token = '', stageId: stageIdProp, em
 
 // ── MyLineupStatsTable ────────────────────────────────────────────────────────
 
+const SORT_COLS = [
+  { key: 'kills',   label: 'K',      title: 'Kills totais no dia',                         defaultDir: 'desc' },
+  { key: 'dmg',     label: 'DMG',    title: 'Dano total no dia',                            defaultDir: 'desc' },
+  { key: 'ass',     label: 'ASS',    title: 'Assists totais no dia',                        defaultDir: 'desc' },
+  { key: 'pos',     label: 'POS',    title: 'Colocação média — menor é melhor',             defaultDir: 'asc'  },
+  { key: 'xama',    label: 'XAMA',   title: 'Pontos XAMA brutos (sem multiplicador)',       defaultDir: 'desc' },
+  { key: 'fantasy', label: 'FANTASY',title: 'Pontos fantasy (capitão com multiplicador)',   defaultDir: 'desc' },
+]
+
+function SortArrow({ active, dir }) {
+  if (!active) return <span style={{ marginLeft: 3, opacity: 0.2, fontSize: 8 }}>⇅</span>
+  return <span style={{ marginLeft: 3, fontSize: 8, color: 'var(--color-xama-orange)' }}>{dir === 'desc' ? '▼' : '▲'}</span>
+}
+
 function MyLineupStatsTable({ lineup, captainMultiplier, statByPersonId }) {
   const isPending = lineup.total_points == null
 
-  const titulares = (lineup.players || [])
-    .filter(p => p.slot_type === 'titular')
-    .sort((a, b) => {
-      if (a.is_captain) return -1
-      if (b.is_captain) return 1
-      const pa = a.points_earned ?? -Infinity
-      const pb = b.points_earned ?? -Infinity
-      return pb - pa
-    })
-  const reserva = (lineup.players || []).find(p => p.slot_type === 'reserve')
-  const allPlayers = reserva ? [...titulares, reserva] : titulares
+  const [sortKey, setSortKey] = useState('fantasy')
+  const [sortDir, setSortDir] = useState('desc')
 
+  const handleSort = (key) => {
+    if (sortKey === key) {
+      setSortDir(d => d === 'desc' ? 'asc' : 'desc')
+    } else {
+      const col = SORT_COLS.find(c => c.key === key)
+      setSortKey(key)
+      setSortDir(col?.defaultDir ?? 'desc')
+    }
+  }
+
+  const titularesRaw = (lineup.players || []).filter(p => p.slot_type === 'titular')
+  const reserva = (lineup.players || []).find(p => p.slot_type === 'reserve')
+
+  const titulares = useMemo(() => {
+    if (isPending) {
+      // sem dados: capitão primeiro, resto em ordem original
+      return [...titularesRaw].sort((a, b) => {
+        if (a.is_captain) return -1
+        if (b.is_captain) return 1
+        return 0
+      })
+    }
+    return [...titularesRaw].sort((a, b) => {
+      const sa = statByPersonId[a.person_id] || {}
+      const sb = statByPersonId[b.person_id] || {}
+      let av, bv
+      switch (sortKey) {
+        case 'kills':   av = sa.total_kills ?? 0;         bv = sb.total_kills ?? 0;         break
+        case 'dmg':     av = sa.total_damage ?? 0;        bv = sb.total_damage ?? 0;        break
+        case 'ass':     av = sa.total_assists ?? 0;       bv = sb.total_assists ?? 0;       break
+        case 'pos':     av = sa.avg_placement ?? 999;     bv = sb.avg_placement ?? 999;     break
+        case 'xama':    av = sa.total_xama_points ?? 0;   bv = sb.total_xama_points ?? 0;   break
+        default:        av = Number(a.points_earned ?? 0); bv = Number(b.points_earned ?? 0)
+      }
+      return sortDir === 'desc' ? bv - av : av - bv
+    })
+  }, [titularesRaw, sortKey, sortDir, statByPersonId, isPending]) // eslint-disable-line
+
+  const allPlayers = reserva ? [...titulares, reserva] : titulares
   const captainColor = 'var(--color-xama-gold)'
+
+  const thSortStyle = (key) => ({
+    ...thStyle(true),
+    cursor: isPending ? 'default' : 'pointer',
+    color: sortKey === key && !isPending ? 'var(--color-xama-orange)' : 'var(--color-xama-muted)',
+    userSelect: 'none',
+    transition: 'color 0.15s',
+  })
 
   return (
     <div style={{
@@ -311,12 +363,17 @@ function MyLineupStatsTable({ lineup, captainMultiplier, statByPersonId }) {
           <thead>
             <tr style={{ background: 'rgba(0,0,0,0.25)', borderBottom: '1px solid var(--color-xama-border)' }}>
               <th style={thStyle(false)}>Jogador</th>
-              <th style={thStyle(true)} title="Kills totais no dia">K</th>
-              <th style={thStyle(true)} title="Dano total no dia">DMG</th>
-              <th style={thStyle(true)} title="Assists totais no dia">ASS</th>
-              <th style={thStyle(true)} title="Colocação média no dia">POS</th>
-              <th style={thStyle(true)} title="Pontos XAMA brutos (sem multiplicador)">XAMA</th>
-              <th style={thStyle(true)} title="Pontos fantasy (capitão com multiplicador)">FANTASY</th>
+              {SORT_COLS.map(col => (
+                <th
+                  key={col.key}
+                  title={col.title}
+                  style={thSortStyle(col.key)}
+                  onClick={() => !isPending && handleSort(col.key)}
+                >
+                  {col.label}
+                  {!isPending && <SortArrow active={sortKey === col.key} dir={sortDir} />}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>

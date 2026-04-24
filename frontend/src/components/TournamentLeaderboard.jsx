@@ -287,13 +287,6 @@ export default function TournamentLeaderboard({
 
   // ── Computed ─────────────────────────────────────────────────────────────
   const getPoints = (e) => e.total_points !== undefined ? e.total_points : (e.points ?? 0)
-  const getBadge  = (e) => {
-    if ((e.stages_played ?? 0) > 0)
-      return { label: `${e.stages_played}S`, color: 'rgba(240,192,64,0.18)', border: 'rgba(240,192,64,0.4)', text: '#f0c040' }
-    if ((e.days_played ?? 0) > 0)
-      return { label: `${e.days_played}D`, color: 'rgba(96,165,250,0.1)', border: 'rgba(96,165,250,0.3)', text: 'var(--color-xama-blue)' }
-    return null
-  }
 
   return (
     <>
@@ -524,7 +517,6 @@ export default function TournamentLeaderboard({
                     const isTop3   = pos <= 3
                     const isMe     = entry.user_id === myUserId
                     const pts      = getPoints(entry)
-                    const badge    = getBadge(entry)
                     const canClick = isLocked && token && !isMe
                     return (
                       <tr key={entry.user_id}
@@ -560,12 +552,6 @@ export default function TournamentLeaderboard({
                               <span className="text-[9px] font-bold px-1.5 py-0.5 rounded"
                                 style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'var(--color-xama-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
                                 ver time
-                              </span>
-                            )}
-                            {badge && (
-                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded"
-                                style={{ background: badge.color, border: `1px solid ${badge.border}`, color: badge.text, fontFamily: "'JetBrains Mono', monospace" }}>
-                                {badge.label}
                               </span>
                             )}
                           </div>
