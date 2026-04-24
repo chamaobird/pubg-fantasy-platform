@@ -15,7 +15,10 @@ const api = (token) => async (method, path, body) => {
   })
   if (!res.ok) {
     const e = await res.json().catch(() => ({}))
-    throw new Error(e.detail || `HTTP ${res.status}`)
+    const detail = Array.isArray(e.detail)
+      ? e.detail.map(d => d.msg || JSON.stringify(d)).join('; ')
+      : (e.detail || `HTTP ${res.status}`)
+    throw new Error(detail)
   }
   return res.status === 204 ? null : res.json()
 }
