@@ -28,6 +28,29 @@ async function get(url, token) {
   return res.json()
 }
 
+// ── table style helpers ───────────────────────────────────────────────────────
+
+const thStyle = (right = false) => ({
+  padding: '8px 12px',
+  fontSize: 10,
+  fontWeight: 700,
+  letterSpacing: '0.08em',
+  textTransform: 'uppercase',
+  textAlign: right ? 'right' : 'left',
+  color: 'var(--color-xama-muted)',
+  whiteSpace: 'nowrap',
+  userSelect: 'none',
+})
+
+const tdStyle = {
+  padding: '9px 12px',
+  textAlign: 'right',
+  fontFamily: "'JetBrains Mono', monospace",
+  fontSize: 13,
+  fontVariantNumeric: 'tabular-nums',
+  color: 'var(--color-xama-text)',
+}
+
 // ── component ─────────────────────────────────────────────────────────────────
 
 export default function LineupResultsPage({ token = '', stageId: stageIdProp, embedded = false }) {
@@ -41,7 +64,7 @@ export default function LineupResultsPage({ token = '', stageId: stageIdProp, em
   const [activeDayId, setActiveDayId] = useState(null)
   const [loading,     setLoading]     = useState(true)
   const [error,       setError]       = useState('')
-  const [lastUpdate,  setLastUpdate]  = useState(null)  // timestamp do último update ao vivo
+  const [lastUpdate,  setLastUpdate]  = useState(null)
 
   // Busca lineups e stats do dia — separada para poder re-chamar ao vivo
   const fetchDayData = useCallback((dayId) => {
@@ -117,7 +140,7 @@ export default function LineupResultsPage({ token = '', stageId: stageIdProp, em
 
   return (
     <div style={embedded ? { padding: '24px 0' } : { minHeight: '100vh', background: 'var(--surface-0)', padding: '24px 0' }}>
-      <div className="xama-container" style={{ maxWidth: 680 }}>
+      <div className="xama-container" style={{ maxWidth: 720 }}>
 
         {/* Header */}
         <div style={{ marginBottom: 20, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
@@ -126,7 +149,7 @@ export default function LineupResultsPage({ token = '', stageId: stageIdProp, em
               fontSize: 22, fontWeight: 700, letterSpacing: '0.06em',
               textTransform: 'uppercase', color: 'var(--color-xama-text)', margin: 0,
             }}>
-              Resultados do Lineup
+              Meus Resultados
             </h1>
             {stage && (
               <p style={{ fontSize: 13, color: 'var(--color-xama-muted)', margin: '4px 0 0' }}>
@@ -214,7 +237,7 @@ export default function LineupResultsPage({ token = '', stageId: stageIdProp, em
             )}
 
             {activeLineup && (
-              <LineupCard
+              <MyLineupStatsTable
                 lineup={activeLineup}
                 captainMultiplier={captainMultiplier}
                 statByPersonId={statByPersonId}
@@ -231,9 +254,9 @@ export default function LineupResultsPage({ token = '', stageId: stageIdProp, em
   )
 }
 
-// ── LineupCard ────────────────────────────────────────────────────────────────
+// ── MyLineupStatsTable ────────────────────────────────────────────────────────
 
-function LineupCard({ lineup, captainMultiplier, statByPersonId }) {
+function MyLineupStatsTable({ lineup, captainMultiplier, statByPersonId }) {
   const isPending = lineup.total_points == null
 
   const titulares = (lineup.players || [])
@@ -246,113 +269,164 @@ function LineupCard({ lineup, captainMultiplier, statByPersonId }) {
       return pb - pa
     })
   const reserva = (lineup.players || []).find(p => p.slot_type === 'reserve')
+  const allPlayers = reserva ? [...titulares, reserva] : titulares
+
+  const captainColor = 'var(--color-xama-gold)'
 
   return (
     <div style={{
-      background: 'var(--surface-1)', border: '1px solid var(--color-xama-border)',
-      borderRadius: 12, overflow: 'hidden', marginBottom: 20,
+      background: 'var(--surface-1)',
+      border: '1px solid var(--color-xama-border)',
+      borderRadius: 12,
+      overflow: 'hidden',
+      marginBottom: 20,
     }}>
-      {/* Header */}
+      {/* Barra laranja no topo */}
+      <div style={{ height: 2, background: 'linear-gradient(90deg, var(--color-xama-orange) 0%, transparent 60%)' }} />
+
+      {/* Total do dia */}
       <div style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         padding: '12px 16px',
         background: 'var(--surface-2)', borderBottom: '1px solid var(--color-xama-border)',
       }}>
-        <span style={{
-          fontSize: 12, fontWeight: 700, letterSpacing: '0.08em',
-          textTransform: 'uppercase', color: 'var(--color-xama-muted)',
-        }}>
+        <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--color-xama-muted)' }}>
           Total do dia
         </span>
-        <span style={{
-          fontFamily: "'JetBrains Mono', monospace",
-          fontSize: 24, fontWeight: 700,
-          color: isPending ? 'var(--color-xama-muted)' : 'var(--color-xama-orange)',
-        }}>
+        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 24, fontWeight: 700, color: isPending ? 'var(--color-xama-muted)' : 'var(--color-xama-orange)' }}>
           {isPending ? '—' : Number(lineup.total_points).toFixed(2)}
-          {!isPending && (
-            <span style={{ fontSize: 12, color: 'var(--color-xama-muted)', marginLeft: 5 }}>pts</span>
-          )}
+          {!isPending && <span style={{ fontSize: 12, color: 'var(--color-xama-muted)', marginLeft: 5 }}>pts</span>}
         </span>
       </div>
 
       {isPending && (
-        <div style={{
-          padding: '10px 16px',
-          background: 'rgba(250,204,21,0.06)', borderBottom: '1px solid rgba(250,204,21,0.15)',
-          color: 'var(--color-xama-gold)', fontSize: 12, textAlign: 'center',
-        }}>
+        <div style={{ padding: '10px 16px', background: 'rgba(250,204,21,0.06)', borderBottom: '1px solid rgba(250,204,21,0.15)', color: 'var(--color-xama-gold)', fontSize: 12, textAlign: 'center' }}>
           ⏳ Aguardando pontuação
         </div>
       )}
 
-      {/* Legenda de colunas */}
-      {!isPending && (
-        <div style={{
-          display: 'flex', alignItems: 'center',
-          padding: '6px 16px',
-          borderBottom: '1px solid rgba(255,255,255,0.04)',
-          background: 'rgba(255,255,255,0.015)',
-        }}>
-          <div style={{ width: 26 }} />
-          <div style={{ flex: 1 }} />
-          <div style={{
-            display: 'flex', gap: 6, marginRight: 8,
-            fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
-            color: 'var(--color-xama-muted)', textTransform: 'uppercase',
-          }}>
-            <span style={{ width: 34, textAlign: 'center' }}>K</span>
-            <span style={{ width: 44, textAlign: 'center' }}>DMG</span>
-            <span style={{ width: 28, textAlign: 'center' }}>#</span>
-          </div>
-          <div style={{
-            minWidth: 64, textAlign: 'right',
-            fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
-            color: 'var(--color-xama-muted)', textTransform: 'uppercase',
-          }}>
-            PTS
-          </div>
-        </div>
-      )}
+      {/* Tabela */}
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ background: 'rgba(0,0,0,0.25)', borderBottom: '1px solid var(--color-xama-border)' }}>
+              <th style={thStyle(false)}>Jogador</th>
+              <th style={thStyle(true)} title="Kills totais no dia">K</th>
+              <th style={thStyle(true)} title="Dano total no dia">DMG</th>
+              <th style={thStyle(true)} title="Assists totais no dia">ASS</th>
+              <th style={thStyle(true)} title="Colocação média no dia">POS</th>
+              <th style={thStyle(true)} title="Pontos XAMA brutos (sem multiplicador)">XAMA</th>
+              <th style={thStyle(true)} title="Pontos fantasy (capitão com multiplicador)">FANTASY</th>
+            </tr>
+          </thead>
+          <tbody>
+            {allPlayers.map((lp, idx) => {
+              const stat      = statByPersonId[lp.person_id] || null
+              const isReserve = lp.slot_type === 'reserve'
+              const pts       = lp.points_earned != null ? Number(lp.points_earned) : null
+              const basePts   = lp.is_captain && pts != null ? pts / captainMultiplier : null
+              const teamTag   = formatTeamTag(lp.person_name, lp.team_name)
 
-      {/* Titulares */}
-      <div style={{ padding: '8px 0' }}>
-        {titulares.map((lp, idx) => (
-          <PlayerRow
-            key={lp.id}
-            lp={lp}
-            captainMultiplier={captainMultiplier}
-            isPending={isPending}
-            rank={isPending ? null : idx + 1}
-            playerStat={statByPersonId[lp.person_id] || null}
-          />
-        ))}
+              const kills    = stat?.total_kills ?? null
+              const damage   = stat?.total_damage != null ? Math.round(stat.total_damage) : null
+              const assists  = stat?.total_assists ?? null
+              const avgPlace = stat?.avg_placement != null ? Math.round(stat.avg_placement) : null
+              const xama     = stat?.total_xama_points ?? null
+
+              return (
+                <tr
+                  key={lp.id}
+                  style={{
+                    borderBottom: '1px solid rgba(255,255,255,0.04)',
+                    background: lp.is_captain
+                      ? 'rgba(240,192,64,0.04)'
+                      : isReserve
+                        ? 'rgba(0,0,0,0.18)'
+                        : idx % 2 === 1 ? 'rgba(255,255,255,0.015)' : 'transparent',
+                    opacity: isReserve ? 0.72 : 1,
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#161b27' }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.background = lp.is_captain
+                      ? 'rgba(240,192,64,0.04)'
+                      : isReserve
+                        ? 'rgba(0,0,0,0.18)'
+                        : idx % 2 === 1 ? 'rgba(255,255,255,0.015)' : 'transparent'
+                  }}
+                >
+                  {/* Jogador */}
+                  <td style={{ padding: '9px 14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <TeamLogo teamName={teamTag} size={24} />
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'nowrap' }}>
+                          <span style={{
+                            fontSize: 13, fontWeight: 600,
+                            color: lp.is_captain ? captainColor : isReserve ? 'var(--color-xama-muted)' : 'var(--color-xama-text)',
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 150,
+                          }}>
+                            {fmt(lp.person_name)}
+                          </span>
+                          {lp.is_captain && (
+                            <span style={{ fontSize: 9, fontWeight: 800, color: captainColor, background: 'rgba(240,192,64,0.14)', border: '1px solid rgba(240,192,64,0.35)', borderRadius: 3, padding: '1px 5px', letterSpacing: '0.06em', flexShrink: 0 }}>
+                              ⭐ CAP
+                            </span>
+                          )}
+                          {isReserve && (
+                            <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--color-xama-blue)', background: 'rgba(96,165,250,0.08)', border: '1px solid rgba(96,165,250,0.2)', borderRadius: 3, padding: '1px 4px', letterSpacing: '0.06em', flexShrink: 0 }}>
+                              RES
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: 10, color: 'var(--color-xama-muted)', marginTop: 1 }}>{teamTag}</div>
+                      </div>
+                    </div>
+                  </td>
+
+                  {/* K */}
+                  <td style={{ ...tdStyle, color: kills != null && kills >= 5 ? '#fb923c' : kills != null && kills >= 3 ? '#fbbf24' : 'var(--color-xama-muted)' }}>
+                    {kills !== null ? kills : '—'}
+                  </td>
+
+                  {/* DMG */}
+                  <td style={{ ...tdStyle, color: damage != null && damage >= 800 ? '#4ade80' : damage != null && damage >= 400 ? '#a3e635' : 'var(--color-xama-muted)' }}>
+                    {damage !== null ? damage : '—'}
+                  </td>
+
+                  {/* ASS */}
+                  <td style={{ ...tdStyle, color: 'var(--color-xama-muted)' }}>
+                    {assists !== null ? assists : '—'}
+                  </td>
+
+                  {/* POS */}
+                  <td style={{ ...tdStyle, color: avgPlace != null && avgPlace <= 3 ? '#fde68a' : 'var(--color-xama-muted)' }}>
+                    {avgPlace !== null ? `#${avgPlace}` : '—'}
+                  </td>
+
+                  {/* XAMA */}
+                  <td style={{ ...tdStyle, color: 'var(--color-xama-orange)' }}>
+                    {xama !== null ? Number(xama).toFixed(2) : '—'}
+                  </td>
+
+                  {/* FANTASY */}
+                  <td style={{ ...tdStyle, color: lp.is_captain ? captainColor : isReserve ? 'var(--color-xama-muted)' : 'var(--color-xama-text)', fontWeight: 700 }}>
+                    {pts !== null ? (
+                      <div>
+                        <div>{pts.toFixed(2)}</div>
+                        {lp.is_captain && basePts !== null && (
+                          <div style={{ fontSize: 9, fontWeight: 400, color: 'var(--color-xama-muted)' }}>
+                            {basePts.toFixed(1)} ×{captainMultiplier.toFixed(2)}
+                          </div>
+                        )}
+                      </div>
+                    ) : '—'}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
       </div>
-
-      {/* Reserva */}
-      {reserva && (
-        <div style={{
-          borderTop: '1px solid var(--color-xama-border)',
-          background: 'rgba(0,0,0,0.15)',
-        }}>
-          <div style={{
-            fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
-            textTransform: 'uppercase', color: 'var(--color-xama-muted)',
-            padding: '8px 16px 0',
-          }}>
-            Reserva
-          </div>
-          <div style={{ padding: '4px 0 8px' }}>
-            <PlayerRow
-              lp={reserva}
-              captainMultiplier={captainMultiplier}
-              isPending={isPending}
-              isReserve
-              playerStat={statByPersonId[reserva.person_id] || null}
-            />
-          </div>
-        </div>
-      )}
 
       {/* Footer */}
       <div style={{
@@ -372,157 +446,6 @@ function LineupCard({ lineup, captainMultiplier, statByPersonId }) {
         }}>
           ×{captainMultiplier.toFixed(2)}
         </span>
-      </div>
-    </div>
-  )
-}
-
-// ── PlayerRow ─────────────────────────────────────────────────────────────────
-
-function StatPill({ value, color, bg, borderColor }) {
-  return (
-    <span style={{
-      fontFamily: "'JetBrains Mono', monospace",
-      fontSize: 11, fontWeight: 700,
-      color, background: bg,
-      border: `1px solid ${borderColor}`,
-      borderRadius: 4, padding: '2px 5px',
-      minWidth: 0, display: 'inline-block', textAlign: 'center',
-    }}>
-      {value}
-    </span>
-  )
-}
-
-function PlayerRow({ lp, captainMultiplier, isPending, isReserve = false, rank = null, playerStat = null }) {
-  const name    = lp.person_name || '—'
-  const teamTag = formatTeamTag(lp.person_name, lp.team_name)
-  const pts     = lp.points_earned != null ? Number(lp.points_earned) : null
-  const basePts = lp.is_captain && pts != null ? pts / captainMultiplier : null
-
-  const kills    = playerStat?.total_kills ?? null
-  const damage   = playerStat?.total_damage != null ? Math.round(playerStat.total_damage) : null
-  const avgPlace = playerStat?.avg_placement != null ? Math.round(playerStat.avg_placement) : null
-
-  const captainColor = 'var(--color-xama-gold)'
-  const textColor    = isReserve ? 'var(--color-xama-muted)' : 'var(--color-xama-text)'
-
-  return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 10,
-      padding: '7px 16px',
-      borderBottom: '1px solid rgba(255,255,255,0.035)',
-      opacity: isReserve ? 0.7 : 1,
-      transition: 'background 0.15s',
-      background: lp.is_captain ? 'rgba(240,192,64,0.04)' : 'transparent',
-    }}>
-
-      {/* Logo */}
-      <TeamLogo teamName={teamTag} size={24} />
-
-      {/* Nome + badges */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'nowrap' }}>
-          <span style={{
-            fontSize: 13, fontWeight: 600,
-            color: lp.is_captain ? captainColor : textColor,
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            maxWidth: 140,
-          }}>
-            {fmt(name)}
-          </span>
-          {lp.is_captain && (
-            <span style={{
-              fontSize: 9, fontWeight: 800, color: captainColor,
-              background: 'rgba(240,192,64,0.14)', border: '1px solid rgba(240,192,64,0.35)',
-              borderRadius: 3, padding: '1px 5px', letterSpacing: '0.06em',
-              flexShrink: 0,
-            }}>
-              ⭐ CAP
-            </span>
-          )}
-          {isReserve && (
-            <span style={{
-              fontSize: 9, fontWeight: 700, color: 'var(--color-xama-blue)',
-              background: 'rgba(96,165,250,0.08)', border: '1px solid rgba(96,165,250,0.2)',
-              borderRadius: 3, padding: '1px 4px', letterSpacing: '0.06em',
-              flexShrink: 0,
-            }}>
-              RES
-            </span>
-          )}
-        </div>
-        <div style={{ fontSize: 10, color: 'var(--color-xama-muted)', marginTop: 1 }}>
-          {teamTag}
-        </div>
-      </div>
-
-      {/* Stats do dia */}
-      {!isPending && (
-        <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexShrink: 0 }}>
-          {/* Kills */}
-          <div style={{ width: 34, textAlign: 'center' }}>
-            {kills !== null ? (
-              <StatPill
-                value={kills}
-                color={kills >= 5 ? '#fb923c' : kills >= 3 ? '#fbbf24' : 'var(--color-xama-muted)'}
-                bg={kills >= 5 ? 'rgba(251,146,60,0.12)' : kills >= 3 ? 'rgba(251,191,36,0.10)' : 'rgba(255,255,255,0.04)'}
-                borderColor={kills >= 5 ? 'rgba(251,146,60,0.3)' : kills >= 3 ? 'rgba(251,191,36,0.25)' : 'rgba(255,255,255,0.08)'}
-              />
-            ) : (
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.15)' }}>—</span>
-            )}
-          </div>
-
-          {/* Damage */}
-          <div style={{ width: 44, textAlign: 'center' }}>
-            {damage !== null ? (
-              <StatPill
-                value={damage}
-                color={damage >= 800 ? '#4ade80' : damage >= 400 ? '#a3e635' : 'var(--color-xama-muted)'}
-                bg={damage >= 800 ? 'rgba(74,222,128,0.10)' : damage >= 400 ? 'rgba(163,230,53,0.08)' : 'rgba(255,255,255,0.04)'}
-                borderColor={damage >= 800 ? 'rgba(74,222,128,0.25)' : damage >= 400 ? 'rgba(163,230,53,0.2)' : 'rgba(255,255,255,0.08)'}
-              />
-            ) : (
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.15)' }}>—</span>
-            )}
-          </div>
-
-          {/* Placement */}
-          <div style={{ width: 28, textAlign: 'center' }}>
-            {avgPlace !== null ? (
-              <StatPill
-                value={`#${avgPlace}`}
-                color={avgPlace <= 3 ? '#fde68a' : avgPlace <= 8 ? 'var(--color-xama-text)' : 'var(--color-xama-muted)'}
-                bg={avgPlace <= 3 ? 'rgba(253,230,138,0.10)' : 'rgba(255,255,255,0.04)'}
-                borderColor={avgPlace <= 3 ? 'rgba(253,230,138,0.3)' : 'rgba(255,255,255,0.08)'}
-              />
-            ) : (
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.15)' }}>—</span>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Pontos */}
-      <div style={{ textAlign: 'right', flexShrink: 0, minWidth: 64 }}>
-        {isPending || pts == null ? (
-          <span style={{ fontSize: 12, color: 'var(--color-xama-muted)', fontFamily: "'JetBrains Mono', monospace" }}>—</span>
-        ) : (
-          <>
-            <div style={{
-              fontSize: 15, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace",
-              color: lp.is_captain ? captainColor : isReserve ? 'var(--color-xama-muted)' : 'var(--color-xama-text)',
-            }}>
-              {pts.toFixed(2)}
-            </div>
-            {lp.is_captain && basePts != null && (
-              <div style={{ fontSize: 9, color: 'var(--color-xama-muted)', fontFamily: "'JetBrains Mono', monospace", lineHeight: 1.3 }}>
-                {basePts.toFixed(1)} ×{captainMultiplier.toFixed(2)}
-              </div>
-            )}
-          </>
-        )}
       </div>
     </div>
   )
