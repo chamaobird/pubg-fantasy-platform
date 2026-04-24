@@ -181,7 +181,7 @@ export default function LineupBuilder({
   }, [players, searchName, teamFilter])
 
   const sortedPlayers = useMemo(() => {
-    const PRIOR_KEYS = new Set(['pts_per_match', 'kills_per_match', 'damage_per_match', 'assists_per_match', 'total_wins', 'avg_survival_mins'])
+    const PRIOR_KEYS = new Set(['pts_per_match', 'kills_per_match', 'damage_per_match', 'assists_per_match', 'total_wins', 'late_game_pts_per_match'])
     return [...filteredPlayers].sort((a, b) => {
       let aVal, bVal
       if (sortKey === 'name')            { aVal = formatPlayerName(a.person_name, a.team_name); bVal = formatPlayerName(b.person_name, b.team_name) }
@@ -420,10 +420,10 @@ export default function LineupBuilder({
       render: (p) => ps(p) ? Math.round(ps(p).damage_per_match) : '—' },
     { key: 'assists_per_match', label: 'ASS/G',  right: true,
       render: (p) => ps(p) ? ps(p).assists_per_match.toFixed(1) : '—' },
-    { key: 'total_wins',        label: 'WIN',    right: true,
+    { key: 'total_wins',               label: 'WIN',      right: true,
       render: (p) => ps(p) != null ? ps(p).total_wins : '—' },
-    { key: 'avg_survival_mins', label: 'SURV',   right: true,
-      render: (p) => ps(p)?.avg_survival_mins != null ? ps(p).avg_survival_mins.toFixed(1) + 'm' : '—' },
+    { key: 'late_game_pts_per_match',  label: 'SOBREV/G', right: true,
+      render: (p) => ps(p) != null ? ps(p).late_game_pts_per_match.toFixed(1) : '—' },
   ]
 
   // ── Render ──────────────────────────────────────────────────────────────

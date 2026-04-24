@@ -182,12 +182,12 @@ class PriorStatsOut(BaseModel):
     """
     person_id: int
     matches_played: int
-    pts_per_match: float      # xama médio por game
-    kills_per_match: float    # kills por game
-    damage_per_match: float   # dano por game
-    assists_per_match: float  # assists por game
-    total_wins: int           # chicken dinners
-    avg_survival_mins: Optional[float]  # sobrevivência média em minutos
+    pts_per_match: float              # xama médio por game
+    kills_per_match: float            # kills por game
+    damage_per_match: float           # dano por game
+    assists_per_match: float          # assists por game
+    total_wins: int                   # chicken dinners
+    late_game_pts_per_match: float    # bônus late game médio por game (top-8 survival)
 
     model_config = {"from_attributes": True}
 
@@ -573,10 +573,10 @@ def get_prior_stats(
 
     prior_stage_ids = [s.id for s in prior_stages]
 
-    # Stage days dessas stages
+    # Stage days dessas stages (usando [0] pois query de coluna única retorna tuples)
     stage_day_ids = [
-        sd.id
-        for sd in db.query(StageDay.id)
+        row[0]
+        for row in db.query(StageDay.id)
         .filter(StageDay.stage_id.in_(prior_stage_ids))
         .all()
     ]
@@ -586,8 +586,8 @@ def get_prior_stats(
 
     # Jogadores do roster atual
     current_person_ids = [
-        r.person_id
-        for r in db.query(Roster.person_id)
+        row[0]
+        for row in db.query(Roster.person_id)
         .filter(Roster.stage_id == stage_id, Roster.is_available == True)  # noqa: E712
         .all()
     ]
@@ -604,7 +604,7 @@ def get_prior_stats(
             MatchStat.person_id.in_(current_person_ids),
             MatchStat.xama_points.isnot(None),
         )
-        .order_by(Match.played_at.asc().nullslast(), Match.id.asc())
+        .order_by(Match.played_at.asc(), Match.id.asc())
         .all()
     )
 
@@ -620,7 +620,7 @@ def get_prior_stats(
         "assists": 0,
         "damage": 0.0,
         "wins": 0,
-        "survival_secs": [],
+        "late_game_pts": 0.0,
     })
 
     for ms in stats_rows:
@@ -632,14 +632,12 @@ def get_prior_stats(
         a["damage"] += float(ms.damage or 0)
         if ms.placement == 1:
             a["wins"] += 1
-        if ms.survival_time is not None:
-            a["survival_secs"].append(ms.survival_time)
+        a["late_game_pts"] += float(ms.late_game_bonus or 0)
 
     result = []
     for person_id, a in agg.items():
         matches = a["matches"]
         total_pts = round(a["xama_points"], 2)
-        avg_secs = (sum(a["survival_secs"]) / len(a["survival_secs"])) if a["survival_secs"] else None
         result.append(PriorStatsOut(
             person_id=person_id,
             matches_played=matches,
@@ -648,7 +646,7 @@ def get_prior_stats(
             damage_per_match=round(a["damage"] / matches, 0) if matches > 0 else 0.0,
             assists_per_match=round(a["assists"] / matches, 1) if matches > 0 else 0.0,
             total_wins=a["wins"],
-            avg_survival_mins=round(avg_secs / 60, 1) if avg_secs is not None else None,
+            late_game_pts_per_match=round(a["late_game_pts"] / matches, 1) if matches > 0 else 0.0,
         ))
 
     return result
