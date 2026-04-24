@@ -750,7 +750,7 @@ export default function Dashboard() {
   // Busca lineups para stages open E locked (para mostrar pontuação em Resultados)
   useEffect(() => {
     if (!token || stages.length === 0) return
-    const relevantStages = stages.filter(s => s.lineup_status === 'open' || s.lineup_status === 'locked')
+    const relevantStages = stages.filter(s => ['open', 'locked', 'live'].includes(s.lineup_status))
     relevantStages.forEach(s => {
       fetch(`${API_BASE_URL}/lineups/stage/${s.id}`, { headers: H })
         .then(r => {
