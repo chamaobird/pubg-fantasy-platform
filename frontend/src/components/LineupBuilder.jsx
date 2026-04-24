@@ -181,17 +181,17 @@ export default function LineupBuilder({
   }, [players, searchName, teamFilter])
 
   const sortedPlayers = useMemo(() => {
-    const PRIOR_KEYS = new Set(['pts_per_match', 'total_kills', 'total_damage', 'match_pts'])
+    const PRIOR_KEYS = new Set(['pts_per_match', 'kills_per_match', 'damage_per_match', 'assists_per_match', 'total_wins', 'avg_survival_mins'])
     return [...filteredPlayers].sort((a, b) => {
       let aVal, bVal
-      if (sortKey === 'name')              { aVal = formatPlayerName(a.person_name, a.team_name); bVal = formatPlayerName(b.person_name, b.team_name) }
-      else if (sortKey === 'team')         { aVal = formatTeamTag(a.person_name, a.team_name); bVal = formatTeamTag(b.person_name, b.team_name) }
-      else if (PRIOR_KEYS.has(sortKey))   {
+      if (sortKey === 'name')            { aVal = formatPlayerName(a.person_name, a.team_name); bVal = formatPlayerName(b.person_name, b.team_name) }
+      else if (sortKey === 'team')       { aVal = formatTeamTag(a.person_name, a.team_name); bVal = formatTeamTag(b.person_name, b.team_name) }
+      else if (PRIOR_KEYS.has(sortKey)) {
         const sa = priorStats[a.person_id]; const sb = priorStats[b.person_id]
-        aVal = sa ? (sortKey === 'match_pts' ? sa.total_xama_points : sa[sortKey]) : null
-        bVal = sb ? (sortKey === 'match_pts' ? sb.total_xama_points : sb[sortKey]) : null
+        aVal = sa ? sa[sortKey] : null
+        bVal = sb ? sb[sortKey] : null
       }
-      else                                 { aVal = a[sortKey]; bVal = b[sortKey] }
+      else                               { aVal = a[sortKey]; bVal = b[sortKey] }
       if (aVal == null && bVal == null) return 0
       if (aVal == null) return 1
       if (bVal == null) return -1
@@ -405,43 +405,25 @@ export default function LineupBuilder({
   const budgetBarColor = isOverBudget ? '#f87171' : totalCost / BUDGET_CAP > 0.85
     ? 'var(--color-xama-gold)' : 'var(--color-xama-orange)'
 
+  const ps = (p) => priorStats[p.person_id]  // helper: prior stats de um player
+
   const COLS = [
-    { key: 'team',           label: 'Time',    right: false },
-    { key: 'name',           label: 'Jogador', right: false },
-    { key: 'effective_cost', label: 'Preço',   right: true,
+    { key: 'team',              label: 'Time',   right: false },
+    { key: 'name',              label: 'Jogador', right: false },
+    { key: 'effective_cost',    label: 'Preço',  right: true,
       render: (p) => <span style={{ color: 'var(--color-xama-gold)', fontWeight: 700, fontSize: 14 }}>{fmtCost(p.effective_cost)}</span> },
-    { key: 'pts_per_match',  label: 'PTS/G',   right: true,
-      render: (p) => {
-        const s = priorStats[p.person_id]
-        return s ? Number(s.pts_per_match).toFixed(1) : '—'
-      }},
-    { key: 'total_kills',    label: 'K',       right: true,
-      render: (p) => {
-        const s = priorStats[p.person_id]
-        return s ? s.total_kills : '—'
-      }},
-    { key: 'total_damage',   label: 'DMG',     right: true,
-      render: (p) => {
-        const s = priorStats[p.person_id]
-        return s ? Math.round(s.total_damage) : '—'
-      }},
-    { key: 'match_pts',      label: 'PARTIDAS', right: true,
-      render: (p) => {
-        const s = priorStats[p.person_id]
-        if (!s || !s.match_pts?.length) return '—'
-        return (
-          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, letterSpacing: '0.02em', color: 'var(--color-xama-muted)', whiteSpace: 'nowrap' }}>
-            {s.match_pts.map((v, i) => (
-              <span key={i}>
-                <span style={{ color: v >= 50 ? 'var(--color-xama-gold)' : v >= 25 ? 'var(--color-xama-orange)' : 'var(--color-xama-muted)' }}>
-                  {v % 1 === 0 ? v : v.toFixed(1)}
-                </span>
-                {i < s.match_pts.length - 1 && <span style={{ opacity: 0.35 }}> · </span>}
-              </span>
-            ))}
-          </span>
-        )
-      }},
+    { key: 'pts_per_match',     label: 'PTS/G',  right: true,
+      render: (p) => ps(p) ? ps(p).pts_per_match.toFixed(1) : '—' },
+    { key: 'kills_per_match',   label: 'K/G',    right: true,
+      render: (p) => ps(p) ? ps(p).kills_per_match.toFixed(1) : '—' },
+    { key: 'damage_per_match',  label: 'DMG/G',  right: true,
+      render: (p) => ps(p) ? Math.round(ps(p).damage_per_match) : '—' },
+    { key: 'assists_per_match', label: 'ASS/G',  right: true,
+      render: (p) => ps(p) ? ps(p).assists_per_match.toFixed(1) : '—' },
+    { key: 'total_wins',        label: 'WIN',    right: true,
+      render: (p) => ps(p) != null ? ps(p).total_wins : '—' },
+    { key: 'avg_survival_mins', label: 'SURV',   right: true,
+      render: (p) => ps(p)?.avg_survival_mins != null ? ps(p).avg_survival_mins.toFixed(1) + 'm' : '—' },
   ]
 
   // ── Render ──────────────────────────────────────────────────────────────

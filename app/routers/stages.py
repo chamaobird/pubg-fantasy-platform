@@ -178,17 +178,16 @@ class PriorStatsOut(BaseModel):
     """
     Stats dos dias anteriores do mesmo championship (stages locked/live)
     filtradas aos jogadores do roster atual.
-    match_pts: lista de xama_points por partida (ordem cronológica).
+    Métricas por jogo (per-game) para exibição no LineupBuilder.
     """
     person_id: int
     matches_played: int
-    total_xama_points: float
-    pts_per_match: float
-    total_kills: int
-    total_assists: int
-    total_damage: float
-    avg_survival_secs: Optional[float]
-    match_pts: list[float]   # xama por partida, ordem cronológica
+    pts_per_match: float      # xama médio por game
+    kills_per_match: float    # kills por game
+    damage_per_match: float   # dano por game
+    assists_per_match: float  # assists por game
+    total_wins: int           # chicken dinners
+    avg_survival_mins: Optional[float]  # sobrevivência média em minutos
 
     model_config = {"from_attributes": True}
 
@@ -620,38 +619,36 @@ def get_prior_stats(
         "kills": 0,
         "assists": 0,
         "damage": 0.0,
-        "survival_times": [],
-        "match_pts": [],
+        "wins": 0,
+        "survival_secs": [],
     })
 
     for ms in stats_rows:
         a = agg[ms.person_id]
-        pts = float(ms.xama_points or 0)
         a["matches"] += 1
-        a["xama_points"] += pts
+        a["xama_points"] += float(ms.xama_points or 0)
         a["kills"] += int(ms.kills or 0)
         a["assists"] += int(ms.assists or 0)
         a["damage"] += float(ms.damage or 0)
+        if ms.placement == 1:
+            a["wins"] += 1
         if ms.survival_time is not None:
-            a["survival_times"].append(ms.survival_time)
-        a["match_pts"].append(round(pts, 1))
+            a["survival_secs"].append(ms.survival_time)
 
     result = []
     for person_id, a in agg.items():
         matches = a["matches"]
         total_pts = round(a["xama_points"], 2)
+        avg_secs = (sum(a["survival_secs"]) / len(a["survival_secs"])) if a["survival_secs"] else None
         result.append(PriorStatsOut(
             person_id=person_id,
             matches_played=matches,
-            total_xama_points=total_pts,
-            pts_per_match=round(total_pts / matches, 2) if matches > 0 else 0.0,
-            total_kills=a["kills"],
-            total_assists=a["assists"],
-            total_damage=round(a["damage"], 1),
-            avg_survival_secs=round(
-                sum(a["survival_times"]) / len(a["survival_times"]), 0
-            ) if a["survival_times"] else None,
-            match_pts=a["match_pts"],
+            pts_per_match=round(total_pts / matches, 1) if matches > 0 else 0.0,
+            kills_per_match=round(a["kills"] / matches, 1) if matches > 0 else 0.0,
+            damage_per_match=round(a["damage"] / matches, 0) if matches > 0 else 0.0,
+            assists_per_match=round(a["assists"] / matches, 1) if matches > 0 else 0.0,
+            total_wins=a["wins"],
+            avg_survival_mins=round(avg_secs / 60, 1) if avg_secs is not None else None,
         ))
 
     return result
