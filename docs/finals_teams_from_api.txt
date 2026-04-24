@@ -1,0 +1,88 @@
+# ============================================================
+# TEAMS EXTRAÍDOS DA PUBG API — Para revisão
+# Gerado em: 2026-04-22 13:34 UTC
+# ============================================================
+#
+# Instruções:
+#   - Verifique nomes de jogadores (use o nome exato da API)
+#   - Adicione o nome completo do time após a tag
+#   - Remova jogadores que são SUBS (não fazem parte do roster oficial)
+#   - Remova times que NÃO participam das Finals
+#   - Salve e devolva para criar o seed script
+#
+# Formato:
+#   [TAG] Nome do Time | jogador1, jogador2, jogador3, jogador4
+#
+# Nota: jogadores aparecem com nome completo (TAG_nome).
+#       Para o banco, usamos apenas a parte após o '_' como display_name.
+#
+
+
+# ========================================================
+# PEC
+# ========================================================
+
+[ACE   ] Acend | ACE_ItzzChrizZ, ACE_KILYAKAi, ACE_Ketter, ACE_TeaBone
+[BAL   ] Baldinini | BAL_MrShimada, BAL_caydel-, BAL_sunfloweeeee, BAL_taBl
+[BORZ  ] BORZ | BORZ_HalloSenpai, BORZ_Luu4iikk-, BORZ_Marchel, BORZ_h1xs
+[BW    ] Bushido Wildcats | BW_Celtik, BW_Metebey, BW_codemarco, BW_crossberk
+[EVER  ] Everlong | EVER_Verstory, EVER_fantasia, EVER_rinazxc, EVER_saintxd
+[GN    ] GoNext Esports | GN_Acaliptos, GN_F1Nee, GN_MAXXX, GN_Paidaros2
+[GTG   ] Ghetto Gang | GTG_Apr1l, GTG_anybodezz, GTG_iamf1ve, GTG_imSancho
+[HIVE  ] HiVE | HiVE_DaNte, HiVE_Mogore, HiVE_r0xxx, HiVE_shengen
+[HOWL  ] exhowl | HOWL_FLORYZ, HOWL_Nailqop13, HOWL_Shiplest, HOWL_TheMad, HOWL_odunmavisi
+[JB    ] Joga Bonito | JB_Nod1, JB_S1mon, JB_kHRysTaLNi, JB_slqven
+[NAVI  ] Natus Vincere | NAVI_Feyerist, NAVI_Hakatory, NAVI_boost1k-, NAVI_spyrro
+[NMSS  ] Team Nemesis | NMSS_DIFX, NMSS_Mellman, NMSS_SoseD, NMSS_Staed
+[NOT   ] No Tag Team | NOT_Doffy, NOT_Makiintosh, NOT_OConnell, NOT_rappha
+[PBRU  ] PBRU | PBRU_Nabat, PBRU_h0pejj, PBRU_quintx, PBRU_xreyzer1
+[PGG   ] PGG | PGG_Presenti, PGG_SL0YJACKET, PGG_Salik, PGG_Zubila
+[RL    ] Redline | RL_DYNNO, RL_ZEKO, RL_ivas, RL_karxx
+[S2G   ] S2G Esports | S2G_BARON, S2G_CCINEXT, S2G_Quetpa, S2G_Shilla
+[S8UL  ] S8UL Esports | S8UL_ADOUZ1E, S8UL_Bestoloch, S8UL_Molodoct, S8UL_f1lfirst
+[SLCK  ] noslack | SLCK_Kova1evy, SLCK_S4TTA, SLCK_SkaV, SLCK_iExE
+[SQU   ] STORM ON REQUEST | SQU_210, SQU_Vezyv1y, SQU_pozyyan, SQU_xisooo
+[STS   ] Starry SKY | STS_Momme, STS_N1tro, STS_SILERZZ, STS_vazo
+[TMO   ] The Myth of | TMO_Himan, TMO_Justus, TMO_Myca, TMO_ares
+[TWIS  ] Twisted Minds | TWIS_BatulinS, TWIS_Lu, TWIS_Perfect1ks, TWIS_xmpl
+[VIS   ] Vis | VIS_Ar2n, VIS_PaiinZ, VIS_habibi, VIS_stratos
+[VIT   ] Team Vitality | VIT_Gedrox, VIT_Lev4nte, VIT_QWZYYY, VIT_hallomybad
+[VP    ] Virtus.pro | VP_Beami, VP_Lukarux, VP_NIXZYEE, VP_curexi
+[VPX   ] Vuptrox | VPX_Bjoernter, VPX_Blissed, VPX_Mikzenn, VPX_Vorix
+[WORK  ] Construction Workers | WORK_Fexx, WORK_Naylup, WORK_PiXeL1K, WORK_vard
+[YO    ] YOOO | YO_K4pii, YO_jeemzz, YO_mykLe, YO_pwddddddddd
+
+
+# ========================================================
+# PAS
+# ========================================================
+
+[55PD  ] 55 e-Sports | 55PD_KerakTMz, 55PD_OhNytavoN, 55PD_gabriehw, 55PD_gloock77
+[AKA   ] Also known as | AKA_Falconn, AKA_LIP7, AKA_daanshin, AKA_zDarkCastle
+[BO    ] IAM BOLIVIA | BO_C4MB4, BO_Imsfck1ngbd, BO_Neyzhera, BO_V-I-R-I
+[BST   ] BESTIA | BST_FROGMAN1, BST_PIPAA, BST_beNjA, BST_v1n1zxz
+[CLR   ] Collector | CLR_4EARTH, CLR_Dreamzz, CLR_MIKSUU-, CLR_RedRyderNA
+[DOTS  ] Dots | DOTS_OtosakaYu-, DOTS_TheSpectro, DOTS_sKZ974, DOTS_shanedoe
+[DUEL  ] DUEL | DUEL_Kein, DUEL_Sharpshot4K, DUEL_Woo1y, DUEL_pentalol
+[FATE  ] Team FATE | FATE_DadBuff, FATE_Tater, FATE_TimFee, FATE_fl8nkr
+[FE    ] Athletes of Christ | FE_Haven, FE_Tny7, FE_fana, FE_lfp1
+[FLC   ] Team Falcons | FLC_Gustav, FLC_Kickstart, FLC_Shrimzy, FLC_TGLTN
+[FN    ] For Nothing | FN_Lyel, FN_MAURILIO1, FN_gmoo, FN_sweezy
+[FR    ] RENT FREE | FR_Bizzler, FR_HoneyBadger, FR_J4M, FR_gats
+[FUR   ] FURIA | FUR_Dr4FTk1NG, FUR_bielmtcalmo, FUR_possa, FUR_zkraken
+[INJ   ] Injected | INJ_Plushiee, INJ_Stokeley, INJ_choppy-_-, INJ_s1mplicityy
+[INSK  ] Chupinsky's | INSK_0racle_, INSK_Luizeer4, INSK_gabudo, INSK_tuuruuruu
+[NA    ] Newgen Allstars | NA_Balefrost, NA_Shinboi, NA_ega, NA_f1nna
+[NVM   ] NEVERMIND | NVM_LOST, NVM_Linguinha, NVM_WotulinS, NVM_skatasxtico
+[NW    ] No Way | NW_ZxLopes, NW_dnL, NW_gladiador, NW_slabyy
+[ONE   ] Dream One | ONE_LiiPeeXx, ONE_XH44444, ONE_demonfrost, ONE_vps1-
+[PEST  ] Pest Control | PEST_HotNSpicy, PEST_JoShY-_-, PEST_Kaymind, PEST_conf
+[ROC   ] ROC Esports | ROC_cauan7zin, ROC_rbN777, ROC_sparkingg, ROC_sxntastico
+[AFi   ] Affinity | AFi_Ghowst, AFi_Mizbo, AFi_NDucky, AFi_Zalody
+[LxB   ] Last Breath | LxB_Blazr, LxB_andreww, LxB_arv10, LxB_danitw
+[TL    ] Team Liquid | TL_CowBoi, TL_PurdyKurty, TL_aLOW, TL_luke12
+[TMP   ] Tempest | TMP_HUGHLIGAN, TMP_K1lawi, TMP_abdou, TMP_xQnn
+[TOYO  ] TOYO Esports | TOYO_Capitan, TOYO_Emi, TOYO_Fakezin77, TOYO_SOLDZZZZ93
+[WIT   ] What It Takes | WIT_Luciid, WIT_Maurnzz, WIT_SneakAttack, WIT_enzito, WIT_marcis
+[WOLF  ] Copenhagen Wolves | WOLF_Fludd, WOLF_Snakers, WOLF_Vox, WOLF_hwinn
+[X10   ] EUFAREIX10 | X10_FranXzz, X10_Kalniixx, X10_San71Hero1, X10_kl4uZeera

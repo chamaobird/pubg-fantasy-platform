@@ -439,7 +439,7 @@ export default function LandingPage({ redirectTo = '/dashboard' }) {
 
       {/* Main */}
       <main style={{ flex: 1, position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px 24px' }}>
-        <div style={{ width: '100%', maxWidth: '980px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '60px', alignItems: 'center' }}>
+        <div className="xama-landing-grid" style={{ width: '100%', maxWidth: '980px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '60px', alignItems: 'center' }}>
 
           {/* Hero */}
           <div>

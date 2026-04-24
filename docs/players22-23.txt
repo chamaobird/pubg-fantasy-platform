@@ -1,0 +1,134 @@
+{
+  "times": [
+    {
+      "tag": "VPX",
+      "nome_time": "Vuptrox",
+      "jogadores": [
+        "Mikzenn",
+        "Vorix",
+        "Bjoernter",
+        "BlISSEDDDDDDDD"
+      ]
+    },
+    {
+      "tag": "RL",
+      "nome_time": "Redline",
+      "jogadores": [
+        "sniipZEKO",
+        "DYNNO-",
+        "karxx_",
+        "ivas"
+      ]
+    },
+    {
+      "tag": "GN",
+      "nome_time": "GoNext Esports",
+      "jogadores": [
+        "Acaliptos",
+        "IZIO--",
+        "MAXXXXXXXXX-",
+        "F1Nee-"
+      ]
+    },
+    {
+      "tag": "PBRU",
+      "nome_time": "PBRU",
+      "jogadores": [
+        "quintx",
+        "Nabat_",
+        "xreyzer1",
+        "h0pejj"
+      ]
+    },
+    {
+      "tag": "EVER",
+      "nome_time": "Everlong",
+      "jogadores": [
+        "Verstory",
+        "youngwhitetrash",
+        "rinazxc",
+        "saint_xd"
+      ]
+    },
+    {
+      "tag": "YO",
+      "nome_time": "YOOO",
+      "jogadores": [
+        "vjeemzz",
+        "pw9d",
+        "TwitchTV_mykLe",
+        "K4pii"
+      ]
+    },
+    {
+      "tag": "NOT",
+      "nome_time": "NoTag Team",
+      "jogadores": [
+        "OConnell",
+        "rappha",
+        "Mak",
+        "Donquixote_Doffy"
+      ]
+    },
+    {
+      "tag": "BORZ",
+      "nome_time": "BORZ",
+      "jogadores": [
+        "Marchel-",
+        "HalloSenpai",
+        "h1xs",
+        "Luu4iikk-"
+      ]
+    },
+    {
+      "tag": "PGG",
+      "nome_time": "PGG",
+      "jogadores": [
+        "Presenti",
+        "SL0YJACKET",
+        "Zub1la",
+        "Salik-"
+      ]
+    },
+    {
+      "tag": "BAL",
+      "nome_time": "Baldinini",
+      "jogadores": [
+        "MrShimada",
+        "caydel",
+        "taBl-",
+        "sunfloweeeee"
+      ]
+    },
+    {
+      "tag": "GTG",
+      "nome_time": "Ghetto Gang",
+      "jogadores": [
+        "Apr1l-",
+        "iamf1ve-",
+        "imSancho",
+        "Blazor-"
+      ]
+    },
+    {
+      "tag": "SQU",
+      "nome_time": "Storm on Request",
+      "jogadores": [
+        "gt210kz",
+        "pozyyan",
+        "xisooo",
+        "Vezyv1y-"
+      ]
+    },
+    {
+      "tag": "STS",
+      "nome_time": "Starry SKY",
+      "jogadores": [
+        "vaaazooo",
+        "SILERZZ",
+        "KnorkiS",
+        "TOP4IK_PB"
+      ]
+    }
+  ]
+}

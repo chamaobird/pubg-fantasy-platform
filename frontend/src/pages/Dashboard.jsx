@@ -373,7 +373,7 @@ function OpenCard({ s, lineup, champMap, navigate, previewCount = 0, expanded = 
       <div style={{ position: 'absolute', inset: 0, background: glowBg, pointerEvents: 'none' }} />
 
       {/* Coluna 1 — Logo âncora */}
-      <div style={{
+      <div className="dash-open-logo" style={{
         flexShrink: 0,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         width: '108px', height: '108px',
@@ -409,7 +409,7 @@ function OpenCard({ s, lineup, champMap, navigate, previewCount = 0, expanded = 
       </div>
 
       {/* Coluna 3 — Status + CTA */}
-      <div style={{
+      <div className="dash-open-col3" style={{
         flexShrink: 0,
         display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px',
       }}>
@@ -506,7 +506,7 @@ function LockedActiveCard({ s, lineup, champMap, navigate, previewCount = 0, exp
       }} />
 
       {/* Coluna 1 — Logo */}
-      <div style={{
+      <div className="dash-open-logo" style={{
         flexShrink: 0,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         width: '108px', height: '108px',
@@ -532,7 +532,7 @@ function LockedActiveCard({ s, lineup, champMap, navigate, previewCount = 0, exp
       </div>
 
       {/* Coluna 3 — Status + CTA */}
-      <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px' }}>
+      <div className="dash-open-col3" style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px' }}>
         {/* Badge EM JOGO */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
           <span className="xama-pulse" style={{

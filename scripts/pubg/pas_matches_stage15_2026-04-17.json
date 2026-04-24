@@ -1,0 +1,4225 @@
+[
+  {
+    "match_id": "d031782b-b9d4-4bf3-8ab6-f5e8debe0758",
+    "overlap": 3,
+    "roster_players": [
+      "55PD_gabriehw",
+      "55PD_KerakTMz",
+      "55PD_OhNytavoN"
+    ],
+    "created_at": "2026-04-17T01:24:44Z",
+    "match_type": "competitive",
+    "map": "Desert_Main",
+    "duration_min": 21,
+    "participants": [
+      {
+        "name": "napoly7x",
+        "account_id": "account.98d32242b8ad4b8891f4c7b092ebb29e",
+        "kills": 2,
+        "damage": 399.3,
+        "placement": 1
+      },
+      {
+        "name": "Padaa--",
+        "account_id": "account.ed82bbcb0c5b42918c55e59176de3cec",
+        "kills": 1,
+        "damage": 332.6,
+        "placement": 1
+      },
+      {
+        "name": "Rafinha-_",
+        "account_id": "account.0c25eaef532b47fdaab7cce7d0f5d8c5",
+        "kills": 6,
+        "damage": 780.8,
+        "placement": 1
+      },
+      {
+        "name": "luckerr-",
+        "account_id": "account.e8307995c8cc4b69a0a61f3769d0a25b",
+        "kills": 2,
+        "damage": 178.0,
+        "placement": 1
+      },
+      {
+        "name": "Reedztx-",
+        "account_id": "account.2212726686b84731a94a8498601b450a",
+        "kills": 2,
+        "damage": 187.8,
+        "placement": 2
+      },
+      {
+        "name": "coxinha-_",
+        "account_id": "account.979b7090d52d4631963897845d23563b",
+        "kills": 0,
+        "damage": 263.8,
+        "placement": 2
+      },
+      {
+        "name": "Vinegaary",
+        "account_id": "account.e48cad7fdd1e4d748ddc49dad7b04c7b",
+        "kills": 4,
+        "damage": 912.4,
+        "placement": 2
+      },
+      {
+        "name": "Badmist0",
+        "account_id": "account.fc293306017747d0b8165e31386f4614",
+        "kills": 3,
+        "damage": 351.8,
+        "placement": 2
+      },
+      {
+        "name": "HailtToTHeKING",
+        "account_id": "account.9a4397f411a7493895414c2c04f92e9d",
+        "kills": 0,
+        "damage": 42.3,
+        "placement": 3
+      },
+      {
+        "name": "Youne_kass",
+        "account_id": "account.fda12143c3874fd08bf075143426dadc",
+        "kills": 1,
+        "damage": 131.0,
+        "placement": 3
+      },
+      {
+        "name": "maximolasquente",
+        "account_id": "account.bb10c2e9f5364666a1b7f194f2ef4933",
+        "kills": 0,
+        "damage": 256.8,
+        "placement": 3
+      },
+      {
+        "name": "Quejicus",
+        "account_id": "account.864b7d3f7d024d9e86263de11d4801ea",
+        "kills": 0,
+        "damage": 125.4,
+        "placement": 3
+      },
+      {
+        "name": "hvit523",
+        "account_id": "account.400c249ae3524a27ace84026c33468b1",
+        "kills": 7,
+        "damage": 654.2,
+        "placement": 4
+      },
+      {
+        "name": "RichyS_",
+        "account_id": "account.0b04eaecc4ec4d38b9ffbce1f237c30a",
+        "kills": 7,
+        "damage": 778.9,
+        "placement": 4
+      },
+      {
+        "name": "Jaxinho",
+        "account_id": "account.04e60cdd0ca6423da2fcd3038c46e522",
+        "kills": 4,
+        "damage": 399.2,
+        "placement": 4
+      },
+      {
+        "name": "gloock77",
+        "account_id": "account.204be67097614bc5adbf008f7d7bfce4",
+        "kills": 4,
+        "damage": 376.9,
+        "placement": 5
+      },
+      {
+        "name": "KerakTMz",
+        "account_id": "account.71ccdb72a45149a1b1f28404045197d3",
+        "kills": 0,
+        "damage": 72.8,
+        "placement": 5
+      },
+      {
+        "name": "OhNytavoN",
+        "account_id": "account.860d86d8194f4b1fa724cacadaf481c9",
+        "kills": 5,
+        "damage": 458.0,
+        "placement": 5
+      },
+      {
+        "name": "gabriehw",
+        "account_id": "account.3909912f84474b4386e8725b5e6f9568",
+        "kills": 2,
+        "damage": 545.2,
+        "placement": 5
+      },
+      {
+        "name": "SonPirrolinha",
+        "account_id": "account.cb9e10621ccf46349584e5ba53d10041",
+        "kills": 0,
+        "damage": 0,
+        "placement": 6
+      },
+      {
+        "name": "maX-Zera",
+        "account_id": "account.ff5331ff83bc48ffba58b83017d8da75",
+        "kills": 0,
+        "damage": 0,
+        "placement": 6
+      },
+      {
+        "name": "Sin-hueso",
+        "account_id": "account.d7d0593ee6fe42bdb8be87d238a5fba0",
+        "kills": 0,
+        "damage": 59.4,
+        "placement": 7
+      },
+      {
+        "name": "Jhosechoque09",
+        "account_id": "account.f4deea4c584140f695073a00c8b62ca8",
+        "kills": 0,
+        "damage": 39.8,
+        "placement": 7
+      },
+      {
+        "name": "GorditoXL_kick",
+        "account_id": "account.259081d1918a438db3b13be7a2372a8d",
+        "kills": 0,
+        "damage": 69.7,
+        "placement": 7
+      },
+      {
+        "name": "BomberPrime33",
+        "account_id": "account.7a590bf2e8174fe68047637060fd46f6",
+        "kills": 0,
+        "damage": 0,
+        "placement": 7
+      },
+      {
+        "name": "Glo0cK",
+        "account_id": "account.a66ccc5b990b49a7bda0312244def9c8",
+        "kills": 0,
+        "damage": 104.5,
+        "placement": 8
+      },
+      {
+        "name": "Tatito-MATACAUSA",
+        "account_id": "account.31015b4a7c2f41838b226ec66490b940",
+        "kills": 0,
+        "damage": 86.4,
+        "placement": 8
+      },
+      {
+        "name": "MestreDoCaos",
+        "account_id": "account.410459f7f8204a62adb5e7dab58f4b5c",
+        "kills": 0,
+        "damage": 0,
+        "placement": 8
+      },
+      {
+        "name": "MULA-ggeEMvP",
+        "account_id": "account.1bff82d79a1d4e5ca8511088516505f2",
+        "kills": 0,
+        "damage": 100,
+        "placement": 8
+      },
+      {
+        "name": "eudaniel99",
+        "account_id": "account.cbde87752801471fb77a912a5b277cca",
+        "kills": 0,
+        "damage": 0,
+        "placement": 9
+      },
+      {
+        "name": "PezaoXD",
+        "account_id": "account.e5bf07a35a2d47349c948c4bcaff0861",
+        "kills": 0,
+        "damage": 24.5,
+        "placement": 9
+      },
+      {
+        "name": "dkswow",
+        "account_id": "account.107b656554844dfd8b3124d419334b0a",
+        "kills": 0,
+        "damage": 0,
+        "placement": 9
+      },
+      {
+        "name": "juliosh4n",
+        "account_id": "account.c0a145b193284fb784f3b9cbae3c5066",
+        "kills": 0,
+        "damage": 67.1,
+        "placement": 9
+      },
+      {
+        "name": "JUNIORR_GG",
+        "account_id": "account.4c285af64c22407e82937c24754126d3",
+        "kills": 0,
+        "damage": 0,
+        "placement": 10
+      },
+      {
+        "name": "MonjaroBR",
+        "account_id": "account.576c6ad81cc24bffabfd8391241aaf2a",
+        "kills": 1,
+        "damage": 121.8,
+        "placement": 10
+      },
+      {
+        "name": "vicente_lyon",
+        "account_id": "account.04ba98eb59f44e2b9757c0198ca32a0f",
+        "kills": 0,
+        "damage": 0,
+        "placement": 10
+      },
+      {
+        "name": "K4MI-_-",
+        "account_id": "account.5057fdbdbebb4b32bf2efa8f0ad8b270",
+        "kills": 0,
+        "damage": 22.1,
+        "placement": 10
+      },
+      {
+        "name": "0racle_",
+        "account_id": "account.04b5d7a5bd7644999c827c081c6c9723",
+        "kills": 0,
+        "damage": 0,
+        "placement": 11
+      },
+      {
+        "name": "tuuruuruu",
+        "account_id": "account.5a7726a9b06d41cba3331f839d475b20",
+        "kills": 0,
+        "damage": 209.8,
+        "placement": 11
+      },
+      {
+        "name": "Luizeer4",
+        "account_id": "account.28f8bd1c5519497fa6a481432f8e6161",
+        "kills": 3,
+        "damage": 253.9,
+        "placement": 11
+      },
+      {
+        "name": "gabudo",
+        "account_id": "account.3edfae3e7b884e85b2c3223ac5c85c7f",
+        "kills": 1,
+        "damage": 169.7,
+        "placement": 11
+      },
+      {
+        "name": "r4wL_-",
+        "account_id": "account.c5584b783473410185b5772523e8192c",
+        "kills": 2,
+        "damage": 284.0,
+        "placement": 12
+      },
+      {
+        "name": "fehnakay",
+        "account_id": "account.a6f8f34a188a4b1da069236598f3f9f4",
+        "kills": 0,
+        "damage": 0,
+        "placement": 12
+      },
+      {
+        "name": "4Ho-Se",
+        "account_id": "account.17342dc4312a4e4d9b520f27e6a99e03",
+        "kills": 0,
+        "damage": 127.9,
+        "placement": 12
+      },
+      {
+        "name": "guszeera",
+        "account_id": "account.9e78fd9030d8457383854bf75ee4e484",
+        "kills": 1,
+        "damage": 16.0,
+        "placement": 12
+      },
+      {
+        "name": "l---Run-Run---l",
+        "account_id": "account.45377903e9e845b6a117dd9713e0e432",
+        "kills": 1,
+        "damage": 155.8,
+        "placement": 12
+      },
+      {
+        "name": "xDHappyxDBR",
+        "account_id": "account.e481bfd13343470c80e2b54222261ee5",
+        "kills": 0,
+        "damage": 99.3,
+        "placement": 12
+      },
+      {
+        "name": "xM4T1ASx",
+        "account_id": "account.da43e371a6ef4b0b90f90cf448ca1fb8",
+        "kills": 0,
+        "damage": 0,
+        "placement": 13
+      },
+      {
+        "name": "Don-Party",
+        "account_id": "account.14392ec4ac1247d19e9f094cc156a17b",
+        "kills": 0,
+        "damage": 252,
+        "placement": 13
+      },
+      {
+        "name": "xBahrein",
+        "account_id": "account.5035ebcb864b4e3e9ef5cd53d805fa3f",
+        "kills": 0,
+        "damage": 0,
+        "placement": 14
+      },
+      {
+        "name": "unicornio05",
+        "account_id": "account.063001bc52364ea085aa390cac4fbe5e",
+        "kills": 0,
+        "damage": 0,
+        "placement": 14
+      },
+      {
+        "name": "IGNACIOplayer",
+        "account_id": "account.37db72d64b764071971e9cc98f7ce15d",
+        "kills": 0,
+        "damage": 0,
+        "placement": 14
+      },
+      {
+        "name": "1SetPredador",
+        "account_id": "account.1fb3a6e74531491b8be6d3ab9847f580",
+        "kills": 0,
+        "damage": 60.6,
+        "placement": 14
+      },
+      {
+        "name": "SPECTROLmhc",
+        "account_id": "account.f6282cd9e1eb4e42b74219709442e5e5",
+        "kills": 0,
+        "damage": 0,
+        "placement": 14
+      },
+      {
+        "name": "001_SMOKE_001",
+        "account_id": "account.8b84a7d7e4b946e8af4378ac9a97087d",
+        "kills": 0,
+        "damage": 50.5,
+        "placement": 14
+      },
+      {
+        "name": "JUNIIT",
+        "account_id": "account.369a5d61156b4bb8a45d2eeccab18655",
+        "kills": 0,
+        "damage": 32.5,
+        "placement": 15
+      },
+      {
+        "name": "VNXKes",
+        "account_id": "account.eecff2e505e2472391c477b5c0143f42",
+        "kills": 0,
+        "damage": 0,
+        "placement": 15
+      },
+      {
+        "name": "xCarapinA",
+        "account_id": "account.febc0080c0364a0da26ac5927ec735e6",
+        "kills": 0,
+        "damage": 0,
+        "placement": 15
+      },
+      {
+        "name": "BLACKNOIR1337_",
+        "account_id": "account.abbabbe90255499f925aef91ef56787b",
+        "kills": 0,
+        "damage": 0,
+        "placement": 16
+      },
+      {
+        "name": "Brunaozerah",
+        "account_id": "account.b530ca9d2c4749fd8c6d2b6c86c21558",
+        "kills": 0,
+        "damage": 0,
+        "placement": 16
+      },
+      {
+        "name": "HIENA1337_",
+        "account_id": "account.26ec22d258f8473d816ff245010474bf",
+        "kills": 0,
+        "damage": 100,
+        "placement": 16
+      },
+      {
+        "name": "BBalao-",
+        "account_id": "account.f2267852ad8543d787fb1c05294a271e",
+        "kills": 0,
+        "damage": 154.7,
+        "placement": 16
+      }
+    ]
+  },
+  {
+    "match_id": "584209c0-ce38-4e0c-a78a-c054cd46c075",
+    "overlap": 3,
+    "roster_players": [
+      "55PD_gabriehw",
+      "55PD_KerakTMz",
+      "55PD_OhNytavoN"
+    ],
+    "created_at": "2026-04-17T00:56:21Z",
+    "match_type": "competitive",
+    "map": "Tiger_Main",
+    "duration_min": 24,
+    "participants": [
+      {
+        "name": "gloock77",
+        "account_id": "account.204be67097614bc5adbf008f7d7bfce4",
+        "kills": 8,
+        "damage": 921.2,
+        "placement": 1
+      },
+      {
+        "name": "gabriehw",
+        "account_id": "account.3909912f84474b4386e8725b5e6f9568",
+        "kills": 9,
+        "damage": 1245.4,
+        "placement": 1
+      },
+      {
+        "name": "KerakTMz",
+        "account_id": "account.71ccdb72a45149a1b1f28404045197d3",
+        "kills": 5,
+        "damage": 375.8,
+        "placement": 1
+      },
+      {
+        "name": "OhNytavoN",
+        "account_id": "account.860d86d8194f4b1fa724cacadaf481c9",
+        "kills": 11,
+        "damage": 1270.1,
+        "placement": 1
+      },
+      {
+        "name": "Raposa_Marrom",
+        "account_id": "account.3b7f6343d22b4713957721ef22ed238a",
+        "kills": 0,
+        "damage": 6.5,
+        "placement": 2
+      },
+      {
+        "name": "Cardona_Gamer",
+        "account_id": "account.67c03bb83a2a4012a62ae44f6e940734",
+        "kills": 2,
+        "damage": 192.8,
+        "placement": 2
+      },
+      {
+        "name": "Glo0cK",
+        "account_id": "account.a66ccc5b990b49a7bda0312244def9c8",
+        "kills": 0,
+        "damage": 0,
+        "placement": 2
+      },
+      {
+        "name": "Br_sinWH_EZz",
+        "account_id": "account.71a4982ef9444074a42c949703edc089",
+        "kills": 0,
+        "damage": 139.1,
+        "placement": 3
+      },
+      {
+        "name": "OPoderosoChefao",
+        "account_id": "account.7c085a5bf35642589e0377924ae40dfa",
+        "kills": 0,
+        "damage": 0,
+        "placement": 3
+      },
+      {
+        "name": "HUE-fabian1598",
+        "account_id": "account.93cdc11c32cf451d99286e1cef6f6bc5",
+        "kills": 0,
+        "damage": 0,
+        "placement": 3
+      },
+      {
+        "name": "CoriazinX",
+        "account_id": "account.cc59db5884ab4663a3b258dbf63b7f62",
+        "kills": 0,
+        "damage": 21.7,
+        "placement": 3
+      },
+      {
+        "name": "iKaii-",
+        "account_id": "account.b4a188447d4046df8917992b5ad12d56",
+        "kills": 1,
+        "damage": 439.8,
+        "placement": 4
+      },
+      {
+        "name": "OWE3NN-_-",
+        "account_id": "account.7cccbdd0c0044ae9a7cf2559e6a328ca",
+        "kills": 2,
+        "damage": 373.4,
+        "placement": 4
+      },
+      {
+        "name": "iDanZy_-",
+        "account_id": "account.85184d658c8f44c0b6af816e95540d9a",
+        "kills": 1,
+        "damage": 285.7,
+        "placement": 4
+      },
+      {
+        "name": "Aberick",
+        "account_id": "account.1af2877c6e8547e89b8189cb020ff813",
+        "kills": 2,
+        "damage": 440.1,
+        "placement": 4
+      },
+      {
+        "name": "Shapp2k",
+        "account_id": "account.6db3def89bf24c39a8f48c48a8a1df5d",
+        "kills": 3,
+        "damage": 669.7,
+        "placement": 5
+      },
+      {
+        "name": "FeijoadaDPobre09",
+        "account_id": "account.1a9319bbc7e540b784fb142a13f57a76",
+        "kills": 0,
+        "damage": 90.2,
+        "placement": 5
+      },
+      {
+        "name": "MalaGOD09",
+        "account_id": "account.74fa946a8980449f959d4298c2fca741",
+        "kills": 1,
+        "damage": 251.3,
+        "placement": 5
+      },
+      {
+        "name": "FUSQUETAO",
+        "account_id": "account.7ec86fa9dd8748f2b786060553ade7e0",
+        "kills": 1,
+        "damage": 606.5,
+        "placement": 5
+      },
+      {
+        "name": "PucaraLoca",
+        "account_id": "account.8df25e5af5814ad097901bb37f2a5661",
+        "kills": 0,
+        "damage": 262.8,
+        "placement": 6
+      },
+      {
+        "name": "FL4K4TOS",
+        "account_id": "account.3f14bc0dfb8248e68f87418303996c33",
+        "kills": 0,
+        "damage": 88.3,
+        "placement": 6
+      },
+      {
+        "name": "FABRIXXXICIO_CDE",
+        "account_id": "account.a16f7e25448f4963b5acc5a76b2b0481",
+        "kills": 1,
+        "damage": 75.1,
+        "placement": 6
+      },
+      {
+        "name": "ru4nzeera",
+        "account_id": "account.e64702fb6b2244b0a0f7a7e357237ca3",
+        "kills": 0,
+        "damage": 58.0,
+        "placement": 6
+      },
+      {
+        "name": "Waltinho_",
+        "account_id": "account.29378f9b7e204886907ce456e78298e9",
+        "kills": 0,
+        "damage": 66.6,
+        "placement": 7
+      },
+      {
+        "name": "Walpapel",
+        "account_id": "account.0540c2f29ed64292a66e7f6f2cb15c89",
+        "kills": 0,
+        "damage": 19.4,
+        "placement": 7
+      },
+      {
+        "name": "CANGxxAGUIAR",
+        "account_id": "account.7c86b3d85bed40ecba3a1be7d0155dc3",
+        "kills": 1,
+        "damage": 100,
+        "placement": 7
+      },
+      {
+        "name": "yzerofps",
+        "account_id": "account.fb454ddc48674130a9b81c395d2e04b7",
+        "kills": 0,
+        "damage": 0,
+        "placement": 7
+      },
+      {
+        "name": "hvit523",
+        "account_id": "account.400c249ae3524a27ace84026c33468b1",
+        "kills": 0,
+        "damage": 19.8,
+        "placement": 8
+      },
+      {
+        "name": "RichyS_",
+        "account_id": "account.0b04eaecc4ec4d38b9ffbce1f237c30a",
+        "kills": 1,
+        "damage": 289.9,
+        "placement": 8
+      },
+      {
+        "name": "Jaxinho",
+        "account_id": "account.04e60cdd0ca6423da2fcd3038c46e522",
+        "kills": 0,
+        "damage": 0,
+        "placement": 8
+      },
+      {
+        "name": "GabrielZinhKing_",
+        "account_id": "account.16554acc26a545519782ee90a78bf655",
+        "kills": 0,
+        "damage": 86.4,
+        "placement": 9
+      },
+      {
+        "name": "ZE-JACAREE",
+        "account_id": "account.96084a385c404a14bddb8b47725e89bf",
+        "kills": 0,
+        "damage": 14.6,
+        "placement": 9
+      },
+      {
+        "name": "danielgomesok",
+        "account_id": "account.86fc910525dd443b93196f8daeac7233",
+        "kills": 0,
+        "damage": 33.5,
+        "placement": 9
+      },
+      {
+        "name": "SoldierBoy-_",
+        "account_id": "account.b2f80a3772984c6fb29779ed482b1d63",
+        "kills": 2,
+        "damage": 518.1,
+        "placement": 9
+      },
+      {
+        "name": "oNettoNT",
+        "account_id": "account.06f1d6a757e845268cda8525b55951b1",
+        "kills": 1,
+        "damage": 100,
+        "placement": 10
+      },
+      {
+        "name": "Solotov_Br",
+        "account_id": "account.be826e412b9e404799c72a82ec2b61ca",
+        "kills": 0,
+        "damage": 100.8,
+        "placement": 10
+      },
+      {
+        "name": "AndyMiraTortaFPS",
+        "account_id": "account.06978e2fa53842219a5e87118bece11d",
+        "kills": 0,
+        "damage": 17.9,
+        "placement": 10
+      },
+      {
+        "name": "CAP-Dimytry",
+        "account_id": "account.977c8902e1af4ad7b613331b8f7613eb",
+        "kills": 0,
+        "damage": 0,
+        "placement": 10
+      },
+      {
+        "name": "RpGRampage69",
+        "account_id": "account.ce2232512a71493d8b5afead6345f825",
+        "kills": 0,
+        "damage": 78.3,
+        "placement": 11
+      },
+      {
+        "name": "sacilotto",
+        "account_id": "account.cbe07d088048470bb528c02921da0f2f",
+        "kills": 1,
+        "damage": 100.8,
+        "placement": 12
+      },
+      {
+        "name": "JUDMAN1",
+        "account_id": "account.d880ffef305b43fe80814eff09d323da",
+        "kills": 2,
+        "damage": 135.4,
+        "placement": 12
+      },
+      {
+        "name": "XuX4",
+        "account_id": "account.7672e68771624fdcb3fb7831fef24a3d",
+        "kills": 0,
+        "damage": 122.4,
+        "placement": 12
+      },
+      {
+        "name": "xDSlipknoT",
+        "account_id": "account.ea79ee27220d47fb929ef1be36c46522",
+        "kills": 0,
+        "damage": 0,
+        "placement": 13
+      },
+      {
+        "name": "Spag_Heddy_333",
+        "account_id": "account.3a90957c34d64e098ce7640b38e68b7a",
+        "kills": 0,
+        "damage": 0,
+        "placement": 13
+      },
+      {
+        "name": "Rafa182",
+        "account_id": "account.7374c9b7634e490ea9b56ff9449c3f2d",
+        "kills": 0,
+        "damage": 26.4,
+        "placement": 14
+      },
+      {
+        "name": "GianRFS",
+        "account_id": "account.7af959710f3e4f1383ae1394501165b7",
+        "kills": 0,
+        "damage": 48,
+        "placement": 14
+      },
+      {
+        "name": "AiQ1anbaby-_",
+        "account_id": "account.1f1e9e113b5d41daa6b5f563ab4a7378",
+        "kills": 0,
+        "damage": 154.2,
+        "placement": 14
+      },
+      {
+        "name": "Hastec",
+        "account_id": "account.048710afe85e40e4b8ebcdec5da9ea8d",
+        "kills": 0,
+        "damage": 58.0,
+        "placement": 14
+      },
+      {
+        "name": "Awayy-_-",
+        "account_id": "account.7b49de9f5b42403f97937424ae1f3df0",
+        "kills": 0,
+        "damage": 0,
+        "placement": 15
+      },
+      {
+        "name": "thiago_uy",
+        "account_id": "account.e8c70c6c642e440589e2a0c0a293e990",
+        "kills": 0,
+        "damage": 0,
+        "placement": 15
+      },
+      {
+        "name": "AbelgladiadorUY",
+        "account_id": "account.ea345e57e4114ddebef7d97a35045c7a",
+        "kills": 0,
+        "damage": 97.5,
+        "placement": 15
+      },
+      {
+        "name": "0racle_",
+        "account_id": "account.04b5d7a5bd7644999c827c081c6c9723",
+        "kills": 1,
+        "damage": 92,
+        "placement": 15
+      },
+      {
+        "name": "Luizeer4",
+        "account_id": "account.28f8bd1c5519497fa6a481432f8e6161",
+        "kills": 0,
+        "damage": 149.7,
+        "placement": 15
+      },
+      {
+        "name": "tuuruuruu",
+        "account_id": "account.5a7726a9b06d41cba3331f839d475b20",
+        "kills": 2,
+        "damage": 200,
+        "placement": 15
+      },
+      {
+        "name": "felixgladiadorUY",
+        "account_id": "account.699c804904f6438eba9f7460854bac46",
+        "kills": 0,
+        "damage": 0,
+        "placement": 15
+      },
+      {
+        "name": "NORDESTE_Aixleft",
+        "account_id": "account.48c8ba93bfd54f20a676a5038517e108",
+        "kills": 0,
+        "damage": 0,
+        "placement": 16
+      },
+      {
+        "name": "BOTOK1NG",
+        "account_id": "account.292a8125584d446ebf2e97ac84cd45a2",
+        "kills": 0,
+        "damage": 0,
+        "placement": 16
+      },
+      {
+        "name": "thaina",
+        "account_id": "account.e1d7afe4da9747e0a808abe47805bced",
+        "kills": 0,
+        "damage": 0,
+        "placement": 16
+      },
+      {
+        "name": "Zebral-",
+        "account_id": "account.cef8ce1b216f466392de71fb277bb852",
+        "kills": 0,
+        "damage": 64.8,
+        "placement": 16
+      }
+    ]
+  },
+  {
+    "match_id": "39892b88-f8e4-4303-88f6-8971edb18257",
+    "overlap": 3,
+    "roster_players": [
+      "55PD_gabriehw",
+      "55PD_KerakTMz",
+      "55PD_OhNytavoN"
+    ],
+    "created_at": "2026-04-17T00:29:26Z",
+    "match_type": "competitive",
+    "map": "Baltic_Main",
+    "duration_min": 25,
+    "participants": [
+      {
+        "name": "ElevenxD-FPS",
+        "account_id": "account.f701d10ce41f4c7988b5a92a97e8c0bb",
+        "kills": 8,
+        "damage": 1290.8,
+        "placement": 1
+      },
+      {
+        "name": "GuardianWSL",
+        "account_id": "account.13e58593efb440f68433359c47b982fd",
+        "kills": 6,
+        "damage": 479.0,
+        "placement": 1
+      },
+      {
+        "name": "THE-_RETURN",
+        "account_id": "account.a87bc42d3d8d4c5fa4fc91ed4ee49de3",
+        "kills": 3,
+        "damage": 459.0,
+        "placement": 1
+      },
+      {
+        "name": "greenwee",
+        "account_id": "account.7fd28a2ec8114136929e62ab5d4f2e04",
+        "kills": 0,
+        "damage": 28.1,
+        "placement": 2
+      },
+      {
+        "name": "SonPirrolinha",
+        "account_id": "account.cb9e10621ccf46349584e5ba53d10041",
+        "kills": 0,
+        "damage": 0,
+        "placement": 2
+      },
+      {
+        "name": "SH3LLB",
+        "account_id": "account.044cf500669c474da8cc5b2b41f070b1",
+        "kills": 0,
+        "damage": 0,
+        "placement": 2
+      },
+      {
+        "name": "gabriehw",
+        "account_id": "account.3909912f84474b4386e8725b5e6f9568",
+        "kills": 6,
+        "damage": 674.6,
+        "placement": 3
+      },
+      {
+        "name": "OhNytavoN",
+        "account_id": "account.860d86d8194f4b1fa724cacadaf481c9",
+        "kills": 0,
+        "damage": 151.9,
+        "placement": 3
+      },
+      {
+        "name": "gloock77",
+        "account_id": "account.204be67097614bc5adbf008f7d7bfce4",
+        "kills": 8,
+        "damage": 1102.8,
+        "placement": 3
+      },
+      {
+        "name": "KerakTMz",
+        "account_id": "account.71ccdb72a45149a1b1f28404045197d3",
+        "kills": 2,
+        "damage": 291.0,
+        "placement": 3
+      },
+      {
+        "name": "deyvisonbeckham",
+        "account_id": "account.f76134753a4c41209978c1e06f74a3ce",
+        "kills": 1,
+        "damage": 35.1,
+        "placement": 4
+      },
+      {
+        "name": "Galego_01",
+        "account_id": "account.814b59595f00404abcbeab964fd54932",
+        "kills": 0,
+        "damage": 73.7,
+        "placement": 4
+      },
+      {
+        "name": "elviejodelcs",
+        "account_id": "account.6e96e8385b0a42c2a0e3dc8bbd97beee",
+        "kills": 3,
+        "damage": 175.3,
+        "placement": 4
+      },
+      {
+        "name": "VNXKes",
+        "account_id": "account.eecff2e505e2472391c477b5c0143f42",
+        "kills": 5,
+        "damage": 460.8,
+        "placement": 5
+      },
+      {
+        "name": "xCarapinA",
+        "account_id": "account.febc0080c0364a0da26ac5927ec735e6",
+        "kills": 1,
+        "damage": 81,
+        "placement": 5
+      },
+      {
+        "name": "JUNIIT",
+        "account_id": "account.369a5d61156b4bb8a45d2eeccab18655",
+        "kills": 0,
+        "damage": 194.9,
+        "placement": 5
+      },
+      {
+        "name": "Gurii03",
+        "account_id": "account.f76b3498121f406087dbba5b26ac45ec",
+        "kills": 0,
+        "damage": 171.5,
+        "placement": 5
+      },
+      {
+        "name": "DGZADAS_",
+        "account_id": "account.220c4a9168de46c68ce8c83f17b1ef7e",
+        "kills": 0,
+        "damage": 50.8,
+        "placement": 6
+      },
+      {
+        "name": "MATIUZZI041",
+        "account_id": "account.31982b9876c144ec862f7cdb38dd0500",
+        "kills": 0,
+        "damage": 40.2,
+        "placement": 6
+      },
+      {
+        "name": "RianF3",
+        "account_id": "account.7fbd1f08037641a9bff81f4a1ab02016",
+        "kills": 0,
+        "damage": 0,
+        "placement": 6
+      },
+      {
+        "name": "Wolfit0",
+        "account_id": "account.72e00f7895284bceb9be78e07b05d0b6",
+        "kills": 0,
+        "damage": 0,
+        "placement": 6
+      },
+      {
+        "name": "JUNIORR_GG",
+        "account_id": "account.4c285af64c22407e82937c24754126d3",
+        "kills": 2,
+        "damage": 245.3,
+        "placement": 7
+      },
+      {
+        "name": "K4MI-_-",
+        "account_id": "account.5057fdbdbebb4b32bf2efa8f0ad8b270",
+        "kills": 1,
+        "damage": 105.2,
+        "placement": 7
+      },
+      {
+        "name": "Lipezin023",
+        "account_id": "account.003203a54ba349d7b9f2e2d49b7e6b16",
+        "kills": 0,
+        "damage": 0,
+        "placement": 7
+      },
+      {
+        "name": "MonjaroBR",
+        "account_id": "account.576c6ad81cc24bffabfd8391241aaf2a",
+        "kills": 2,
+        "damage": 188.6,
+        "placement": 7
+      },
+      {
+        "name": "bigoLzz",
+        "account_id": "account.8790ba35113344bf920f49511c681f3b",
+        "kills": 0,
+        "damage": 42.1,
+        "placement": 8
+      },
+      {
+        "name": "N0R4GE",
+        "account_id": "account.ccd7c2ab34fe42e6b22d7b42d3d4b88e",
+        "kills": 0,
+        "damage": 88.2,
+        "placement": 8
+      },
+      {
+        "name": "Andr3otti",
+        "account_id": "account.7645e8d4b73047f496069814a525c406",
+        "kills": 0,
+        "damage": 0,
+        "placement": 8
+      },
+      {
+        "name": "zZSh00TeR",
+        "account_id": "account.4d1a91fa512843a895015a956814b2c9",
+        "kills": 0,
+        "damage": 0,
+        "placement": 8
+      },
+      {
+        "name": "FUL3IR0",
+        "account_id": "account.d81d5d755dba4de2a740b9d918f10f3b",
+        "kills": 0,
+        "damage": 18,
+        "placement": 9
+      },
+      {
+        "name": "Niadram27",
+        "account_id": "account.d73e95cd59794986be9244ee8dbd866b",
+        "kills": 0,
+        "damage": 50.4,
+        "placement": 10
+      },
+      {
+        "name": "Riuske2",
+        "account_id": "account.5bab41a386254440bfe65d01d49ac381",
+        "kills": 0,
+        "damage": 0,
+        "placement": 10
+      },
+      {
+        "name": "Olakeashe",
+        "account_id": "account.920bc4ed5e7540adbe0ee79867cc5a15",
+        "kills": 0,
+        "damage": 0,
+        "placement": 10
+      },
+      {
+        "name": "Solicitalo",
+        "account_id": "account.4372da1f99fb4643a04c446cb1c531de",
+        "kills": 1,
+        "damage": 201.8,
+        "placement": 10
+      },
+      {
+        "name": "Ferman-",
+        "account_id": "account.e031e11028784fb38b1a6197964db961",
+        "kills": 1,
+        "damage": 153.6,
+        "placement": 11
+      },
+      {
+        "name": "f3rNaNdeZ__",
+        "account_id": "account.47e914bbf3224421924436eb85ae3dcd",
+        "kills": 0,
+        "damage": 19.2,
+        "placement": 11
+      },
+      {
+        "name": "Tupapucho28",
+        "account_id": "account.c67a9c9ad6ba471bb8369bcb880363fd",
+        "kills": 0,
+        "damage": 0,
+        "placement": 11
+      },
+      {
+        "name": "llAccursedll",
+        "account_id": "account.6b6fa303979a4e74bc79a904120b7f53",
+        "kills": 0,
+        "damage": 0,
+        "placement": 11
+      },
+      {
+        "name": "XuXu-CaRaMeLiTo-",
+        "account_id": "account.51bc3fc665554892bb6575f6d9b63f00",
+        "kills": 0,
+        "damage": 100,
+        "placement": 12
+      },
+      {
+        "name": "BLACKNOIR1337_",
+        "account_id": "account.abbabbe90255499f925aef91ef56787b",
+        "kills": 0,
+        "damage": 0,
+        "placement": 13
+      },
+      {
+        "name": "Brunaozerah",
+        "account_id": "account.b530ca9d2c4749fd8c6d2b6c86c21558",
+        "kills": 0,
+        "damage": 121.7,
+        "placement": 13
+      },
+      {
+        "name": "HIENA1337_",
+        "account_id": "account.26ec22d258f8473d816ff245010474bf",
+        "kills": 2,
+        "damage": 233.4,
+        "placement": 13
+      },
+      {
+        "name": "BBalao-",
+        "account_id": "account.f2267852ad8543d787fb1c05294a271e",
+        "kills": 2,
+        "damage": 182.3,
+        "placement": 13
+      },
+      {
+        "name": "M1nhKhx7_-",
+        "account_id": "account.f57d88b8ac1d425a9bf283289f77b1bc",
+        "kills": 1,
+        "damage": 265,
+        "placement": 14
+      },
+      {
+        "name": "UDE_iTonyyy",
+        "account_id": "account.7f407cd73def4bacaf3ad73c8e830c09",
+        "kills": 2,
+        "damage": 232.2,
+        "placement": 14
+      },
+      {
+        "name": "FuKaiser",
+        "account_id": "account.48be87822d034d5d95c8b5f59f635bb5",
+        "kills": 0,
+        "damage": 21.6,
+        "placement": 14
+      },
+      {
+        "name": "AYR77ON",
+        "account_id": "account.379be003e8ed4e878e8a4eff27513bb3",
+        "kills": 0,
+        "damage": 146.2,
+        "placement": 14
+      },
+      {
+        "name": "user5320219766",
+        "account_id": "account.4b4dff76883d47a7bc5af1b8c68940e5",
+        "kills": 3,
+        "damage": 201.1,
+        "placement": 15
+      },
+      {
+        "name": "Toy2K",
+        "account_id": "account.b30d484eff004686b918afb55421eea3",
+        "kills": 0,
+        "damage": 71.0,
+        "placement": 15
+      },
+      {
+        "name": "barijhoPRIME2000",
+        "account_id": "account.3feab8bf654449ad8ee84c7e9a915219",
+        "kills": 0,
+        "damage": 0,
+        "placement": 16
+      },
+      {
+        "name": "Kazumiz",
+        "account_id": "account.c0fdf4d0bc5f4557b1cf1e7bdad7f56c",
+        "kills": 0,
+        "damage": 100,
+        "placement": 16
+      },
+      {
+        "name": "guill3-",
+        "account_id": "account.8bfe2dcd847f480e82b679a02de72f16",
+        "kills": 0,
+        "damage": 54.2,
+        "placement": 16
+      },
+      {
+        "name": "Paijoga",
+        "account_id": "account.be6c5bd629224911a8bf605f6c341e03",
+        "kills": 0,
+        "damage": 0,
+        "placement": 16
+      },
+      {
+        "name": "MICHAEL_777lp",
+        "account_id": "account.a095dd22f1664a98a737a92f1013ce17",
+        "kills": 1,
+        "damage": 225.2,
+        "placement": 17
+      },
+      {
+        "name": "XNz-Pain",
+        "account_id": "account.cc6cc5d7d6d4452ba9b7f80ea0a3aca3",
+        "kills": 1,
+        "damage": 337.2,
+        "placement": 17
+      },
+      {
+        "name": "FerHopper2001",
+        "account_id": "account.9425a75ec78045e48acdbb81d9b7c420",
+        "kills": 0,
+        "damage": 0,
+        "placement": 17
+      },
+      {
+        "name": "thiago_uy",
+        "account_id": "account.e8c70c6c642e440589e2a0c0a293e990",
+        "kills": 0,
+        "damage": 0,
+        "placement": 18
+      },
+      {
+        "name": "ELPAPADELPRO",
+        "account_id": "account.d67d809f28cd4a09a424b66133f3ea02",
+        "kills": 0,
+        "damage": 0,
+        "placement": 18
+      },
+      {
+        "name": "VIBORA__23",
+        "account_id": "account.daf992b307a94c81a258a04f96efb94d",
+        "kills": 0,
+        "damage": 21.6,
+        "placement": 18
+      },
+      {
+        "name": "AbelgladiadorUY",
+        "account_id": "account.ea345e57e4114ddebef7d97a35045c7a",
+        "kills": 0,
+        "damage": 75,
+        "placement": 18
+      },
+      {
+        "name": "felixgladiadorUY",
+        "account_id": "account.699c804904f6438eba9f7460854bac46",
+        "kills": 0,
+        "damage": 38.7,
+        "placement": 18
+      },
+      {
+        "name": "itsbrzada",
+        "account_id": "account.60fced7188f240a5bd9f6e78a91b9668",
+        "kills": 0,
+        "damage": 146.4,
+        "placement": 18
+      }
+    ]
+  },
+  {
+    "match_id": "ff543666-4b94-4b14-94ca-00028cd78e1e",
+    "overlap": 3,
+    "roster_players": [
+      "55PD_gabriehw",
+      "55PD_KerakTMz",
+      "55PD_OhNytavoN"
+    ],
+    "created_at": "2026-04-16T23:56:54Z",
+    "match_type": "competitive",
+    "map": "Neon_Main",
+    "duration_min": 23,
+    "participants": [
+      {
+        "name": "OhNytavoN",
+        "account_id": "account.860d86d8194f4b1fa724cacadaf481c9",
+        "kills": 5,
+        "damage": 1038.1,
+        "placement": 1
+      },
+      {
+        "name": "gabriehw",
+        "account_id": "account.3909912f84474b4386e8725b5e6f9568",
+        "kills": 16,
+        "damage": 1297.5,
+        "placement": 1
+      },
+      {
+        "name": "KerakTMz",
+        "account_id": "account.71ccdb72a45149a1b1f28404045197d3",
+        "kills": 8,
+        "damage": 619.2,
+        "placement": 1
+      },
+      {
+        "name": "gloock77",
+        "account_id": "account.204be67097614bc5adbf008f7d7bfce4",
+        "kills": 3,
+        "damage": 697.5,
+        "placement": 1
+      },
+      {
+        "name": "Kabelo",
+        "account_id": "account.c6153b7f97ff45d1b523f7dc5bf29d3e",
+        "kills": 0,
+        "damage": 35.2,
+        "placement": 2
+      },
+      {
+        "name": "CORONEL_JLOPESCO",
+        "account_id": "account.2fd507e35c0a4f22829287a581df7f02",
+        "kills": 0,
+        "damage": 112.0,
+        "placement": 2
+      },
+      {
+        "name": "DeadAliveKenny",
+        "account_id": "account.fcbe1b7bace144969fe4bbeca3d0fbc1",
+        "kills": 0,
+        "damage": 37.0,
+        "placement": 2
+      },
+      {
+        "name": "Fabricio010187",
+        "account_id": "account.89fdec337c3f40219264ba36c88df3a9",
+        "kills": 0,
+        "damage": 42.1,
+        "placement": 2
+      },
+      {
+        "name": "TWTzeus_matapato",
+        "account_id": "account.d0bfb652434e45e7870ddf0fc7dc95de",
+        "kills": 4,
+        "damage": 472.5,
+        "placement": 3
+      },
+      {
+        "name": "DGZADAS_",
+        "account_id": "account.220c4a9168de46c68ce8c83f17b1ef7e",
+        "kills": 1,
+        "damage": 421.8,
+        "placement": 3
+      },
+      {
+        "name": "YBrNo",
+        "account_id": "account.53fd223c211646fd8fb65a2b26670c8d",
+        "kills": 2,
+        "damage": 319.7,
+        "placement": 3
+      },
+      {
+        "name": "RianF3",
+        "account_id": "account.7fbd1f08037641a9bff81f4a1ab02016",
+        "kills": 0,
+        "damage": 220.7,
+        "placement": 3
+      },
+      {
+        "name": "FUSQUETAO",
+        "account_id": "account.7ec86fa9dd8748f2b786060553ade7e0",
+        "kills": 0,
+        "damage": 352.6,
+        "placement": 4
+      },
+      {
+        "name": "Shapp2k",
+        "account_id": "account.6db3def89bf24c39a8f48c48a8a1df5d",
+        "kills": 3,
+        "damage": 739.7,
+        "placement": 4
+      },
+      {
+        "name": "FeijoadaDPobre09",
+        "account_id": "account.1a9319bbc7e540b784fb142a13f57a76",
+        "kills": 3,
+        "damage": 235.7,
+        "placement": 4
+      },
+      {
+        "name": "MalaGOD09",
+        "account_id": "account.74fa946a8980449f959d4298c2fca741",
+        "kills": 1,
+        "damage": 54.8,
+        "placement": 4
+      },
+      {
+        "name": "HOErick",
+        "account_id": "account.8e1fad7097594d958cac6826dedfeaea",
+        "kills": 0,
+        "damage": 55.7,
+        "placement": 5
+      },
+      {
+        "name": "R3lS",
+        "account_id": "account.1a31cd56cdb9461592b3763af3564bf7",
+        "kills": 0,
+        "damage": 126.4,
+        "placement": 5
+      },
+      {
+        "name": "rafaelCHGG",
+        "account_id": "account.ce3bbf4bc6844b71a51503ec5227e2b5",
+        "kills": 0,
+        "damage": 134.8,
+        "placement": 5
+      },
+      {
+        "name": "CarvingD",
+        "account_id": "account.7c31c271922242c3911b9a3cf5ffc3fa",
+        "kills": 1,
+        "damage": 41.6,
+        "placement": 5
+      },
+      {
+        "name": "gabrielfsss",
+        "account_id": "account.2d602c6cfd11406dadf358c74821ddb2",
+        "kills": 0,
+        "damage": 12.7,
+        "placement": 6
+      },
+      {
+        "name": "cowsterD",
+        "account_id": "account.52005c097bd542dfae849a3e54d6fd8f",
+        "kills": 1,
+        "damage": 119.2,
+        "placement": 6
+      },
+      {
+        "name": "SlayerRSO",
+        "account_id": "account.91bddaebd5c84b1893b4921fd3ae030a",
+        "kills": 0,
+        "damage": 39.7,
+        "placement": 6
+      },
+      {
+        "name": "thiago_uy",
+        "account_id": "account.e8c70c6c642e440589e2a0c0a293e990",
+        "kills": 1,
+        "damage": 98.0,
+        "placement": 7
+      },
+      {
+        "name": "AbelgladiadorUY",
+        "account_id": "account.ea345e57e4114ddebef7d97a35045c7a",
+        "kills": 0,
+        "damage": 0,
+        "placement": 7
+      },
+      {
+        "name": "felixgladiadorUY",
+        "account_id": "account.699c804904f6438eba9f7460854bac46",
+        "kills": 0,
+        "damage": 134.3,
+        "placement": 7
+      },
+      {
+        "name": "Dem1anz",
+        "account_id": "account.074ed585ae6a49ecb5bd24da4f49568c",
+        "kills": 1,
+        "damage": 178.6,
+        "placement": 7
+      },
+      {
+        "name": "LucasTheTank",
+        "account_id": "account.853a2e5220c146f7831973d7d9672773",
+        "kills": 0,
+        "damage": 0,
+        "placement": 8
+      },
+      {
+        "name": "African_Soldier",
+        "account_id": "account.d2288fa4ccd04df0b60dde3f7f841cbb",
+        "kills": 0,
+        "damage": 84.4,
+        "placement": 8
+      },
+      {
+        "name": "SonPirrolinha",
+        "account_id": "account.cb9e10621ccf46349584e5ba53d10041",
+        "kills": 0,
+        "damage": 46.7,
+        "placement": 8
+      },
+      {
+        "name": "gui1211",
+        "account_id": "account.4b421cd1966b424398ed2b1d7288aca0",
+        "kills": 3,
+        "damage": 638.2,
+        "placement": 9
+      },
+      {
+        "name": "vespuLA-",
+        "account_id": "account.affc949efd654befa6073061a0a9fd0c",
+        "kills": 2,
+        "damage": 149.2,
+        "placement": 9
+      },
+      {
+        "name": "Triplo_xXx",
+        "account_id": "account.7219914bf2b0472abc5a71be40e4a54f",
+        "kills": 0,
+        "damage": 89.9,
+        "placement": 9
+      },
+      {
+        "name": "Champ10N__",
+        "account_id": "account.79ef68c5d69c4ae48b5fe134f574aad6",
+        "kills": 0,
+        "damage": 159.4,
+        "placement": 9
+      },
+      {
+        "name": "Jonathas-AM",
+        "account_id": "account.efb3c3ffaa02405b92d9ea5b3b6b7a8b",
+        "kills": 0,
+        "damage": 0,
+        "placement": 10
+      },
+      {
+        "name": "TFWilgnerAM",
+        "account_id": "account.8ce351a5b72c48c8bce7b44855ecc34d",
+        "kills": 1,
+        "damage": 79,
+        "placement": 10
+      },
+      {
+        "name": "Smaug-AM",
+        "account_id": "account.e371a0ee79154985bade87319c465930",
+        "kills": 0,
+        "damage": 0,
+        "placement": 10
+      },
+      {
+        "name": "EDUZIN-FPS",
+        "account_id": "account.9c80fc55259e4155bfe4e17e3190dd3b",
+        "kills": 0,
+        "damage": 21.1,
+        "placement": 11
+      },
+      {
+        "name": "Granderson_69",
+        "account_id": "account.d6106b6b08af42879e3d2300bcf2712b",
+        "kills": 0,
+        "damage": 36.6,
+        "placement": 11
+      },
+      {
+        "name": "CLECINNNNNHO-FPS",
+        "account_id": "account.b2202adf58b54ae69cc3d412d45881d9",
+        "kills": 0,
+        "damage": 80.9,
+        "placement": 11
+      },
+      {
+        "name": "TiziL--",
+        "account_id": "account.35b4db307053441ca7b5d9294ef757a0",
+        "kills": 0,
+        "damage": 121.0,
+        "placement": 11
+      },
+      {
+        "name": "QiJade-Aged50-CN",
+        "account_id": "account.261f5b8a13ba428789b8ed53a605f4c4",
+        "kills": 1,
+        "damage": 130.5,
+        "placement": 12
+      },
+      {
+        "name": "IGNACIOplayer",
+        "account_id": "account.37db72d64b764071971e9cc98f7ce15d",
+        "kills": 0,
+        "damage": 0,
+        "placement": 12
+      },
+      {
+        "name": "CN__HeShang",
+        "account_id": "account.a49a857f40f947a498ec70900ddcb2f6",
+        "kills": 0,
+        "damage": 181.5,
+        "placement": 12
+      },
+      {
+        "name": "Felix-xu_VaiBem",
+        "account_id": "account.6c7dce5afa514721b73323646bfa4042",
+        "kills": 3,
+        "damage": 275.0,
+        "placement": 12
+      },
+      {
+        "name": "Inphinty123",
+        "account_id": "account.ab70019f8211408d8deab17a1780cbfa",
+        "kills": 0,
+        "damage": 0,
+        "placement": 13
+      },
+      {
+        "name": "Lukinha-",
+        "account_id": "account.59c5993e17e649c59747ff41e799c335",
+        "kills": 0,
+        "damage": 54.6,
+        "placement": 13
+      },
+      {
+        "name": "ursynhu",
+        "account_id": "account.0abec4f2f7a944f29a08ffe981a868c1",
+        "kills": 0,
+        "damage": 40.2,
+        "placement": 13
+      },
+      {
+        "name": "BatidaoStronda",
+        "account_id": "account.2ccf55bdaa364241ac9c02b331b299de",
+        "kills": 0,
+        "damage": 0,
+        "placement": 13
+      },
+      {
+        "name": "iDanZy_-",
+        "account_id": "account.85184d658c8f44c0b6af816e95540d9a",
+        "kills": 0,
+        "damage": 33.4,
+        "placement": 14
+      },
+      {
+        "name": "Aberick",
+        "account_id": "account.1af2877c6e8547e89b8189cb020ff813",
+        "kills": 0,
+        "damage": 18,
+        "placement": 14
+      },
+      {
+        "name": "iKaii-",
+        "account_id": "account.b4a188447d4046df8917992b5ad12d56",
+        "kills": 0,
+        "damage": 0,
+        "placement": 14
+      },
+      {
+        "name": "OWE3NN-_-",
+        "account_id": "account.7cccbdd0c0044ae9a7cf2559e6a328ca",
+        "kills": 0,
+        "damage": 75.6,
+        "placement": 14
+      },
+      {
+        "name": "Xxxx_SYSTEM_xxxX",
+        "account_id": "account.0a9ba739e0534ff38d91bf035ba7b474",
+        "kills": 0,
+        "damage": 0,
+        "placement": 15
+      },
+      {
+        "name": "Aleliyo",
+        "account_id": "account.d4152cf6083b47e3857bd9ea3a539ef8",
+        "kills": 0,
+        "damage": 100,
+        "placement": 15
+      },
+      {
+        "name": "JUDAS0007",
+        "account_id": "account.ed5f2a29895d40ec91f11897e7bfa2a8",
+        "kills": 0,
+        "damage": 11.1,
+        "placement": 15
+      },
+      {
+        "name": "fernan_kill-98",
+        "account_id": "account.6feeeb7ba09a4c14b0cf57c3106e47b6",
+        "kills": 1,
+        "damage": 100.0,
+        "placement": 15
+      },
+      {
+        "name": "Cara1DeAsa",
+        "account_id": "account.7285a6f06ace442aade2c00f28e03a92",
+        "kills": 0,
+        "damage": 68.0,
+        "placement": 15
+      },
+      {
+        "name": "xXReiDellasXx",
+        "account_id": "account.6045d762b49c4358bd8263bad1fed521",
+        "kills": 0,
+        "damage": 0,
+        "placement": 15
+      },
+      {
+        "name": "arLFPS",
+        "account_id": "account.ab0d5bb541884a649e9e3cb490095d31",
+        "kills": 0,
+        "damage": 0,
+        "placement": 16
+      },
+      {
+        "name": "MULA-Stoporador",
+        "account_id": "account.684d23bb24224aaaa66622d8df82c556",
+        "kills": 0,
+        "damage": 0,
+        "placement": 16
+      },
+      {
+        "name": "ecNNN",
+        "account_id": "account.3167f5d1661943eead6ff7c37d3668eb",
+        "kills": 0,
+        "damage": 26.4,
+        "placement": 16
+      },
+      {
+        "name": "MULA-SonycX",
+        "account_id": "account.f61d7a1d5bde4c3b9636b554e1efddcd",
+        "kills": 0,
+        "damage": 21.0,
+        "placement": 16
+      }
+    ]
+  },
+  {
+    "match_id": "8da05573-a762-4469-9c7c-515e35850ddd",
+    "overlap": 3,
+    "roster_players": [
+      "55PD_gabriehw",
+      "55PD_KerakTMz",
+      "55PD_OhNytavoN"
+    ],
+    "created_at": "2026-04-16T23:28:49Z",
+    "match_type": "competitive",
+    "map": "Desert_Main",
+    "duration_min": 25,
+    "participants": [
+      {
+        "name": "Cara1DeAsa",
+        "account_id": "account.7285a6f06ace442aade2c00f28e03a92",
+        "kills": 2,
+        "damage": 304.3,
+        "placement": 1
+      },
+      {
+        "name": "JUDAS0007",
+        "account_id": "account.ed5f2a29895d40ec91f11897e7bfa2a8",
+        "kills": 4,
+        "damage": 504.4,
+        "placement": 1
+      },
+      {
+        "name": "xXReiDellasXx",
+        "account_id": "account.6045d762b49c4358bd8263bad1fed521",
+        "kills": 4,
+        "damage": 356.0,
+        "placement": 1
+      },
+      {
+        "name": "Kasmirski",
+        "account_id": "account.f75e34556af240dab4eb788efbe73eff",
+        "kills": 4,
+        "damage": 551.9,
+        "placement": 1
+      },
+      {
+        "name": "FeijoadaDPobre09",
+        "account_id": "account.1a9319bbc7e540b784fb142a13f57a76",
+        "kills": 3,
+        "damage": 379.7,
+        "placement": 2
+      },
+      {
+        "name": "Shapp2k",
+        "account_id": "account.6db3def89bf24c39a8f48c48a8a1df5d",
+        "kills": 6,
+        "damage": 809.5,
+        "placement": 2
+      },
+      {
+        "name": "MalaGOD09",
+        "account_id": "account.74fa946a8980449f959d4298c2fca741",
+        "kills": 2,
+        "damage": 334.9,
+        "placement": 2
+      },
+      {
+        "name": "FUSQUETAO",
+        "account_id": "account.7ec86fa9dd8748f2b786060553ade7e0",
+        "kills": 2,
+        "damage": 178.9,
+        "placement": 2
+      },
+      {
+        "name": "OhNytavoN",
+        "account_id": "account.860d86d8194f4b1fa724cacadaf481c9",
+        "kills": 5,
+        "damage": 619.6,
+        "placement": 3
+      },
+      {
+        "name": "gloock77",
+        "account_id": "account.204be67097614bc5adbf008f7d7bfce4",
+        "kills": 3,
+        "damage": 672.5,
+        "placement": 3
+      },
+      {
+        "name": "KerakTMz",
+        "account_id": "account.71ccdb72a45149a1b1f28404045197d3",
+        "kills": 4,
+        "damage": 515.2,
+        "placement": 3
+      },
+      {
+        "name": "gabriehw",
+        "account_id": "account.3909912f84474b4386e8725b5e6f9568",
+        "kills": 5,
+        "damage": 660.3,
+        "placement": 3
+      },
+      {
+        "name": "RogerWingfield",
+        "account_id": "account.dbc27e6d3fa34cc48a606315c6f390e4",
+        "kills": 0,
+        "damage": 113.5,
+        "placement": 4
+      },
+      {
+        "name": "ItzCodorna",
+        "account_id": "account.61486d0a360b412c97e0cded1344b72e",
+        "kills": 0,
+        "damage": 0,
+        "placement": 4
+      },
+      {
+        "name": "RianF3",
+        "account_id": "account.7fbd1f08037641a9bff81f4a1ab02016",
+        "kills": 1,
+        "damage": 125.6,
+        "placement": 4
+      },
+      {
+        "name": "DGZADAS_",
+        "account_id": "account.220c4a9168de46c68ce8c83f17b1ef7e",
+        "kills": 0,
+        "damage": 95.8,
+        "placement": 4
+      },
+      {
+        "name": "DAN777FPS",
+        "account_id": "account.e894dc868bb640269f28d7bba2279f4f",
+        "kills": 3,
+        "damage": 146.5,
+        "placement": 5
+      },
+      {
+        "name": "Sutiiak",
+        "account_id": "account.8e57db0a44524e87a7cbb425383d9e65",
+        "kills": 1,
+        "damage": 108.8,
+        "placement": 5
+      },
+      {
+        "name": "MATIUZZI041",
+        "account_id": "account.31982b9876c144ec862f7cdb38dd0500",
+        "kills": 0,
+        "damage": 0,
+        "placement": 5
+      },
+      {
+        "name": "FAAST-BOY",
+        "account_id": "account.98777fa1c1f74f27bc5ff5477bac8c5f",
+        "kills": 0,
+        "damage": 52.0,
+        "placement": 5
+      },
+      {
+        "name": "Pkz1nh0",
+        "account_id": "account.a52fb04851524a269cbe8e02d7826eee",
+        "kills": 0,
+        "damage": 0,
+        "placement": 6
+      },
+      {
+        "name": "FelpSs1",
+        "account_id": "account.9d1f0d3e66934f50981f941a9ff637f5",
+        "kills": 0,
+        "damage": 34.8,
+        "placement": 6
+      },
+      {
+        "name": "luvnik_",
+        "account_id": "account.42eea05f3ff549ff84469b37ad0c1adc",
+        "kills": 0,
+        "damage": 66.9,
+        "placement": 6
+      },
+      {
+        "name": "PitaUK",
+        "account_id": "account.a957cefe83f943aca3b5f5e4e11b843c",
+        "kills": 0,
+        "damage": 0,
+        "placement": 7
+      },
+      {
+        "name": "ViiinnyGOD",
+        "account_id": "account.369b2ccfb3a34c5097c2ddefa84af440",
+        "kills": 0,
+        "damage": 0,
+        "placement": 7
+      },
+      {
+        "name": "Raelzeraa",
+        "account_id": "account.7a5dbfa6b3414833bc64cc34cee03874",
+        "kills": 0,
+        "damage": 0,
+        "placement": 7
+      },
+      {
+        "name": "tiagocorradini",
+        "account_id": "account.ce5ac8a4773e48e1b04eca2635f35b2a",
+        "kills": 0,
+        "damage": 67.4,
+        "placement": 7
+      },
+      {
+        "name": "Japacanim",
+        "account_id": "account.311dcb79d1604fdcb075e04debc4a7d2",
+        "kills": 0,
+        "damage": 0,
+        "placement": 8
+      },
+      {
+        "name": "victxones",
+        "account_id": "account.d93571ae368644d08f285a0542a3fcfb",
+        "kills": 0,
+        "damage": 0,
+        "placement": 8
+      },
+      {
+        "name": "n1tchh",
+        "account_id": "account.1f7d5ad0abee4efc9d32a80f3a5c8060",
+        "kills": 1,
+        "damage": 100,
+        "placement": 8
+      },
+      {
+        "name": "Chupingole-",
+        "account_id": "account.b4999be53d144394b5fe8ddb73a18771",
+        "kills": 1,
+        "damage": 100.0,
+        "placement": 8
+      },
+      {
+        "name": "Molibdenium",
+        "account_id": "account.5e2b77d29fc0490595f935c01e12651d",
+        "kills": 0,
+        "damage": 0,
+        "placement": 9
+      },
+      {
+        "name": "uenkinho",
+        "account_id": "account.839401cb2716451b852d8d621d708da1",
+        "kills": 3,
+        "damage": 303.6,
+        "placement": 9
+      },
+      {
+        "name": "Ferrari1981",
+        "account_id": "account.5676e693c90e44a2824e3e3d933d04a7",
+        "kills": 0,
+        "damage": 33.7,
+        "placement": 9
+      },
+      {
+        "name": "SonPirrolinha",
+        "account_id": "account.cb9e10621ccf46349584e5ba53d10041",
+        "kills": 2,
+        "damage": 0,
+        "placement": 9
+      },
+      {
+        "name": "luciovmx",
+        "account_id": "account.1b68c5f178c64db7beb5827a5fccb8ac",
+        "kills": 0,
+        "damage": 0,
+        "placement": 10
+      },
+      {
+        "name": "BREMEN-",
+        "account_id": "account.2ac3066d2cef4e23ad8e9f3bbe227630",
+        "kills": 0,
+        "damage": 0,
+        "placement": 10
+      },
+      {
+        "name": "Ferman-",
+        "account_id": "account.e031e11028784fb38b1a6197964db961",
+        "kills": 0,
+        "damage": 23.8,
+        "placement": 10
+      },
+      {
+        "name": "llAccursedll",
+        "account_id": "account.6b6fa303979a4e74bc79a904120b7f53",
+        "kills": 0,
+        "damage": 0,
+        "placement": 10
+      },
+      {
+        "name": "whitezzinn-_-",
+        "account_id": "account.dc32e7d503314ef891425227d71a055c",
+        "kills": 2,
+        "damage": 184.5,
+        "placement": 11
+      },
+      {
+        "name": "Jesselingard1v99",
+        "account_id": "account.fb782c92af6f457c9f622d1976c48ddf",
+        "kills": 2,
+        "damage": 31.3,
+        "placement": 11
+      },
+      {
+        "name": "gleeeeeeeeeeeee",
+        "account_id": "account.207c4cf93cd14d10844b7eaf8dc3b4e4",
+        "kills": 0,
+        "damage": 91.7,
+        "placement": 11
+      },
+      {
+        "name": "bragagnollo",
+        "account_id": "account.f394e5e68f994258949a23dd8cfc5ae1",
+        "kills": 0,
+        "damage": 11.3,
+        "placement": 11
+      },
+      {
+        "name": "Myckel",
+        "account_id": "account.2a10c81c99aa46f2b25431f696f3ba40",
+        "kills": 1,
+        "damage": 153.3,
+        "placement": 12
+      },
+      {
+        "name": "Rat_Doto",
+        "account_id": "account.58d629c15af240d4bc48194453eca3b5",
+        "kills": 0,
+        "damage": 127.2,
+        "placement": 12
+      },
+      {
+        "name": "DE_UN_PLOMAZOOO_",
+        "account_id": "account.2a3de0ef86b74d89a831eb00c4781d6c",
+        "kills": 0,
+        "damage": 45.1,
+        "placement": 12
+      },
+      {
+        "name": "HZIN37",
+        "account_id": "account.ad90b7db53384744a1ee3d7b68edd2bd",
+        "kills": 0,
+        "damage": 0,
+        "placement": 12
+      },
+      {
+        "name": "kick-JuanitO",
+        "account_id": "account.3b093c2cba6f4c2fa77a3ea856a7bdbc",
+        "kills": 0,
+        "damage": 149.9,
+        "placement": 12
+      },
+      {
+        "name": "Smaug-AM",
+        "account_id": "account.e371a0ee79154985bade87319c465930",
+        "kills": 0,
+        "damage": 62.1,
+        "placement": 13
+      },
+      {
+        "name": "Jonathas-AM",
+        "account_id": "account.efb3c3ffaa02405b92d9ea5b3b6b7a8b",
+        "kills": 0,
+        "damage": 27.6,
+        "placement": 13
+      },
+      {
+        "name": "TFWilgnerAM",
+        "account_id": "account.8ce351a5b72c48c8bce7b44855ecc34d",
+        "kills": 0,
+        "damage": 23.9,
+        "placement": 13
+      },
+      {
+        "name": "Son_PA",
+        "account_id": "account.9a6e4c5dc0ce40fdbb9022262a67ba4c",
+        "kills": 0,
+        "damage": 137.2,
+        "placement": 13
+      },
+      {
+        "name": "Zebral-",
+        "account_id": "account.cef8ce1b216f466392de71fb277bb852",
+        "kills": 0,
+        "damage": 0,
+        "placement": 14
+      },
+      {
+        "name": "BOTOK1NG",
+        "account_id": "account.292a8125584d446ebf2e97ac84cd45a2",
+        "kills": 0,
+        "damage": 36.2,
+        "placement": 14
+      },
+      {
+        "name": "NORDESTE_Aixleft",
+        "account_id": "account.48c8ba93bfd54f20a676a5038517e108",
+        "kills": 0,
+        "damage": 90.2,
+        "placement": 14
+      },
+      {
+        "name": "thaina",
+        "account_id": "account.e1d7afe4da9747e0a808abe47805bced",
+        "kills": 0,
+        "damage": 146.7,
+        "placement": 14
+      },
+      {
+        "name": "reypit900",
+        "account_id": "account.58f710a2e1f34a20b0a302bd6d2d1e36",
+        "kills": 0,
+        "damage": 0,
+        "placement": 15
+      },
+      {
+        "name": "OPoderosoChefao",
+        "account_id": "account.7c085a5bf35642589e0377924ae40dfa",
+        "kills": 0,
+        "damage": 100,
+        "placement": 15
+      },
+      {
+        "name": "PrK-Nox",
+        "account_id": "account.479bd22073494087bb9cc102c7e5c73c",
+        "kills": 0,
+        "damage": 0,
+        "placement": 15
+      },
+      {
+        "name": "DeegoHm",
+        "account_id": "account.387bdbd0f4b04781ab76e051d0399785",
+        "kills": 0,
+        "damage": 0,
+        "placement": 15
+      }
+    ]
+  },
+  {
+    "match_id": "7f3ba95b-ecbb-41ac-ad37-d8348e47d168",
+    "overlap": 3,
+    "roster_players": [
+      "NW_DuduGladiador",
+      "NW_slabyy-",
+      "NW_ZxLopes"
+    ],
+    "created_at": "2026-04-17T03:34:20Z",
+    "match_type": "official",
+    "map": "Tiger_Main",
+    "duration_min": 25,
+    "participants": [
+      {
+        "name": "BALLACKpg",
+        "account_id": "account.67f9749b8d3d48948cfb584068d3bc24",
+        "kills": 0,
+        "damage": 67.6,
+        "placement": 1
+      },
+      {
+        "name": "MAKUNGA_29",
+        "account_id": "account.73ab78572c83430a876b455eeaf3332f",
+        "kills": 4,
+        "damage": 229.6,
+        "placement": 1
+      },
+      {
+        "name": "IAmNekros",
+        "account_id": "account.65ebe7608f5644f99fd18693c38a3038",
+        "kills": 4,
+        "damage": 424.0,
+        "placement": 1
+      },
+      {
+        "name": "Campestrino",
+        "account_id": "account.8abfe08b4b7a431d9014e3cef74a6856",
+        "kills": 0,
+        "damage": 59.6,
+        "placement": 1
+      },
+      {
+        "name": "slabyy-_",
+        "account_id": "account.bd687f002f584467a99cf3b885bc2681",
+        "kills": 7,
+        "damage": 1304.5,
+        "placement": 2
+      },
+      {
+        "name": "DuduGladiador",
+        "account_id": "account.b2f73629c0984b30800601d557e490c4",
+        "kills": 14,
+        "damage": 1449.7,
+        "placement": 2
+      },
+      {
+        "name": "ZxLopes",
+        "account_id": "account.95eea9c45ea64e67b163fbdbb2cc24ea",
+        "kills": 15,
+        "damage": 1556.1,
+        "placement": 2
+      },
+      {
+        "name": "Pequen0gafanhoto",
+        "account_id": "account.8fd352cd51bf43f8825eba9f55f7b265",
+        "kills": 0,
+        "damage": 86.6,
+        "placement": 3
+      },
+      {
+        "name": "LYPJAMAL",
+        "account_id": "account.8bf46897a30f4f44869a10c191439fcc",
+        "kills": 0,
+        "damage": 203.1,
+        "placement": 3
+      },
+      {
+        "name": "DuuhAndrade",
+        "account_id": "account.d5f6dad9b8fd463e9563fcefef3cdd07",
+        "kills": 0,
+        "damage": 19.3,
+        "placement": 3
+      },
+      {
+        "name": "Hudzera",
+        "account_id": "account.56c827eb18f74652b179325a2836df98",
+        "kills": 2,
+        "damage": 217.7,
+        "placement": 3
+      },
+      {
+        "name": "AndrezinhoTips",
+        "account_id": "account.91d0dc5c63d74033a5e57a25eb64dfac",
+        "kills": 1,
+        "damage": 41.6,
+        "placement": 4
+      },
+      {
+        "name": "Bharonzada",
+        "account_id": "account.8014e3cda7104f048ee4fe34df581fb6",
+        "kills": 1,
+        "damage": 285.0,
+        "placement": 4
+      },
+      {
+        "name": "Magaiv3r_",
+        "account_id": "account.021742ce3ad24b6b8e1f42e9f9ffd502",
+        "kills": 2,
+        "damage": 174.5,
+        "placement": 4
+      },
+      {
+        "name": "Johncarteer",
+        "account_id": "account.ee049e2f35c94460a0d0ef1c7d77ee8d",
+        "kills": 1,
+        "damage": 125.5,
+        "placement": 5
+      },
+      {
+        "name": "FKZAO",
+        "account_id": "account.b3842a8ff45747adbd9791ba845264e8",
+        "kills": 4,
+        "damage": 339.6,
+        "placement": 5
+      },
+      {
+        "name": "VINIXSPX",
+        "account_id": "account.75378537a7974f289a10a3584eb8da57",
+        "kills": 1,
+        "damage": 145.0,
+        "placement": 5
+      },
+      {
+        "name": "TAKADTSU",
+        "account_id": "account.e58826b587294f88a4d03c1b1ef8af1e",
+        "kills": 0,
+        "damage": 0,
+        "placement": 5
+      },
+      {
+        "name": "whitecandyvan3",
+        "account_id": "account.034704f625914ce3b6f53e9e7b569ad8",
+        "kills": 0,
+        "damage": 0,
+        "placement": 6
+      },
+      {
+        "name": "srtapapitas",
+        "account_id": "account.9e4503f2442149fca36a27b04003964a",
+        "kills": 0,
+        "damage": 13.0,
+        "placement": 7
+      },
+      {
+        "name": "JGRCALVO",
+        "account_id": "account.8f2a5582e2de4b75bb53f72357e7d13b",
+        "kills": 0,
+        "damage": 19.4,
+        "placement": 7
+      },
+      {
+        "name": "Mauri22",
+        "account_id": "account.d9460b3919d24a0bb481b899b41e4c78",
+        "kills": 2,
+        "damage": 273.3,
+        "placement": 7
+      },
+      {
+        "name": "dananikol",
+        "account_id": "account.d412c42f929f4f8d9e72bba0d4abed7c",
+        "kills": 1,
+        "damage": 39.4,
+        "placement": 7
+      },
+      {
+        "name": "DJ_BRUNINHO-RJ",
+        "account_id": "account.96e82947cbe44a4db3013ccdae8177f9",
+        "kills": 2,
+        "damage": 288.3,
+        "placement": 8
+      },
+      {
+        "name": "SAVOKENNNNN",
+        "account_id": "account.9e943d6c08464ec7a6d23fdd6b1c0379",
+        "kills": 3,
+        "damage": 277.8,
+        "placement": 8
+      },
+      {
+        "name": "FrozeNszK",
+        "account_id": "account.bc2ca5f0d33647419f29830b73b7a8e0",
+        "kills": 2,
+        "damage": 244.6,
+        "placement": 8
+      },
+      {
+        "name": "Lekzeraaa",
+        "account_id": "account.ff7aafaf1d4b41c382d672cacc313605",
+        "kills": 1,
+        "damage": 236.5,
+        "placement": 8
+      },
+      {
+        "name": "BREDY_",
+        "account_id": "account.57af9e874b14472b98f8b01be1bf5ce1",
+        "kills": 0,
+        "damage": 72.1,
+        "placement": 8
+      },
+      {
+        "name": "MasterOfChurros",
+        "account_id": "account.ecad65602b9445f2b787870924d1586d",
+        "kills": 0,
+        "damage": 61.3,
+        "placement": 9
+      },
+      {
+        "name": "e1_CHIQUITOS",
+        "account_id": "account.d61fa65e0e8c4d019edfb9ab3ce8e250",
+        "kills": 0,
+        "damage": 105.1,
+        "placement": 9
+      },
+      {
+        "name": "Raid-Depredador",
+        "account_id": "account.8c72754f48e9453db642f2d95041c10d",
+        "kills": 0,
+        "damage": 0,
+        "placement": 9
+      },
+      {
+        "name": "juancuervo",
+        "account_id": "account.b67c30448dc34f47afaf26a7c3ed16c2",
+        "kills": 0,
+        "damage": 28.7,
+        "placement": 9
+      },
+      {
+        "name": "zGreg-_-",
+        "account_id": "account.b42b153fe3884991a9227a693ef221d0",
+        "kills": 4,
+        "damage": 374.0,
+        "placement": 10
+      },
+      {
+        "name": "jonyelmas22",
+        "account_id": "account.80d3924a07224957803929b1199eccc9",
+        "kills": 0,
+        "damage": 0,
+        "placement": 11
+      },
+      {
+        "name": "Lucho_Mer",
+        "account_id": "account.6b0f31d6379447b6be6b3ea7d851927f",
+        "kills": 0,
+        "damage": 0,
+        "placement": 11
+      },
+      {
+        "name": "maurop7",
+        "account_id": "account.6655db4dca1f44f2a83d5e3cca516dee",
+        "kills": 0,
+        "damage": 153.7,
+        "placement": 11
+      },
+      {
+        "name": "Drozen121",
+        "account_id": "account.e29837db2d944ee7ac0e11b9d7a96621",
+        "kills": 0,
+        "damage": 0,
+        "placement": 11
+      },
+      {
+        "name": "Celestrat",
+        "account_id": "account.f81191bcfed54ccdb7e4d2080e0b2b04",
+        "kills": 1,
+        "damage": 141.5,
+        "placement": 12
+      },
+      {
+        "name": "zViiniixGT",
+        "account_id": "account.bc52b28f30c34a27a0c1c00924c3d9ad",
+        "kills": 1,
+        "damage": 98.9,
+        "placement": 12
+      },
+      {
+        "name": "Billy-GT",
+        "account_id": "account.629df9b5453a41ddb7e519a9c9a8b55c",
+        "kills": 1,
+        "damage": 100,
+        "placement": 12
+      },
+      {
+        "name": "andsolutismo",
+        "account_id": "account.a28cb5c1f97e41a88572b6e63ec068ba",
+        "kills": 0,
+        "damage": 118.4,
+        "placement": 12
+      },
+      {
+        "name": "Ukypdragged",
+        "account_id": "ai.348",
+        "kills": 0,
+        "damage": 42.3,
+        "placement": 13
+      },
+      {
+        "name": "Cmlli",
+        "account_id": "account.157b796ecf1149d5bb2f60260c0cbd7b",
+        "kills": 0,
+        "damage": 143.2,
+        "placement": 14
+      },
+      {
+        "name": "Lusvarghi",
+        "account_id": "account.0680eab2f5a7461f83b84553d1c24d10",
+        "kills": 0,
+        "damage": 79.1,
+        "placement": 14
+      },
+      {
+        "name": "JOAOLADEIA",
+        "account_id": "account.8606bf85daad45ae90a1b395fe698cbb",
+        "kills": 0,
+        "damage": 0,
+        "placement": 14
+      },
+      {
+        "name": "METILCOBALAMINA",
+        "account_id": "account.5a9890474d664359b2845663d08a4786",
+        "kills": 1,
+        "damage": 147.9,
+        "placement": 15
+      },
+      {
+        "name": "CantorFabio",
+        "account_id": "account.cd46f155e50b4d9ab2d582d337091f2a",
+        "kills": 0,
+        "damage": 74.5,
+        "placement": 15
+      },
+      {
+        "name": "hhomer",
+        "account_id": "account.aa4fa90fb1004c0cb40a74d44ddb63c2",
+        "kills": 0,
+        "damage": 0,
+        "placement": 16
+      },
+      {
+        "name": "Freireziinn",
+        "account_id": "account.5c3a9042653a4d0384c125afce85b11a",
+        "kills": 0,
+        "damage": 61.3,
+        "placement": 16
+      },
+      {
+        "name": "Nosera",
+        "account_id": "account.8e68d6229eee46939a50d5dcec3648cb",
+        "kills": 1,
+        "damage": 100,
+        "placement": 16
+      },
+      {
+        "name": "DedosAddams",
+        "account_id": "account.a77eb4d16d8a4c1e9803237bc1b1154a",
+        "kills": 0,
+        "damage": 22.3,
+        "placement": 17
+      },
+      {
+        "name": "iH4CK_ANG3L-",
+        "account_id": "account.df118aebf7b24a59a23c9817a3ea1a08",
+        "kills": 1,
+        "damage": 124.8,
+        "placement": 17
+      },
+      {
+        "name": "Stazaofrex",
+        "account_id": "account.56cd39f4445948b484aa0281c5f5b2fc",
+        "kills": 0,
+        "damage": 74.2,
+        "placement": 17
+      },
+      {
+        "name": "Coamiur",
+        "account_id": "account.a7fe8bdc7c9a4e8da4d5b6cdd749e006",
+        "kills": 3,
+        "damage": 276.8,
+        "placement": 17
+      },
+      {
+        "name": "Fatedzz",
+        "account_id": "account.b25003b9ba644f2fa87591ee61bedec6",
+        "kills": 1,
+        "damage": 125.8,
+        "placement": 17
+      },
+      {
+        "name": "Ho_Li",
+        "account_id": "account.f66062d9b42b43f1b2818f7c75d5e05c",
+        "kills": 0,
+        "damage": 0,
+        "placement": 17
+      },
+      {
+        "name": "RacingPose",
+        "account_id": "account.7cba6a08a50949e194cacaf7d10ce0a0",
+        "kills": 0,
+        "damage": 23.2,
+        "placement": 17
+      },
+      {
+        "name": "GilBalaa",
+        "account_id": "account.795d88edc3f44c1ab2cc24845d74ff80",
+        "kills": 0,
+        "damage": 0,
+        "placement": 18
+      },
+      {
+        "name": "HunteR_se7e",
+        "account_id": "account.95ed1bb9351b4312895896317ef2b51c",
+        "kills": 2,
+        "damage": 300.0,
+        "placement": 18
+      },
+      {
+        "name": "KitilaHM",
+        "account_id": "account.f0680d4551de4dd1a8cbee1f7d3ff860",
+        "kills": 0,
+        "damage": 0,
+        "placement": 18
+      },
+      {
+        "name": "Nivekeu",
+        "account_id": "account.29f47f6d705846ab98f6f5c4738398b9",
+        "kills": 0,
+        "damage": 117.9,
+        "placement": 19
+      },
+      {
+        "name": "Nickolau",
+        "account_id": "account.3706abbb9e9e45aabf65107aec92ec58",
+        "kills": 0,
+        "damage": 25.2,
+        "placement": 19
+      },
+      {
+        "name": "LenzMichel",
+        "account_id": "account.2639c39bf7414d6a989aeb874fba566f",
+        "kills": 4,
+        "damage": 224.3,
+        "placement": 19
+      },
+      {
+        "name": "lucasantosp",
+        "account_id": "account.d4855602cfe64f0c98969b7ceb3e1978",
+        "kills": 0,
+        "damage": 21.6,
+        "placement": 19
+      },
+      {
+        "name": "Atrupus",
+        "account_id": "account.e02ec177cc3a4b319a33b759afbc69f3",
+        "kills": 1,
+        "damage": 80.2,
+        "placement": 20
+      },
+      {
+        "name": "Tchunai_OFICIAL",
+        "account_id": "account.cd62d29c9c2842b29aa074be8a84fcc4",
+        "kills": 0,
+        "damage": 42,
+        "placement": 20
+      },
+      {
+        "name": "Metthz",
+        "account_id": "account.7cf2b822a5b24f83b5848f26509b79a8",
+        "kills": 1,
+        "damage": 148,
+        "placement": 20
+      },
+      {
+        "name": "SukhoI09",
+        "account_id": "account.e827b7b846124e5c9ada575ccc7118df",
+        "kills": 3,
+        "damage": 293.8,
+        "placement": 20
+      },
+      {
+        "name": "RpS-Samurai",
+        "account_id": "account.2370ec4c16a4482181ea5959c19dd615",
+        "kills": 0,
+        "damage": 0,
+        "placement": 21
+      },
+      {
+        "name": "VinZilda",
+        "account_id": "account.1b05e556380140078279aa67a66115e5",
+        "kills": 0,
+        "damage": 121.2,
+        "placement": 21
+      },
+      {
+        "name": "RpS01RaposA",
+        "account_id": "account.0be2bbe408cb467e839d5f7561cbb871",
+        "kills": 0,
+        "damage": 0,
+        "placement": 21
+      },
+      {
+        "name": "Touya-Mochizuki",
+        "account_id": "account.dfa6967299fd468cafec0a155d574e46",
+        "kills": 0,
+        "damage": 0,
+        "placement": 22
+      },
+      {
+        "name": "bbbalanbbb",
+        "account_id": "account.c05ba1309e004869802b36b82f98970a",
+        "kills": 0,
+        "damage": 0,
+        "placement": 22
+      },
+      {
+        "name": "PFeitosa",
+        "account_id": "account.c09b9a19d7194ba8bd9c914cad771023",
+        "kills": 0,
+        "damage": 110,
+        "placement": 22
+      },
+      {
+        "name": "WiLLiAnJoNeS",
+        "account_id": "account.3defc994417f42179a4aa2abac86b83c",
+        "kills": 2,
+        "damage": 200.0,
+        "placement": 22
+      },
+      {
+        "name": "inenmy_gasgo",
+        "account_id": "account.a28b5324ba514580803f2d8a4876060f",
+        "kills": 0,
+        "damage": 0,
+        "placement": 22
+      },
+      {
+        "name": "cheiradedo",
+        "account_id": "account.e4dcde5b9482478b80f2b51cd81a5d7a",
+        "kills": 0,
+        "damage": 79.2,
+        "placement": 22
+      },
+      {
+        "name": "MOURA_10",
+        "account_id": "account.006cc25b87bd4cafa0aad9ea91df83d8",
+        "kills": 0,
+        "damage": 0,
+        "placement": 22
+      },
+      {
+        "name": "Cidrao2",
+        "account_id": "account.36b1768590604c1b9fefa34e562b01bd",
+        "kills": 1,
+        "damage": 100,
+        "placement": 23
+      },
+      {
+        "name": "BrunaRosadinha",
+        "account_id": "account.8be9649ab1ae45f4b5d165181ad1c103",
+        "kills": 0,
+        "damage": 0,
+        "placement": 23
+      },
+      {
+        "name": "kyoo-o",
+        "account_id": "account.9447b70c6a4c4408b3a84000079489b5",
+        "kills": 0,
+        "damage": 83.1,
+        "placement": 23
+      },
+      {
+        "name": "Coiiins",
+        "account_id": "account.c49f3db414a4409fb2a9052b81527fb2",
+        "kills": 0,
+        "damage": 22.2,
+        "placement": 24
+      },
+      {
+        "name": "dasmulher_57",
+        "account_id": "account.d4cd5beb08fa434c99df046b6d309a14",
+        "kills": 0,
+        "damage": 0,
+        "placement": 24
+      },
+      {
+        "name": "ITG_Flowey",
+        "account_id": "account.d59b7681c0144533832fa8507036653a",
+        "kills": 0,
+        "damage": 0,
+        "placement": 24
+      },
+      {
+        "name": "ElDalmy-04_",
+        "account_id": "account.1766fbf682b84d508a873e1392db914d",
+        "kills": 0,
+        "damage": 0,
+        "placement": 25
+      },
+      {
+        "name": "Matiii0007",
+        "account_id": "account.9cbefab2ee3747f18d9bcb3ad70d520a",
+        "kills": 2,
+        "damage": 180.7,
+        "placement": 25
+      },
+      {
+        "name": "UlisesGTi",
+        "account_id": "account.0fc72cbdf772414fb1410b530544458c",
+        "kills": 0,
+        "damage": 0,
+        "placement": 25
+      },
+      {
+        "name": "atr_perroloco",
+        "account_id": "account.47c9e38b58b440fbbb7562eeb49576d0",
+        "kills": 0,
+        "damage": 19.4,
+        "placement": 25
+      },
+      {
+        "name": "Soldado_Ryan04",
+        "account_id": "account.7110f0e48d3e4c518c1a02aa92a1be04",
+        "kills": 2,
+        "damage": 200,
+        "placement": 25
+      },
+      {
+        "name": "ktchorroooo",
+        "account_id": "account.ea5f082966714624841bbce7760f24ce",
+        "kills": 0,
+        "damage": 0,
+        "placement": 26
+      },
+      {
+        "name": "shebaziK",
+        "account_id": "account.ff41f943f42a4fdb89f2952407e2db2e",
+        "kills": 0,
+        "damage": 0,
+        "placement": 26
+      },
+      {
+        "name": "Thaoos",
+        "account_id": "account.fb7af0304c7a4dd3a815b3afd020f6c5",
+        "kills": 0,
+        "damage": 46.4,
+        "placement": 27
+      },
+      {
+        "name": "mixer_1212",
+        "account_id": "account.5f3789a18d8242798062be079be291d6",
+        "kills": 0,
+        "damage": 0,
+        "placement": 27
+      },
+      {
+        "name": "andreww4Real",
+        "account_id": "account.a9c2ca608d3342c8a1b67993c517f5a7",
+        "kills": 0,
+        "damage": 100,
+        "placement": 28
+      },
+      {
+        "name": "CCaaiioo-",
+        "account_id": "account.d3a1f98f85fa430c9724736256fb9d9e",
+        "kills": 0,
+        "damage": 0,
+        "placement": 29
+      },
+      {
+        "name": "Elorgandutan",
+        "account_id": "account.6386d0c125094e8db4022cc6585ea557",
+        "kills": 0,
+        "damage": 0,
+        "placement": 29
+      },
+      {
+        "name": "jxus18",
+        "account_id": "account.fed613494c544a9cba1333507ca6eebc",
+        "kills": 0,
+        "damage": 0,
+        "placement": 29
+      }
+    ]
+  },
+  {
+    "match_id": "2e8b7891-03b7-42ae-8422-8a0c48f99921",
+    "overlap": 3,
+    "roster_players": [
+      "NW_DuduGladiador",
+      "NW_slabyy-",
+      "NW_ZxLopes"
+    ],
+    "created_at": "2026-04-17T03:05:54Z",
+    "match_type": "competitive",
+    "map": "Tiger_Main",
+    "duration_min": 28,
+    "participants": [
+      {
+        "name": "TheDestr0yeR",
+        "account_id": "account.90f73f5afaad48e6801e97f3df308d35",
+        "kills": 1,
+        "damage": 100,
+        "placement": 1
+      },
+      {
+        "name": "xFlashDemoNx",
+        "account_id": "account.570f038ee3fa41e5862c26eeabe605db",
+        "kills": 3,
+        "damage": 644.7,
+        "placement": 1
+      },
+      {
+        "name": "FLIK_SaiyajiN",
+        "account_id": "account.8b40a643d34e4a679afc936889268109",
+        "kills": 5,
+        "damage": 487.7,
+        "placement": 1
+      },
+      {
+        "name": "quuuuuuuu--",
+        "account_id": "account.0cd4ebbb10e54f0ca512601124885b0e",
+        "kills": 3,
+        "damage": 638.9,
+        "placement": 1
+      },
+      {
+        "name": "FALCAO-",
+        "account_id": "account.5f9a11d60d9343beb267c28f920d26d2",
+        "kills": 4,
+        "damage": 411.2,
+        "placement": 2
+      },
+      {
+        "name": "Lirahunter22",
+        "account_id": "account.c465b36c46804950a502b455aadb8f63",
+        "kills": 2,
+        "damage": 298.4,
+        "placement": 2
+      },
+      {
+        "name": "G3S_Antrivos",
+        "account_id": "account.5dfb3fa6f5134e6d92cfc2f186e52988",
+        "kills": 1,
+        "damage": 172.1,
+        "placement": 2
+      },
+      {
+        "name": "Don-Party",
+        "account_id": "account.14392ec4ac1247d19e9f094cc156a17b",
+        "kills": 2,
+        "damage": 379.1,
+        "placement": 3
+      },
+      {
+        "name": "Don-NiLoTo",
+        "account_id": "account.2a58e09ceee84ca3b3ed926573becb7c",
+        "kills": 1,
+        "damage": 229.9,
+        "placement": 3
+      },
+      {
+        "name": "Don-Vasily",
+        "account_id": "account.695d9af7cd844f2ea5d8af239b122521",
+        "kills": 1,
+        "damage": 116.0,
+        "placement": 3
+      },
+      {
+        "name": "AndrEZpartaN-CL",
+        "account_id": "account.caf32934d2b44c54bd45bc0ab0b62c51",
+        "kills": 0,
+        "damage": 239.8,
+        "placement": 3
+      },
+      {
+        "name": "DRAKEMfps",
+        "account_id": "account.2370f987d23446fd8e01ea5a92e7a821",
+        "kills": 6,
+        "damage": 1078.8,
+        "placement": 4
+      },
+      {
+        "name": "sailian_66666",
+        "account_id": "account.a5d86a08bdba4e2e8bb9fbad33ec97ce",
+        "kills": 2,
+        "damage": 252.4,
+        "placement": 4
+      },
+      {
+        "name": "KoyomiLolicon",
+        "account_id": "account.04553470918a46338594d3b5ccdcd304",
+        "kills": 1,
+        "damage": 68.0,
+        "placement": 4
+      },
+      {
+        "name": "LeonardoRox",
+        "account_id": "account.beec162b7a4b4283a71d6dfab0d54d4b",
+        "kills": 0,
+        "damage": 76.9,
+        "placement": 4
+      },
+      {
+        "name": "Siinth_",
+        "account_id": "account.9453d7956db1424d9b95214fd96466a6",
+        "kills": 0,
+        "damage": 0,
+        "placement": 5
+      },
+      {
+        "name": "Zogv",
+        "account_id": "account.221a5bf0ec52440e89cf5abf92ff892b",
+        "kills": 0,
+        "damage": 21.6,
+        "placement": 5
+      },
+      {
+        "name": "Xiaohai1xxx",
+        "account_id": "account.ba6ce6b2b5594f37ae427958d2d69fb4",
+        "kills": 3,
+        "damage": 329.6,
+        "placement": 5
+      },
+      {
+        "name": "VelhaGames",
+        "account_id": "account.5026c40162cc412fb582239fa05c135a",
+        "kills": 1,
+        "damage": 313.0,
+        "placement": 6
+      },
+      {
+        "name": "V-I-R-I",
+        "account_id": "account.bd26bdb3f541484188f0d024c69d3e3a",
+        "kills": 0,
+        "damage": 110.8,
+        "placement": 6
+      },
+      {
+        "name": "Cwb21",
+        "account_id": "account.4383c147836047f194dbd0e84ac0420c",
+        "kills": 0,
+        "damage": 121.3,
+        "placement": 6
+      },
+      {
+        "name": "SrFernandess",
+        "account_id": "account.156e6e4b897c4470a7c413fcce68e231",
+        "kills": 1,
+        "damage": 66.3,
+        "placement": 7
+      },
+      {
+        "name": "t1_VASCO",
+        "account_id": "account.5cf92ec8d9914bbb848b1e7bdae64242",
+        "kills": 0,
+        "damage": 86.3,
+        "placement": 7
+      },
+      {
+        "name": "LuideSouza",
+        "account_id": "account.0dfdd5cd720242ad87e8455227d1e1ce",
+        "kills": 0,
+        "damage": 45.8,
+        "placement": 7
+      },
+      {
+        "name": "NEWXL17",
+        "account_id": "account.5f04c34e9e7c4dc2865dbfda16ac168f",
+        "kills": 1,
+        "damage": 135.4,
+        "placement": 7
+      },
+      {
+        "name": "Merme77",
+        "account_id": "account.4d940be616244bd6b11fcf332852caca",
+        "kills": 1,
+        "damage": 147.1,
+        "placement": 8
+      },
+      {
+        "name": "ChiquitoLB",
+        "account_id": "account.2f611161fae6460e82358291da39eb76",
+        "kills": 1,
+        "damage": 140.5,
+        "placement": 8
+      },
+      {
+        "name": "Smilwar",
+        "account_id": "account.469ffc2634214100b1ccbeed7aca0cba",
+        "kills": 1,
+        "damage": 285.5,
+        "placement": 8
+      },
+      {
+        "name": "lukinhas-ARG",
+        "account_id": "account.f01f656c81b640a68ea9c35bf681e51b",
+        "kills": 0,
+        "damage": 93.9,
+        "placement": 8
+      },
+      {
+        "name": "slabyy-_",
+        "account_id": "account.bd687f002f584467a99cf3b885bc2681",
+        "kills": 3,
+        "damage": 342.4,
+        "placement": 9
+      },
+      {
+        "name": "DuduGladiador",
+        "account_id": "account.b2f73629c0984b30800601d557e490c4",
+        "kills": 2,
+        "damage": 275.6,
+        "placement": 9
+      },
+      {
+        "name": "ZxLopes",
+        "account_id": "account.95eea9c45ea64e67b163fbdbb2cc24ea",
+        "kills": 1,
+        "damage": 499.6,
+        "placement": 9
+      },
+      {
+        "name": "Badcabrito-FPS",
+        "account_id": "account.7156eab44ee946e09067009b7b8b7fa5",
+        "kills": 3,
+        "damage": 481.5,
+        "placement": 10
+      },
+      {
+        "name": "001_SMOKE_001",
+        "account_id": "account.8b84a7d7e4b946e8af4378ac9a97087d",
+        "kills": 0,
+        "damage": 0,
+        "placement": 10
+      },
+      {
+        "name": "G-R-E-M-I-S-T-A",
+        "account_id": "account.6f9c7d34e746471eb0066fea7362dc4c",
+        "kills": 1,
+        "damage": 200.6,
+        "placement": 10
+      },
+      {
+        "name": "AndreyWexiley",
+        "account_id": "account.7f49614dfdab44548a1e688320e96e94",
+        "kills": 0,
+        "damage": 59.7,
+        "placement": 10
+      },
+      {
+        "name": "9527DAbaby",
+        "account_id": "account.fa9aa0040d8b4f9b9649927db4d35a4d",
+        "kills": 2,
+        "damage": 189.1,
+        "placement": 11
+      },
+      {
+        "name": "SprayNutrido",
+        "account_id": "account.01832c2e61584e03afeef1e7a91f6ec2",
+        "kills": 0,
+        "damage": 29.1,
+        "placement": 11
+      },
+      {
+        "name": "TheKingGOAT",
+        "account_id": "account.e823dff0675f43cdbfbf81a79b7475bd",
+        "kills": 0,
+        "damage": 17.5,
+        "placement": 11
+      },
+      {
+        "name": "C3R1G1NH4",
+        "account_id": "account.552eb27a896d45b5abc6543621eadc50",
+        "kills": 0,
+        "damage": 92.2,
+        "placement": 11
+      },
+      {
+        "name": "WANTED_D-4-I-A-N",
+        "account_id": "account.37f83335c41f48168e7771a53247e7bf",
+        "kills": 3,
+        "damage": 253.6,
+        "placement": 12
+      },
+      {
+        "name": "MAHITO_-",
+        "account_id": "account.f9ef1e46b9ba42caaeaacae786500698",
+        "kills": 0,
+        "damage": 46.4,
+        "placement": 12
+      },
+      {
+        "name": "YOHEIMITO",
+        "account_id": "account.40f3820cc39149b1b23923a9ca07a172",
+        "kills": 0,
+        "damage": 0,
+        "placement": 12
+      },
+      {
+        "name": "S3M_N0C40",
+        "account_id": "account.99d5f75d5fd94e95bd362a1802294471",
+        "kills": 0,
+        "damage": 0,
+        "placement": 13
+      },
+      {
+        "name": "ProzziN",
+        "account_id": "account.7ed1d8931d0b4c2eaf234beeb551d2b1",
+        "kills": 2,
+        "damage": 166.5,
+        "placement": 13
+      },
+      {
+        "name": "MAMUT1NHO",
+        "account_id": "account.df6f5aae887f400ebebb73c97ec4271f",
+        "kills": 0,
+        "damage": 100,
+        "placement": 13
+      },
+      {
+        "name": "R4isinburg",
+        "account_id": "account.4b283426dd2b4bf1bd7e3356162f9f9e",
+        "kills": 0,
+        "damage": 0,
+        "placement": 14
+      },
+      {
+        "name": "SrExclusive",
+        "account_id": "account.831b7dd944274e6c84d920ebcebfde5f",
+        "kills": 0,
+        "damage": 0,
+        "placement": 14
+      },
+      {
+        "name": "KYOverKill",
+        "account_id": "account.b14def7568624734ae1227c7bde1bcf3",
+        "kills": 0,
+        "damage": 30.2,
+        "placement": 14
+      },
+      {
+        "name": "Frodix",
+        "account_id": "account.dcb17bfdba164d0ba19faf25a7be88f4",
+        "kills": 0,
+        "damage": 0,
+        "placement": 14
+      },
+      {
+        "name": "dany_77",
+        "account_id": "account.d052be0903cd4de4ab602c57d30d5656",
+        "kills": 0,
+        "damage": 0,
+        "placement": 14
+      },
+      {
+        "name": "JVTT-",
+        "account_id": "account.0f80c13aa6b14ffb9ed0c432fd666345",
+        "kills": 0,
+        "damage": 97.7,
+        "placement": 15
+      },
+      {
+        "name": "GIGATT_Jhe",
+        "account_id": "account.c470367cfbbe439089209cd3a2c75d20",
+        "kills": 0,
+        "damage": 0,
+        "placement": 15
+      },
+      {
+        "name": "Haskatory_-",
+        "account_id": "account.778bb8ff11d945ff84d3807603cb0949",
+        "kills": 1,
+        "damage": 109.0,
+        "placement": 15
+      },
+      {
+        "name": "GenRyuSai_FPS",
+        "account_id": "account.27c9ceb9cd5c47ea9bd012c15d8fa3af",
+        "kills": 0,
+        "damage": 94.9,
+        "placement": 15
+      },
+      {
+        "name": "Aberick",
+        "account_id": "account.1af2877c6e8547e89b8189cb020ff813",
+        "kills": 0,
+        "damage": 3.7,
+        "placement": 16
+      },
+      {
+        "name": "iKaii-",
+        "account_id": "account.b4a188447d4046df8917992b5ad12d56",
+        "kills": 0,
+        "damage": 0,
+        "placement": 16
+      },
+      {
+        "name": "iDanZy_-",
+        "account_id": "account.85184d658c8f44c0b6af816e95540d9a",
+        "kills": 0,
+        "damage": 176.6,
+        "placement": 16
+      },
+      {
+        "name": "OWE3NN-_-",
+        "account_id": "account.7cccbdd0c0044ae9a7cf2559e6a328ca",
+        "kills": 0,
+        "damage": 45.8,
+        "placement": 16
+      },
+      {
+        "name": "MgLL_",
+        "account_id": "account.586b2e14a7b64e82889fd25c1815cdfb",
+        "kills": 0,
+        "damage": 0,
+        "placement": 16
+      }
+    ]
+  },
+  {
+    "match_id": "1637979b-420a-498e-8a2b-fa433e34b291",
+    "overlap": 3,
+    "roster_players": [
+      "NW_DuduGladiador",
+      "NW_slabyy-",
+      "NW_ZxLopes"
+    ],
+    "created_at": "2026-04-17T02:50:39Z",
+    "match_type": "competitive",
+    "map": "Desert_Main",
+    "duration_min": 29,
+    "participants": [
+      {
+        "name": "l-ROLO-l",
+        "account_id": "account.671e7db5413b40e8b02b3474b7d0a03d",
+        "kills": 0,
+        "damage": 23.4,
+        "placement": 1
+      },
+      {
+        "name": "BrianArg23",
+        "account_id": "account.9a5f5508ca5c4289a3ada0dee2f2ada5",
+        "kills": 3,
+        "damage": 343.5,
+        "placement": 1
+      },
+      {
+        "name": "Dtoshiro",
+        "account_id": "account.965a27c31e1d4ddeb1d42c794a0876e9",
+        "kills": 1,
+        "damage": 310.7,
+        "placement": 1
+      },
+      {
+        "name": "Kck-TortugaveloZ",
+        "account_id": "account.f94f87494ca24fe8acc2fec42a5f0041",
+        "kills": 5,
+        "damage": 579.3,
+        "placement": 1
+      },
+      {
+        "name": "jeffzera11",
+        "account_id": "account.cff44779e6d94e5597f7d3c0901f1360",
+        "kills": 0,
+        "damage": 37.7,
+        "placement": 2
+      },
+      {
+        "name": "BIGNYPEZERA",
+        "account_id": "account.809bb8f069a34e96831c53fa6d5f587a",
+        "kills": 0,
+        "damage": 18.9,
+        "placement": 2
+      },
+      {
+        "name": "Quejicus",
+        "account_id": "account.864b7d3f7d024d9e86263de11d4801ea",
+        "kills": 2,
+        "damage": 343.9,
+        "placement": 2
+      },
+      {
+        "name": "GabrielZinhKing_",
+        "account_id": "account.16554acc26a545519782ee90a78bf655",
+        "kills": 2,
+        "damage": 381.6,
+        "placement": 2
+      },
+      {
+        "name": "algarrafa",
+        "account_id": "account.dcf14ffaa8774b4595b9b5f83a49e311",
+        "kills": 0,
+        "damage": 0,
+        "placement": 3
+      },
+      {
+        "name": "Vancito_Br",
+        "account_id": "account.bc862b6937394c59b26d685e421f2768",
+        "kills": 0,
+        "damage": 18,
+        "placement": 3
+      },
+      {
+        "name": "LuizSephSama",
+        "account_id": "account.f9aa115434b340418d0d28cf2d3cdaa5",
+        "kills": 2,
+        "damage": 225.4,
+        "placement": 3
+      },
+      {
+        "name": "quediosbendiga",
+        "account_id": "account.c022695e958f44cc9fbf0b14654e9fa7",
+        "kills": 2,
+        "damage": 175.0,
+        "placement": 4
+      },
+      {
+        "name": "RADS-_",
+        "account_id": "account.5b174b9077f244cd85e284808063bd16",
+        "kills": 1,
+        "damage": 566.8,
+        "placement": 4
+      },
+      {
+        "name": "Wiillss",
+        "account_id": "account.d4816d07150b43748e3d5c6511383db2",
+        "kills": 6,
+        "damage": 657.9,
+        "placement": 4
+      },
+      {
+        "name": "Fxrraz",
+        "account_id": "account.d637adbaf3fb4bb8ba989c35f7f87aa7",
+        "kills": 1,
+        "damage": 134.2,
+        "placement": 4
+      },
+      {
+        "name": "groppoRJ",
+        "account_id": "account.1ce91bd28c0848dc9e87a7ba61e486ff",
+        "kills": 7,
+        "damage": 529.1,
+        "placement": 5
+      },
+      {
+        "name": "arLFPS",
+        "account_id": "account.ab0d5bb541884a649e9e3cb490095d31",
+        "kills": 1,
+        "damage": 165.6,
+        "placement": 5
+      },
+      {
+        "name": "ecNNN",
+        "account_id": "account.3167f5d1661943eead6ff7c37d3668eb",
+        "kills": 1,
+        "damage": 279.5,
+        "placement": 5
+      },
+      {
+        "name": "MULA-SonycX",
+        "account_id": "account.f61d7a1d5bde4c3b9636b554e1efddcd",
+        "kills": 0,
+        "damage": 301.6,
+        "placement": 5
+      },
+      {
+        "name": "KpN1",
+        "account_id": "account.35efa431c8454a9499998e7800828d2b",
+        "kills": 1,
+        "damage": 93.8,
+        "placement": 6
+      },
+      {
+        "name": "POKAMORQDOY",
+        "account_id": "account.f236808daf244b5aa1a28bb04a78d1a0",
+        "kills": 3,
+        "damage": 306.1,
+        "placement": 6
+      },
+      {
+        "name": "LOSTZ1NNN",
+        "account_id": "account.0ae1ad13663d4e17b5c64fe8eff436f2",
+        "kills": 2,
+        "damage": 177.5,
+        "placement": 6
+      },
+      {
+        "name": "beLLtz_-",
+        "account_id": "account.0e81cf00bd724b8ebdc90c8e850b4ed5",
+        "kills": 0,
+        "damage": 116.5,
+        "placement": 6
+      },
+      {
+        "name": "1LoboNegr0",
+        "account_id": "account.2ba65b56a94b4edd9fa07d12ff7fb51f",
+        "kills": 0,
+        "damage": 21.6,
+        "placement": 7
+      },
+      {
+        "name": "MARCOSJCAMpy",
+        "account_id": "account.8d6b2ed0c6244e20a067fa3d08f90c45",
+        "kills": 0,
+        "damage": 74.1,
+        "placement": 7
+      },
+      {
+        "name": "CALONCHO",
+        "account_id": "account.eab3c968406e4a988ceeae87c00137fc",
+        "kills": 1,
+        "damage": 230.4,
+        "placement": 7
+      },
+      {
+        "name": "XPOWER_X",
+        "account_id": "account.877c878ab93a4913999f55157bd884fd",
+        "kills": 0,
+        "damage": 26.2,
+        "placement": 7
+      },
+      {
+        "name": "r4wL_-",
+        "account_id": "account.c5584b783473410185b5772523e8192c",
+        "kills": 1,
+        "damage": 162.4,
+        "placement": 8
+      },
+      {
+        "name": "l---Run-Run---l",
+        "account_id": "account.45377903e9e845b6a117dd9713e0e432",
+        "kills": 1,
+        "damage": 147.3,
+        "placement": 8
+      },
+      {
+        "name": "r1-hoolyhud",
+        "account_id": "account.e2f0ecfc4dfb418ba32bcc82cadc2634",
+        "kills": 0,
+        "damage": 118.3,
+        "placement": 8
+      },
+      {
+        "name": "4Ho-Se",
+        "account_id": "account.17342dc4312a4e4d9b520f27e6a99e03",
+        "kills": 2,
+        "damage": 261.8,
+        "placement": 8
+      },
+      {
+        "name": "001_SMOKE_001",
+        "account_id": "account.8b84a7d7e4b946e8af4378ac9a97087d",
+        "kills": 0,
+        "damage": 0,
+        "placement": 9
+      },
+      {
+        "name": "xezayyy-",
+        "account_id": "account.1918613e7dd146ae930fc211ac957a25",
+        "kills": 1,
+        "damage": 175.3,
+        "placement": 10
+      },
+      {
+        "name": "m4kena",
+        "account_id": "account.167e8937af5c4702bbf933d455a07ff0",
+        "kills": 3,
+        "damage": 185.4,
+        "placement": 10
+      },
+      {
+        "name": "Breiken-_-",
+        "account_id": "account.26f0b43fcec7403ab88fd89795550762",
+        "kills": 0,
+        "damage": 32.2,
+        "placement": 10
+      },
+      {
+        "name": "TWONEC",
+        "account_id": "account.4b6419078e214f09a77169eeea853a74",
+        "kills": 0,
+        "damage": 161.7,
+        "placement": 10
+      },
+      {
+        "name": "gleeeeeeeeeeeee",
+        "account_id": "account.207c4cf93cd14d10844b7eaf8dc3b4e4",
+        "kills": 1,
+        "damage": 168.2,
+        "placement": 11
+      },
+      {
+        "name": "Flameskr",
+        "account_id": "account.6b81d84358584e9889ebb12266a1f9d3",
+        "kills": 0,
+        "damage": 21.6,
+        "placement": 11
+      },
+      {
+        "name": "KYOverKill",
+        "account_id": "account.b14def7568624734ae1227c7bde1bcf3",
+        "kills": 0,
+        "damage": 23.4,
+        "placement": 11
+      },
+      {
+        "name": "Frodix",
+        "account_id": "account.dcb17bfdba164d0ba19faf25a7be88f4",
+        "kills": 0,
+        "damage": 0,
+        "placement": 11
+      },
+      {
+        "name": "dany_77",
+        "account_id": "account.d052be0903cd4de4ab602c57d30d5656",
+        "kills": 0,
+        "damage": 0,
+        "placement": 11
+      },
+      {
+        "name": "whitezzinn-_-",
+        "account_id": "account.dc32e7d503314ef891425227d71a055c",
+        "kills": 2,
+        "damage": 257.7,
+        "placement": 11
+      },
+      {
+        "name": "DuduGladiador",
+        "account_id": "account.b2f73629c0984b30800601d557e490c4",
+        "kills": 1,
+        "damage": 351.5,
+        "placement": 12
+      },
+      {
+        "name": "ZxLopes",
+        "account_id": "account.95eea9c45ea64e67b163fbdbb2cc24ea",
+        "kills": 2,
+        "damage": 182.8,
+        "placement": 12
+      },
+      {
+        "name": "slabyy-_",
+        "account_id": "account.bd687f002f584467a99cf3b885bc2681",
+        "kills": 1,
+        "damage": 138.4,
+        "placement": 12
+      },
+      {
+        "name": "Senkaqauu",
+        "account_id": "account.499785ac1bea400c9d13c345dc482e6e",
+        "kills": 0,
+        "damage": 46.6,
+        "placement": 13
+      },
+      {
+        "name": "DragunNYT",
+        "account_id": "account.3cbc19535ed14616ab573073b3106560",
+        "kills": 0,
+        "damage": 0,
+        "placement": 13
+      },
+      {
+        "name": "RapaduraBR_13",
+        "account_id": "account.d958d9bb75294c53b4ac12cecdeca006",
+        "kills": 1,
+        "damage": 104.4,
+        "placement": 13
+      },
+      {
+        "name": "DeegoHm",
+        "account_id": "account.387bdbd0f4b04781ab76e051d0399785",
+        "kills": 0,
+        "damage": 43.0,
+        "placement": 14
+      },
+      {
+        "name": "Tomahank",
+        "account_id": "account.2b9554bc8126425db893eaa9984c054e",
+        "kills": 0,
+        "damage": 18.5,
+        "placement": 14
+      },
+      {
+        "name": "llllLUCIFERlllll",
+        "account_id": "account.71e5c42867a94dec98c54be4a2471404",
+        "kills": 0,
+        "damage": 45.0,
+        "placement": 14
+      },
+      {
+        "name": "FACETARK1LLER_LC",
+        "account_id": "account.692256295229485bab7fe43890165f2c",
+        "kills": 0,
+        "damage": 0,
+        "placement": 14
+      },
+      {
+        "name": "gabudo",
+        "account_id": "account.3edfae3e7b884e85b2c3223ac5c85c7f",
+        "kills": 0,
+        "damage": 0,
+        "placement": 15
+      },
+      {
+        "name": "tuuruuruu",
+        "account_id": "account.5a7726a9b06d41cba3331f839d475b20",
+        "kills": 0,
+        "damage": 180.5,
+        "placement": 15
+      },
+      {
+        "name": "0racle_",
+        "account_id": "account.04b5d7a5bd7644999c827c081c6c9723",
+        "kills": 0,
+        "damage": 46.2,
+        "placement": 15
+      },
+      {
+        "name": "Luizeer4",
+        "account_id": "account.28f8bd1c5519497fa6a481432f8e6161",
+        "kills": 0,
+        "damage": 27.4,
+        "placement": 15
+      },
+      {
+        "name": "rikeezkA_",
+        "account_id": "account.add1ece6808c412f862c695b8d3160d0",
+        "kills": 1,
+        "damage": 153.2,
+        "placement": 16
+      },
+      {
+        "name": "OPoderosoChefao",
+        "account_id": "account.7c085a5bf35642589e0377924ae40dfa",
+        "kills": 0,
+        "damage": 0,
+        "placement": 16
+      },
+      {
+        "name": "O-MATADOR-",
+        "account_id": "account.99c07c569c79447ebd8fbbad2be0f542",
+        "kills": 0,
+        "damage": 112.6,
+        "placement": 16
+      },
+      {
+        "name": "padov4n",
+        "account_id": "account.ccbfc286181d470abee691c26037548a",
+        "kills": 0,
+        "damage": 112.6,
+        "placement": 16
+      }
+    ]
+  },
+  {
+    "match_id": "0d94daf7-a238-4ed9-9bf5-3a24ca203dfe",
+    "overlap": 3,
+    "roster_players": [
+      "NW_DuduGladiador",
+      "NW_slabyy-",
+      "NW_ZxLopes"
+    ],
+    "created_at": "2026-04-17T02:42:46Z",
+    "match_type": "competitive",
+    "map": "Desert_Main",
+    "duration_min": 28,
+    "participants": [
+      {
+        "name": "FeijoadaDPobre09",
+        "account_id": "account.1a9319bbc7e540b784fb142a13f57a76",
+        "kills": 7,
+        "damage": 671.6,
+        "placement": 1
+      },
+      {
+        "name": "Shapp2k",
+        "account_id": "account.6db3def89bf24c39a8f48c48a8a1df5d",
+        "kills": 10,
+        "damage": 1804.0,
+        "placement": 1
+      },
+      {
+        "name": "FUSQUETAO",
+        "account_id": "account.7ec86fa9dd8748f2b786060553ade7e0",
+        "kills": 1,
+        "damage": 328.8,
+        "placement": 1
+      },
+      {
+        "name": "MalaGOD09",
+        "account_id": "account.74fa946a8980449f959d4298c2fca741",
+        "kills": 5,
+        "damage": 632.7,
+        "placement": 1
+      },
+      {
+        "name": "Leo_MF",
+        "account_id": "account.f0a7f954f8e84ea498750b685f708c7a",
+        "kills": 0,
+        "damage": 118.6,
+        "placement": 2
+      },
+      {
+        "name": "EzePlay",
+        "account_id": "account.b3301a0e4a364219847471775d5c5723",
+        "kills": 1,
+        "damage": 277.5,
+        "placement": 2
+      },
+      {
+        "name": "MeSS1_Az",
+        "account_id": "account.aa92d234a8ee4a41931aaba08634278d",
+        "kills": 0,
+        "damage": 46.7,
+        "placement": 2
+      },
+      {
+        "name": "Jonathas-AM",
+        "account_id": "account.efb3c3ffaa02405b92d9ea5b3b6b7a8b",
+        "kills": 1,
+        "damage": 119.4,
+        "placement": 2
+      },
+      {
+        "name": "RAPIIDEX1",
+        "account_id": "account.d20a9fa665464d77814579e76df5d8c1",
+        "kills": 0,
+        "damage": 160.7,
+        "placement": 3
+      },
+      {
+        "name": "R4FIZ",
+        "account_id": "account.6eee472d93474a3cb4a60404646f1d2b",
+        "kills": 1,
+        "damage": 359.8,
+        "placement": 3
+      },
+      {
+        "name": "RAPOSO_1",
+        "account_id": "account.c6fceb1270184e84be0c5a519de154d1",
+        "kills": 0,
+        "damage": 0,
+        "placement": 3
+      },
+      {
+        "name": "Xcherozo",
+        "account_id": "account.4d22c82c866d4263875a54eb98bc8045",
+        "kills": 0,
+        "damage": 67.2,
+        "placement": 4
+      },
+      {
+        "name": "Minguazin",
+        "account_id": "account.73e6f8d80406443a896b32eccd7bfd60",
+        "kills": 0,
+        "damage": 180.5,
+        "placement": 4
+      },
+      {
+        "name": "zJake_LwL",
+        "account_id": "account.f32e10f265d5489280baa495dfbaca89",
+        "kills": 2,
+        "damage": 262.3,
+        "placement": 4
+      },
+      {
+        "name": "gugalp",
+        "account_id": "account.c4c95174ec834fbf85e0f8ff915ef4d6",
+        "kills": 0,
+        "damage": 80.2,
+        "placement": 4
+      },
+      {
+        "name": "Rnzkyng",
+        "account_id": "account.658ce8d72e93403dbfc92a395a2bd087",
+        "kills": 3,
+        "damage": 213.3,
+        "placement": 5
+      },
+      {
+        "name": "ToshiSnow",
+        "account_id": "account.a73d203c6a044885846f9c0d5e89733c",
+        "kills": 0,
+        "damage": 0,
+        "placement": 5
+      },
+      {
+        "name": "igzMETEBALA",
+        "account_id": "account.6583f89586db45a8a9173fc17fd835b5",
+        "kills": 0,
+        "damage": 41.7,
+        "placement": 5
+      },
+      {
+        "name": "Spich3000",
+        "account_id": "account.96e5df935c9a4467a8415e6ea163170f",
+        "kills": 0,
+        "damage": 0,
+        "placement": 5
+      },
+      {
+        "name": "AndreyWexiley",
+        "account_id": "account.7f49614dfdab44548a1e688320e96e94",
+        "kills": 0,
+        "damage": 0,
+        "placement": 6
+      },
+      {
+        "name": "TheKingGOAT",
+        "account_id": "account.e823dff0675f43cdbfbf81a79b7475bd",
+        "kills": 0,
+        "damage": 59.9,
+        "placement": 6
+      },
+      {
+        "name": "xEddie1",
+        "account_id": "account.fab9ac235972418488d990623b71e105",
+        "kills": 2,
+        "damage": 274.5,
+        "placement": 6
+      },
+      {
+        "name": "GHOSTS13222",
+        "account_id": "account.13869d6daff94c658dac102e7a772524",
+        "kills": 0,
+        "damage": 144.6,
+        "placement": 6
+      },
+      {
+        "name": "9527DAbaby",
+        "account_id": "account.fa9aa0040d8b4f9b9649927db4d35a4d",
+        "kills": 1,
+        "damage": 27.7,
+        "placement": 7
+      },
+      {
+        "name": "C3R1G1NH4",
+        "account_id": "account.552eb27a896d45b5abc6543621eadc50",
+        "kills": 2,
+        "damage": 65,
+        "placement": 7
+      },
+      {
+        "name": "FLIK_SaiyajiN",
+        "account_id": "account.8b40a643d34e4a679afc936889268109",
+        "kills": 0,
+        "damage": 27.5,
+        "placement": 7
+      },
+      {
+        "name": "xFlashDemoNx",
+        "account_id": "account.570f038ee3fa41e5862c26eeabe605db",
+        "kills": 0,
+        "damage": 0,
+        "placement": 7
+      },
+      {
+        "name": "iKaii-",
+        "account_id": "account.b4a188447d4046df8917992b5ad12d56",
+        "kills": 1,
+        "damage": 382.8,
+        "placement": 8
+      },
+      {
+        "name": "iDanZy_-",
+        "account_id": "account.85184d658c8f44c0b6af816e95540d9a",
+        "kills": 1,
+        "damage": 155.7,
+        "placement": 8
+      },
+      {
+        "name": "Aberick",
+        "account_id": "account.1af2877c6e8547e89b8189cb020ff813",
+        "kills": 6,
+        "damage": 340.4,
+        "placement": 8
+      },
+      {
+        "name": "OWE3NN-_-",
+        "account_id": "account.7cccbdd0c0044ae9a7cf2559e6a328ca",
+        "kills": 3,
+        "damage": 469.8,
+        "placement": 8
+      },
+      {
+        "name": "Badmist0",
+        "account_id": "account.fc293306017747d0b8165e31386f4614",
+        "kills": 1,
+        "damage": 57.6,
+        "placement": 9
+      },
+      {
+        "name": "Vinegaary",
+        "account_id": "account.e48cad7fdd1e4d748ddc49dad7b04c7b",
+        "kills": 2,
+        "damage": 350.3,
+        "placement": 9
+      },
+      {
+        "name": "Reedztx-",
+        "account_id": "account.2212726686b84731a94a8498601b450a",
+        "kills": 2,
+        "damage": 233.0,
+        "placement": 9
+      },
+      {
+        "name": "coxinha-_",
+        "account_id": "account.979b7090d52d4631963897845d23563b",
+        "kills": 0,
+        "damage": 38.8,
+        "placement": 9
+      },
+      {
+        "name": "M4rduck",
+        "account_id": "account.6e63eea7a2914a4f8a8750f817fbc457",
+        "kills": 0,
+        "damage": 19.5,
+        "placement": 10
+      },
+      {
+        "name": "sailian_66666",
+        "account_id": "account.a5d86a08bdba4e2e8bb9fbad33ec97ce",
+        "kills": 0,
+        "damage": 222.9,
+        "placement": 11
+      },
+      {
+        "name": "DRAKEMfps",
+        "account_id": "account.2370f987d23446fd8e01ea5a92e7a821",
+        "kills": 0,
+        "damage": 41.5,
+        "placement": 11
+      },
+      {
+        "name": "N3GR3SC",
+        "account_id": "account.ddc97d9ab93a478daede3936ad179276",
+        "kills": 1,
+        "damage": 167.3,
+        "placement": 11
+      },
+      {
+        "name": "FuKaiser",
+        "account_id": "account.48be87822d034d5d95c8b5f59f635bb5",
+        "kills": 0,
+        "damage": 284.1,
+        "placement": 12
+      },
+      {
+        "name": "UDE_iTonyyy",
+        "account_id": "account.7f407cd73def4bacaf3ad73c8e830c09",
+        "kills": 2,
+        "damage": 283.7,
+        "placement": 12
+      },
+      {
+        "name": "qTnTp_",
+        "account_id": "account.722146abf8f844c38632f198adf843be",
+        "kills": 0,
+        "damage": 34.6,
+        "placement": 12
+      },
+      {
+        "name": "M1nhKhx7_-",
+        "account_id": "account.f57d88b8ac1d425a9bf283289f77b1bc",
+        "kills": 0,
+        "damage": 120,
+        "placement": 12
+      },
+      {
+        "name": "NoTAiL-_-x1",
+        "account_id": "account.0b5434fe419d4178b7e95159a0bb5976",
+        "kills": 2,
+        "damage": 259.4,
+        "placement": 13
+      },
+      {
+        "name": "AxwellSz",
+        "account_id": "account.644a001cb2b243a5811b4f4dc5484528",
+        "kills": 0,
+        "damage": 0,
+        "placement": 13
+      },
+      {
+        "name": "synkzFPS",
+        "account_id": "account.c05fc8c2d29a46ec8583a01b85fa344e",
+        "kills": 0,
+        "damage": 103,
+        "placement": 13
+      },
+      {
+        "name": "DIEGO_AGB",
+        "account_id": "account.393f146fab43404f8078d2a4ada31e40",
+        "kills": 0,
+        "damage": 59.8,
+        "placement": 13
+      },
+      {
+        "name": "ktchorroooo",
+        "account_id": "account.ea5f082966714624841bbce7760f24ce",
+        "kills": 0,
+        "damage": 73.5,
+        "placement": 14
+      },
+      {
+        "name": "Lukerafps",
+        "account_id": "account.842b2dec34334149b8abc15791ac5a69",
+        "kills": 0,
+        "damage": 0,
+        "placement": 14
+      },
+      {
+        "name": "Maquiavel_",
+        "account_id": "account.8d059d54befb4640af402a4a3c30117f",
+        "kills": 2,
+        "damage": 376.0,
+        "placement": 14
+      },
+      {
+        "name": "xM4T1ASx",
+        "account_id": "account.da43e371a6ef4b0b90f90cf448ca1fb8",
+        "kills": 0,
+        "damage": 102.5,
+        "placement": 15
+      },
+      {
+        "name": "Ketaprafena",
+        "account_id": "account.c2205a5da92b40b5a08871c29a7bc65f",
+        "kills": 0,
+        "damage": 0,
+        "placement": 15
+      },
+      {
+        "name": "JONAAA-_-",
+        "account_id": "account.cfe58d54223a4ccebf1981c8a9843fb4",
+        "kills": 0,
+        "damage": 121.8,
+        "placement": 15
+      },
+      {
+        "name": "DreamSS-001",
+        "account_id": "account.5b3c4d33b17d4c9aabce58b60a5d0fa4",
+        "kills": 0,
+        "damage": 75.2,
+        "placement": 15
+      },
+      {
+        "name": "slabyy-_",
+        "account_id": "account.bd687f002f584467a99cf3b885bc2681",
+        "kills": 0,
+        "damage": 0,
+        "placement": 16
+      },
+      {
+        "name": "ZxLopes",
+        "account_id": "account.95eea9c45ea64e67b163fbdbb2cc24ea",
+        "kills": 1,
+        "damage": 100,
+        "placement": 16
+      },
+      {
+        "name": "DuduGladiador",
+        "account_id": "account.b2f73629c0984b30800601d557e490c4",
+        "kills": 0,
+        "damage": 75,
+        "placement": 16
+      },
+      {
+        "name": "SoldierBoy-_",
+        "account_id": "account.b2f80a3772984c6fb29779ed482b1d63",
+        "kills": 0,
+        "damage": 0,
+        "placement": 17
+      },
+      {
+        "name": "BBalao-",
+        "account_id": "account.f2267852ad8543d787fb1c05294a271e",
+        "kills": 0,
+        "damage": 52.8,
+        "placement": 17
+      },
+      {
+        "name": "BLACKNOIR1337_",
+        "account_id": "account.abbabbe90255499f925aef91ef56787b",
+        "kills": 0,
+        "damage": 0,
+        "placement": 17
+      },
+      {
+        "name": "Brunaozerah",
+        "account_id": "account.b530ca9d2c4749fd8c6d2b6c86c21558",
+        "kills": 0,
+        "damage": 0,
+        "placement": 17
+      }
+    ]
+  }
+]

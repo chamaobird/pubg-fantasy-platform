@@ -25,7 +25,7 @@ export default function Navbar({ tournament = null }) {
     }}>
       <div style={{ height: '2px', background: 'linear-gradient(90deg, var(--color-xama-orange), transparent 50%)' }} />
 
-      <div style={{
+      <div className="xnav-inner" style={{
         maxWidth: '1200px', margin: '0 auto', padding: '0 24px',
         display: 'flex', alignItems: 'center', gap: '12px', height: '70px',
       }}>
@@ -49,7 +49,7 @@ export default function Navbar({ tournament = null }) {
 
         {/* Contexto do torneio */}
         {tournament && (
-          <>
+          <div className="xnav-tournament" style={{ display: 'contents' }}>
             <div style={{ width: '1px', height: '32px', background: 'var(--color-xama-border)', flexShrink: 0 }} />
             <div style={{ flexShrink: 1, minWidth: 0 }}>
               <div style={{
@@ -71,16 +71,16 @@ export default function Navbar({ tournament = null }) {
                 </span>
               </div>
             </div>
-          </>
+          </div>
         )}
 
         <div style={{ flex: 1 }} />
 
         {/* Nav links */}
-        <nav style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+        <nav className="xnav-links" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
           {[
             { label: 'Dashboard',    path: '/dashboard'     },
-            { label: 'Campeonatos', path: '/championships' },
+            { label: 'Campeonato', path: '/championships' },
             { label: '👤 Perfil',   path: '/profile'       },
             ...(isAdmin ? [{ label: '⚙ Admin', path: '/admin' }] : []),
           ].map(({ label, path }) => {

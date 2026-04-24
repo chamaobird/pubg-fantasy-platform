@@ -1,0 +1,98 @@
+# ============================================================
+# FINALS ROSTER DRAFT — Para revisão e correção
+# Gerado em: 22/04/2026
+# ============================================================
+#
+# Instruções:
+#   - Verifique os nomes dos jogadores (usar display_name exato da API PUBG)
+#   - Preencha [???] com jogadores desconhecidos
+#   - Corrija tags/nomes de times se necessário
+#   - Remova um time se ele NÃO participar das Finals
+#   - Cada time deve ter exatamente 4 jogadores (exceto trios PAS = 3)
+#   - Salve e me devolva o arquivo para criar o seed script
+#
+# Legenda:
+#   [OK]      = dados vindos do banco/scripts anteriores — confirmar
+#   [BANCO]   = time estava no D1 PEC, jogadores já no banco — confirmar nomes
+#   [FALTAM]  = jogadores desconhecidos, preencher
+#
+# ============================================================
+
+
+# ============================================================
+# PEC FINALS
+# ============================================================
+
+## Times COM jogadores confirmados [OK]
+## (fonte: players22-23.txt + insert_pec_d2d3_roster.py)
+
+[VPX] Vuptrox              | Mikzenn, Vorix, Bjoernter, BlISSEDDDDDDDD
+[RL]  Redline               | sniipZEKO, DYNNO-, karxx_, ivas
+[GN]  GoNext Esports        | Acaliptos, IZIO--, MAXXXXXXXXX-, F1Nee-
+[PBRU] PBRU                 | quintx, Nabat_, xreyzer1, h0pejj
+[EVER] Everlong             | Verstory, youngwhitetrash, rinazxc, saint_xd
+[YO]  YOOO                  | vjeemzz, pw9d, TwitchTV_mykLe, K4pii
+[NOT] NoTag Team            | OConnell, rappha, Mak, Donquixote_Doffy
+[BORZ] BORZ                 | Marchel-, HalloSenpai, h1xs, Luu4iikk-
+[PGG] PGG                   | Presenti, SL0YJACKET, Zub1la, Salik-
+[BAL] Baldinini             | MrShimada, caydel, taBl-, sunfloweeeee
+[GTG] Ghetto Gang           | Apr1l-, iamf1ve-, imSancho, Blazor-
+[SQU] Storm on Request      | gt210kz, pozyyan, xisooo, Vezyv1y-
+[STS] Starry SKY            | vaaazooo, SILERZZ, KnorkiS, TOP4IK_PB
+
+
+## Times que participaram do D1 PEC — jogadores JÁ NO BANCO [BANCO]
+## Confirmar se os nomes abaixo estão corretos (buscar no banco se necessário)
+
+[JB]   Joga Bonito          | ???, ???, ???, ???
+[ACE]  ACEND Club           | ???, ???, ???, ???
+[BW]   Bushido Wildcats     | ???, ???, ???, ???
+[HOWL] exhowl               | ???, ???, ???, ???
+[S2G]  S2G Esports          | ???, ???, ???, ???
+[TMO]  The Myth of          | ???, ???, ???, ???
+[WORK] Construction Workers | ???, ???, ???, ???
+[VIT]  Team Vitality        | ???, ???, ???, ???
+
+
+## Times sem jogadores — preencher manualmente [FALTAM]
+
+[NMSS] Team Nemesis         | ???, ???, ???, ???
+[HIVE] HiVE                 | ???, ???, ???, ???
+[TWIS] Twisted Minds        | ???, ???, ???, ???
+[SLCK] noslack              | ???, ???, ???, ???
+[VIS]  Vis                  | ???, ???, ???, ???
+[NAVI] NATUS VINCERE        | ???, ???, ???, ???
+[VP]   Virtus.pro           | ???, ???, ???, ???
+[S8UL] S8UL                 | ???, ???, ???, ???
+
+
+# ============================================================
+# PAS FINALS
+# ============================================================
+# Nota: PAS usa trios (3 jogadores por time), não quartetos.
+# Confirmar quantos times participam das Finals PAS.
+
+## Times rastreados [OK]
+## (fonte: match JSON stage 15 + pc-tournament accounts confirmados)
+
+[55PD] 55PD                 | gabriehw, KerakTMz, OhNytavoN
+[NW]   NW                   | DuduGladiador, ZxLopes, slabyy-
+
+
+## Times sem dados — preencher [FALTAM]
+## (~14 times restantes das Finals PAS)
+
+[???]  ???                  | ???, ???, ???
+[???]  ???                  | ???, ???, ???
+[???]  ???                  | ???, ???, ???
+[???]  ???                  | ???, ???, ???
+[???]  ???                  | ???, ???, ???
+[???]  ???                  | ???, ???, ???
+[???]  ???                  | ???, ???, ???
+[???]  ???                  | ???, ???, ???
+[???]  ???                  | ???, ???, ???
+[???]  ???                  | ???, ???, ???
+[???]  ???                  | ???, ???, ???
+[???]  ???                  | ???, ???, ???
+[???]  ???                  | ???, ???, ???
+[???]  ???                  | ???, ???, ???

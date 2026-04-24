@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
+sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))

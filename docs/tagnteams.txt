@@ -1,0 +1,37 @@
+{
+  "competicao": "PEC: Spring Playoffs & Finals",
+  "data": "2026-04-17",
+  "times": [
+    { "tag": "RL", "nome_time": "Redline" },
+    { "tag": "VPX", "nome_time": "Vuptrox" },
+    { "tag": "GN", "nome_time": "GoNext Esports" },
+    { "tag": "PBRU", "nome_time": "PBRU" },
+    { "tag": "EVER", "nome_time": "Everlong" },
+
+    { "tag": "YO", "nome_time": "YOOO" },
+    { "tag": "NOT", "nome_time": "NoTag Team" },
+    { "tag": "BORZ", "nome_time": "BORZ" },
+    { "tag": "PGG", "nome_time": "PGG" },
+    { "tag": "BAL", "nome_time": "Baldinini" },
+    { "tag": "GTG", "nome_time": "Ghetto Gang" },
+    { "tag": "SQU", "nome_time": "Storm on Request" },
+    { "tag": "STS", "nome_time": "Starry SKY" },
+
+    { "tag": "NMSS", "nome_time": "Team Nemesis" },
+    { "tag": "HIVE", "nome_time": "HiVE" },
+    { "tag": "TWIS", "nome_time": "Twisted Minds" },
+    { "tag": "BW", "nome_time": "Bushido Wildcats" },
+    { "tag": "SLCK", "nome_time": "noslack" },
+    { "tag": "JB", "nome_time": "Joga Bonito" },
+    { "tag": "S2G", "nome_time": "S2G Esports" },
+    { "tag": "VIS", "nome_time": "Vis" },
+    { "tag": "WORK", "nome_time": "Construction Workers" },
+    { "tag": "HOWL", "nome_time": "exhowl" },
+    { "tag": "NAVI", "nome_time": "NATUS VINCERE" },
+    { "tag": "TMO", "nome_time": "The Myth of" },
+    { "tag": "VP", "nome_time": "Virtus.pro" },
+    { "tag": "ACE", "nome_time": "ACEND Club" },
+    { "tag": "VIT", "nome_time": "Team Vitality" },
+    { "tag": "S8UL", "nome_time": "S8UL" }
+  ]
+}
