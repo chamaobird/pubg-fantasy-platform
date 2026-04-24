@@ -211,6 +211,7 @@ export default function AdminPersons({ token }) {
 
           {/* Accounts — só no edit */}
           {modal.mode === 'edit' && (
+            <>
             <div style={{ marginTop: 28, paddingTop: 20, borderTop: '1px solid var(--color-xama-border)' }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-xama-text)', marginBottom: 14 }}>Contas PUBG</div>
 
@@ -300,6 +301,7 @@ export default function AdminPersons({ token }) {
                 {aliasSaving ? 'Adicionando...' : '+ Adicionar Alias'}
               </ActBtn>
             </div>
+            </>
           )}
         </Modal>
       )}
