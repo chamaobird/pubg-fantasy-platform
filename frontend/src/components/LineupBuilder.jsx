@@ -408,21 +408,28 @@ export default function LineupBuilder({
   const ps = (p) => priorStats[p.person_id]  // helper: prior stats de um player
 
   const COLS = [
-    { key: 'team',              label: 'Time',   right: false },
-    { key: 'name',              label: 'Jogador', right: false },
-    { key: 'effective_cost',    label: 'Preço',  right: true,
+    { key: 'team',              label: 'Time',     right: false },
+    { key: 'name',              label: 'Jogador',  right: false },
+    { key: 'effective_cost',    label: 'Preço',    right: true,
+      title: 'Custo do jogador nesta stage',
       render: (p) => <span style={{ color: 'var(--color-xama-gold)', fontWeight: 700, fontSize: 14 }}>{fmtCost(p.effective_cost)}</span> },
-    { key: 'pts_per_match',     label: 'PTS/G',  right: true,
+    { key: 'pts_per_match',     label: 'PTS/G',    right: true,
+      title: 'Pontos XAMA médios por partida (dias anteriores deste campeonato)',
       render: (p) => ps(p) ? ps(p).pts_per_match.toFixed(1) : '—' },
-    { key: 'kills_per_match',   label: 'K/G',    right: true,
+    { key: 'kills_per_match',   label: 'K/G',      right: true,
+      title: 'Kills médias por partida',
       render: (p) => ps(p) ? ps(p).kills_per_match.toFixed(1) : '—' },
-    { key: 'damage_per_match',  label: 'DMG/G',  right: true,
+    { key: 'damage_per_match',  label: 'DMG/G',    right: true,
+      title: 'Dano médio por partida',
       render: (p) => ps(p) ? Math.round(ps(p).damage_per_match) : '—' },
-    { key: 'assists_per_match', label: 'ASS/G',  right: true,
+    { key: 'assists_per_match', label: 'ASS/G',    right: true,
+      title: 'Assists médios por partida',
       render: (p) => ps(p) ? ps(p).assists_per_match.toFixed(1) : '—' },
     { key: 'total_wins',               label: 'WIN',      right: true,
+      title: 'Chicken dinners (1º lugar) nos dias anteriores',
       render: (p) => ps(p) != null ? ps(p).total_wins : '—' },
     { key: 'late_game_pts_per_match',  label: 'SOBREV/G', right: true,
+      title: 'Pontos de late game por partida (bônus por sobreviver ao top-8)',
       render: (p) => ps(p) != null ? ps(p).late_game_pts_per_match.toFixed(1) : '—' },
   ]
 
@@ -845,11 +852,12 @@ export default function LineupBuilder({
               <table className="xlb-table">
                 <thead>
                   <tr>
-                    {COLS.map(({ key, label, right }) => (
+                    {COLS.map(({ key, label, right, title }) => (
                       <th key={key}
-                        className={`${right ? 'right' : ''} ${sortKey === key ? 'active' : ''}`}
+                        className={sortKey === key ? 'active' : ''}
                         onClick={() => handleSort(key)}
-                        style={{ fontSize: 13, whiteSpace: 'nowrap' }}>
+                        title={title}
+                        style={{ fontSize: 13, whiteSpace: 'nowrap', textAlign: right ? 'center' : 'left' }}>
                         {label}
                         {sortKey === key
                           ? <span className="ml-0.5 text-[9px]">{sortDir === 'desc' ? '▼' : '▲'}</span>
@@ -903,12 +911,13 @@ export default function LineupBuilder({
                         </td>
                         {COLS.slice(2).map(col => (
                           <td key={col.key}
-                            className="right tabular-nums"
+                            className="tabular-nums"
                             style={{
                               fontFamily: "'JetBrains Mono', monospace",
                               fontSize: 13,
                               color: 'var(--color-xama-text)',
                               whiteSpace: 'nowrap',
+                              textAlign: 'center',
                             }}>
                             {col.render ? col.render(p) : (p[col.key] ?? '—')}
                           </td>

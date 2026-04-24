@@ -32,7 +32,7 @@ function survivalPts(p) {
     + (p.total_assists || 0) * ASSIST_PTS
     + (p.total_knocks  || 0) * KNOCK_PTS
     + (p.total_damage  || 0) * DMG_PTS
-  return Math.round(((p.total_xama_points || 0) - combatPts) * 100) / 100
+  return Math.round((p.total_xama_points || 0) - combatPts)
 }
 
 const MAP_DISPLAY = {
@@ -419,7 +419,7 @@ export default function PlayerStatsPage({
     padding: '10px 12px',
     fontSize: '11px', fontWeight: 700,
     letterSpacing: '0.08em', textTransform: 'uppercase',
-    textAlign: col?.right ? 'right' : 'left',
+    textAlign: col?.right ? 'center' : 'left',
     cursor: 'pointer', userSelect: 'none',
     whiteSpace: 'nowrap',
     color: sortKey === col?.key ? 'var(--color-xama-orange)' : 'var(--color-xama-muted)',
@@ -697,7 +697,7 @@ export default function PlayerStatsPage({
                           const rendered = col.render(p)
                           const cellColor = col.color ? col.color(p) : 'var(--color-xama-text)'
                           return (
-                            <td key={col.key} style={{ padding: '10px 12px', textAlign: col.right ? 'right' : 'left', fontFamily: "'JetBrains Mono', monospace", fontVariantNumeric: 'tabular-nums', color: cellColor }}>
+                            <td key={col.key} style={{ padding: '10px 12px', textAlign: col.right ? 'center' : 'left', fontFamily: "'JetBrains Mono', monospace", fontVariantNumeric: 'tabular-nums', color: cellColor }}>
                               {rendered}
                             </td>
                           )
