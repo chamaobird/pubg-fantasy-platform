@@ -206,7 +206,7 @@ def get_user_lineups_for_stage(
     stage = db.query(Stage).filter(Stage.id == stage_id).first()
     if not stage:
         raise HTTPException(status_code=404, detail="Stage não encontrada")
-    if stage.lineup_status != "locked":
+    if stage.lineup_status not in {"locked", "live"}:
         raise HTTPException(
             status_code=403,
             detail="Lineup de outros managers só visível após encerramento da stage",

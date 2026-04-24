@@ -114,7 +114,7 @@ export default function TournamentLeaderboard({
   const [submissionsLoading, setSubLoading]   = useState(false)
 
   // Modal: ver time de outro manager (apenas quando locked)
-  const isLocked = lineupStatus === 'locked'
+  const isLocked = lineupStatus === 'locked' || lineupStatus === 'live'
   const [viewUser,      setViewUser]      = useState(null)   // { userId, username }
   const [userLineups,   setUserLineups]   = useState([])
   const [lineupLoading, setLineupLoading] = useState(false)
