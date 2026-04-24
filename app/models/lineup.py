@@ -94,8 +94,8 @@ class LineupPlayer(Base):
         Boolean, nullable=False, server_default=text("false"),
         comment="True para o titular escolhido como capitão (multiplicador ×1.3)",
     )
-    locked_cost: Mapped[Optional[int]] = mapped_column(
-        Integer, nullable=True, comment="Cost at the moment of lock"
+    locked_cost: Mapped[Optional[Decimal]] = mapped_column(
+        Numeric(6, 2), nullable=True, comment="Cost at the moment of lock"
     )
     points_earned: Mapped[Optional[Decimal]] = mapped_column(
         Numeric(8, 2), nullable=True,

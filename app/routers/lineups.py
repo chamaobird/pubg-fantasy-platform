@@ -79,7 +79,7 @@ class LineupPlayerOut(BaseModel):
     roster_id:     int
     slot_type:     str
     is_captain:    bool
-    locked_cost:   Optional[int]
+    locked_cost:   Optional[float]
     points_earned: Optional[float]
     person_id:     Optional[int] = None
     person_name:   Optional[str] = None

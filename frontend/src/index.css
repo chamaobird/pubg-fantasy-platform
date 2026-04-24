@@ -672,23 +672,71 @@ body {
 .xlb-action-btn:disabled { opacity: 0.3; cursor: default; }
 .xlb-action-btn--conflict { opacity: 0.25; cursor: not-allowed; }
 
-/* ─── Slot card: layout coluna (desktop) ─── */
+/* ─── Slot card: layout 2 colunas (desktop) — logo | info ─── */
 .xlb-hslot {
-  display: flex; flex-direction: column; align-items: center;
-  padding: 8px 10px; gap: 6px; min-height: 90px;
+  display: flex; flex-direction: row; align-items: stretch;
+  padding: 0; gap: 0; min-height: 110px;
 }
-.xlb-hslot-logo { flex-shrink: 0; }
+/* Coluna esquerda: logo grande, pode ser clipado */
+.xlb-hslot-logo-col {
+  width: 60px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  background: rgba(0,0,0,0.18);
+  position: relative;
+}
+.xlb-hslot-logo-col img {
+  width: 68px !important; height: 68px !important;
+  object-fit: contain;
+}
+/* Separador vertical */
+.xlb-hslot-sep {
+  width: 1px; flex-shrink: 0; align-self: stretch;
+  background: var(--color-xama-border);
+}
+/* Coluna direita: info — container para cqi units */
 .xlb-hslot-info {
-  display: flex; flex-direction: column; align-items: center;
-  min-width: 0; width: 100%; gap: 2px;
+  display: flex; flex-direction: column; align-items: flex-start;
+  min-width: 0; flex: 1; padding: 8px 10px; gap: 0;
+  container-type: inline-size;
 }
-.xlb-hslot-tag-label { font-size: 11px; font-weight: 700; color: var(--color-xama-muted); letter-spacing: 0.06em; }
+/* Linha topo: TAG + × */
+.xlb-hslot-toprow {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%; margin-bottom: 3px;
+}
+.xlb-hslot-tag-label {
+  font-size: 10px; font-weight: 700; color: var(--color-xama-muted);
+  letter-spacing: 0.08em; text-transform: uppercase;
+}
+/* Nome — responsivo ao container: min 12px, ideal 17cqi, max 19px */
 .xlb-hslot-name {
-  font-size: 14px; font-weight: 700; color: var(--color-xama-text);
-  text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;
+  font-size: clamp(12px, 17cqi, 19px);
+  font-weight: 800; color: var(--color-xama-text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  width: 100%; line-height: 1.25; flex: 1;
+  display: flex; align-items: center;
 }
-.xlb-hslot-actions { display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 4px; }
-.xlb-hslot-price { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: var(--color-xama-gold); }
+/* Linha bottom: PREÇO + ⭐ */
+.xlb-hslot-bottomrow {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%; margin-top: 4px;
+}
+.xlb-hslot-price {
+  font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700;
+  color: var(--color-xama-gold);
+}
+/* Botão capitão: largura fixa para não deslocar layout */
+.xlb-captain-btn {
+  background: none; border: none; cursor: pointer;
+  width: 28px; height: 24px;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0; flex-shrink: 0;
+}
+.xlb-hslot-actions {
+  display: flex; align-items: center; gap: 4px;
+  margin-top: auto; padding-top: 4px;
+}
 .xlb-captain-btn {
   background: none; border: none; cursor: pointer; padding: 2px 3px;
   font-size: 13px; display: flex; align-items: center; gap: 2px; line-height: 1;
@@ -908,5 +956,19 @@ body {
     text-align: center !important;
   }
   .xlb-action-btn--graph { display: none !important; }
-  .xlb-hslot-price { font-size: 7px !important; }
+  .xlb-hslot-price { font-size: 10px !important; }
+
+  /* Slot card mobile: colapsa logo-col e esconde separador */
+  .xlb-hslot-logo-col {
+    width: 28px !important; background: transparent !important;
+    border: none !important;
+  }
+  .xlb-hslot-logo-col img { width: 24px !important; height: 24px !important; }
+  .xlb-hslot-sep { display: none !important; }
+  .xlb-hslot-info { padding: 4px 6px !important; gap: 0 !important; }
+  .xlb-hslot-toprow { margin-bottom: 0 !important; }
+  .xlb-hslot-name { font-size: 11px !important; flex: none !important; }
+  .xlb-hslot-bottomrow { margin-top: 1px !important; }
+  .xlb-hslot-price { font-size: 10px !important; }
+  .xlb-hslot-actions { margin-top: 0 !important; padding-top: 0 !important; }
 }
