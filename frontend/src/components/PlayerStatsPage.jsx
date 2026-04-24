@@ -104,6 +104,13 @@ const COLUMNS = [
     right: true,
     render: (p) => fmtInt(p.total_wins) },
 
+  { key: 'days_played',
+    label: 'DIAS',
+    title: 'Dias (stages) em que o jogador aparece na seleção',
+    right: true,
+    multiOnly: true,  // renderizado apenas no modo multi-stage
+    render: (p) => p.days_played ?? '—' },
+
   { key: 'survival_pts',
     label: 'PTS SOBREV',
     title: 'Pontos derivados de sobrevivência (late game bonus – early death)',
@@ -152,6 +159,7 @@ function aggregateStats(allResults) {
           person_name: p.person_name,
           team_name: p.team_name,
           fantasy_cost: p.fantasy_cost,
+          aliases: p.aliases || [],
           total_xama_points: 0,
           matches_played: 0,
           total_kills: 0,
@@ -159,6 +167,7 @@ function aggregateStats(allResults) {
           total_damage: 0,
           total_knocks: 0,
           total_wins: 0,
+          stage_idxs: new Set(),
           pts_by_stage: [],
           pts_by_day: [],
         })
@@ -172,6 +181,7 @@ function aggregateStats(allResults) {
       a.total_knocks      += p.total_knocks || 0
       a.total_wins        += p.total_wins || 0
       if (p.fantasy_cost != null) a.fantasy_cost = p.fantasy_cost  // keep latest
+      a.stage_idxs.add(stageIdx)
       a.pts_by_stage[stageIdx] = (a.pts_by_stage[stageIdx] || 0) + (p.total_xama_points || 0)
     }
   }
@@ -181,6 +191,7 @@ function aggregateStats(allResults) {
     total_xama_points: Math.round(a.total_xama_points * 100) / 100,
     total_damage: Math.round(a.total_damage * 10) / 10,
     pts_per_match: a.matches_played > 0 ? Math.round(a.total_xama_points / a.matches_played * 100) / 100 : 0,
+    days_played: a.stage_idxs.size,
     pts_by_stage: a.pts_by_stage.map((pts, i) => ({ stage: i + 1, pts: Math.round(pts * 100) / 100 })),
   }))
 }
@@ -342,7 +353,10 @@ export default function PlayerStatsPage({
 
   // ── Filtro + sort ─────────────────────────────────────────────────────────
   const filtered = useMemo(() => activeStats.filter((p) => {
-    const nm = !search || formatPlayerName(p.person_name).toLowerCase().includes(search.toLowerCase())
+    const q = search.toLowerCase()
+    const nm = !search
+      || formatPlayerName(p.person_name).toLowerCase().includes(q)
+      || (p.aliases || []).some(a => a.toLowerCase().includes(q))
     const tm = !teamFilter || formatTeamTag(p.person_name, p.team_name) === teamFilter
     return nm && tm
   }), [activeStats, search, teamFilter])
@@ -634,7 +648,7 @@ export default function PlayerStatsPage({
                     <th onClick={() => handleSort('name')} style={thStyle({ key: 'name', right: false })}>
                       Jogador<SortIcon active={sortKey === 'name'} dir={sortDir} />
                     </th>
-                    {COLUMNS.map((col) => (
+                    {COLUMNS.filter(col => !col.multiOnly || !isSingleCurrentStage).map((col) => (
                       <th key={col.key} onClick={() => handleSort(col.key)} title={col.title} style={thStyle(col)}>
                         {col.label}<SortIcon active={sortKey === col.key} dir={sortDir} />
                       </th>
@@ -679,7 +693,7 @@ export default function PlayerStatsPage({
                             {formatPlayerName(p.person_name)}
                           </span>
                         </td>
-                        {COLUMNS.map((col) => {
+                        {COLUMNS.filter(col => !col.multiOnly || !isSingleCurrentStage).map((col) => {
                           const rendered = col.render(p)
                           const cellColor = col.color ? col.color(p) : 'var(--color-xama-text)'
                           return (

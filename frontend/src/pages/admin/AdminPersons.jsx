@@ -37,6 +37,9 @@ export default function AdminPersons({ token }) {
   const [accForm, setAccForm] = useState({ account_id: '', shard: 'steam', alias: '' })
   const [accMsg, setAccMsg] = useState('')
   const [accSaving, setAccSaving] = useState(false)
+  const [aliasInput, setAliasInput] = useState('')
+  const [aliasMsg, setAliasMsg] = useState('')
+  const [aliasSaving, setAliasSaving] = useState(false)
 
   const { sort, toggle, apply } = useSorting('display_name')
 
@@ -63,7 +66,7 @@ export default function AdminPersons({ token }) {
   const openEdit = (p) => {
     setForm({ display_name: p.display_name, is_active: p.is_active })
     setAccForm({ account_id: '', shard: 'steam', alias: '' })
-    setMsg(''); setAccMsg('')
+    setMsg(''); setAccMsg(''); setAliasMsg(''); setAliasInput('')
     setModal({ mode: 'edit', data: p })
   }
 
@@ -84,6 +87,27 @@ export default function AdminPersons({ token }) {
       if (modal.mode === 'create') setModal(null)
     } catch (e) { setMsg('!' + e.message) }
     finally { setSaving(false) }
+  }
+
+  const handleAddAlias = async () => {
+    if (!aliasInput.trim()) { setAliasMsg('!alias obrigatório.'); return }
+    setAliasSaving(true); setAliasMsg('')
+    try {
+      await call('POST', `/admin/persons/${modal.data.id}/aliases`, { alias: aliasInput.trim() })
+      setAliasMsg('Alias adicionado.')
+      setAliasInput('')
+      const updated = await call('GET', `/admin/persons/${modal.data.id}`)
+      setModal(m => ({ ...m, data: updated }))
+    } catch (e) { setAliasMsg('!' + e.message) }
+    finally { setAliasSaving(false) }
+  }
+
+  const handleRemoveAlias = async (aliasId) => {
+    try {
+      await call('DELETE', `/admin/persons/${modal.data.id}/aliases/${aliasId}`)
+      const updated = await call('GET', `/admin/persons/${modal.data.id}`)
+      setModal(m => ({ ...m, data: updated }))
+    } catch (e) { setAliasMsg('!' + e.message) }
   }
 
   const handleAddAccount = async () => {
@@ -233,6 +257,47 @@ export default function AdminPersons({ token }) {
               </Field>
               <ActBtn onClick={handleAddAccount} disabled={accSaving}>
                 {accSaving ? 'Adicionando...' : '+ Adicionar Conta'}
+              </ActBtn>
+            </div>
+
+            {/* Aliases — nomes alternativos para busca */}
+            <div style={{ marginTop: 28, paddingTop: 20, borderTop: '1px solid var(--color-xama-border)' }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-xama-text)', marginBottom: 14 }}>Aliases (busca)</div>
+
+              {modal.data?.aliases?.length > 0 ? (
+                <div style={{ marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {modal.data.aliases.map(a => (
+                    <div key={a.id} style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      padding: '8px 12px', borderRadius: 8,
+                      background: 'rgba(255,255,255,0.04)',
+                      border: '1px solid rgba(255,255,255,0.07)', fontSize: 12,
+                    }}>
+                      <span style={{ fontWeight: 600, color: 'var(--color-xama-text)' }}>{a.alias}</span>
+                      <button
+                        onClick={() => handleRemoveAlias(a.id)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#f87171', fontSize: 14, padding: '0 4px' }}
+                        title="Remover alias">×</button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ color: 'var(--color-xama-muted)', fontSize: 13, marginBottom: 16 }}>Nenhum alias cadastrado.</div>
+              )}
+
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-xama-muted)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Adicionar Alias</div>
+              <Msg msg={aliasMsg} />
+              <Field label="Alias">
+                <input
+                  style={inputStyle}
+                  value={aliasInput}
+                  onChange={e => setAliasInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleAddAlias()}
+                  placeholder="ex: DadBuff"
+                />
+              </Field>
+              <ActBtn onClick={handleAddAlias} disabled={aliasSaving}>
+                {aliasSaving ? 'Adicionando...' : '+ Adicionar Alias'}
               </ActBtn>
             </div>
           )}

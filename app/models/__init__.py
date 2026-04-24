@@ -11,6 +11,7 @@ from app.models.match_stat import MatchStat
 from app.models.person_stage_stat import PersonStageStat
 from app.models.lineup import Lineup, LineupPlayer
 from app.models.user_stat import UserStageStat, UserDayStat
+from app.models.person_alias import PersonAlias
 
 __all__ = [
     "User",
@@ -28,4 +29,5 @@ __all__ = [
     "LineupPlayer",
     "UserStageStat",
     "UserDayStat",
+    "PersonAlias",
 ]

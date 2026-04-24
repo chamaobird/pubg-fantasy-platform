@@ -174,7 +174,8 @@ export default function LineupBuilder({
     if (!q) return list
     return list.filter(p =>
       String(p.person_name || '').toLowerCase().includes(q) ||
-      String(p.team_name || '').toLowerCase().includes(q)
+      String(p.team_name || '').toLowerCase().includes(q) ||
+      (p.aliases || []).some(a => a.toLowerCase().includes(q))
     )
   }, [players, searchName, teamFilter])
 

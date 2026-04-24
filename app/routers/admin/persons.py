@@ -9,9 +9,12 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.dependencies import require_admin
 from app.models.person import Person
+from app.models.person_alias import PersonAlias
 from app.models.player_account import PlayerAccount
 from app.models.user import User
 from app.schemas.person import (
+    PersonAliasCreate,
+    PersonAliasResponse,
     PersonCreate,
     PersonDetailResponse,
     PersonResponse,
@@ -184,3 +187,56 @@ def close_account(
     db.commit()
     db.refresh(account)
     return account
+
+
+# ── PersonAlias endpoints ─────────────────────────────────────────────────────
+
+@router.post(
+    "/{person_id}/aliases",
+    response_model=PersonAliasResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def add_alias(
+    person_id: int,
+    body: PersonAliasCreate,
+    db: Session = Depends(get_db),
+    _admin: User = Depends(require_admin),
+) -> PersonAlias:
+    _get_person_or_404(db, person_id)
+
+    conflict = db.query(PersonAlias).filter(PersonAlias.alias == body.alias).first()
+    if conflict:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Alias '{body.alias}' already exists for person {conflict.person_id}",
+        )
+
+    alias = PersonAlias(person_id=person_id, alias=body.alias)
+    db.add(alias)
+    db.commit()
+    db.refresh(alias)
+    return alias
+
+
+@router.delete(
+    "/{person_id}/aliases/{alias_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def remove_alias(
+    person_id: int,
+    alias_id: int,
+    db: Session = Depends(get_db),
+    _admin: User = Depends(require_admin),
+) -> None:
+    alias = (
+        db.query(PersonAlias)
+        .filter(PersonAlias.id == alias_id, PersonAlias.person_id == person_id)
+        .first()
+    )
+    if not alias:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Alias {alias_id} not found for person {person_id}",
+        )
+    db.delete(alias)
+    db.commit()

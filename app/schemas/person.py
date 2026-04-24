@@ -84,5 +84,27 @@ class PersonResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class PersonAliasCreate(BaseModel):
+    alias: str
+
+    @field_validator("alias")
+    @classmethod
+    def alias_not_empty(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("alias cannot be empty")
+        return v
+
+
+class PersonAliasResponse(BaseModel):
+    id: int
+    person_id: int
+    alias: str
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
 class PersonDetailResponse(PersonResponse):
     accounts: List[PlayerAccountResponse] = []
+    aliases: List[PersonAliasResponse] = []

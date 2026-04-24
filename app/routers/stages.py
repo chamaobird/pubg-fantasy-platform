@@ -28,6 +28,7 @@ from app.models.lineup import Lineup
 from app.models.match import Match
 from app.models.match_stat import MatchStat
 from app.models.person import Person
+from app.models.person_alias import PersonAlias
 from app.models.roster import Roster, RosterPriceHistory
 from app.models.stage import Stage
 from app.models.stage_day import StageDay
@@ -122,6 +123,7 @@ class RosterPlayerOut(BaseModel):
     effective_cost: Optional[float]
     newcomer_to_tier: bool
     is_available: bool
+    aliases: list[str] = []
 
     model_config = {"from_attributes": True}
 
@@ -167,6 +169,7 @@ class PlayerStatOut(BaseModel):
 
     # Sparkline: evolução diária — preenchida apenas no escopo completo da stage
     pts_by_day: list[dict]  # [{"day": 1, "pts": 42.5}, ...]
+    aliases: list[str] = []
 
     model_config = {"from_attributes": True}
 
@@ -330,6 +333,12 @@ def list_stage_roster(stage_id: int, db: Session = Depends(get_db)) -> list[Rost
         .order_by(Roster.id)
         .all()
     )
+    person_ids = [r.person_id for r in rosters]
+    alias_rows = db.query(PersonAlias).filter(PersonAlias.person_id.in_(person_ids)).all()
+    alias_map: dict[int, list[str]] = {}
+    for row in alias_rows:
+        alias_map.setdefault(row.person_id, []).append(row.alias)
+
     return [
         RosterPlayerOut(
             id=r.id,
@@ -341,6 +350,7 @@ def list_stage_roster(stage_id: int, db: Session = Depends(get_db)) -> list[Rost
             effective_cost=r.effective_cost,
             newcomer_to_tier=r.newcomer_to_tier,
             is_available=r.is_available,
+            aliases=alias_map.get(r.person_id, []),
         )
         for r in rosters
     ]
@@ -457,7 +467,7 @@ def get_player_stats(
             a["best_match_id"] = ms.match_id
         a["pts_by_day"][day_num] += pts
 
-    # Carrega fantasy_cost atual
+    # Carrega fantasy_cost atual e aliases
     person_ids = list(agg.keys())
     rosters = (
         db.query(Roster)
@@ -466,6 +476,11 @@ def get_player_stats(
     )
     cost_map = {r.person_id: r.effective_cost for r in rosters}
     team_map = {r.person_id: r.team_name for r in rosters if r.team_name}
+
+    alias_rows = db.query(PersonAlias).filter(PersonAlias.person_id.in_(person_ids)).all()
+    alias_map: dict[int, list[str]] = {}
+    for row in alias_rows:
+        alias_map.setdefault(row.person_id, []).append(row.alias)
 
     is_full_stage = match_id is None and stage_day_id is None
 
@@ -500,6 +515,7 @@ def get_player_stats(
             best_match_id=a["best_match_id"],
             fantasy_cost=cost_map.get(person_id),
             pts_by_day=pts_by_day,
+            aliases=alias_map.get(person_id, []),
         ))
 
     result.sort(key=lambda x: x.total_xama_points, reverse=True)

@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from app.models.roster import Roster
     from app.models.match_stat import MatchStat
     from app.models.person_stage_stat import PersonStageStat
+    from app.models.person_alias import PersonAlias
 
 
 class Person(Base):
@@ -43,6 +44,9 @@ class Person(Base):
     )
     stage_stats: Mapped[List["PersonStageStat"]] = relationship(
         "PersonStageStat", back_populates="person", lazy="select"
+    )
+    aliases: Mapped[List["PersonAlias"]] = relationship(
+        "PersonAlias", back_populates="person", lazy="select", cascade="all, delete-orphan"
     )
 
     def __repr__(self) -> str:
