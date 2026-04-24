@@ -130,8 +130,8 @@ def update_stage(
         new_status = updates["lineup_status"]
         current = stage.lineup_status
         valid_transitions = {
-            "closed":  {"open", "locked", "preview"},
-            "preview": {"open", "closed"},
+            "closed":  {"open", "locked", "preview", "live"},
+            "preview": {"open", "closed", "live", "locked"},
             "open":    {"locked", "closed", "live"},
             "live":    {"locked", "open"},
             "locked":  {"open", "closed"},
