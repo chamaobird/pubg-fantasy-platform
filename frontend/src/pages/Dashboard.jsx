@@ -795,10 +795,19 @@ export default function Dashboard() {
   }, [stages, champMap])
 
   // Championships em breve com múltiplos dias — agrupados hierarquicamente
+  // Inclui grupos com previews (Dia 2, 3…) quando o Dia 1 já está locked (encerrado, não live)
   const closedChampGroupsList = useMemo(() => {
     const groups = Object.values(champGroups)
-      .filter(g => !g.open && !g.locked && g.closeds.length > 0)
-      .map(g => ({ ...g, closeds: sortByDate(g.closeds) }))
+      .filter(g =>
+        !g.open &&
+        !(g.locked?.lineup_status === 'live') &&
+        (g.closeds.length > 0 || g.previews.length > 0)
+      )
+      .map(g => ({
+        ...g,
+        // Mescla previews + closeds como "dias aguardando abertura"
+        closeds: sortByDate([...g.previews, ...g.closeds]),
+      }))
     return groups.sort((a, b) => {
       const da = new Date(a.closeds[0]?.start_date || a.closeds[0]?.lineup_open_at || '9999').getTime()
       const db = new Date(b.closeds[0]?.start_date || b.closeds[0]?.lineup_open_at || '9999').getTime()
@@ -816,10 +825,10 @@ export default function Dashboard() {
     }))
   }, [stages, champMap, closedChampGroupsList])
 
-  // Campeonatos com stage "ativa": open, ou live, ou locked com previews filhos
+  // Campeonatos com stage "ativa": open ou live (locked encerrado nunca aparece aqui)
   const activeChampGroups = useMemo(() =>
     Object.values(champGroups)
-      .filter(g => g.open || g.locked?.lineup_status === 'live' || (g.locked && g.previews.length > 0))
+      .filter(g => g.open || g.locked?.lineup_status === 'live')
       .sort((a, b) => {
         // open primeiro, depois locked
         if (a.open && !b.open) return -1
