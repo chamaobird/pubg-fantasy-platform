@@ -12,6 +12,8 @@ from app.models.person_stage_stat import PersonStageStat
 from app.models.lineup import Lineup, LineupPlayer
 from app.models.user_stat import UserStageStat, UserDayStat
 from app.models.person_alias import PersonAlias
+from app.models.achievement import UserAchievement
+from app.models.league import League, LeagueMember
 
 __all__ = [
     "User",
@@ -30,4 +32,7 @@ __all__ = [
     "UserStageStat",
     "UserDayStat",
     "PersonAlias",
+    "UserAchievement",
+    "League",
+    "LeagueMember",
 ]

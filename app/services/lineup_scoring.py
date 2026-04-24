@@ -372,6 +372,35 @@ def calculate_day_ranks(db: Session, stage_day_id: int) -> int:
         stat.rank = rank
 
     db.flush()
+
+    # Achievements pós-ranking
+    try:
+        from app.services.achievements import check_post_scoring
+        stage_day = db.query(StageDay).filter(StageDay.id == stage_day_id).first()
+        stage_id = stage_day.stage_id if stage_day else None
+        if stage_id:
+            for stat in stats:
+                lineup = (
+                    db.query(Lineup)
+                    .filter(
+                        Lineup.user_id == stat.user_id,
+                        Lineup.stage_day_id == stage_day_id,
+                    )
+                    .first()
+                )
+                captain_pts = float(stat.captain_pts or 0)
+                check_post_scoring(
+                    db=db,
+                    user_id=stat.user_id,
+                    stage_day_id=stage_day_id,
+                    stage_id=stage_id,
+                    day_rank=stat.rank,
+                    captain_pts=captain_pts,
+                )
+        db.flush()
+    except Exception as exc:
+        logger.warning("[LineupScoring] Erro ao verificar achievements pós-ranking: %s", exc)
+
     return len(stats)
 
 

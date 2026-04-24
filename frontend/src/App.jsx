@@ -13,6 +13,8 @@ import ResetPasswordPage from './pages/ResetPasswordPage'
 import SetupUsername from './pages/SetupUsername'
 import AppBackground from './components/AppBackground'
 import Admin from './pages/Admin'
+import Leagues from './pages/Leagues'
+import LeagueDetail from './pages/LeagueDetail'
 
 export const AuthContext = createContext(null)
 export const useAuth = () => useContext(AuthContext)
@@ -112,6 +114,14 @@ export default function App() {
           {/* Campeonatos */}
           <Route path="/championships" element={
             <RequireAuth><Championships /></RequireAuth>
+          } />
+
+          {/* Ligas Privadas */}
+          <Route path="/leagues" element={
+            <RequireAuth><Leagues /></RequireAuth>
+          } />
+          <Route path="/leagues/:id" element={
+            <RequireAuth><LeagueDetail /></RequireAuth>
           } />
 
           {/* Redirect legado */}

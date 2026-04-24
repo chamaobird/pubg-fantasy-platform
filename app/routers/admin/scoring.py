@@ -146,6 +146,14 @@ def rescore_stage_endpoint(
             detail=f"Erro interno durante rescore: {exc}",
         )
 
+    # Achievements pós-stage (top3_stage)
+    try:
+        from app.services.achievements import check_post_stage_lock
+        check_post_stage_lock(db, stage_id)
+        db.commit()
+    except Exception as exc:
+        logger.warning("[AdminScoring] Erro ao verificar achievements pós-rescore: %s", exc)
+
     return {
         "ok": True,
         "stage_id": stage_id,

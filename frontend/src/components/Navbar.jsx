@@ -81,6 +81,7 @@ export default function Navbar({ tournament = null }) {
           {[
             { label: 'Dashboard',    path: '/dashboard'     },
             { label: 'Campeonato', path: '/championships' },
+            { label: 'Ligas',      path: '/leagues'       },
             { label: '👤 Perfil',   path: '/profile'       },
             ...(isAdmin ? [{ label: '⚙ Admin', path: '/admin' }] : []),
           ].map(({ label, path }) => {

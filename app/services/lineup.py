@@ -161,6 +161,14 @@ def submit_lineup(
     db.commit()
     db.refresh(lineup)
 
+    # Achievements pós-submissão
+    try:
+        from app.services.achievements import check_post_submit
+        check_post_submit(db, user_id, int(total_cost))
+        db.commit()
+    except Exception as exc:
+        logger.warning("[Lineup] Erro ao verificar achievements pós-submit: %s", exc)
+
     logger.info(
         "[Lineup] user=%s stage_day=%s — lineup submetido (cost=%s captain=%s)",
         user_id, stage_day_id, total_cost, captain_roster_id,
