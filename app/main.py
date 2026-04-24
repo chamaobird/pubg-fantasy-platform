@@ -22,6 +22,7 @@ from app.routers.championships import router as championships_router
 from app.routers.profile import router as profile_router
 from app.routers.achievements import router as achievements_router
 from app.routers.leagues import router as leagues_router
+from app.routers.ws import router as ws_router
 
 
 logging.basicConfig(
@@ -218,6 +219,7 @@ app.include_router(championships_router)
 app.include_router(profile_router)
 app.include_router(achievements_router)
 app.include_router(leagues_router)
+app.include_router(ws_router)
 
 
 

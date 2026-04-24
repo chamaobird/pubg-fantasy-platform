@@ -373,6 +373,20 @@ def calculate_day_ranks(db: Session, stage_day_id: int) -> int:
 
     db.flush()
 
+    # Broadcast WebSocket — notifica clientes conectados que o scoring foi atualizado
+    try:
+        import asyncio
+        from app.ws.manager import ws_manager
+        payload = {"type": "scoring_updated", "stage_day_id": stage_day_id}
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(ws_manager.broadcast(stage_day_id, payload))
+        except RuntimeError:
+            # Não há event loop rodando (ex: chamado de script síncrono) — ignora
+            pass
+    except Exception as exc:
+        logger.warning("[LineupScoring] Erro ao broadcastar WS: %s", exc)
+
     # Achievements pós-ranking
     try:
         from app.services.achievements import check_post_scoring

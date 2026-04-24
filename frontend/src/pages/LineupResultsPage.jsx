@@ -1,11 +1,12 @@
 // frontend/src/pages/LineupResultsPage.jsx
 // XAMA Fantasy — Resultados por lineup (#092)
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
 import { API_BASE_URL } from '../config'
 import TeamLogo from '../components/TeamLogo'
 import { formatTeamTag, formatPlayerName } from '../utils/teamUtils'
+import { useLiveScoring } from '../hooks/useLiveScoring'
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -40,6 +41,20 @@ export default function LineupResultsPage({ token = '', stageId: stageIdProp, em
   const [activeDayId, setActiveDayId] = useState(null)
   const [loading,     setLoading]     = useState(true)
   const [error,       setError]       = useState('')
+  const [lastUpdate,  setLastUpdate]  = useState(null)  // timestamp do último update ao vivo
+
+  // Busca lineups e stats do dia — separada para poder re-chamar ao vivo
+  const fetchDayData = useCallback((dayId) => {
+    if (!stageId || !dayId) return
+    Promise.all([
+      token ? get(`${API_BASE_URL}/lineups/stage/${stageId}`, token) : Promise.resolve([]),
+      get(`${API_BASE_URL}/stages/${stageId}/player-stats?stage_day_id=${dayId}`, null),
+    ]).then(([lineupsData, statsData]) => {
+      setLineups(Array.isArray(lineupsData) ? lineupsData : [])
+      setPlayerStats(Array.isArray(statsData) ? statsData : [])
+      setLastUpdate(new Date())
+    }).catch(() => {})
+  }, [stageId, token])
 
   useEffect(() => {
     if (!stageId) return
@@ -72,13 +87,19 @@ export default function LineupResultsPage({ token = '', stageId: stageIdProp, em
       .finally(() => setLoading(false))
   }, [stageId, token])
 
-  // Carrega stats do dia ativo
+  // Carrega stats do dia ativo quando muda manualmente
   useEffect(() => {
     if (!stageId || !activeDayId) return
     get(`${API_BASE_URL}/stages/${stageId}/player-stats?stage_day_id=${activeDayId}`, null)
       .then(data => setPlayerStats(Array.isArray(data) ? data : []))
       .catch(() => setPlayerStats([]))
   }, [stageId, activeDayId])
+
+  // WebSocket — atualiza automaticamente quando scoring roda
+  const { connected: liveConnected } = useLiveScoring(
+    activeDayId,
+    () => fetchDayData(activeDayId),
+  )
 
   const activeLineup = useMemo(
     () => lineups.find(l => l.stage_day_id === activeDayId) || null,
@@ -99,17 +120,42 @@ export default function LineupResultsPage({ token = '', stageId: stageIdProp, em
       <div className="xama-container" style={{ maxWidth: 680 }}>
 
         {/* Header */}
-        <div style={{ marginBottom: 20 }}>
-          <h1 style={{
-            fontSize: 22, fontWeight: 700, letterSpacing: '0.06em',
-            textTransform: 'uppercase', color: 'var(--color-xama-text)', margin: 0,
-          }}>
-            Resultados do Lineup
-          </h1>
-          {stage && (
-            <p style={{ fontSize: 13, color: 'var(--color-xama-muted)', margin: '4px 0 0' }}>
-              {stage.name}
-            </p>
+        <div style={{ marginBottom: 20, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+          <div>
+            <h1 style={{
+              fontSize: 22, fontWeight: 700, letterSpacing: '0.06em',
+              textTransform: 'uppercase', color: 'var(--color-xama-text)', margin: 0,
+            }}>
+              Resultados do Lineup
+            </h1>
+            {stage && (
+              <p style={{ fontSize: 13, color: 'var(--color-xama-muted)', margin: '4px 0 0' }}>
+                {stage.name}
+              </p>
+            )}
+          </div>
+          {/* Indicador ao vivo */}
+          {activeDayId && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '5px 12px', borderRadius: 20, flexShrink: 0,
+              background: liveConnected ? 'rgba(74,222,128,0.08)' : 'rgba(255,255,255,0.04)',
+              border: `1px solid ${liveConnected ? 'rgba(74,222,128,0.25)' : 'var(--color-xama-border)'}`,
+            }}>
+              <span style={{
+                width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+                background: liveConnected ? 'var(--color-xama-green, #4ade80)' : 'var(--color-xama-muted)',
+                animation: liveConnected ? 'xamaPulse 1.8s ease-in-out infinite' : 'none',
+              }} />
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: liveConnected ? 'var(--color-xama-green, #4ade80)' : 'var(--color-xama-muted)' }}>
+                {liveConnected ? 'Ao Vivo' : 'Offline'}
+              </span>
+              {lastUpdate && liveConnected && (
+                <span style={{ fontSize: 10, color: 'var(--color-xama-muted)' }}>
+                  · {lastUpdate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                </span>
+              )}
+            </div>
           )}
         </div>
 
