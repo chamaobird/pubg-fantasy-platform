@@ -34,16 +34,17 @@ rtk gain   # ver economia de tokens ao fim da sessão
 - PowerShell: usar `;` em vez de `&&` para encadear comandos
 
 ## Migrations (cadeia real)
-`0001 → 0002 → 4bfb4ef75223 → 0003 → 0004 → 0005 → 0006 → 0007 → 0008 → 0009 → 0010 → 0011 → 0012 → 0013 → 0014 → 0015 → 0016 → 0017 → 0018 → 0019`
+`0001 → 0002 → 4bfb4ef75223 → 0003 → 0004 → 0005 → 0006 → 0007 → 0008 → 0009 → 0010 → 0011 → 0012 → 0013 → 0014 → 0015 → 0016 → 0017 → 0018 → 0019 → 0020`
 - `0014`: `survival_secs` + `captain_pts` em `user_stage_stat`
 - `0015`: `survival_secs` + `captain_pts` em `user_day_stat`
 - `0016`: `match_schedule` (JSONB) + `last_import_at` em `stage_day`
 - `0017`: `add_live_lineup_status` — live status em stage
 - `0018`: `email_verify_expires_at` (DateTime, nullable) em `user` — tokens de verificação expiram em 24h
 - `0019`: tabelas `team` e `team_member` — modelo de times com membros; partial unique index `uq_team_member_active_person` (1 time ativo por person)
-- Próxima: `revision = "0020"`, `down_revision = "0019"`
+- `0020`: tabela `person_alias` — aliases únicos globalmente para busca alternativa de jogadores
+- Próxima: `revision = "0021"`, `down_revision = "0020"`
 - Sempre rodar `python -m alembic` da raiz
-- Verificar antes de criar: `Get-Content alembic\versions\0019_*.py | Select-Object -First 15`
+- Verificar antes de criar: `Get-Content alembic\versions\0020_*.py | Select-Object -First 15`
 
 ## Entidades principais
 ```
@@ -146,6 +147,8 @@ PATCH /admin/persons/{id}                                 ← editar person
 GET   /admin/persons/                                     ← buscar persons (search, include_inactive)
 POST  /admin/persons/{id}/accounts                        ← adicionar player account
 PATCH /admin/persons/{id}/accounts/{account_id}           ← fechar account
+POST  /admin/persons/{id}/aliases                         ← adicionar alias de busca
+DELETE /admin/persons/{id}/aliases/{alias_id}             ← remover alias
 POST  /admin/stages/{id}/roster                           ← adicionar jogador ao roster
 PATCH /admin/stages/{id}/roster/{roster_id}               ← editar entrada do roster
 DELETE /admin/stages/{id}/roster/{roster_id}              ← remover do roster
@@ -193,7 +196,7 @@ DELETE /admin/teams/{id}/members/{person_id}              ← remover membro (se
   - Scripts: `scripts/pubg/populate_pas1_playoffs.py`, `scripts/pubg/manage_player_accounts.py`
   - **Gustav** (Person id=202, PlayerAccount id=308): account_id=PENDING_Gustav — atualizar após D2 (não jogou D1)
   - **fl8nkr** (Person id=310, PlayerAccount id=457): account_id=pending_fl8nkr, shard=pc-tournament — atualizar após D2
-  - **DadBuff = Palecks** (mesmo jogador, person id=152) — aliases não modelados ainda (backlog)
+  - **DadBuff = Palecks** (mesmo jogador, person id=152) — adicionar via admin Jogadores → Editar → Aliases
 - Championship: PEC Spring Playoffs 1 (id=8, shard=pc-tournament, tier_weight=1.0)
   - Tournament PUBG API: `eu-pecs26`
   - 3 Stages: Spring Playoffs 1 Dia 1(21), Dia 2(22), Dia 3(23)
@@ -295,4 +298,6 @@ GET https://api.pubg.com/shards/pc-tournament/matches/{match_id}  → 200 = pc-t
 - Dashboard: cards preview com recuo `clamp(32px, 15%, 120px)` à esquerda para hierarquia visual abaixo do open card
 - `POST /admin/stages/{id}/backfill-stats`: cria UserDayStat/UserStageStat com 0pts para usuários sem registros no leaderboard
 - Escala de superfícies CSS em `index.css` `:root`: `--surface-0` (transparent) → `--surface-1` (#12151c) → `--surface-2` (#0f1219) → `--surface-3` (#1a1f2e) → `--surface-4` (#2a3046); usar tokens em vez de hex hardcoded
-- `PlayerStatsPage`: dropdown multi-stage com checkboxes (default = Tudo); rótulos "Dia N" por índice; WINS após ASS; zebra nas linhas
+- `PlayerStatsPage`: dropdown multi-stage com checkboxes (default = Tudo); rótulos "Dia N" por índice; WINS após ASS; zebra nas linhas; coluna DIAS (multi-stage) mostra em quantas stages o jogador aparece; busca por aliases
+- `person_alias`: alias único globalmente (constraint); `RosterPlayerOut` e `PlayerStatOut` incluem `aliases: list[str]`; busca por alias funciona no LineupBuilder e PlayerStatsPage; gerenciado via AdminPersons → modal Editar → seção Aliases
+- `preflight_accounts.py`: detecta 4 status — `[OK]`, `[PENDING]` (UPDATE), `[STEAM]` (INSERT pc-tournament), `[UNKNOWN]`; use `--fix` para corrigir PENDING e STEAM em uma execução

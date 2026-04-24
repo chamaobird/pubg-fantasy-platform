@@ -16,6 +16,7 @@ CHAMPIONSHIP
                  └─ LINEUP_PLAYER
 
 PERSON ──── PLAYER_ACCOUNT (multi-shard, multi-alias)
+PERSON ──── PERSON_ALIAS   (nomes alternativos para busca; único globalmente)
 PERSON ──── PERSON_STAGE_STAT (acumulado por fase)
 USER ─────── USER_STAGE_STAT (acumulado por stage: total_points, survival_secs, captain_pts)
 USER ─────── USER_DAY_STAT   (por stage_day: points, survival_secs, captain_pts)
@@ -33,10 +34,11 @@ USER ─────── USER_DAY_STAT   (por stage_day: points, survival_secs
 - `pricing_distribution`: modelo de distribuição (padrão: linear)
 - `pricing_newcomer_cost`: custo fixo para jogadores sem histórico (padrão: 15)
 
-### PERSON + PLAYER_ACCOUNT
+### PERSON + PLAYER_ACCOUNT + PERSON_ALIAS
 - PERSON: entidade permanente que representa o jogador real. Nunca deletada.
-- PLAYER_ACCOUNT: identidades conhecidas (suporta múltiplas contas e aliases)
+- PLAYER_ACCOUNT: identidades conhecidas (suporta múltiplas contas e aliases por shard)
 - `active_until: null` = conta ainda ativa
+- PERSON_ALIAS: nomes alternativos (ex: DadBuff, Palecks) para busca no LineupBuilder e PlayerStatsPage. Alias é único globalmente (constraint). Gerenciado via AdminPersons.
 
 ### ROSTER
 - Jogador disponível para fantasy em uma STAGE específica

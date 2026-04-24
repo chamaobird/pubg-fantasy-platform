@@ -3,24 +3,71 @@
 
 ---
 
-## Estado Atual — 22/04/2026 (noite) — Tech debt de cores concluído; pronto para Finals
+## Estado Atual — 23/04/2026 — Features + polish mobile concluídos; Finals aguardando dia de jogo
 
 ### Próximas tarefas operacionais
 1. **Importar times nas Finals stages** — admin → "↓ Importar" para stages 24–29 (16 times cada)
 2. **Rodar pricing** após import do roster (ou definir custo fixo para Finals)
 3. **Abrir lineups** das Finals stages quando prontas
 
-### Backlog imediato (prioridade)
-1. **Mobile Fase 2** — LineupBuilder cards, tabelas responsivas, navbar mobile
-2. **Steam player lookup service** — resolver PENDING_ automaticamente para shards steam (pré-evento)
-3. **Script pré-flight de accounts** — antes de qualquer dia de jogo, validar todos os accounts do roster
-4. **`close_and_open_next_day.py`** — automatizar abertura do próximo dia (copiar roster + pricing + status)
-5. **Person aliases** — tabela `person_alias` ou coluna JSON para nomes alternativos (ex: DadBuff = Palecks)
-6. **Stats page — coluna "dias jogados"** — mostrar em quantos dias da seleção multi-stage o jogador aparece
+### Backlog restante
+- Nenhum item de alta prioridade pendente — aguardar dia de jogo das Finals
 
-### ✅ Tech debt concluído nesta sessão
-- ~~Corrigir comentário `scoring.py` linha ~14: x1.25 → x1.30~~ — já estava correto (×1.30)
-- ~~Cores Categoria B sem token~~ — **concluído**: `--surface-4: #2a3046` criado; 28 ocorrências tokenizadas
+### ✅ Concluído nesta sessão
+- Polish mobile: `×1.30` removido do card, TAG removida, botões empilhados verticalmente, botão 📈 escondido
+- Person aliases: tabela + endpoints admin + busca por alias no LineupBuilder e PlayerStatsPage
+- Stats page: coluna DIAS (multi-stage) + busca por aliases
+- Steam player lookup: `preflight_accounts.py` detecta e corrige accounts steam-only (`[STEAM]` + INSERT)
+
+---
+
+## Sessão 23/04/2026 (tarde) — Polish mobile, Person aliases, Stats DIAS, Steam preflight
+
+### Polish mobile — LineupBuilder
+- `×1.30` removido do card de capitão no mobile (classe `xlb-cap-multiplier--desktop`)
+- TAG do time removida dos cards (classe `xlb-hslot-tag-label--desktop`)
+- Botão 📈 escondido no mobile (`xlb-action-btn--graph`)
+- Botões Titular/Reserva empilhados verticalmente (`xlb-action-btns` → `flex-direction: column`)
+- Preço do card: 7px no mobile
+
+### Person aliases (migration 0020)
+- Tabela `person_alias` (alias único globalmente, FK → person com CASCADE)
+- Model `PersonAlias` + relationship em `Person`
+- Endpoints admin: `POST /admin/persons/{id}/aliases`, `DELETE /admin/persons/{id}/aliases/{alias_id}`
+- `RosterPlayerOut` + `PlayerStatOut`: campo `aliases: list[str]`
+- Busca por alias no **LineupBuilder** e **PlayerStatsPage**
+- **AdminPersons**: seção "Aliases (busca)" no modal de edição
+
+### Stats page — coluna DIAS
+- `aggregateStats`: rastreia `stage_idxs` (Set) por jogador → `days_played = stage_idxs.size`
+- Coluna "DIAS" aparece apenas em modo multi-stage (`multiOnly: true`)
+- `aliases` propagados via `aggregateStats`
+
+### preflight_accounts.py — steam-only
+- Novo status `[STEAM]`: jogador no roster com account steam mas sem pc-tournament
+- Com `--fix`: INSERT `player_account(shard='pc-tournament')` via match participant
+- Relatório inicial lista quem está nesse estado antes de checar matches
+
+---
+
+## Sessão 23/04/2026 — Mobile Fase 2: navbar, dashboard cards, LineupBuilder slots
+
+### Navbar mobile
+- Labels abreviados: `Dashboard` + `Campeonato` (calculado para ~390px sem overflow)
+- Padding dos botões reduzido `8px 16px → 6px 10px` no mobile
+- Contexto do torneio escondido no mobile (`.xnav-tournament { display: none }`)
+- Links de nav em segunda linha com scroll horizontal
+
+### Dashboard cards (OpenCard + LockedActiveCard)
+- Logo reduzido 108→64px no mobile (`.dash-open-logo`)
+- Col3 (status + botão) vira `flex-row` com `justify-content: space-between` (`.dash-open-col3`)
+
+### LineupBuilder — slots
+- Grid 2×2 para titulares + [Reserva | Salvar] na última linha
+- Cards preenchidos: layout horizontal `[LOGO 24px] [TAG / NOME] [$ ⭐ ×]`
+- Colunas de stats (PTS/G, K, ASS, DMG, SURV, P) escondidas no mobile via `nth-child`
+- Botão SALVAR migrado para 6º slot no mobile (escondido do sticky header)
+- Arquivos: `LineupBuilder.jsx`, `index.css`
 
 ---
 
