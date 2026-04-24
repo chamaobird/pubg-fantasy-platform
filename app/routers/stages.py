@@ -174,6 +174,25 @@ class PlayerStatOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class PriorStatsOut(BaseModel):
+    """
+    Stats dos dias anteriores do mesmo championship (stages locked/live)
+    filtradas aos jogadores do roster atual.
+    match_pts: lista de xama_points por partida (ordem cronológica).
+    """
+    person_id: int
+    matches_played: int
+    total_xama_points: float
+    pts_per_match: float
+    total_kills: int
+    total_assists: int
+    total_damage: float
+    avg_survival_secs: Optional[float]
+    match_pts: list[float]   # xama por partida, ordem cronológica
+
+    model_config = {"from_attributes": True}
+
+
 class LeaderboardEntryOut(BaseModel):
     rank: Optional[int]
     user_id: str
@@ -520,6 +539,122 @@ def get_player_stats(
 
     result.sort(key=lambda x: x.total_xama_points, reverse=True)
     return result[:limit]
+
+
+@router.get(
+    "/{stage_id}/prior-stats",
+    response_model=list[PriorStatsOut],
+    summary="Stats dos dias anteriores do mesmo championship",
+    description=(
+        "Retorna stats agregados das stages locked/live do mesmo championship, "
+        "filtradas aos jogadores do roster atual. "
+        "Inclui match_pts (xama por partida, ordem cronológica) para exibição por jogo."
+    ),
+)
+def get_prior_stats(
+    stage_id: int,
+    db: Session = Depends(get_db),
+) -> list[PriorStatsOut]:
+    stage = _get_stage_or_404(db, stage_id)
+
+    # Stages locked/live do mesmo championship (exceto a stage atual)
+    prior_stages = (
+        db.query(Stage)
+        .filter(
+            Stage.championship_id == stage.championship_id,
+            Stage.id != stage_id,
+            Stage.lineup_status.in_(["locked", "live"]),
+            Stage.is_active == True,  # noqa: E712
+        )
+        .all()
+    )
+
+    if not prior_stages:
+        return []
+
+    prior_stage_ids = [s.id for s in prior_stages]
+
+    # Stage days dessas stages
+    stage_day_ids = [
+        sd.id
+        for sd in db.query(StageDay.id)
+        .filter(StageDay.stage_id.in_(prior_stage_ids))
+        .all()
+    ]
+
+    if not stage_day_ids:
+        return []
+
+    # Jogadores do roster atual
+    current_person_ids = [
+        r.person_id
+        for r in db.query(Roster.person_id)
+        .filter(Roster.stage_id == stage_id, Roster.is_available == True)  # noqa: E712
+        .all()
+    ]
+
+    if not current_person_ids:
+        return []
+
+    # Match stats dos jogadores nas stages anteriores
+    stats_rows = (
+        db.query(MatchStat)
+        .join(Match, MatchStat.match_id == Match.id)
+        .filter(
+            Match.stage_day_id.in_(stage_day_ids),
+            MatchStat.person_id.in_(current_person_ids),
+            MatchStat.xama_points.isnot(None),
+        )
+        .order_by(Match.played_at.asc().nullslast(), Match.id.asc())
+        .all()
+    )
+
+    if not stats_rows:
+        return []
+
+    from collections import defaultdict
+
+    agg: dict[int, dict] = defaultdict(lambda: {
+        "matches": 0,
+        "xama_points": 0.0,
+        "kills": 0,
+        "assists": 0,
+        "damage": 0.0,
+        "survival_times": [],
+        "match_pts": [],
+    })
+
+    for ms in stats_rows:
+        a = agg[ms.person_id]
+        pts = float(ms.xama_points or 0)
+        a["matches"] += 1
+        a["xama_points"] += pts
+        a["kills"] += int(ms.kills or 0)
+        a["assists"] += int(ms.assists or 0)
+        a["damage"] += float(ms.damage or 0)
+        if ms.survival_time is not None:
+            a["survival_times"].append(ms.survival_time)
+        a["match_pts"].append(round(pts, 1))
+
+    result = []
+    for person_id, a in agg.items():
+        matches = a["matches"]
+        total_pts = round(a["xama_points"], 2)
+        result.append(PriorStatsOut(
+            person_id=person_id,
+            matches_played=matches,
+            total_xama_points=total_pts,
+            pts_per_match=round(total_pts / matches, 2) if matches > 0 else 0.0,
+            total_kills=a["kills"],
+            total_assists=a["assists"],
+            total_damage=round(a["damage"], 1),
+            avg_survival_secs=round(
+                sum(a["survival_times"]) / len(a["survival_times"]), 0
+            ) if a["survival_times"] else None,
+            match_pts=a["match_pts"],
+        ))
+
+    return result
 
 
 @router.get(

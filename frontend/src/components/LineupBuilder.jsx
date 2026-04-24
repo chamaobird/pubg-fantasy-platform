@@ -87,6 +87,7 @@ export default function LineupBuilder({
   const [stage,          setStage]          = useState(null)
   const [stageDays,      setStageDays]      = useState([])
   const [players,        setPlayers]        = useState([])
+  const [priorStats,     setPriorStats]     = useState({})  // person_id → PriorStatsOut
   const [playersLoading, setPlayersLoading] = useState(false)
   const [playersError,   setPlayersError]   = useState('')
 
@@ -180,18 +181,24 @@ export default function LineupBuilder({
   }, [players, searchName, teamFilter])
 
   const sortedPlayers = useMemo(() => {
+    const PRIOR_KEYS = new Set(['pts_per_match', 'total_kills', 'total_damage', 'match_pts'])
     return [...filteredPlayers].sort((a, b) => {
       let aVal, bVal
-      if (sortKey === 'name')           { aVal = formatPlayerName(a.person_name, a.team_name); bVal = formatPlayerName(b.person_name, b.team_name) }
-      else if (sortKey === 'team')      { aVal = formatTeamTag(a.person_name, a.team_name); bVal = formatTeamTag(b.person_name, b.team_name) }
-      else                              { aVal = a[sortKey]; bVal = b[sortKey] }
+      if (sortKey === 'name')              { aVal = formatPlayerName(a.person_name, a.team_name); bVal = formatPlayerName(b.person_name, b.team_name) }
+      else if (sortKey === 'team')         { aVal = formatTeamTag(a.person_name, a.team_name); bVal = formatTeamTag(b.person_name, b.team_name) }
+      else if (PRIOR_KEYS.has(sortKey))   {
+        const sa = priorStats[a.person_id]; const sb = priorStats[b.person_id]
+        aVal = sa ? (sortKey === 'match_pts' ? sa.total_xama_points : sa[sortKey]) : null
+        bVal = sb ? (sortKey === 'match_pts' ? sb.total_xama_points : sb[sortKey]) : null
+      }
+      else                                 { aVal = a[sortKey]; bVal = b[sortKey] }
       if (aVal == null && bVal == null) return 0
       if (aVal == null) return 1
       if (bVal == null) return -1
       if (typeof aVal === 'string') return sortDir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal)
       return sortDir === 'asc' ? aVal - bVal : bVal - aVal
     })
-  }, [filteredPlayers, sortKey, sortDir])
+  }, [filteredPlayers, sortKey, sortDir, priorStats])
 
   // ── Effects — carregar dados da stage ───────────────────────────────────
   useEffect(() => {
@@ -209,11 +216,17 @@ export default function LineupBuilder({
       httpJson(`${API_BASE_URL}/stages/${stageId}`),
       httpJson(`${API_BASE_URL}/stages/${stageId}/days`),
       httpJson(`${API_BASE_URL}/stages/${stageId}/roster`),
+      httpJson(`${API_BASE_URL}/stages/${stageId}/prior-stats`).catch(() => []),
     ])
-      .then(([stageData, daysData, rosterData]) => {
+      .then(([stageData, daysData, rosterData, priorData]) => {
         setStage(stageData)
         setStageDays(Array.isArray(daysData) ? daysData : [])
         setPlayers(Array.isArray(rosterData) ? rosterData : [])
+        const statsMap = {}
+        if (Array.isArray(priorData)) {
+          priorData.forEach(s => { statsMap[s.person_id] = s })
+        }
+        setPriorStats(statsMap)
       })
       .catch(e => setPlayersError(parseErrorMessage(e)))
       .finally(() => setPlayersLoading(false))
@@ -398,17 +411,37 @@ export default function LineupBuilder({
     { key: 'effective_cost', label: 'Preço',   right: true,
       render: (p) => <span style={{ color: 'var(--color-xama-gold)', fontWeight: 700, fontSize: 14 }}>{fmtCost(p.effective_cost)}</span> },
     { key: 'pts_per_match',  label: 'PTS/G',   right: true,
-      render: (p) => p.pts_per_match != null ? Number(p.pts_per_match).toFixed(2) : '—' },
+      render: (p) => {
+        const s = priorStats[p.person_id]
+        return s ? Number(s.pts_per_match).toFixed(1) : '—'
+      }},
     { key: 'total_kills',    label: 'K',       right: true,
-      render: (p) => p.total_kills != null ? Math.round(p.total_kills) : '—' },
-    { key: 'total_assists',  label: 'ASS',     right: true,
-      render: (p) => p.total_assists != null ? Math.round(p.total_assists) : '—' },
+      render: (p) => {
+        const s = priorStats[p.person_id]
+        return s ? s.total_kills : '—'
+      }},
     { key: 'total_damage',   label: 'DMG',     right: true,
-      render: (p) => p.total_damage != null ? Math.round(p.total_damage) : '—' },
-    { key: 'avg_survival_secs', label: 'SURV', right: true,
-      render: (p) => p.avg_survival_secs != null ? Math.round(Number(p.avg_survival_secs) / 60) : '—' },
-    { key: 'matches_played', label: 'P',       right: true,
-      render: (p) => p.matches_played ?? '—' },
+      render: (p) => {
+        const s = priorStats[p.person_id]
+        return s ? Math.round(s.total_damage) : '—'
+      }},
+    { key: 'match_pts',      label: 'PARTIDAS', right: true,
+      render: (p) => {
+        const s = priorStats[p.person_id]
+        if (!s || !s.match_pts?.length) return '—'
+        return (
+          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, letterSpacing: '0.02em', color: 'var(--color-xama-muted)', whiteSpace: 'nowrap' }}>
+            {s.match_pts.map((v, i) => (
+              <span key={i}>
+                <span style={{ color: v >= 50 ? 'var(--color-xama-gold)' : v >= 25 ? 'var(--color-xama-orange)' : 'var(--color-xama-muted)' }}>
+                  {v % 1 === 0 ? v : v.toFixed(1)}
+                </span>
+                {i < s.match_pts.length - 1 && <span style={{ opacity: 0.35 }}> · </span>}
+              </span>
+            ))}
+          </span>
+        )
+      }},
   ]
 
   // ── Render ──────────────────────────────────────────────────────────────
