@@ -972,3 +972,128 @@ body {
   .xlb-hslot-price { font-size: 10px !important; }
   .xlb-hslot-actions { margin-top: 0 !important; padding-top: 0 !important; }
 }
+
+/* ─── LineupResults — layout de card-linha ───────────────────────────────── */
+
+/* Badge CAP / RES */
+.xlr-badge {
+  font-size: 9px; font-weight: 800; border-radius: 3px;
+  padding: 1px 5px; letter-spacing: 0.06em; text-transform: uppercase; flex-shrink: 0;
+}
+.xlr-badge-cap { color: var(--color-xama-gold); background: rgba(240,192,64,0.14); border: 1px solid rgba(240,192,64,0.35); }
+.xlr-badge-res { color: var(--color-xama-blue,#60a5fa); background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); }
+
+/* Linha de jogador */
+.xlr-card {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  min-height: 72px;
+}
+.xlr-card-logo {
+  width: 60px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.18);
+}
+.xlr-card-player {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 8px 12px;
+  gap: 2px;
+  container-type: inline-size;
+}
+.xlr-card-name {
+  font-size: clamp(11px, 14cqi, 17px);
+  font-weight: 800;
+  color: var(--color-xama-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.25;
+}
+
+/* Colunas de stats (lado direito) */
+.xlr-stats-cols {
+  display: flex;
+  align-items: stretch;
+  border-left: 1px solid var(--color-xama-border);
+  flex-shrink: 0;
+}
+.xlr-stat-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  padding: 4px 6px;
+  border-left: 1px solid rgba(255,255,255,0.04);
+  gap: 1px;
+}
+.xlr-stat-col--fantasy {
+  width: 70px;
+  background: rgba(255,255,255,0.015);
+  border-left: 1px solid var(--color-xama-border);
+}
+.xlr-stat-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-xama-text);
+  line-height: 1.2;
+  text-align: center;
+}
+.xlr-stat-value--fantasy { font-size: 14px; }
+
+/* Header de colunas */
+.xlr-cols-header {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--color-xama-border);
+  background: rgba(0,0,0,0.25);
+}
+.xlr-cols-header-player {
+  flex: 1;
+  padding: 5px 12px 5px 74px;  /* alinha com xlr-card-logo(60) + sep(1) + padding(13) */
+  font-size: 9px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--color-xama-muted);
+}
+.xlr-cols-header-stats {
+  display: flex;
+  border-left: 1px solid var(--color-xama-border);
+  flex-shrink: 0;
+}
+.xlr-col-header-item {
+  width: 54px;
+  padding: 5px 6px;
+  text-align: center;
+  font-size: 9px; font-weight: 700; letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--color-xama-muted);
+  border-left: 1px solid rgba(255,255,255,0.04);
+  user-select: none;
+  transition: color 0.15s;
+}
+.xlr-col-header-item--fantasy {
+  width: 70px;
+  border-left: 1px solid var(--color-xama-border);
+}
+.xlr-col-header-item--active { color: var(--color-xama-orange); }
+
+/* Mobile: esconde colunas secundárias */
+@media (max-width: 600px) {
+  .xlr-stat-col--hide-mobile,
+  .xlr-col-header-item--hide-mobile { display: none !important; }
+  .xlr-stat-col { width: 46px; }
+  .xlr-col-header-item { width: 46px; }
+  .xlr-stat-col--fantasy { width: 60px; }
+  .xlr-col-header-item--fantasy { width: 60px; }
+  .xlr-card-logo { width: 40px; }
+  .xlr-cols-header-player { padding-left: 54px; }
+  .xlr-card-name { font-size: 12px !important; }
+}

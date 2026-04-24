@@ -28,28 +28,31 @@ async function get(url, token) {
   return res.json()
 }
 
-// ── table style helpers ───────────────────────────────────────────────────────
+// ── survivalPts (mesma fórmula do PlayerStatsPage) ────────────────────────────
 
-const thStyle = (right = false) => ({
-  padding: '8px 12px',
-  fontSize: 10,
-  fontWeight: 700,
-  letterSpacing: '0.08em',
-  textTransform: 'uppercase',
-  textAlign: right ? 'right' : 'left',
-  color: 'var(--color-xama-muted)',
-  whiteSpace: 'nowrap',
-  userSelect: 'none',
-})
+const KILL_PTS = 3.0
+const ASS_PTS  = 1.0
+const DMG_PTS  = 0.03
 
-const tdStyle = {
-  padding: '9px 12px',
-  textAlign: 'right',
-  fontFamily: "'JetBrains Mono', monospace",
-  fontSize: 13,
-  fontVariantNumeric: 'tabular-nums',
-  color: 'var(--color-xama-text)',
+function calcSurvivalPts(stat) {
+  if (!stat || stat.total_xama_points == null) return null
+  const combatPts = (stat.total_kills || 0) * KILL_PTS
+    + (stat.total_assists || 0) * ASS_PTS
+    + Math.floor((stat.total_damage || 0) * DMG_PTS)
+  return Math.round((stat.total_xama_points || 0) - combatPts)
 }
+
+// ── Colunas de stats ──────────────────────────────────────────────────────────
+
+const STAT_COLS = [
+  { key: 'kills',   label: 'K',      title: 'Kills totais no dia',                       defaultDir: 'desc' },
+  { key: 'dmg',     label: 'DMG',    title: 'Dano total no dia',                         defaultDir: 'desc', hideMobile: true },
+  { key: 'ass',     label: 'ASS',    title: 'Assists totais no dia',                     defaultDir: 'desc', hideMobile: true },
+  { key: 'pos',     label: 'POS',    title: 'Colocação média — menor é melhor',          defaultDir: 'asc',  hideMobile: true },
+  { key: 'sobrev',  label: 'SOBREV', title: 'Pontos de sobrevivência (top‑8 por lobby)', defaultDir: 'desc', hideMobile: true },
+  { key: 'xama',    label: 'XAMA',   title: 'Pontos XAMA brutos (sem multiplicador)',    defaultDir: 'desc' },
+  { key: 'fantasy', label: 'FANTASY',title: 'Pontos fantasy (com multiplicador do cap)', defaultDir: 'desc', fantasy: true },
+]
 
 // ── component ─────────────────────────────────────────────────────────────────
 
@@ -256,20 +259,6 @@ export default function LineupResultsPage({ token = '', stageId: stageIdProp, em
 
 // ── MyLineupStatsTable ────────────────────────────────────────────────────────
 
-const SORT_COLS = [
-  { key: 'kills',   label: 'K',      title: 'Kills totais no dia',                         defaultDir: 'desc' },
-  { key: 'dmg',     label: 'DMG',    title: 'Dano total no dia',                            defaultDir: 'desc' },
-  { key: 'ass',     label: 'ASS',    title: 'Assists totais no dia',                        defaultDir: 'desc' },
-  { key: 'pos',     label: 'POS',    title: 'Colocação média — menor é melhor',             defaultDir: 'asc'  },
-  { key: 'xama',    label: 'XAMA',   title: 'Pontos XAMA brutos (sem multiplicador)',       defaultDir: 'desc' },
-  { key: 'fantasy', label: 'FANTASY',title: 'Pontos fantasy (capitão com multiplicador)',   defaultDir: 'desc' },
-]
-
-function SortArrow({ active, dir }) {
-  if (!active) return <span style={{ marginLeft: 3, opacity: 0.2, fontSize: 8 }}>⇅</span>
-  return <span style={{ marginLeft: 3, fontSize: 8, color: 'var(--color-xama-orange)' }}>{dir === 'desc' ? '▼' : '▲'}</span>
-}
-
 function MyLineupStatsTable({ lineup, captainMultiplier, statByPersonId }) {
   const isPending = lineup.total_points == null
 
@@ -277,10 +266,11 @@ function MyLineupStatsTable({ lineup, captainMultiplier, statByPersonId }) {
   const [sortDir, setSortDir] = useState('desc')
 
   const handleSort = (key) => {
+    if (isPending) return
     if (sortKey === key) {
       setSortDir(d => d === 'desc' ? 'asc' : 'desc')
     } else {
-      const col = SORT_COLS.find(c => c.key === key)
+      const col = STAT_COLS.find(c => c.key === key)
       setSortKey(key)
       setSortDir(col?.defaultDir ?? 'desc')
     }
@@ -291,39 +281,26 @@ function MyLineupStatsTable({ lineup, captainMultiplier, statByPersonId }) {
 
   const titulares = useMemo(() => {
     if (isPending) {
-      // sem dados: capitão primeiro, resto em ordem original
-      return [...titularesRaw].sort((a, b) => {
-        if (a.is_captain) return -1
-        if (b.is_captain) return 1
-        return 0
-      })
+      return [...titularesRaw].sort((a, b) => (a.is_captain ? -1 : b.is_captain ? 1 : 0))
     }
     return [...titularesRaw].sort((a, b) => {
       const sa = statByPersonId[a.person_id] || {}
       const sb = statByPersonId[b.person_id] || {}
       let av, bv
       switch (sortKey) {
-        case 'kills':   av = sa.total_kills ?? 0;         bv = sb.total_kills ?? 0;         break
-        case 'dmg':     av = sa.total_damage ?? 0;        bv = sb.total_damage ?? 0;        break
-        case 'ass':     av = sa.total_assists ?? 0;       bv = sb.total_assists ?? 0;       break
-        case 'pos':     av = sa.avg_placement ?? 999;     bv = sb.avg_placement ?? 999;     break
-        case 'xama':    av = sa.total_xama_points ?? 0;   bv = sb.total_xama_points ?? 0;   break
-        default:        av = Number(a.points_earned ?? 0); bv = Number(b.points_earned ?? 0)
+        case 'kills':  av = sa.total_kills ?? 0;        bv = sb.total_kills ?? 0;        break
+        case 'dmg':    av = sa.total_damage ?? 0;       bv = sb.total_damage ?? 0;       break
+        case 'ass':    av = sa.total_assists ?? 0;      bv = sb.total_assists ?? 0;      break
+        case 'pos':    av = sa.avg_placement ?? 999;    bv = sb.avg_placement ?? 999;    break
+        case 'sobrev': av = calcSurvivalPts(sa) ?? 0;  bv = calcSurvivalPts(sb) ?? 0;   break
+        case 'xama':   av = sa.total_xama_points ?? 0; bv = sb.total_xama_points ?? 0;  break
+        default:       av = Number(a.points_earned ?? 0); bv = Number(b.points_earned ?? 0)
       }
       return sortDir === 'desc' ? bv - av : av - bv
     })
   }, [titularesRaw, sortKey, sortDir, statByPersonId, isPending]) // eslint-disable-line
 
   const allPlayers = reserva ? [...titulares, reserva] : titulares
-  const captainColor = 'var(--color-xama-gold)'
-
-  const thSortStyle = (key) => ({
-    ...thStyle(true),
-    cursor: isPending ? 'default' : 'pointer',
-    color: sortKey === key && !isPending ? 'var(--color-xama-orange)' : 'var(--color-xama-muted)',
-    userSelect: 'none',
-    transition: 'color 0.15s',
-  })
 
   return (
     <div style={{
@@ -333,7 +310,7 @@ function MyLineupStatsTable({ lineup, captainMultiplier, statByPersonId }) {
       overflow: 'hidden',
       marginBottom: 20,
     }}>
-      {/* Barra laranja no topo */}
+      {/* Barra laranja */}
       <div style={{ height: 2, background: 'linear-gradient(90deg, var(--color-xama-orange) 0%, transparent 60%)' }} />
 
       {/* Total do dia */}
@@ -357,132 +334,141 @@ function MyLineupStatsTable({ lineup, captainMultiplier, statByPersonId }) {
         </div>
       )}
 
-      {/* Tabela */}
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ background: 'rgba(0,0,0,0.25)', borderBottom: '1px solid var(--color-xama-border)' }}>
-              <th style={thStyle(false)}>Jogador</th>
-              {SORT_COLS.map(col => (
-                <th
-                  key={col.key}
-                  title={col.title}
-                  style={thSortStyle(col.key)}
-                  onClick={() => !isPending && handleSort(col.key)}
-                >
-                  {col.label}
-                  {!isPending && <SortArrow active={sortKey === col.key} dir={sortDir} />}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {allPlayers.map((lp, idx) => {
-              const stat      = statByPersonId[lp.person_id] || null
-              const isReserve = lp.slot_type === 'reserve'
-              const pts       = lp.points_earned != null ? Number(lp.points_earned) : null
-              const basePts   = lp.is_captain && pts != null ? pts / captainMultiplier : null
-              const teamTag   = formatTeamTag(lp.person_name, lp.team_name)
+      {/* Header de colunas (clicável para ordenar) */}
+      <div className="xlr-cols-header">
+        <div className="xlr-cols-header-player">Jogador</div>
+        <div className="xlr-cols-header-stats">
+          {STAT_COLS.map(col => (
+            <div
+              key={col.key}
+              title={col.title}
+              onClick={() => handleSort(col.key)}
+              className={[
+                'xlr-col-header-item',
+                col.fantasy ? 'xlr-col-header-item--fantasy' : '',
+                col.hideMobile ? 'xlr-col-header-item--hide-mobile' : '',
+                sortKey === col.key && !isPending ? 'xlr-col-header-item--active' : '',
+              ].filter(Boolean).join(' ')}
+              style={{ cursor: isPending ? 'default' : 'pointer' }}
+            >
+              {col.label}
+              {sortKey === col.key && !isPending && (
+                <span style={{ marginLeft: 2, fontSize: 7 }}>{sortDir === 'desc' ? '▼' : '▲'}</span>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
 
-              const kills    = stat?.total_kills ?? null
-              const damage   = stat?.total_damage != null ? Math.round(stat.total_damage) : null
-              const assists  = stat?.total_assists ?? null
-              const avgPlace = stat?.avg_placement != null ? Math.round(stat.avg_placement) : null
-              const xama     = stat?.total_xama_points ?? null
+      {/* Linhas de jogadores */}
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        {allPlayers.map((lp) => {
+          const stat      = statByPersonId[lp.person_id] || null
+          const isReserve = lp.slot_type === 'reserve'
+          const pts       = lp.points_earned != null ? Number(lp.points_earned) : null
+          const basePts   = lp.is_captain && pts != null ? pts / captainMultiplier : null
+          const teamTag   = formatTeamTag(lp.person_name, lp.team_name)
 
-              return (
-                <tr
-                  key={lp.id}
-                  style={{
-                    borderBottom: '1px solid rgba(255,255,255,0.04)',
-                    background: lp.is_captain
-                      ? 'rgba(240,192,64,0.04)'
-                      : isReserve
-                        ? 'rgba(0,0,0,0.18)'
-                        : idx % 2 === 1 ? 'rgba(255,255,255,0.015)' : 'transparent',
-                    opacity: isReserve ? 0.72 : 1,
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background = '#161b27' }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.background = lp.is_captain
-                      ? 'rgba(240,192,64,0.04)'
-                      : isReserve
-                        ? 'rgba(0,0,0,0.18)'
-                        : idx % 2 === 1 ? 'rgba(255,255,255,0.015)' : 'transparent'
-                  }}
-                >
-                  {/* Jogador */}
-                  <td style={{ padding: '9px 14px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <TeamLogo teamName={teamTag} size={24} />
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'nowrap' }}>
-                          <span style={{
-                            fontSize: 13, fontWeight: 600,
-                            color: lp.is_captain ? captainColor : isReserve ? 'var(--color-xama-muted)' : 'var(--color-xama-text)',
-                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 150,
-                          }}>
-                            {fmt(lp.person_name)}
-                          </span>
-                          {lp.is_captain && (
-                            <span style={{ fontSize: 9, fontWeight: 800, color: captainColor, background: 'rgba(240,192,64,0.14)', border: '1px solid rgba(240,192,64,0.35)', borderRadius: 3, padding: '1px 5px', letterSpacing: '0.06em', flexShrink: 0 }}>
-                              ⭐ CAP
-                            </span>
-                          )}
-                          {isReserve && (
-                            <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--color-xama-blue)', background: 'rgba(96,165,250,0.08)', border: '1px solid rgba(96,165,250,0.2)', borderRadius: 3, padding: '1px 4px', letterSpacing: '0.06em', flexShrink: 0 }}>
-                              RES
-                            </span>
-                          )}
-                        </div>
-                        <div style={{ fontSize: 10, color: 'var(--color-xama-muted)', marginTop: 1 }}>{teamTag}</div>
-                      </div>
-                    </div>
-                  </td>
+          const kills    = stat?.total_kills ?? null
+          const damage   = stat?.total_damage != null ? Math.round(stat.total_damage) : null
+          const assists  = stat?.total_assists ?? null
+          const avgPlace = stat?.avg_placement != null ? Math.round(stat.avg_placement) : null
+          const xama     = stat?.total_xama_points != null ? Number(stat.total_xama_points) : null
+          const sobrev   = calcSurvivalPts(stat)
 
-                  {/* K */}
-                  <td style={{ ...tdStyle, color: kills != null && kills >= 5 ? '#fb923c' : kills != null && kills >= 3 ? '#fbbf24' : 'var(--color-xama-muted)' }}>
+          const killColor  = kills  != null && kills  >= 5 ? '#fb923c' : kills  != null && kills  >= 3 ? '#fbbf24' : null
+          const dmgColor   = damage != null && damage >= 800 ? '#4ade80' : damage != null && damage >= 400 ? '#a3e635' : null
+          const posColor   = avgPlace != null && avgPlace <= 3 ? '#fde68a' : null
+          const ptsColor   = lp.is_captain ? 'var(--color-xama-gold)' : isReserve ? 'var(--color-xama-muted)' : 'var(--color-xama-text)'
+
+          return (
+            <div
+              key={lp.id}
+              className="xlr-card"
+              style={{
+                borderBottom: '1px solid rgba(255,255,255,0.04)',
+                opacity: isReserve ? 0.82 : 1,
+                background: lp.is_captain
+                  ? 'rgba(240,192,64,0.04)'
+                  : isReserve ? 'rgba(0,0,0,0.18)' : 'transparent',
+                borderLeft: lp.is_captain ? '2px solid rgba(240,192,64,0.5)' : '2px solid transparent',
+              }}
+            >
+              {/* Logo */}
+              <div className="xlr-card-logo">
+                <TeamLogo teamName={teamTag} size={44} />
+              </div>
+              <div className="xlb-hslot-sep" />
+
+              {/* Nome + badges */}
+              <div className="xlr-card-player">
+                <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                  <span className="xlb-hslot-tag-label">{teamTag}</span>
+                  {lp.is_captain && <span className="xlr-badge xlr-badge-cap">⭐ CAP</span>}
+                  {isReserve     && <span className="xlr-badge xlr-badge-res">RES</span>}
+                </div>
+                <div className="xlr-card-name">{fmt(lp.person_name)}</div>
+              </div>
+
+              {/* Colunas de stats */}
+              <div className="xlr-stats-cols">
+                {/* K */}
+                <div className="xlr-stat-col" title="Kills no dia">
+                  <span className="xlr-stat-value" style={{ color: killColor || 'var(--color-xama-text)' }}>
                     {kills !== null ? kills : '—'}
-                  </td>
+                  </span>
+                </div>
 
-                  {/* DMG */}
-                  <td style={{ ...tdStyle, color: damage != null && damage >= 800 ? '#4ade80' : damage != null && damage >= 400 ? '#a3e635' : 'var(--color-xama-muted)' }}>
+                {/* DMG */}
+                <div className="xlr-stat-col xlr-stat-col--hide-mobile" title="Dano no dia">
+                  <span className="xlr-stat-value" style={{ color: dmgColor || 'var(--color-xama-text)' }}>
                     {damage !== null ? damage : '—'}
-                  </td>
+                  </span>
+                </div>
 
-                  {/* ASS */}
-                  <td style={{ ...tdStyle, color: 'var(--color-xama-muted)' }}>
+                {/* ASS */}
+                <div className="xlr-stat-col xlr-stat-col--hide-mobile" title="Assists no dia">
+                  <span className="xlr-stat-value">
                     {assists !== null ? assists : '—'}
-                  </td>
+                  </span>
+                </div>
 
-                  {/* POS */}
-                  <td style={{ ...tdStyle, color: avgPlace != null && avgPlace <= 3 ? '#fde68a' : 'var(--color-xama-muted)' }}>
+                {/* POS */}
+                <div className="xlr-stat-col xlr-stat-col--hide-mobile" title="Colocação média">
+                  <span className="xlr-stat-value" style={{ color: posColor || 'var(--color-xama-text)' }}>
                     {avgPlace !== null ? `#${avgPlace}` : '—'}
-                  </td>
+                  </span>
+                </div>
 
-                  {/* XAMA */}
-                  <td style={{ ...tdStyle, color: 'var(--color-xama-orange)' }}>
-                    {xama !== null ? Number(xama).toFixed(2) : '—'}
-                  </td>
+                {/* SOBREV */}
+                <div className="xlr-stat-col xlr-stat-col--hide-mobile" title="Pontos de sobrevivência">
+                  <span className="xlr-stat-value" style={{ color: sobrev != null && sobrev > 0 ? 'var(--color-xama-text)' : sobrev != null && sobrev < 0 ? '#f87171' : 'var(--color-xama-muted)' }}>
+                    {sobrev !== null ? sobrev : '—'}
+                  </span>
+                </div>
 
-                  {/* FANTASY */}
-                  <td style={{ ...tdStyle, color: lp.is_captain ? captainColor : isReserve ? 'var(--color-xama-muted)' : 'var(--color-xama-text)', fontWeight: 700 }}>
-                    {pts !== null ? (
-                      <div>
-                        <div>{pts.toFixed(2)}</div>
-                        {lp.is_captain && basePts !== null && (
-                          <div style={{ fontSize: 9, fontWeight: 400, color: 'var(--color-xama-muted)' }}>
-                            {basePts.toFixed(1)} ×{captainMultiplier.toFixed(2)}
-                          </div>
-                        )}
-                      </div>
-                    ) : '—'}
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
+                {/* XAMA */}
+                <div className="xlr-stat-col" title="Pontos XAMA brutos">
+                  <span className="xlr-stat-value" style={{ color: 'var(--color-xama-orange)' }}>
+                    {xama !== null ? xama.toFixed(1) : '—'}
+                  </span>
+                </div>
+
+                {/* FANTASY */}
+                <div className="xlr-stat-col xlr-stat-col--fantasy" title="Pontos fantasy">
+                  <span className="xlr-stat-value xlr-stat-value--fantasy" style={{ color: ptsColor }}>
+                    {pts !== null ? pts.toFixed(2) : '—'}
+                  </span>
+                  {lp.is_captain && basePts !== null && (
+                    <span style={{ fontSize: 9, color: 'var(--color-xama-muted)', lineHeight: 1, marginTop: 1 }}>
+                      {basePts.toFixed(1)} ×{captainMultiplier.toFixed(2)}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          )
+        })}
       </div>
 
       {/* Footer */}
@@ -492,9 +478,7 @@ function MyLineupStatsTable({ lineup, captainMultiplier, statByPersonId }) {
         display: 'flex', alignItems: 'center', gap: 6,
         background: 'var(--surface-0)',
       }}>
-        <span style={{ fontSize: 10, color: 'var(--color-xama-muted)' }}>
-          Multiplicador do capitão:
-        </span>
+        <span style={{ fontSize: 10, color: 'var(--color-xama-muted)' }}>Multiplicador do capitão:</span>
         <span style={{
           fontSize: 11, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace",
           color: 'var(--color-xama-gold)',
