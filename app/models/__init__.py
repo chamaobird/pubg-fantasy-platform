@@ -14,6 +14,7 @@ from app.models.user_stat import UserStageStat, UserDayStat
 from app.models.person_alias import PersonAlias
 from app.models.achievement import UserAchievement
 from app.models.league import League, LeagueMember
+from app.models.email_log import EmailLog
 
 __all__ = [
     "User",
@@ -35,4 +36,5 @@ __all__ = [
     "UserAchievement",
     "League",
     "LeagueMember",
+    "EmailLog",
 ]

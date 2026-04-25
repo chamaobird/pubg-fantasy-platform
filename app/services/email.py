@@ -270,6 +270,53 @@ def send_over_budget_notification(
     )
 
 
+def send_no_lineup_reminder(
+    to_email: str,
+    stage_name: str,
+    stage_id: int,
+) -> bool:
+    stage_url = f"{settings.FRONTEND_URL}/tournament/{stage_id}"
+    content = f"""
+      <h2 class="title">Você ainda não montou seu lineup</h2>
+      <p class="text">
+        O lineup para <strong style="color: {_TEXT};">{stage_name}</strong> está aberto.<br>
+        Não fique de fora — monte seu time antes do fechamento.
+      </p>
+      <div class="btn-wrap">
+        <a href="{stage_url}" class="btn">Montar agora &rarr;</a>
+      </div>
+      <p class="expiry">
+        Você está recebendo este email por ser participante da XAMA Fantasy League.
+      </p>
+    """
+    return _send(to_email, f"XAMA Fantasy — Monte seu lineup: {stage_name}", _html(content))
+
+
+def send_announcement(
+    to_email: str,
+    title: str,
+    body: str,
+    cta_label: str | None = None,
+    cta_url: str | None = None,
+) -> bool:
+    cta_html = ""
+    if cta_label and cta_url:
+        cta_html = f"""
+          <div class="btn-wrap">
+            <a href="{cta_url}" class="btn">{cta_label} &rarr;</a>
+          </div>
+        """
+    content = f"""
+      <h2 class="title">{title}</h2>
+      <p class="text">{body}</p>
+      {cta_html}
+      <p class="expiry">
+        Você está recebendo este email por ser participante da XAMA Fantasy League.
+      </p>
+    """
+    return _send(to_email, f"XAMA Fantasy — {title}", _html(content))
+
+
 def broadcast_lineup_open(db, stage_name: str, stage_id: int, close_iso: str | None) -> dict:
     """
     Envia notificação de lineup aberta para todos os usuários verificados e ativos.
@@ -308,4 +355,77 @@ def broadcast_lineup_open(db, stage_name: str, stage_id: int, close_iso: str | N
         "[Email] broadcast_lineup_open stage=%s — %d enviados, %d falhas",
         stage_id, sent, failed,
     )
+    return {"sent": sent, "failed": failed}
+
+
+def broadcast_no_lineup_reminder(db, stage_name: str, stage_id: int) -> dict:
+    """
+    Envia lembrete para usuários verificados/ativos que ainda NÃO têm lineup
+    em nenhum stage_day da stage informada.
+    """
+    from sqlalchemy import text
+
+    rows = db.execute(
+        text("""
+            SELECT u.email FROM "user" u
+            WHERE u.email_verified = true
+              AND u.is_active = true
+              AND u.email IS NOT NULL
+              AND u.email != ''
+              AND NOT EXISTS (
+                SELECT 1 FROM lineup l
+                JOIN stage_day sd ON sd.id = l.stage_day_id
+                WHERE sd.stage_id = :stage_id
+                  AND l.user_id = u.id
+              )
+        """),
+        {"stage_id": stage_id},
+    ).fetchall()
+
+    sent = failed = 0
+    for (email,) in rows:
+        ok = send_no_lineup_reminder(email, stage_name, stage_id)
+        if ok:
+            sent += 1
+        else:
+            failed += 1
+            logger.warning("[Email] Falha ao enviar no_lineup_reminder para %s", email)
+
+    logger.info(
+        "[Email] broadcast_no_lineup_reminder stage=%s — %d enviados, %d falhas",
+        stage_id, sent, failed,
+    )
+    return {"sent": sent, "failed": failed}
+
+
+def broadcast_announcement(
+    db,
+    title: str,
+    body: str,
+    cta_label: str | None = None,
+    cta_url: str | None = None,
+) -> dict:
+    """Envia comunicado geral para todos os usuários verificados e ativos."""
+    from sqlalchemy import text
+
+    rows = db.execute(
+        text("""
+            SELECT email FROM "user"
+            WHERE email_verified = true
+              AND is_active = true
+              AND email IS NOT NULL
+              AND email != ''
+        """)
+    ).fetchall()
+
+    sent = failed = 0
+    for (email,) in rows:
+        ok = send_announcement(email, title, body, cta_label, cta_url)
+        if ok:
+            sent += 1
+        else:
+            failed += 1
+            logger.warning("[Email] Falha ao enviar announcement para %s", email)
+
+    logger.info("[Email] broadcast_announcement — %d enviados, %d falhas", sent, failed)
     return {"sent": sent, "failed": failed}
