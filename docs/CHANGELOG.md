@@ -3,21 +3,110 @@
 
 ---
 
-## Estado Atual — 23/04/2026 — Features + polish mobile concluídos; Finals aguardando dia de jogo
+## Estado Atual — 25/04/2026 (tarde) — D2 em andamento; datas corrigidas no banco
 
-### Próximas tarefas operacionais
-1. **Importar times nas Finals stages** — admin → "↓ Importar" para stages 24–29 (16 times cada)
-2. **Rodar pricing** após import do roster (ou definir custo fixo para Finals)
-3. **Abrir lineups** das Finals stages quando prontas
+### Estado das Finals
+| Stage | Status | Detalhes |
+|---|---|---|
+| PAS Finals D1 (stage 24) | `locked` | scoring completo, encerrado |
+| PAS Finals D2 (stage 25) | `open` | fecha 23:00 UTC (7pm EDT) — scheduler fecha automaticamente |
+| PAS Finals D3 (stage 26) | `preview` | aguardando D2 |
+| PEC Finals D1 (stage 27) | `locked` | scoring completo, encerrado |
+| PEC Finals D2 (stage 28) | `open` | fecha 16:00 UTC (12pm EDT) — reaberta após fecha errada à meia-noite |
+| PEC Finals D3 (stage 29) | `preview` | aguardando D2 |
+
+### Próximas tarefas operacionais (PAS D2 / PEC D2 — hoje)
+1. **Importar partidas D2** via `watch_matches.py` para cada torneio (PEC às 16h UTC, PAS às 23h UTC)
+2. **Resolver PENDINGs** após 1a partida de cada torneio
+3. **Pontuar** → `rescore` → `backfill-stats`
+4. **Transição D2→D3**: o scheduler fecha D2 automaticamente; depois reprice D3 e open D3
 
 ### Backlog restante
-- Nenhum item de alta prioridade pendente — aguardar dia de jogo das Finals
+- Admin endpoint "Replicar lineups faltando" para evitar SQL manual em transições cross-stage
+- Cuidado: replicação automática só funciona dentro da mesma stage (day N-1); cross-stage requer script manual
 
 ### ✅ Concluído nesta sessão
 - Polish mobile: `×1.30` removido do card, TAG removida, botões empilhados verticalmente, botão 📈 escondido
 - Person aliases: tabela + endpoints admin + busca por alias no LineupBuilder e PlayerStatsPage
 - Stats page: coluna DIAS (multi-stage) + busca por aliases
 - Steam player lookup: `preflight_accounts.py` detecta e corrige accounts steam-only (`[STEAM]` + INSERT)
+
+---
+
+## Sessão 25/04/2026 — Finals D1 scoring, lineup recovery, transição D2, proteção de budget
+
+### UI — LineupResultsPage (Meus Resultados)
+- Cards redesenhados em layout **full-width horizontal** — mesma linguagem dos slots do LineupBuilder
+- Estrutura: `[Logo 60px] | [Nome/Time flex] | [K][DMG][ASS][POS][SOBREV][XAMA][FANTASY]`
+- Coluna FANTASY: mostra `basePts × multiplicador` como sub-texto para o capitão
+- Cabeçalhos de coluna clicáveis para ordenar (substitui pills de sort)
+- Helper `calcSurvivalPts(stat)` calcula SOBREV = total_xama − (kills×3 + assists×1 + floor(damage×0.03))
+- Mobile: logo reduz para 40px, colunas ocultas via `.xlr-stat-col--hide-mobile`
+- CSS: bloco `.xlr-*` adicionado ao final de `index.css`
+
+### UI — LineupBuilder — capitão
+- `×1.30` removido de dentro do botão de capitão nos slot cards (causava imbalance visual)
+- Botão contém apenas o ⭐ / ☆ — texto do multiplicador fica apenas no header
+
+### Backend — Stage transition guard
+- `valid_transitions` em `app/routers/admin/stages.py` expandido para cobrir todas as transições operacionais:
+  - `preview` → `locked` (antes bloqueado)
+  - `locked` → `live`, `preview` (antes bloqueado)
+  - `live` → `locked`, `open`, `preview` (mantido)
+
+### Operacional — Lineup recovery (PAS Finals)
+- 13 lineups de usuários da PAS Finals Dia 1 não foram replicados para D2/D3 (admin mudou status manualmente, bypassando o scheduler)
+- Diagnóstico via psycopg2: `is_valid=False` não era o problema — lineups simplesmente não existiam
+- Replicação manual com mapeamento `person_id → roster_id` entre stages distintas (lineups 51–63 criados)
+- **Aprendizado chave**: `replicate_lineup_for_day` só funciona dentro da mesma stage (`day_number - 1`); cada dia de Finals é uma stage separada → replicação cross-stage é sempre manual
+
+### Operacional — Transição PAS D1 → D2
+- Sequência executada diretamente via admin + scripts:
+  1. Stage D1: `live → locked` (encerrada com resultados visíveis)
+  2. Repricing D2: `calculate_stage_pricing(stage_id_d2, db)` — removidos todos os `cost_override`
+  3. Stage D2: `closed → open`
+- Bug identificado: admin tentou `preview → locked` mas era bloqueado pelo guard; corrigido adicionando `locked` às transições válidas de `preview`
+
+### Operacional — Over-budget após repricing
+- Diagnóstico: 1 usuário (`0racle_`, lineup 60) com `total_cost = 102.06` após repricing do D2
+- Ação: `is_valid = False` setado no lineup; `locked_cost` de todos os lineup_players recalculados com preços do D2
+- Email enviado via `send_over_budget_notification()`
+- Scoring já filtrava `is_valid = False` (linha 83 de `lineup_scoring.py`) — nenhuma mudança necessária
+
+### Backend — Proteção de budget na replicação automática
+- `replicate_lineup_for_day` em `app/services/lineup.py` agora checa `total_cost > 100` antes de criar o lineup
+- Se exceder: `is_valid = False` + log de warning — lineup criado mas não pontua
+- `BUDGET_CAP = 100` hardcoded na função (pode ser parametrizado no futuro via `stage.price_max`)
+
+### Backend — `send_over_budget_notification()` em `app/services/email.py`
+- Novo template de email XAMA: avisa o usuário que seu lineup auto-replicado foi invalidado
+- Exibe custo atual vs. limite, link direto para montar novo lineup antes do fechamento
+
+---
+
+## Sessão 25/04/2026 (tarde) — Over-budget emails, admin PATCH fix, datas D2 corrigidas
+
+### Backend — Over-budget: email imediato na replicação (`app/services/lineup.py`)
+- `replicate_lineup_for_day` agora chama `send_over_budget_notification` quando invalida um lineup por budget
+- Busca email do usuário via `db.query(User)` após o commit — erro de email não quebra a replicação
+
+### Backend — Email lembrete 1h antes do close (`app/services/scheduler.py`)
+- Nova função `_maybe_send_over_budget_reminders(db, stage, now)` no job `lineup_control` (1min)
+- Dispara quando `now >= lineup_close_at - 1h` para stages com `lineup_status = open`
+- Envia `send_over_budget_notification` para todos os usuários com `is_valid=False` na stage
+- Guard in-memory `_over_budget_reminder_sent: set[int]` garante envio único por stage (reset no restart)
+
+### Backend — Admin PATCH stage: transição `open → open` permitida (`app/routers/admin/stages.py`)
+- Corrigido: o guard rejeitava `PATCH /admin/stages/{id}` quando o frontend enviava `lineup_status` igual ao atual
+- Fix: `if new_status != current and new_status not in valid_transitions` — mesma-status é no-op, não é transição
+
+### Operacional — Correção de datas D2 PAS e PEC
+- **Causa raiz**: seeding de D2 gravou `start_date = 2026-04-25 00:00 UTC` em vez dos horários reais; D3 estava correto
+- **Consequência**: PEC D2 (stage 28) transitou para `live` à meia-noite porque `stage.lineup_close_at = 00:10 UTC`
+- **Correção manual (Python)**:
+  - PAS D2 (stage 25): `start_date → 23:00 UTC`, `lineup_close_at → 23:00 UTC`
+  - PEC D2 (stage 28): `start_date → 16:00 UTC`, `lineup_close_at → 16:00 UTC`, `lineup_status → open`
+- **Lição**: ao semear stages de Finals multi-dia, verificar que `start_date` está no horário real do match, não meia-noite
 
 ---
 

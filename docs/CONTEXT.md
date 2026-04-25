@@ -61,12 +61,22 @@ TEAM → TEAM_MEMBER         (times esportivos com membros; 1 time ativo por per
 closed   — padrão; stage não aparece nas seções ativas do Dashboard
 preview  — visível com roster/stats, lineup desabilitado (aguardando confirmação do roster)
 open     — lineup aberto para montagem
+live     — dia de jogo em andamento; tratado igual a locked no frontend (visível, não editável)
 locked   — stage encerrada; lineup visível mas não editável
+```
+**Transições válidas** (guard em `app/routers/admin/stages.py`):
+```
+closed  → open, locked, preview, live
+preview → open, closed, live, locked
+open    → locked, closed, live, preview
+live    → locked, open, preview
+locked  → open, closed, live, preview
 ```
 Comandos SQL para transições manuais:
 ```sql
 UPDATE stage SET lineup_status = 'preview' WHERE id = <stage_id>;
 UPDATE stage SET lineup_status = 'open'    WHERE id = <stage_id>;
+UPDATE stage SET lineup_status = 'live'    WHERE id = <stage_id>;
 UPDATE stage SET lineup_status = 'locked'  WHERE id = <stage_id>;
 ```
 
@@ -212,6 +222,16 @@ DELETE /admin/teams/{id}/members/{person_id}              ← remover membro (se
   - Persons PEC: ids 213–310 (D1 novos), 257–314 (D2+D3). Times PGS reutilizados: NAVI(63-66), VIT(95-98), VP(99-102), S2G(71-74)
   - Scripts: `scripts/pubg/import_pec_day.py`, `scripts/pubg/insert_pec_d2d3_roster.py`, `scripts/pubg/insert_pec_d2_to_d3_roster.py`, `scripts/pubg/open_pec_d2.py`
   - Import D3: `python scripts/pubg/import_pec_day.py --stage-id 23 --stage-day-id 24`
+- Championship: PAS Finals (dentro do id=7 ou championship separado — verificar no banco)
+  - 3 Stages: Finals D1(24), D2(25), D3(26)
+  - Stage 24: lineup_status=**locked** — D1 scoring completo, encerrado em 25/04
+  - Stage 25: lineup_status=**open** — D2 em andamento; fecha 23:00 UTC (7pm EDT, 25/04); start_date=2026-04-25 23:00 UTC
+  - Stage 26: lineup_status=**preview** — aguardando D2
+- Championship: PEC Finals (championship separado — verificar no banco)
+  - 3 Stages: Finals D1(27), D2(28), D3(29)
+  - Stage 27: lineup_status=**locked** — D1 encerrado
+  - Stage 28: lineup_status=**open** — D2 em andamento; fecha 16:00 UTC (12pm EDT, 25/04); start_date=2026-04-25 16:00 UTC; foi reaberta após fechamento errado à meia-noite
+  - Stage 29: lineup_status=**preview** — aguardando D2
 
 ## Scripts operacionais
 ```bash
@@ -301,3 +321,10 @@ GET https://api.pubg.com/shards/pc-tournament/matches/{match_id}  → 200 = pc-t
 - `PlayerStatsPage`: dropdown multi-stage com checkboxes (default = Tudo); rótulos "Dia N" por índice; WINS após ASS; zebra nas linhas; coluna DIAS (multi-stage) mostra em quantas stages o jogador aparece; busca por aliases
 - `person_alias`: alias único globalmente (constraint); `RosterPlayerOut` e `PlayerStatOut` incluem `aliases: list[str]`; busca por alias funciona no LineupBuilder e PlayerStatsPage; gerenciado via AdminPersons → modal Editar → seção Aliases
 - `preflight_accounts.py`: detecta 4 status — `[OK]`, `[PENDING]` (UPDATE), `[STEAM]` (INSERT pc-tournament), `[UNKNOWN]`; use `--fix` para corrigir PENDING e STEAM em uma execução
+- `replicate_lineup_for_day` em `app/services/lineup.py`: só funciona dentro da mesma stage (procura `day_number - 1` no mesmo `stage_id`); cada Finals day é uma stage separada → replicação cross-stage requer script manual com mapeamento `person_id → roster_id`
+- `replicate_lineup_for_day`: checa `total_cost > 100` após calcular custo com preços da nova stage; se exceder, seta `is_valid = False` automaticamente + log de warning
+- `send_over_budget_notification(to_email, username, stage_name, stage_id, total_cost, budget_cap=100)` em `app/services/email.py`: template XAMA para avisar usuário de lineup invalidado por budget excedido
+- `lineup_status=live`: tratado igual a `locked` no frontend (`isLocked` true) — aparece na seção "Em Jogo" do Dashboard; adicionado em migration 0017
+- Stage transition guard (`app/routers/admin/stages.py`): todas as transições operacionais permitidas — ver tabela completa acima em "lineup_status — valores válidos"; PATCH com mesmo status (`open → open`) é permitido (útil para atualizar `lineup_close_at` sem mudar status)
+- `_maybe_send_over_budget_reminders(db, stage, now)` em `app/services/scheduler.py`: dispara 1h antes de `lineup_close_at` para stages `open`; envia `send_over_budget_notification` para usuários com `is_valid=False`; guard in-memory `_over_budget_reminder_sent: set[int]` evita reenvio (reset no restart do servidor)
+- **Armadilha seeding de Finals**: `start_date` e `lineup_close_at` do Stage devem ser definidos com o horário real do match (ex: 16:00 UTC), nunca meia-noite. O scheduler usa `stage.lineup_close_at` para disparar `open → live`; valor errado (00:00 UTC) transiciona o stage antes do início do jogo
