@@ -4,7 +4,7 @@ import { API_BASE_URL } from '../../config'
 import {
   Modal, Field, Msg, ActBtn, SaveBtn, SectionHeader, SearchBar,
   inputStyle, selectStyle, tableStyle, thStyle, tdStyle,
-  useSorting, SortableHeader, TeamLogo,
+  useSorting, SortableHeader, TeamLogo, SearchableSelect,
 } from './Modal'
 
 const api = (token) => async (method, path, body) => {
@@ -352,12 +352,15 @@ export default function AdminTeams({ token }) {
             </div>
             <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', marginBottom: 12 }}>
               <div style={{ flex: 1 }}>
-                <select style={selectStyle} value={importStageId} onChange={e => { setImportStageId(e.target.value); setImportResult(null) }}>
-                  <option value="">Selecione a stage...</option>
-                  {stages.map(s => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
-                </select>
+                <SearchableSelect
+                  value={importStageId}
+                  onChange={v => { setImportStageId(v); setImportResult(null) }}
+                  options={[
+                    { value: '', label: 'Selecione a stage...' },
+                    ...stages.map(s => ({ value: String(s.id), label: `${s.id} — ${s.name}` })),
+                  ]}
+                  placeholder="Buscar stage..."
+                />
               </div>
               <ActBtn onClick={handleImport} disabled={importing || !importStageId}>
                 {importing ? 'Importando...' : 'Importar Time'}

@@ -4,7 +4,7 @@ import { API_BASE_URL } from '../../config'
 import {
   Modal, Field, Msg, ActBtn, SaveBtn, SectionHeader,
   inputStyle, selectStyle, tableStyle, thStyle, tdStyle,
-  useSorting, SortableHeader, TeamLogo,
+  useSorting, SortableHeader, TeamLogo, SearchableSelect,
 } from './Modal'
 
 const api = (token) => async (method, path, body) => {
@@ -403,16 +403,15 @@ function ImportPanel({ stage, stages, token }) {
         <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--color-xama-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
           Stage de origem
         </label>
-        <select
-          style={{ ...selectStyle, colorScheme: 'dark' }}
+        <SearchableSelect
           value={sourceId}
-          onChange={e => setSourceId(e.target.value)}
-        >
-          <option value="">Selecione uma stage...</option>
-          {stages.filter(s => s.id !== stage.id).map(s => (
-            <option key={s.id} value={s.id}>{s.id} — {s.name}</option>
-          ))}
-        </select>
+          onChange={setSourceId}
+          options={[
+            { value: '', label: 'Selecione uma stage...' },
+            ...stages.filter(s => s.id !== stage.id).map(s => ({ value: String(s.id), label: `${s.id} — ${s.name}` })),
+          ]}
+          placeholder="Buscar stage de origem..."
+        />
       </div>
 
       {/* Lista de times */}
@@ -616,16 +615,16 @@ export default function AdminStages({ token }) {
       />
 
       {/* Filtro por championship */}
-      <select
-        style={{ ...selectStyle, marginBottom: 14, maxWidth: 320 }}
+      <SearchableSelect
         value={champFilter}
-        onChange={e => setChampFilter(e.target.value)}
-      >
-        <option value="">Todos os championships</option>
-        {championships.map(c => (
-          <option key={c.id} value={c.id}>{c.name}</option>
-        ))}
-      </select>
+        onChange={setChampFilter}
+        options={[
+          { value: '', label: 'Todos os championships' },
+          ...championships.map(c => ({ value: String(c.id), label: c.name })),
+        ]}
+        placeholder="Filtrar por championship..."
+        style={{ maxWidth: 320, marginBottom: 14 }}
+      />
 
       <div style={{ background: 'rgba(18,21,28,0.9)', border: '1px solid var(--color-xama-border)', borderRadius: 12, overflow: 'hidden' }}>
         {loading ? (
@@ -769,10 +768,15 @@ export default function AdminStages({ token }) {
           <Msg msg={msg} />
 
           <Field label="Championship">
-            <select style={selectStyle} value={form.championship_id} onChange={f('championship_id')}>
-              <option value="">Selecione...</option>
-              {championships.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
+            <SearchableSelect
+              value={String(form.championship_id)}
+              onChange={v => setForm(prev => ({ ...prev, championship_id: v }))}
+              options={[
+                { value: '', label: 'Selecione...' },
+                ...championships.map(c => ({ value: String(c.id), label: c.name })),
+              ]}
+              placeholder="Buscar championship..."
+            />
           </Field>
 
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12 }}>

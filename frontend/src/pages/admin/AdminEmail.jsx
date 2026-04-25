@@ -1,6 +1,7 @@
 // frontend/src/pages/admin/AdminEmail.jsx
 import { useEffect, useState, useCallback } from 'react'
 import { API_BASE_URL } from '../../config'
+import { SearchableSelect } from './Modal'
 
 const RECIPIENT_LABELS = {
   all:       'Todos os usuários ativos',
@@ -241,28 +242,30 @@ export default function AdminEmail({ token }) {
                   <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                     <div style={{ flex: '1 1 160px' }}>
                       <label style={labelStyle}>Championship</label>
-                      <select value={champFilter} onChange={e => setChampFilter(e.target.value)} style={selectStyle}>
-                        <option value="">Todos</option>
-                        {championships.map(c => (
-                          <option key={c.id} value={c.id}>{c.short_name} — {c.name}</option>
-                        ))}
-                      </select>
+                      <SearchableSelect
+                        value={champFilter}
+                        onChange={setChampFilter}
+                        options={[
+                          { value: '', label: 'Todos' },
+                          ...championships.map(c => ({ value: String(c.id), label: `${c.short_name} — ${c.name}` })),
+                        ]}
+                        placeholder="Filtrar championship..."
+                      />
                     </div>
                     <div style={{ flex: '2 1 220px' }}>
                       <label style={labelStyle}>Stage <span style={{ color: 'var(--color-xama-orange)' }}>*</span></label>
-                      <select
-                        value={selectedStage?.id || ''}
-                        onChange={e => handleStageSelect(e.target.value)}
-                        style={selectStyle}
-                      >
-                        <option value="">Selecione uma stage...</option>
-                        {stages.map(s => (
-                          <option key={s.id} value={s.id}>
-                            {s.id} — {s.champ_short_name} · {s.name}
-                            {s.lineup_status === 'open' ? ' ✓' : ''}
-                          </option>
-                        ))}
-                      </select>
+                      <SearchableSelect
+                        value={selectedStage?.id ? String(selectedStage.id) : ''}
+                        onChange={handleStageSelect}
+                        options={[
+                          { value: '', label: 'Selecione uma stage...' },
+                          ...stages.map(s => ({
+                            value: String(s.id),
+                            label: `${s.id} — ${s.champ_short_name} · ${s.name}${s.lineup_status === 'open' ? ' ✓' : ''}`,
+                          })),
+                        ]}
+                        placeholder="Buscar stage..."
+                      />
                     </div>
                   </div>
                   {selectedStage && (

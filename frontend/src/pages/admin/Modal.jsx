@@ -1,5 +1,5 @@
 // pages/admin/Modal.jsx — Modal reutilizável para o painel admin
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 
 // ── Sorting hook ──────────────────────────────────────────────────────────────
 
@@ -111,6 +111,121 @@ export const selectStyle = {
   background: '#1a1d2a',
   cursor: 'pointer',
   colorScheme: 'dark',
+}
+
+/**
+ * SearchableSelect — dropdown com campo de busca embutido.
+ *
+ * Props:
+ *   value      — valor selecionado atualmente (string | number | null)
+ *   onChange   — (value) => void
+ *   options    — [{ value, label }]
+ *   placeholder — texto do input vazio
+ *   style      — estilo adicional no container
+ */
+export function SearchableSelect({ value, onChange, options = [], placeholder = 'Buscar...', style }) {
+  const [query, setQuery]           = useState('')
+  const [open, setOpen]             = useState(false)
+  const [highlighted, setHighlighted] = useState(0)
+  const containerRef = useRef(null)
+
+  const selectedOption = options.find(o => String(o.value) === String(value))
+
+  // Ao fechar, limpa a query; ao abrir, mostra todas as opções
+  const filtered = query.trim()
+    ? options.filter(o => o.label.toLowerCase().includes(query.toLowerCase()))
+    : options
+
+  // Fecha ao clicar fora
+  useEffect(() => {
+    const handler = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setOpen(false)
+        setQuery('')
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const handleSelect = (opt) => {
+    onChange(opt.value)
+    setOpen(false)
+    setQuery('')
+  }
+
+  const handleFocus = () => {
+    setOpen(true)
+    setQuery('')
+    setHighlighted(0)
+  }
+
+  const handleChange = (e) => {
+    setQuery(e.target.value)
+    setOpen(true)
+    setHighlighted(0)
+  }
+
+  const handleKeyDown = (e) => {
+    if (!open) { if (e.key === 'Enter' || e.key === 'ArrowDown') setOpen(true); return }
+    if (e.key === 'ArrowDown') { e.preventDefault(); setHighlighted(h => Math.min(h + 1, filtered.length - 1)) }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setHighlighted(h => Math.max(h - 1, 0)) }
+    else if (e.key === 'Enter') { e.preventDefault(); if (filtered[highlighted]) handleSelect(filtered[highlighted]) }
+    else if (e.key === 'Escape') { setOpen(false); setQuery('') }
+  }
+
+  // O que mostrar no input: se aberto, mostra a query digitada; se fechado, mostra o label selecionado
+  const displayValue = open ? query : (selectedOption?.label ?? '')
+
+  return (
+    <div ref={containerRef} style={{ position: 'relative', width: '100%', ...style }}>
+      <input
+        value={displayValue}
+        onChange={handleChange}
+        onFocus={handleFocus}
+        onKeyDown={handleKeyDown}
+        placeholder={open ? 'Digite para filtrar...' : placeholder}
+        autoComplete="off"
+        style={{ ...inputStyle, paddingRight: 28, width: '100%', boxSizing: 'border-box' }}
+      />
+      <span style={{
+        position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+        color: 'var(--color-xama-muted)', fontSize: 10, pointerEvents: 'none',
+        transition: 'transform 0.15s',
+        ...(open ? { transform: 'translateY(-50%) rotate(180deg)' } : {}),
+      }}>▼</span>
+
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 500,
+          background: '#1a1d2a', border: '1px solid rgba(255,255,255,0.12)',
+          borderRadius: 8, maxHeight: 240, overflowY: 'auto',
+          boxShadow: '0 8px 28px rgba(0,0,0,0.5)',
+        }}>
+          {filtered.length === 0 ? (
+            <div style={{ padding: '10px 12px', fontSize: 12, color: 'var(--color-xama-muted)' }}>
+              Nenhum resultado para "{query}"
+            </div>
+          ) : filtered.map((opt, i) => (
+            <div
+              key={opt.value}
+              onMouseDown={() => handleSelect(opt)}
+              onMouseEnter={() => setHighlighted(i)}
+              style={{
+                padding: '9px 12px', fontSize: 13, cursor: 'pointer',
+                color: String(opt.value) === String(value) ? 'var(--color-xama-orange)' : 'var(--color-xama-text)',
+                background: i === highlighted ? 'rgba(249,115,22,0.1)' : 'transparent',
+                borderBottom: i < filtered.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                fontWeight: String(opt.value) === String(value) ? 600 : 400,
+              }}
+            >
+              {opt.label}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export function Msg({ msg }) {
