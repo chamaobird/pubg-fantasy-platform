@@ -281,7 +281,8 @@ def replicate_lineup_for_day(
 
     # Invalida se ultrapassar o budget após repricing
     BUDGET_CAP = 100
-    if total_cost > BUDGET_CAP:
+    budget_exceeded = total_cost > BUDGET_CAP
+    if budget_exceeded:
         is_valid = False
         logger.warning(
             "[Lineup] replicate: user=%s stage_day=%s — total_cost=%.2f excede budget cap=%s, lineup marcado inválido",
@@ -327,6 +328,23 @@ def replicate_lineup_for_day(
 
     db.commit()
     db.refresh(new_lineup)
+
+    # Notifica usuário se o lineup foi invalidado por excesso de budget
+    if budget_exceeded:
+        try:
+            from app.models.user import User
+            from app.services.email import send_over_budget_notification
+            user = db.query(User).filter(User.id == user_id).first()
+            if user and user.email:
+                send_over_budget_notification(
+                    to_email  = user.email,
+                    username  = user.username,
+                    stage_name= stage_day.stage.name,
+                    stage_id  = stage_day.stage_id,
+                    total_cost= total_cost,
+                )
+        except Exception as exc:
+            logger.warning("[Lineup] replicate: erro ao enviar email over_budget user=%s: %s", user_id, exc)
 
     logger.info(
         "[Lineup] replicate: user=%s stage_day=%s — replicado (valid=%s cost=%s)",

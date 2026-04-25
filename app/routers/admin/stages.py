@@ -136,7 +136,7 @@ def update_stage(
             "live":    {"locked", "open", "preview"},
             "locked":  {"open", "closed", "live", "preview"},
         }
-        if new_status not in valid_transitions.get(current, set()):
+        if new_status != current and new_status not in valid_transitions.get(current, set()):
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=f"Cannot transition lineup_status from '{current}' to '{new_status}'",

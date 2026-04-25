@@ -22,11 +22,14 @@ Recálculo automático de fantasy_cost (Fase 5).
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from apscheduler.schedulers.background import BackgroundScheduler
 
 logger = logging.getLogger(__name__)
+
+# In-memory: evita enviar o lembrete de over-budget mais de uma vez por stage
+_over_budget_reminder_sent: set[int] = set()
 
 
 # ── Job 1: lineup_control ─────────────────────────────────────────────────────
@@ -68,6 +71,8 @@ def _process_stage_status(db, stage, now: datetime) -> None:
             _notify_lineup_open(db, stage)
 
     if stage.lineup_status == "open":
+        if stage.lineup_close_at:
+            _maybe_send_over_budget_reminders(db, stage, now)
         if stage.lineup_close_at and now >= stage.lineup_close_at:
             _replicate_missing_lineups(db, stage, now)
             stage.lineup_status = "live"
@@ -95,6 +100,70 @@ def _notify_lineup_open(db, stage) -> None:
         logger.error(
             "lineup_control: erro ao notificar lineup_open stage %s: %s",
             stage.id, exc, exc_info=True,
+        )
+
+
+def _maybe_send_over_budget_reminders(db, stage, now: datetime) -> None:
+    """Envia email 1h antes do close para usuários com lineup inválido (over-budget)."""
+    if stage.id in _over_budget_reminder_sent:
+        return
+    threshold = stage.lineup_close_at - timedelta(hours=1)
+    if now < threshold:
+        return
+
+    try:
+        from app.models.lineup import Lineup
+        from app.models.stage_day import StageDay
+        from app.models.user import User
+        from app.services.email import send_over_budget_notification
+
+        day_ids = [
+            d.id for d in
+            db.query(StageDay).filter(StageDay.stage_id == stage.id).all()
+        ]
+        if not day_ids:
+            _over_budget_reminder_sent.add(stage.id)
+            return
+
+        invalid_pairs = (
+            db.query(Lineup, User)
+            .join(User, Lineup.user_id == User.id)
+            .filter(
+                Lineup.stage_day_id.in_(day_ids),
+                Lineup.is_valid == False,  # noqa: E712
+            )
+            .all()
+        )
+
+        sent = 0
+        for lineup, user in invalid_pairs:
+            if not user.email:
+                continue
+            try:
+                send_over_budget_notification(
+                    to_email  = user.email,
+                    username  = user.username,
+                    stage_name= stage.name,
+                    stage_id  = stage.id,
+                    total_cost= lineup.total_cost or 0,
+                )
+                sent += 1
+            except Exception as exc:
+                logger.error(
+                    "over_budget_reminder: erro ao enviar para user=%s: %s",
+                    user.id, exc,
+                )
+
+        _over_budget_reminder_sent.add(stage.id)
+        if sent:
+            logger.info(
+                "over_budget_reminder: stage %s — %d emails enviados (1h antes do close)",
+                stage.id, sent,
+            )
+
+    except Exception as exc:
+        logger.error(
+            "over_budget_reminder: erro stage %s: %s", stage.id, exc, exc_info=True,
         )
 
 
