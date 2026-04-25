@@ -10,6 +10,7 @@ build/
 # Environment
 .env
 *.env
+.env.deploy
 .venv/
 venv/
 env/
