@@ -163,6 +163,97 @@ def dispatch_email(
     }
 
 
+@router.post("/preview")
+def preview_email(
+    req: DispatchRequest,
+    _: UserModel = Depends(require_admin),
+):
+    """Gera o HTML do email sem enviar. Retorna {subject, html}."""
+    tpl = TEMPLATES.get(req.template_key)
+    if not tpl:
+        raise HTTPException(status_code=400, detail=f"Template '{req.template_key}' não encontrado.")
+
+    from app.services.email import (
+        _build_lineup_open_html,
+        _build_no_lineup_reminder_html,
+        _build_announcement_html,
+    )
+
+    v = req.variables
+
+    if req.template_key == "lineup_open":
+        stage_name = v.get("stage_name", "")
+        stage_id   = int(v.get("stage_id", 0))
+        close_iso  = v.get("close_iso") or None
+        if req.recipient_group == "no_lineup":
+            subject, html = _build_no_lineup_reminder_html(stage_name, stage_id)
+        else:
+            subject, html = _build_lineup_open_html(stage_name, stage_id, close_iso)
+
+    elif req.template_key == "no_lineup_reminder":
+        subject, html = _build_no_lineup_reminder_html(
+            v.get("stage_name", ""), int(v.get("stage_id", 0))
+        )
+
+    elif req.template_key == "announcement":
+        subject, html = _build_announcement_html(
+            v.get("title", ""),
+            v.get("body", ""),
+            v.get("cta_label") or None,
+            v.get("cta_url") or None,
+        )
+    else:
+        raise HTTPException(status_code=400, detail="Template sem preview implementado.")
+
+    return {"subject": subject, "html": html}
+
+
+@router.get("/stages")
+def list_stages_for_email(
+    championship_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    _: UserModel = Depends(require_admin),
+):
+    """Lista stages para uso nos dropdowns do painel de email."""
+    from app.models.stage import Stage
+    from app.models.championship import Championship as ChampModel
+
+    q = (
+        db.query(Stage, ChampModel.short_name)
+        .join(ChampModel, Stage.championship_id == ChampModel.id)
+        .order_by(Stage.id.desc())
+    )
+    if championship_id:
+        q = q.filter(Stage.championship_id == championship_id)
+
+    return [
+        {
+            "id":               s.id,
+            "name":             s.name,
+            "short_name":       s.short_name,
+            "championship_id":  s.championship_id,
+            "champ_short_name": champ_short,
+            "lineup_status":    s.lineup_status,
+            "stage_phase":      s.stage_phase,
+        }
+        for s, champ_short in q.all()
+    ]
+
+
+@router.get("/championships")
+def list_championships_for_email(
+    db: Session = Depends(get_db),
+    _: UserModel = Depends(require_admin),
+):
+    """Lista championships para o filtro do painel de email."""
+    from app.models.championship import Championship as ChampModel
+
+    return [
+        {"id": c.id, "name": c.name, "short_name": c.short_name}
+        for c in db.query(ChampModel).order_by(ChampModel.id.desc()).all()
+    ]
+
+
 @router.get("/logs", response_model=list[EmailLogOut])
 def list_logs(
     limit: int = 50,

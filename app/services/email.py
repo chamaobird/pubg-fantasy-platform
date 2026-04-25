@@ -175,29 +175,19 @@ def send_password_reset_email(to_email: str, token: str) -> bool:
     return _send(to_email, "XAMA Fantasy — Redefinir senha", _html(content))
 
 
-def send_lineup_open_notification(
-    to_email: str,
+def _build_lineup_open_html(
     stage_name: str,
     stage_id: int,
     close_iso: str | None,
-) -> bool:
-    """
-    Avisa um usuário que a montagem de lineup abriu para uma stage.
+) -> tuple[str, str]:
+    """Retorna (subject, html) para o email de lineup aberta."""
+    from datetime import datetime, timezone, timedelta
 
-    Args:
-        to_email:   endereço de destino
-        stage_name: nome legível da stage (ex: "PAS Playoffs — Dia 2")
-        stage_id:   ID da stage (para gerar o link)
-        close_iso:  ISO 8601 do horário de fechamento (ex: "2026-04-18T23:00:00Z"), ou None
-    """
     stage_url = f"{settings.FRONTEND_URL}/tournament/{stage_id}"
 
     if close_iso:
         try:
-            from datetime import datetime, timezone
             dt = datetime.fromisoformat(close_iso.replace("Z", "+00:00"))
-            # Formata em horário de Brasília (UTC-3) para o usuário
-            from datetime import timedelta
             brt = dt - timedelta(hours=3)
             close_label = brt.strftime("%d/%m às %H:%M (Brasília)")
         except Exception:
@@ -224,7 +214,64 @@ def send_lineup_open_notification(
         Você está recebendo este email por ser participante da XAMA Fantasy League.
       </p>
     """
-    return _send(to_email, f"XAMA Fantasy — Lineup aberta: {stage_name}", _html(content))
+    return (f"XAMA Fantasy — Lineup aberta: {stage_name}", _html(content))
+
+
+def _build_no_lineup_reminder_html(
+    stage_name: str,
+    stage_id: int,
+) -> tuple[str, str]:
+    """Retorna (subject, html) para o lembrete de lineup não montada."""
+    stage_url = f"{settings.FRONTEND_URL}/tournament/{stage_id}"
+    content = f"""
+      <h2 class="title">Você ainda não montou seu lineup</h2>
+      <p class="text">
+        O lineup para <strong style="color: {_TEXT};">{stage_name}</strong> está aberto.<br>
+        Não fique de fora — monte seu time antes do fechamento.
+      </p>
+      <div class="btn-wrap">
+        <a href="{stage_url}" class="btn">Montar agora &rarr;</a>
+      </div>
+      <p class="expiry">
+        Você está recebendo este email por ser participante da XAMA Fantasy League.
+      </p>
+    """
+    return (f"XAMA Fantasy — Monte seu lineup: {stage_name}", _html(content))
+
+
+def _build_announcement_html(
+    title: str,
+    body: str,
+    cta_label: str | None = None,
+    cta_url: str | None = None,
+) -> tuple[str, str]:
+    """Retorna (subject, html) para um comunicado geral."""
+    cta_html = ""
+    if cta_label and cta_url:
+        cta_html = f"""
+          <div class="btn-wrap">
+            <a href="{cta_url}" class="btn">{cta_label} &rarr;</a>
+          </div>
+        """
+    content = f"""
+      <h2 class="title">{title}</h2>
+      <p class="text">{body}</p>
+      {cta_html}
+      <p class="expiry">
+        Você está recebendo este email por ser participante da XAMA Fantasy League.
+      </p>
+    """
+    return (f"XAMA Fantasy — {title}", _html(content))
+
+
+def send_lineup_open_notification(
+    to_email: str,
+    stage_name: str,
+    stage_id: int,
+    close_iso: str | None,
+) -> bool:
+    subject, html = _build_lineup_open_html(stage_name, stage_id, close_iso)
+    return _send(to_email, subject, html)
 
 
 def send_over_budget_notification(
@@ -270,26 +317,9 @@ def send_over_budget_notification(
     )
 
 
-def send_no_lineup_reminder(
-    to_email: str,
-    stage_name: str,
-    stage_id: int,
-) -> bool:
-    stage_url = f"{settings.FRONTEND_URL}/tournament/{stage_id}"
-    content = f"""
-      <h2 class="title">Você ainda não montou seu lineup</h2>
-      <p class="text">
-        O lineup para <strong style="color: {_TEXT};">{stage_name}</strong> está aberto.<br>
-        Não fique de fora — monte seu time antes do fechamento.
-      </p>
-      <div class="btn-wrap">
-        <a href="{stage_url}" class="btn">Montar agora &rarr;</a>
-      </div>
-      <p class="expiry">
-        Você está recebendo este email por ser participante da XAMA Fantasy League.
-      </p>
-    """
-    return _send(to_email, f"XAMA Fantasy — Monte seu lineup: {stage_name}", _html(content))
+def send_no_lineup_reminder(to_email: str, stage_name: str, stage_id: int) -> bool:
+    subject, html = _build_no_lineup_reminder_html(stage_name, stage_id)
+    return _send(to_email, subject, html)
 
 
 def send_announcement(
@@ -299,22 +329,8 @@ def send_announcement(
     cta_label: str | None = None,
     cta_url: str | None = None,
 ) -> bool:
-    cta_html = ""
-    if cta_label and cta_url:
-        cta_html = f"""
-          <div class="btn-wrap">
-            <a href="{cta_url}" class="btn">{cta_label} &rarr;</a>
-          </div>
-        """
-    content = f"""
-      <h2 class="title">{title}</h2>
-      <p class="text">{body}</p>
-      {cta_html}
-      <p class="expiry">
-        Você está recebendo este email por ser participante da XAMA Fantasy League.
-      </p>
-    """
-    return _send(to_email, f"XAMA Fantasy — {title}", _html(content))
+    subject, html = _build_announcement_html(title, body, cta_label, cta_url)
+    return _send(to_email, subject, html)
 
 
 def broadcast_lineup_open(db, stage_name: str, stage_id: int, close_iso: str | None) -> dict:

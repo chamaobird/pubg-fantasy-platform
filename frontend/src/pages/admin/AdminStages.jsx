@@ -506,7 +506,8 @@ export default function AdminStages({ token }) {
   const [saving, setSaving] = useState(false)
   const [statusChanging, setStatusChanging] = useState(null) // stage id
   // expandedStage: { id, panel: 'roster' | 'import' } | null
-  const [expandedStage, setExpandedStage] = useState(null)
+  const [expandedStage, setExpandedStage]     = useState(null)
+  const [finishedExpanded, setFinishedExpanded] = useState(false)
 
   const togglePanel = (stageId, panel) => {
     setExpandedStage(prev =>
@@ -631,108 +632,132 @@ export default function AdminStages({ token }) {
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--color-xama-muted)' }}>Carregando...</div>
         ) : stages.length === 0 ? (
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--color-xama-muted)' }}>Nenhuma stage encontrada.</div>
-        ) : (
-          <table style={tableStyle}>
-            <thead>
-              <tr>
-                <SortableHeader label="ID" col="id" sort={stSort} onSort={stToggle} />
-                <SortableHeader label="Champ." col="champ" sort={stSort} onSort={stToggle} />
-                <SortableHeader label="Nome" col="name" sort={stSort} onSort={stToggle} />
-                <SortableHeader label="Início" col="start" sort={stSort} onSort={stToggle} />
-                <SortableHeader label="Lineup" col="status" sort={stSort} onSort={stToggle} />
-                <th style={thStyle}>Fase</th>
-                <th style={thStyle}></th>
+        ) : (() => {
+          const sorted = stApply(stages, {
+            id: s => s.id,
+            champ: s => champName(s.championship_id),
+            name: s => s.name,
+            start: s => s.start_date || s.lineup_open_at || '',
+            status: s => s.lineup_status,
+          })
+          const activeStages   = sorted.filter(s => s.stage_phase !== 'finished')
+          const finishedStages = sorted.filter(s => s.stage_phase === 'finished')
+
+          const renderRow = (s, dimmed = false) => (
+            <Fragment key={s.id}>
+              <tr style={dimmed ? { opacity: 0.55 } : {}}>
+                <td style={{ ...tdStyle, fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: 'var(--color-xama-muted)' }}>{s.id}</td>
+                <td style={{ ...tdStyle, color: 'var(--color-xama-muted)', fontSize: 12 }}>{champName(s.championship_id)}</td>
+                <td style={{ ...tdStyle, fontWeight: 600 }}>{s.name}</td>
+                <td style={{ ...tdStyle, color: 'var(--color-xama-muted)', fontSize: 12 }}>{fmtDate(s.start_date || s.lineup_open_at)}</td>
+                <td style={tdStyle}>
+                  <select
+                    value={s.lineup_status}
+                    disabled={!!statusChanging}
+                    onChange={e => changeLineupStatus(s, e.target.value)}
+                    style={{
+                      padding: '4px 8px', borderRadius: 6, fontSize: 12, fontWeight: 700,
+                      fontFamily: 'JetBrains Mono, monospace', cursor: 'pointer',
+                      border: '1px solid rgba(249,115,22,0.35)',
+                      background: 'rgba(249,115,22,0.08)', color: 'var(--color-xama-orange)',
+                      outline: 'none', colorScheme: 'dark',
+                    }}
+                  >
+                    {LINEUP_STATUS_OPTIONS.map(st => <option key={st} value={st}>{st.toUpperCase()}</option>)}
+                  </select>
+                </td>
+                <td style={tdStyle}>
+                  <select
+                    value={s.stage_phase ?? 'upcoming'}
+                    disabled={!!statusChanging}
+                    onChange={e => changePhase(s, e.target.value)}
+                    style={{
+                      padding: '4px 8px', borderRadius: 6, fontSize: 12, fontWeight: 700,
+                      fontFamily: 'JetBrains Mono, monospace', cursor: 'pointer',
+                      border: '1px solid rgba(99,102,241,0.4)',
+                      background: 'rgba(99,102,241,0.08)', color: '#a5b4fc',
+                      outline: 'none', colorScheme: 'dark',
+                    }}
+                  >
+                    {STAGE_PHASE_OPTIONS.map(p => <option key={p} value={p}>{p.toUpperCase()}</option>)}
+                  </select>
+                </td>
+                <td style={{ ...tdStyle, textAlign: 'right' }}>
+                  <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                    <ActBtn
+                      small
+                      onClick={() => togglePanel(s.id, 'roster')}
+                      style={expandedStage?.id === s.id && expandedStage?.panel === 'roster'
+                        ? { borderColor: 'rgba(74,222,128,0.5)', color: 'var(--color-xama-green)' } : {}}
+                    >
+                      {expandedStage?.id === s.id && expandedStage?.panel === 'roster' ? '▲ Roster' : 'Roster'}
+                    </ActBtn>
+                    <ActBtn
+                      small
+                      onClick={() => togglePanel(s.id, 'import')}
+                      style={expandedStage?.id === s.id && expandedStage?.panel === 'import'
+                        ? { borderColor: 'rgba(249,115,22,0.6)', color: 'var(--color-xama-orange)' } : {}}
+                    >
+                      {expandedStage?.id === s.id && expandedStage?.panel === 'import' ? '▲ Importar' : '↓ Importar'}
+                    </ActBtn>
+                    <ActBtn small onClick={() => openEdit(s)}>Editar</ActBtn>
+                  </div>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {stApply(stages, {
-                id: s => s.id,
-                champ: s => champName(s.championship_id),
-                name: s => s.name,
-                start: s => s.start_date || s.lineup_open_at || '',
-                status: s => s.lineup_status,
-              }).map(s => (
-                <Fragment key={s.id}>
+              {expandedStage?.id === s.id && (
+                <tr>
+                  <td colSpan={6} style={{ padding: 0, borderBottom: '1px solid var(--color-xama-border)' }}>
+                    {expandedStage.panel === 'roster'
+                      ? <RosterPanel stage={s} token={token} />
+                      : <ImportPanel stage={s} stages={stages} token={token} />
+                    }
+                  </td>
+                </tr>
+              )}
+            </Fragment>
+          )
+
+          return (
+            <table style={tableStyle}>
+              <thead>
+                <tr>
+                  <SortableHeader label="ID" col="id" sort={stSort} onSort={stToggle} />
+                  <SortableHeader label="Champ." col="champ" sort={stSort} onSort={stToggle} />
+                  <SortableHeader label="Nome" col="name" sort={stSort} onSort={stToggle} />
+                  <SortableHeader label="Início" col="start" sort={stSort} onSort={stToggle} />
+                  <SortableHeader label="Lineup" col="status" sort={stSort} onSort={stToggle} />
+                  <th style={thStyle}>Fase</th>
+                  <th style={thStyle}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {activeStages.map(s => renderRow(s, false))}
+
+                {finishedStages.length > 0 && (
                   <tr>
-                    <td style={{ ...tdStyle, fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: 'var(--color-xama-muted)' }}>{s.id}</td>
-                    <td style={{ ...tdStyle, color: 'var(--color-xama-muted)', fontSize: 12 }}>{champName(s.championship_id)}</td>
-                    <td style={{ ...tdStyle, fontWeight: 600 }}>{s.name}</td>
-                    <td style={{ ...tdStyle, color: 'var(--color-xama-muted)', fontSize: 12 }}>{fmtDate(s.start_date || s.lineup_open_at)}</td>
-                    <td style={tdStyle}>
-                      <select
-                        value={s.lineup_status}
-                        disabled={!!statusChanging}
-                        onChange={e => changeLineupStatus(s, e.target.value)}
+                    <td colSpan={7} style={{ padding: 0 }}>
+                      <button
+                        onClick={() => setFinishedExpanded(p => !p)}
                         style={{
-                          padding: '4px 8px', borderRadius: 6, fontSize: 12, fontWeight: 700,
-                          fontFamily: 'JetBrains Mono, monospace', cursor: 'pointer',
-                          border: '1px solid rgba(249,115,22,0.35)',
-                          background: 'rgba(249,115,22,0.08)', color: 'var(--color-xama-orange)',
-                          outline: 'none', colorScheme: 'dark',
+                          width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                          padding: '10px 16px', background: 'rgba(255,255,255,0.02)',
+                          border: 'none', borderTop: '1px solid var(--color-xama-border)',
+                          cursor: 'pointer', color: 'var(--color-xama-muted)', fontSize: 12,
+                          fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase',
                         }}
                       >
-                        {LINEUP_STATUS_OPTIONS.map(st => (
-                          <option key={st} value={st}>{st.toUpperCase()}</option>
-                        ))}
-                      </select>
-                    </td>
-                    <td style={tdStyle}>
-                      <select
-                        value={s.stage_phase ?? 'upcoming'}
-                        disabled={!!statusChanging}
-                        onChange={e => changePhase(s, e.target.value)}
-                        style={{
-                          padding: '4px 8px', borderRadius: 6, fontSize: 12, fontWeight: 700,
-                          fontFamily: 'JetBrains Mono, monospace', cursor: 'pointer',
-                          border: '1px solid rgba(99,102,241,0.4)',
-                          background: 'rgba(99,102,241,0.08)', color: '#a5b4fc',
-                          outline: 'none', colorScheme: 'dark',
-                        }}
-                      >
-                        {STAGE_PHASE_OPTIONS.map(p => (
-                          <option key={p} value={p}>{p.toUpperCase()}</option>
-                        ))}
-                      </select>
-                    </td>
-                    <td style={{ ...tdStyle, textAlign: 'right' }}>
-                      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                        <ActBtn
-                          small
-                          onClick={() => togglePanel(s.id, 'roster')}
-                          style={expandedStage?.id === s.id && expandedStage?.panel === 'roster'
-                            ? { borderColor: 'rgba(74,222,128,0.5)', color: 'var(--color-xama-green)' }
-                            : {}}
-                        >
-                          {expandedStage?.id === s.id && expandedStage?.panel === 'roster' ? '▲ Roster' : 'Roster'}
-                        </ActBtn>
-                        <ActBtn
-                          small
-                          onClick={() => togglePanel(s.id, 'import')}
-                          style={expandedStage?.id === s.id && expandedStage?.panel === 'import'
-                            ? { borderColor: 'rgba(249,115,22,0.6)', color: 'var(--color-xama-orange)' }
-                            : {}}
-                        >
-                          {expandedStage?.id === s.id && expandedStage?.panel === 'import' ? '▲ Importar' : '↓ Importar'}
-                        </ActBtn>
-                        <ActBtn small onClick={() => openEdit(s)}>Editar</ActBtn>
-                      </div>
+                        <span style={{ fontSize: 10 }}>{finishedExpanded ? '▼' : '▶'}</span>
+                        {finishedStages.length} stage{finishedStages.length !== 1 ? 's' : ''} finalizadas
+                      </button>
                     </td>
                   </tr>
-                  {expandedStage?.id === s.id && (
-                    <tr>
-                      <td colSpan={6} style={{ padding: 0, borderBottom: '1px solid var(--color-xama-border)' }}>
-                        {expandedStage.panel === 'roster'
-                          ? <RosterPanel stage={s} token={token} />
-                          : <ImportPanel stage={s} stages={stages} token={token} />
-                        }
-                      </td>
-                    </tr>
-                  )}
-                </Fragment>
-              ))}
-            </tbody>
-          </table>
-        )}
+                )}
+
+                {finishedExpanded && finishedStages.map(s => renderRow(s, true))}
+              </tbody>
+            </table>
+          )
+        })()}
       </div>
 
       {modal && (
