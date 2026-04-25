@@ -58,14 +58,16 @@ export default function TournamentHub() {
 
   const isFinished = stage ? (!stage.is_active) : false
   const isLocked   = stage ? (stage.lineup_status === 'locked') : false
-  const isClosed   = stage ? (stage.lineup_status === 'closed')  : false
+  const isClosed   = stage ? (stage.lineup_status === 'closed' && stage.stage_phase !== 'preview') : false
+  const isPreview  = stage ? (stage.stage_phase === 'preview') : false
   const canEdit    = stage ? (stage.lineup_status === 'open') : false
 
-  // closed: não exibe tab de lineup (ainda não está disponível)
+  // closed puro: não exibe tab de lineup
+  // preview: exibe tab mas em modo leitura (lobby visível, montagem bloqueada)
   const showLineupTab = !isFinished && !isClosed
 
   const ALL_TABS = [
-    ...(showLineupTab ? [{ id: TAB_LINEUP, label: isLocked ? 'Meus Resultados' : 'Montar Lineup', icon: isLocked ? '📊' : '⚔️' }] : []),
+    ...(showLineupTab ? [{ id: TAB_LINEUP, label: isLocked ? 'Meus Resultados' : isPreview ? 'Ver Lobby' : 'Montar Lineup', icon: isLocked ? '📊' : isPreview ? '👁️' : '⚔️' }] : []),
     { id: TAB_LEADERBOARD, label: 'Leaderboard', icon: '🏆' },
     { id: TAB_STATS,       label: 'Stats',        icon: '📊' },
     ...(isAdmin ? [{ id: TAB_ADMIN, label: 'Admin', icon: '⚙️' }] : []),
@@ -100,7 +102,7 @@ export default function TournamentHub() {
               token={token}
               stageId={Number(id)}
               canEdit={canEdit}
-              isPreview={false}
+              isPreview={isPreview}
               onPlayerInfoClick={(roster) => setPriceModalRoster(roster)}
             />
           )

@@ -779,28 +779,35 @@ export default function Dashboard() {
       const c = champMap[s.id]
       if (!c) return
       const cid = c.id
-      if (!groups[cid]) groups[cid] = { champ: c, open: null, live: null, upcomings: [] }
+      if (!groups[cid]) groups[cid] = { champ: c, open: null, live: null, previews: [], upcomings: [] }
       if (s.lineup_status === 'open')        groups[cid].open = s
       else if (s.stage_phase === 'live') {
-        // Manter sempre a live mais recente (maior start_date) como "ativa"
         const cur = groups[cid].live
         if (!cur || new Date(s.start_date) > new Date(cur.start_date)) groups[cid].live = s
       }
+      else if (s.stage_phase === 'preview')  groups[cid].previews.push(s)
       else if (s.stage_phase === 'upcoming') groups[cid].upcomings.push(s)
     })
     Object.values(groups).forEach(g => {
+      g.previews  = sortByDate(g.previews)
       g.upcomings = sortByDate(g.upcomings)
     })
     return groups
   }, [stages, champMap])
 
-  // Championships com stages aguardando abertura (upcoming, sem open nem live)
+  // Stages em preview (lobby aberto, lineup fechado) — seção "Abrindo em Breve"
+  const previewStages = useMemo(() =>
+    sortByDate(stages.filter(s => s.stage_phase === 'preview')),
+    [stages]
+  )
+
+  // Championships com stages aguardando abertura (upcoming, sem open/live/preview)
   const closedChampGroupsList = useMemo(() => {
     const groups = Object.values(champGroups)
       .filter(g => !g.open && !g.live && g.upcomings.length > 0)
       .map(g => ({
         ...g,
-        closeds: g.upcomings, // alias para compatibilidade com o render
+        closeds: g.upcomings,
       }))
     return groups.sort((a, b) => {
       const da = new Date(a.closeds[0]?.start_date || a.closeds[0]?.lineup_open_at || '9999').getTime()
@@ -941,7 +948,80 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* ── SEÇÃO 2 — AGUARDANDO ABERTURA ── */}
+        {/* ── SEÇÃO 2 — ABRINDO EM BREVE (preview) ── */}
+        {previewStages.length > 0 && (
+          <div style={{ marginBottom: '48px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px' }}>
+              <span style={{ fontSize: '20px' }}>🔓</span>
+              <span style={{ fontSize: '19px', fontWeight: 700, letterSpacing: '0.08em', color: 'var(--color-xama-orange)', textTransform: 'uppercase' }}>
+                Abrindo em Breve
+              </span>
+              <span style={{
+                fontSize: '16px', fontWeight: 700, padding: '2px 10px',
+                borderRadius: '20px', background: 'rgba(249,115,22,0.15)',
+                color: 'var(--color-xama-orange)', fontFamily: 'JetBrains Mono, monospace',
+              }}>{previewStages.length}</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {previewStages.map(s => {
+                const champ = champMap[s.id]
+                const dateLabel = buildDateLabel(s)
+                return (
+                  <div key={s.id} style={{
+                    background: 'var(--surface-1)',
+                    border: '1px solid rgba(249,115,22,0.3)',
+                    borderTop: '2px solid rgba(249,115,22,0.55)',
+                    borderRadius: 'var(--radius-card)',
+                    padding: '18px 22px',
+                    display: 'flex', alignItems: 'center', gap: '22px',
+                    flexWrap: 'wrap',
+                  }}>
+                    <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '80px', height: '80px', opacity: 0.8 }}>
+                      <StageChampLogo champName={champ?.name} size={72} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: '160px' }}>
+                      <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--color-xama-text)', lineHeight: 1.15, letterSpacing: '-0.02em', marginBottom: '4px' }}>
+                        {s.name}
+                      </div>
+                      <div style={{ fontSize: '12px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace' }}>
+                        {champ && <span style={{ color: 'rgba(249,115,22,0.7)', fontWeight: 600 }}>{champ.name}</span>}
+                        {champ && dateLabel && <span style={{ margin: '0 5px', opacity: 0.4 }}>·</span>}
+                        {dateLabel && <span>{dateLabel}</span>}
+                      </div>
+                      <div style={{ marginTop: '6px' }}>
+                        <CountdownBadge targetIso={s.lineup_open_at} />
+                      </div>
+                    </div>
+                    <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+                      <span style={{
+                        fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em',
+                        padding: '3px 10px', borderRadius: 4,
+                        background: 'rgba(249,115,22,0.12)', border: '1px solid rgba(249,115,22,0.35)',
+                        color: 'var(--color-xama-orange)', fontFamily: 'JetBrains Mono, monospace',
+                      }}>LOBBY ABERTO</span>
+                      <button
+                        onClick={() => navigate(`/tournament/${s.id}`)}
+                        style={{
+                          background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.35)',
+                          borderRadius: 6, padding: '6px 14px',
+                          fontSize: '12px', fontWeight: 700, letterSpacing: '0.06em',
+                          color: 'var(--color-xama-orange)', cursor: 'pointer',
+                          fontFamily: 'JetBrains Mono, monospace', transition: 'background 0.15s, border-color 0.15s',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(249,115,22,0.16)'; e.currentTarget.style.borderColor = 'rgba(249,115,22,0.6)' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(249,115,22,0.08)'; e.currentTarget.style.borderColor = 'rgba(249,115,22,0.35)' }}
+                      >
+                        VER LOBBY
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ── SEÇÃO 4 — AGUARDANDO ABERTURA ── */}
         {(closedChampGroupsList.length > 0 || closedStages.length > 0) && (
           <CollapseSection
             title="Aguardando Abertura"
@@ -993,7 +1073,7 @@ export default function Dashboard() {
           </CollapseSection>
         )}
 
-        {/* ── SEÇÃO 3 — RESULTADOS (locked sem previews filhos) ── */}
+        {/* ── SEÇÃO 5 — RESULTADOS ── */}
         {pureLockedStages.length > 0 && (
           <CollapseSection title="Resultados" icon="📊" count={pureLockedStages.length} defaultOpen={false}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

@@ -57,7 +57,7 @@ class StageCreate(BaseModel):
     @field_validator("stage_phase")
     @classmethod
     def valid_stage_phase(cls, v: str) -> str:
-        allowed = {"upcoming", "live", "finished"}
+        allowed = {"upcoming", "preview", "live", "finished"}
         if v not in allowed:
             raise ValueError(f"stage_phase must be one of: {', '.join(sorted(allowed))}")
         return v
@@ -118,7 +118,7 @@ class StageUpdate(BaseModel):
     def valid_stage_phase(cls, v: Optional[str]) -> Optional[str]:
         if v is None:
             return v
-        allowed = {"upcoming", "live", "finished"}
+        allowed = {"upcoming", "preview", "live", "finished"}
         if v not in allowed:
             raise ValueError(f"stage_phase must be one of: {', '.join(sorted(allowed))}")
         return v

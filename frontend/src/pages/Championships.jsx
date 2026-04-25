@@ -200,14 +200,14 @@ function StageRow({ stage, champName, navigate, isLive = false, compact = false 
 function FeaturedSubCard({ championship, navigate }) {
   const hasOpen    = championship.stages.some(s => s.lineup_status === 'open')
   const hasLive    = championship.stages.some(s => s.stage_phase === 'live')
-  const hasPreview = false // removido: preview não é mais um status de lineup
+  const hasPreview = championship.stages.some(s => s.stage_phase === 'preview')
 
   const sortedStages       = getSortedStages(championship.stages)
   const mostRecentLockedId = getMostRecentLockedId(championship.stages)
 
   const accentColor = hasOpen
     ? 'rgba(74,222,128,0.22)'
-    : hasLive ? 'rgba(249,115,22,0.18)'
+    : (hasLive || hasPreview) ? 'rgba(249,115,22,0.18)'
     : 'rgba(255,255,255,0.07)'
 
   return (
@@ -333,7 +333,7 @@ function ArchivedSubCard({ championship, navigate }) {
 function TournamentGroupCard({ group, championships, navigate }) {
   const hasOpen     = championships.some(c => c.stages.some(s => s.lineup_status === 'open'))
   const hasLive     = championships.some(c => c.stages.some(s => s.stage_phase === 'live'))
-  const hasPreview  = false // removido: preview não é mais um status de lineup
+  const hasPreview  = championships.some(c => c.stages.some(s => s.stage_phase === 'preview'))
   const allFinished = championships.every(c =>
     c.stages.length === 0 || c.stages.every(s => s.stage_phase === 'finished')
   )
@@ -429,7 +429,7 @@ function TournamentGroupCard({ group, championships, navigate }) {
 function ChampionshipCard({ championship, navigate }) {
   const hasOpen       = championship.stages.some(s => s.lineup_status === 'open')
   const hasInProgress = championship.stages.some(s => s.stage_phase === 'live')
-  const hasPreview    = false // removido: preview não é mais um status de lineup
+  const hasPreview    = championship.stages.some(s => s.stage_phase === 'preview')
   const allLocked     = championship.stages.every(s => s.stage_phase === 'finished')
 
   const sortedStages       = getSortedStages(championship.stages)
@@ -539,7 +539,7 @@ export default function Championships() {
 
   const isGroupActive = entry =>
     entry.championships.some(c =>
-      c.stages.some(s => s.stage_phase !== 'finished')
+      c.stages.some(s => s.stage_phase !== 'finished' && s.stage_phase !== undefined)
     )
 
   const activeGroups   = Object.values(groupMap).filter(isGroupActive)

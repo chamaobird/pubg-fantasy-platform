@@ -24,7 +24,7 @@ const api = (token) => async (method, path, body) => {
 }
 
 const LINEUP_STATUS_OPTIONS = ['closed', 'open', 'locked']
-const STAGE_PHASE_OPTIONS = ['upcoming', 'live', 'finished']
+const STAGE_PHASE_OPTIONS = ['upcoming', 'preview', 'live', 'finished']
 const BLANK = {
   championship_id: '', name: '', short_name: '', shard: 'steam',
   lineup_status: 'closed', stage_phase: 'upcoming',
