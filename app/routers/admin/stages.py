@@ -132,9 +132,9 @@ def update_stage(
         valid_transitions = {
             "closed":  {"open", "locked", "preview", "live"},
             "preview": {"open", "closed", "live", "locked"},
-            "open":    {"locked", "closed", "live"},
-            "live":    {"locked", "open"},
-            "locked":  {"open", "closed"},
+            "open":    {"locked", "closed", "live", "preview"},
+            "live":    {"locked", "open", "preview"},
+            "locked":  {"open", "closed", "live", "preview"},
         }
         if new_status not in valid_transitions.get(current, set()):
             raise HTTPException(
