@@ -198,8 +198,9 @@ function StageRow({ stage, champName, navigate, isLive = false, compact = false 
 // Championship ativo/em andamento dentro de um grupo — card maior e destacado
 
 function FeaturedSubCard({ championship, navigate }) {
-  const hasOpen = championship.stages.some(s => s.lineup_status === 'open')
-  const hasLive = championship.stages.some(s => s.stage_phase === 'live')
+  const hasOpen    = championship.stages.some(s => s.lineup_status === 'open')
+  const hasLive    = championship.stages.some(s => s.stage_phase === 'live')
+  const hasPreview = false // removido: preview não é mais um status de lineup
 
   const sortedStages       = getSortedStages(championship.stages)
   const mostRecentLockedId = getMostRecentLockedId(championship.stages)
@@ -332,6 +333,7 @@ function ArchivedSubCard({ championship, navigate }) {
 function TournamentGroupCard({ group, championships, navigate }) {
   const hasOpen     = championships.some(c => c.stages.some(s => s.lineup_status === 'open'))
   const hasLive     = championships.some(c => c.stages.some(s => s.stage_phase === 'live'))
+  const hasPreview  = false // removido: preview não é mais um status de lineup
   const allFinished = championships.every(c =>
     c.stages.length === 0 || c.stages.every(s => s.stage_phase === 'finished')
   )
@@ -427,6 +429,7 @@ function TournamentGroupCard({ group, championships, navigate }) {
 function ChampionshipCard({ championship, navigate }) {
   const hasOpen       = championship.stages.some(s => s.lineup_status === 'open')
   const hasInProgress = championship.stages.some(s => s.stage_phase === 'live')
+  const hasPreview    = false // removido: preview não é mais um status de lineup
   const allLocked     = championship.stages.every(s => s.stage_phase === 'finished')
 
   const sortedStages       = getSortedStages(championship.stages)

@@ -65,7 +65,7 @@ export default function TournamentHub() {
   const showLineupTab = !isFinished && !isClosed
 
   const ALL_TABS = [
-    ...(showLineupTab ? [{ id: TAB_LINEUP, label: isPreview ? 'Lineup' : isLocked ? 'Meus Resultados' : 'Montar Lineup', icon: isLocked ? '📊' : '⚔️' }] : []),
+    ...(showLineupTab ? [{ id: TAB_LINEUP, label: isLocked ? 'Meus Resultados' : 'Montar Lineup', icon: isLocked ? '📊' : '⚔️' }] : []),
     { id: TAB_LEADERBOARD, label: 'Leaderboard', icon: '🏆' },
     { id: TAB_STATS,       label: 'Stats',        icon: '📊' },
     ...(isAdmin ? [{ id: TAB_ADMIN, label: 'Admin', icon: '⚙️' }] : []),
@@ -100,7 +100,7 @@ export default function TournamentHub() {
               token={token}
               stageId={Number(id)}
               canEdit={canEdit}
-              isPreview={isPreview}
+              isPreview={false}
               onPlayerInfoClick={(roster) => setPriceModalRoster(roster)}
             />
           )
