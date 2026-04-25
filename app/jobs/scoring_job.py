@@ -6,7 +6,7 @@ Roda a cada minuto (junto com lineup_control) e detecta StageDays
 que foram travados (lineup_status == 'locked') mas ainda não foram pontuados.
 
 Critério para pontuar um StageDay:
-  - Stage com lineup_status == 'locked'
+  - Stage com lineup_status == 'locked' (inclui stages live e finished)
   - StageDay com date == hoje (UTC)
   - Existem MatchStats para o dia (partidas já importadas)
   - Lineup.total_points ainda é NULL em pelo menos um lineup válido do dia
@@ -52,10 +52,10 @@ def _process_pending_scoring(db: Session, now: datetime) -> None:
     today     = now.date()
     yesterday = today - timedelta(days=1)
 
-    # Stages com lineup travado (locked) ou em andamento (live) — ambas elegíveis para scoring
+    # Stages com lineup travado — elegíveis para scoring (inclui stage_phase live e finished)
     locked_stages = (
         db.query(Stage)
-        .filter(Stage.lineup_status.in_(["locked", "live"]))
+        .filter(Stage.lineup_status == "locked")
         .all()
     )
 

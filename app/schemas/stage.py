@@ -18,6 +18,7 @@ class StageCreate(BaseModel):
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
     lineup_status: str = "closed"
+    stage_phase: str = "upcoming"
     lineup_size: int = 4
     carries_stats_from: Optional[List[int]] = None
     roster_source_stage_id: Optional[int] = None
@@ -47,10 +48,18 @@ class StageCreate(BaseModel):
 
     @field_validator("lineup_status")
     @classmethod
-    def valid_status(cls, v: str) -> str:
-        allowed = {"closed", "open", "locked", "preview", "live"}
+    def valid_lineup_status(cls, v: str) -> str:
+        allowed = {"closed", "open", "locked"}
         if v not in allowed:
             raise ValueError(f"lineup_status must be one of: {', '.join(sorted(allowed))}")
+        return v
+
+    @field_validator("stage_phase")
+    @classmethod
+    def valid_stage_phase(cls, v: str) -> str:
+        allowed = {"upcoming", "live", "finished"}
+        if v not in allowed:
+            raise ValueError(f"stage_phase must be one of: {', '.join(sorted(allowed))}")
         return v
 
     @model_validator(mode="after")
@@ -72,6 +81,7 @@ class StageUpdate(BaseModel):
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
     lineup_status: Optional[str] = None
+    stage_phase: Optional[str] = None
     lineup_size: Optional[int] = None
     carries_stats_from: Optional[List[int]] = None
     roster_source_stage_id: Optional[int] = None
@@ -95,12 +105,22 @@ class StageUpdate(BaseModel):
 
     @field_validator("lineup_status")
     @classmethod
-    def valid_status(cls, v: Optional[str]) -> Optional[str]:
+    def valid_lineup_status(cls, v: Optional[str]) -> Optional[str]:
         if v is None:
             return v
-        allowed = {"closed", "open", "locked", "preview", "live"}
+        allowed = {"closed", "open", "locked"}
         if v not in allowed:
             raise ValueError(f"lineup_status must be one of: {', '.join(sorted(allowed))}")
+        return v
+
+    @field_validator("stage_phase")
+    @classmethod
+    def valid_stage_phase(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        allowed = {"upcoming", "live", "finished"}
+        if v not in allowed:
+            raise ValueError(f"stage_phase must be one of: {', '.join(sorted(allowed))}")
         return v
 
 
@@ -117,6 +137,7 @@ class StageResponse(BaseModel):
     start_date: Optional[datetime]
     end_date: Optional[datetime]
     lineup_status: str
+    stage_phase: str
     lineup_size: int
     captain_multiplier: float
     carries_stats_from: Optional[List[int]]

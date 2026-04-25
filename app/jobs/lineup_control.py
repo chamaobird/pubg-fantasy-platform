@@ -121,6 +121,10 @@ def force_stage_status(
     Força a transição de lineup_status de uma Stage para qualquer valor válido.
     Usado pelo endpoint admin de emergência (#043).
 
+    Nota: este endpoint controla apenas lineup_status (submissão de lineup).
+    Para controlar a fase de exibição no dashboard, use PATCH /admin/stages/{id}
+    com o campo stage_phase ('upcoming' | 'live' | 'finished').
+
     Args:
         db:         sessão SQLAlchemy
         stage_id:   ID da Stage

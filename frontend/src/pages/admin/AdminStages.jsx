@@ -23,10 +23,12 @@ const api = (token) => async (method, path, body) => {
   return res.status === 204 ? null : res.json()
 }
 
-const STATUS_OPTIONS = ['closed', 'open', 'preview', 'live', 'locked']
+const LINEUP_STATUS_OPTIONS = ['closed', 'open', 'locked']
+const STAGE_PHASE_OPTIONS = ['upcoming', 'live', 'finished']
 const BLANK = {
   championship_id: '', name: '', short_name: '', shard: 'steam',
-  lineup_status: 'closed', lineup_open_at: '', lineup_close_at: '',
+  lineup_status: 'closed', stage_phase: 'upcoming',
+  lineup_open_at: '', lineup_close_at: '',
   start_date: '', end_date: '',
   lineup_size: 4, captain_multiplier: 1.3,
   price_min: 12, price_max: 35,
@@ -543,6 +545,7 @@ export default function AdminStages({ token }) {
       championship_id: s.championship_id,
       name: s.name, short_name: s.short_name || '', shard: s.shard,
       lineup_status: s.lineup_status,
+      stage_phase: s.stage_phase ?? 'upcoming',
       lineup_open_at: s.lineup_open_at ? s.lineup_open_at.slice(0, 16) : '',
       lineup_close_at: s.lineup_close_at ? s.lineup_close_at.slice(0, 16) : '',
       start_date: s.start_date ? s.start_date.slice(0, 10) : '',
@@ -583,10 +586,19 @@ export default function AdminStages({ token }) {
     finally { setSaving(false) }
   }
 
-  const changeStatus = async (stage, newStatus) => {
-    setStatusChanging(stage.id)
+  const changeLineupStatus = async (stage, newStatus) => {
+    setStatusChanging(stage.id + '_lineup')
     try {
       await call('PATCH', `/admin/stages/${stage.id}`, { lineup_status: newStatus })
+      await loadStages()
+    } catch (e) { alert('Erro: ' + e.message) }
+    finally { setStatusChanging(null) }
+  }
+
+  const changePhase = async (stage, newPhase) => {
+    setStatusChanging(stage.id + '_phase')
+    try {
+      await call('PATCH', `/admin/stages/${stage.id}`, { stage_phase: newPhase })
       await loadStages()
     } catch (e) { alert('Erro: ' + e.message) }
     finally { setStatusChanging(null) }
@@ -627,7 +639,8 @@ export default function AdminStages({ token }) {
                 <SortableHeader label="Champ." col="champ" sort={stSort} onSort={stToggle} />
                 <SortableHeader label="Nome" col="name" sort={stSort} onSort={stToggle} />
                 <SortableHeader label="Início" col="start" sort={stSort} onSort={stToggle} />
-                <SortableHeader label="Status" col="status" sort={stSort} onSort={stToggle} />
+                <SortableHeader label="Lineup" col="status" sort={stSort} onSort={stToggle} />
+                <th style={thStyle}>Fase</th>
                 <th style={thStyle}></th>
               </tr>
             </thead>
@@ -648,8 +661,8 @@ export default function AdminStages({ token }) {
                     <td style={tdStyle}>
                       <select
                         value={s.lineup_status}
-                        disabled={statusChanging === s.id}
-                        onChange={e => changeStatus(s, e.target.value)}
+                        disabled={!!statusChanging}
+                        onChange={e => changeLineupStatus(s, e.target.value)}
                         style={{
                           padding: '4px 8px', borderRadius: 6, fontSize: 12, fontWeight: 700,
                           fontFamily: 'JetBrains Mono, monospace', cursor: 'pointer',
@@ -658,8 +671,26 @@ export default function AdminStages({ token }) {
                           outline: 'none', colorScheme: 'dark',
                         }}
                       >
-                        {STATUS_OPTIONS.map(st => (
+                        {LINEUP_STATUS_OPTIONS.map(st => (
                           <option key={st} value={st}>{st.toUpperCase()}</option>
+                        ))}
+                      </select>
+                    </td>
+                    <td style={tdStyle}>
+                      <select
+                        value={s.stage_phase ?? 'upcoming'}
+                        disabled={!!statusChanging}
+                        onChange={e => changePhase(s, e.target.value)}
+                        style={{
+                          padding: '4px 8px', borderRadius: 6, fontSize: 12, fontWeight: 700,
+                          fontFamily: 'JetBrains Mono, monospace', cursor: 'pointer',
+                          border: '1px solid rgba(99,102,241,0.4)',
+                          background: 'rgba(99,102,241,0.08)', color: '#a5b4fc',
+                          outline: 'none', colorScheme: 'dark',
+                        }}
+                      >
+                        {STAGE_PHASE_OPTIONS.map(p => (
+                          <option key={p} value={p}>{p.toUpperCase()}</option>
                         ))}
                       </select>
                     </td>
@@ -728,16 +759,21 @@ export default function AdminStages({ token }) {
             </Field>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
             <Field label="Shard">
               <select style={selectStyle} value={form.shard} onChange={f('shard')}>
                 <option value="steam">steam</option>
                 <option value="pc-tournament">pc-tournament</option>
               </select>
             </Field>
-            <Field label="Status">
+            <Field label="Lineup Status">
               <select style={selectStyle} value={form.lineup_status} onChange={f('lineup_status')}>
-                {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                {LINEUP_STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </Field>
+            <Field label="Fase (dashboard)">
+              <select style={selectStyle} value={form.stage_phase ?? 'upcoming'} onChange={f('stage_phase')}>
+                {STAGE_PHASE_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
               </select>
             </Field>
           </div>

@@ -63,7 +63,13 @@ class Stage(Base):
         String(10),
         nullable=False,
         server_default="'closed'",
-        comment="closed | open | locked | live",
+        comment="closed | open | locked — controla submissão de lineup (APScheduler + admin)",
+    )
+    stage_phase: Mapped[str] = mapped_column(
+        String(10),
+        nullable=False,
+        server_default="'upcoming'",
+        comment="upcoming | live | finished — controla exibição no dashboard (admin-only)",
     )
     lineup_size: Mapped[int] = mapped_column(
         SmallInteger,
@@ -136,4 +142,4 @@ class Stage(Base):
     )
 
     def __repr__(self) -> str:
-        return f"<Stage id={self.id} short_name={self.short_name!r} status={self.lineup_status!r}>"
+        return f"<Stage id={self.id} short_name={self.short_name!r} lineup={self.lineup_status!r} phase={self.stage_phase!r}>"

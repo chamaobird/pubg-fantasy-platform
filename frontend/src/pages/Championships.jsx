@@ -60,12 +60,13 @@ function getSortedStages(stages) {
 }
 
 function getMostRecentLockedId(stages) {
-  const hasOpen = stages.some(s => s.lineup_status === 'open')
-  const hasLive  = stages.some(s => s.lineup_status === 'live')
-  const hasPreview = stages.some(s => s.lineup_status === 'preview')
-  if (!hasOpen && hasPreview && !hasLive) {
+  const hasOpen     = stages.some(s => s.lineup_status === 'open')
+  const hasLive     = stages.some(s => s.stage_phase === 'live')
+  const hasUpcoming = stages.some(s => s.stage_phase === 'upcoming')
+  // Mostra o mais recente encerrado quando há próximos dias aguardando, mas sem lineup aberta
+  if (!hasOpen && !hasLive && hasUpcoming) {
     return stages
-      .filter(s => s.lineup_status === 'locked')
+      .filter(s => s.stage_phase === 'finished')
       .sort((a, b) => b.id - a.id)[0]?.id ?? null
   }
   return null
@@ -116,17 +117,16 @@ function ChampLogo({ name = '', size = 48 }) {
 
 function StageRow({ stage, champName, navigate, isLive = false, compact = false }) {
   const isOpen    = stage.lineup_status === 'open'
-  const isPreview = stage.lineup_status === 'preview'
   const rawSt = statusConfig(stage.lineup_status)
   const st = isLive
     ? { color: 'var(--color-xama-orange)', bg: 'rgba(249,115,22,0.1)', border: 'rgba(249,115,22,0.35)', label: 'EM JOGO' }
     : rawSt
   const dateStr = stageDateStr(stage)
 
-  const borderDefault  = isOpen ? 'rgba(74,222,128,0.15)' : isPreview ? 'rgba(249,115,22,0.2)' : 'var(--color-xama-border)'
-  const bgDefault      = isOpen ? 'rgba(74,222,128,0.03)'  : isPreview ? 'rgba(249,115,22,0.03)' : 'rgba(255,255,255,0.01)'
-  const borderHover    = isOpen ? 'rgba(74,222,128,0.4)'   : isPreview ? 'rgba(249,115,22,0.45)' : 'rgba(249,115,22,0.3)'
-  const bgHover        = isOpen ? 'rgba(74,222,128,0.06)'  : isPreview ? 'rgba(249,115,22,0.07)' : 'rgba(249,115,22,0.04)'
+  const borderDefault  = isOpen ? 'rgba(74,222,128,0.15)' : 'var(--color-xama-border)'
+  const bgDefault      = isOpen ? 'rgba(74,222,128,0.03)'  : 'rgba(255,255,255,0.01)'
+  const borderHover    = isOpen ? 'rgba(74,222,128,0.4)'   : 'rgba(249,115,22,0.3)'
+  const bgHover        = isOpen ? 'rgba(74,222,128,0.06)'  : 'rgba(249,115,22,0.04)'
 
   return (
     <div
@@ -198,16 +198,15 @@ function StageRow({ stage, champName, navigate, isLive = false, compact = false 
 // Championship ativo/em andamento dentro de um grupo — card maior e destacado
 
 function FeaturedSubCard({ championship, navigate }) {
-  const hasOpen    = championship.stages.some(s => s.lineup_status === 'open')
-  const hasPreview = championship.stages.some(s => s.lineup_status === 'preview')
-  const hasLive    = championship.stages.some(s => s.lineup_status === 'live')
+  const hasOpen = championship.stages.some(s => s.lineup_status === 'open')
+  const hasLive = championship.stages.some(s => s.stage_phase === 'live')
 
-  const sortedStages      = getSortedStages(championship.stages)
+  const sortedStages       = getSortedStages(championship.stages)
   const mostRecentLockedId = getMostRecentLockedId(championship.stages)
 
   const accentColor = hasOpen
     ? 'rgba(74,222,128,0.22)'
-    : (hasPreview || hasLive) ? 'rgba(249,115,22,0.18)'
+    : hasLive ? 'rgba(249,115,22,0.18)'
     : 'rgba(255,255,255,0.07)'
 
   return (
@@ -331,23 +330,22 @@ function ArchivedSubCard({ championship, navigate }) {
 // Card pai que agrupa championships de um mesmo torneio
 
 function TournamentGroupCard({ group, championships, navigate }) {
-  const hasOpen    = championships.some(c => c.stages.some(s => s.lineup_status === 'open'))
-  const hasPreview = championships.some(c => c.stages.some(s => s.lineup_status === 'preview'))
-  const hasLive    = championships.some(c => c.stages.some(s => s.lineup_status === 'live'))
+  const hasOpen     = championships.some(c => c.stages.some(s => s.lineup_status === 'open'))
+  const hasLive     = championships.some(c => c.stages.some(s => s.stage_phase === 'live'))
   const allFinished = championships.every(c =>
-    c.stages.length === 0 || c.stages.every(s => s.lineup_status === 'locked')
+    c.stages.length === 0 || c.stages.every(s => s.stage_phase === 'finished')
   )
 
-  // Featured = tem ao menos uma stage não-locked (ainda em andamento/prevista)
+  // Featured = tem ao menos uma stage não-encerrada (upcoming ou live ou open)
   const featured = championships.filter(c =>
-    c.stages.some(s => ['open', 'preview', 'live', 'closed'].includes(s.lineup_status))
+    c.stages.some(s => s.stage_phase !== 'finished')
   )
-  // Archived = todas as stages locked (encerrado)
+  // Archived = todas as stages encerradas
   const archived = championships.filter(c =>
-    c.stages.length === 0 || c.stages.every(s => s.lineup_status === 'locked')
+    c.stages.length === 0 || c.stages.every(s => s.stage_phase === 'finished')
   )
 
-  // Ordena featured: open primeiro, depois preview/live, depois closed
+  // Ordena featured: open primeiro, depois live, depois upcoming
   const sortedFeatured = [...featured].sort((a, b) => {
     const aOpen = a.stages.some(s => s.lineup_status === 'open') ? 0 : 1
     const bOpen = b.stages.some(s => s.lineup_status === 'open') ? 0 : 1
@@ -356,7 +354,7 @@ function TournamentGroupCard({ group, championships, navigate }) {
 
   const borderColor = hasOpen
     ? 'rgba(74,222,128,0.2)'
-    : (hasPreview || hasLive) ? 'rgba(249,115,22,0.2)'
+    : hasLive ? 'rgba(249,115,22,0.2)'
     : 'rgba(249,115,22,0.1)'
   const topAccent = hasOpen
     ? STATUS_COLOR.open
@@ -427,10 +425,9 @@ function TournamentGroupCard({ group, championships, navigate }) {
 // ── ChampionshipCard (standalone — championships sem grupo) ───────────────────
 
 function ChampionshipCard({ championship, navigate }) {
-  const hasOpen        = championship.stages.some(s => s.lineup_status === 'open')
-  const hasPreview     = championship.stages.some(s => s.lineup_status === 'preview')
-  const hasInProgress  = championship.stages.some(s => s.lineup_status === 'live')
-  const allLocked      = !hasInProgress && championship.stages.every(s => s.lineup_status === 'locked')
+  const hasOpen       = championship.stages.some(s => s.lineup_status === 'open')
+  const hasInProgress = championship.stages.some(s => s.stage_phase === 'live')
+  const allLocked     = championship.stages.every(s => s.stage_phase === 'finished')
 
   const sortedStages       = getSortedStages(championship.stages)
   const mostRecentLockedId = getMostRecentLockedId(championship.stages)
@@ -440,7 +437,7 @@ function ChampionshipCard({ championship, navigate }) {
       background: 'rgba(18, 21, 28, 0.82)',
       backdropFilter: 'blur(8px)',
       WebkitBackdropFilter: 'blur(8px)',
-      border: `1px solid ${hasOpen ? 'rgba(74,222,128,0.2)' : (hasPreview || hasInProgress) ? 'rgba(249,115,22,0.2)' : 'rgba(249,115,22,0.12)'}`,
+      border: `1px solid ${hasOpen ? 'rgba(74,222,128,0.2)' : hasInProgress ? 'rgba(249,115,22,0.2)' : 'rgba(249,115,22,0.12)'}`,
       boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
       borderRadius: 12, overflow: 'hidden',
       position: 'relative',
@@ -539,7 +536,7 @@ export default function Championships() {
 
   const isGroupActive = entry =>
     entry.championships.some(c =>
-      c.stages.some(s => ['open', 'preview', 'live', 'closed'].includes(s.lineup_status))
+      c.stages.some(s => s.stage_phase !== 'finished')
     )
 
   const activeGroups   = Object.values(groupMap).filter(isGroupActive)
@@ -553,8 +550,8 @@ export default function Championships() {
   })
 
   // Ungrouped — mesmo comportamento de antes
-  const activeUngrouped   = ungrouped.filter(c => c.stages.some(s => ['open', 'preview', 'live', 'closed'].includes(s.lineup_status)))
-  const finishedUngrouped = ungrouped.filter(c => c.stages.length === 0 || c.stages.every(s => s.lineup_status === 'locked'))
+  const activeUngrouped   = ungrouped.filter(c => c.stages.some(s => s.stage_phase !== 'finished'))
+  const finishedUngrouped = ungrouped.filter(c => c.stages.length === 0 || c.stages.every(s => s.stage_phase === 'finished'))
 
   const sortedActiveUngrouped = [...activeUngrouped].sort((a, b) => {
     const aOpen = a.stages.some(s => s.lineup_status === 'open') ? 0 : 1

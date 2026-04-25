@@ -125,16 +125,15 @@ def update_stage(
     if "roster_source_stage_id" in updates and updates["roster_source_stage_id"]:
         _validate_roster_source(db, updates["roster_source_stage_id"])
 
-    # Guard: cannot manually set lineup_status to a value that skips transitions
+    # Guard: lineup_status só aceita transições válidas (closed ↔ open ↔ locked)
+    # stage_phase é livre — admin pode mudar upcoming/live/finished a qualquer momento
     if "lineup_status" in updates:
         new_status = updates["lineup_status"]
         current = stage.lineup_status
         valid_transitions = {
-            "closed":  {"open", "locked", "preview", "live"},
-            "preview": {"open", "closed", "live", "locked"},
-            "open":    {"locked", "closed", "live", "preview"},
-            "live":    {"locked", "open", "preview"},
-            "locked":  {"open", "closed", "live", "preview"},
+            "closed": {"open", "locked"},
+            "open":   {"locked", "closed"},
+            "locked": {"open", "closed"},
         }
         if new_status != current and new_status not in valid_transitions.get(current, set()):
             raise HTTPException(

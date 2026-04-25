@@ -49,6 +49,7 @@ class StageOut(BaseModel):
     short_name: str
     shard: str
     lineup_status: str
+    stage_phase: str
     lineup_size: int
     captain_multiplier: float
     price_min: int
@@ -77,6 +78,7 @@ class StageOut(BaseModel):
             short_name=s.short_name,
             shard=s.shard,
             lineup_status=s.lineup_status,
+            stage_phase=s.stage_phase,
             lineup_size=s.lineup_size,
             captain_multiplier=float(s.captain_multiplier),
             price_min=s.price_min,
@@ -556,13 +558,13 @@ def get_prior_stats(
 ) -> list[PriorStatsOut]:
     stage = _get_stage_or_404(db, stage_id)
 
-    # Stages locked/live do mesmo championship (exceto a stage atual)
+    # Stages encerradas ou em andamento do mesmo championship (exceto a stage atual)
     prior_stages = (
         db.query(Stage)
         .filter(
             Stage.championship_id == stage.championship_id,
             Stage.id != stage_id,
-            Stage.lineup_status.in_(["locked", "live"]),
+            Stage.stage_phase.in_(["live", "finished"]),
             Stage.is_active == True,  # noqa: E712
         )
         .all()

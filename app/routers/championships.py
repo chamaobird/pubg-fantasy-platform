@@ -48,6 +48,7 @@ class StagePublic(BaseModel):
     name: str
     short_name: Optional[str] = None
     lineup_status: str
+    stage_phase: str
     is_active: bool
     lineup_open: bool = False
 
@@ -81,6 +82,7 @@ def _build_response(championship: Championship, db: Session) -> dict:
             name=s.name,
             short_name=s.short_name,
             lineup_status=s.lineup_status,
+            stage_phase=s.stage_phase,
             is_active=s.is_active,
             lineup_open=s.lineup_status == "open",
         )

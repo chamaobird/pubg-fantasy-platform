@@ -750,7 +750,7 @@ export default function Dashboard() {
   // Busca lineups para stages open E locked (para mostrar pontuação em Resultados)
   useEffect(() => {
     if (!token || stages.length === 0) return
-    const relevantStages = stages.filter(s => ['open', 'locked', 'live'].includes(s.lineup_status))
+    const relevantStages = stages.filter(s => s.lineup_status === 'open' || s.stage_phase === 'live' || s.stage_phase === 'finished')
     relevantStages.forEach(s => {
       fetch(`${API_BASE_URL}/lineups/stage/${s.id}`, { headers: H })
         .then(r => {
@@ -772,41 +772,35 @@ export default function Dashboard() {
   })
 
   // Agrupa stages por campeonato para exibição hierárquica
+  // stage_phase controla a seção do dashboard; lineup_status controla submissão
   const champGroups = useMemo(() => {
     const groups = {}
     stages.forEach(s => {
       const c = champMap[s.id]
       if (!c) return
       const cid = c.id
-      if (!groups[cid]) groups[cid] = { champ: c, open: null, locked: null, previews: [], closeds: [] }
-      if (s.lineup_status === 'open')         groups[cid].open = s
-      else if (s.lineup_status === 'locked' || s.lineup_status === 'live') {
-        // Manter sempre o locked/live mais recente (maior start_date) como "ativo"
-        const cur = groups[cid].locked
-        if (!cur || new Date(s.start_date) > new Date(cur.start_date)) groups[cid].locked = s
+      if (!groups[cid]) groups[cid] = { champ: c, open: null, live: null, upcomings: [] }
+      if (s.lineup_status === 'open')        groups[cid].open = s
+      else if (s.stage_phase === 'live') {
+        // Manter sempre a live mais recente (maior start_date) como "ativa"
+        const cur = groups[cid].live
+        if (!cur || new Date(s.start_date) > new Date(cur.start_date)) groups[cid].live = s
       }
-      else if (s.lineup_status === 'preview') groups[cid].previews.push(s)
-      else if (s.lineup_status === 'closed')  groups[cid].closeds.push(s)
+      else if (s.stage_phase === 'upcoming') groups[cid].upcomings.push(s)
     })
     Object.values(groups).forEach(g => {
-      g.previews = sortByDate(g.previews)
+      g.upcomings = sortByDate(g.upcomings)
     })
     return groups
   }, [stages, champMap])
 
-  // Championships em breve com múltiplos dias — agrupados hierarquicamente
-  // Inclui grupos com previews (Dia 2, 3…) quando o Dia 1 já está locked (encerrado, não live)
+  // Championships com stages aguardando abertura (upcoming, sem open nem live)
   const closedChampGroupsList = useMemo(() => {
     const groups = Object.values(champGroups)
-      .filter(g =>
-        !g.open &&
-        !(g.locked?.lineup_status === 'live') &&
-        (g.closeds.length > 0 || g.previews.length > 0)
-      )
+      .filter(g => !g.open && !g.live && g.upcomings.length > 0)
       .map(g => ({
         ...g,
-        // Mescla previews + closeds como "dias aguardando abertura"
-        closeds: sortByDate([...g.previews, ...g.closeds]),
+        closeds: g.upcomings, // alias para compatibilidade com o render
       }))
     return groups.sort((a, b) => {
       const da = new Date(a.closeds[0]?.start_date || a.closeds[0]?.lineup_open_at || '9999').getTime()
@@ -815,41 +809,36 @@ export default function Dashboard() {
     })
   }, [champGroups])
 
-  // Closed sem championship group (stages soltas sem agrupamento)
+  // Stages upcoming soltas sem championship group
   const closedStages = useMemo(() => {
     const groupedChampIds = new Set(closedChampGroupsList.map(g => g.champ.id))
     return sortByDate(stages.filter(s => {
-      if (s.lineup_status !== 'closed') return false
+      if (s.stage_phase !== 'upcoming' || s.lineup_status === 'open') return false
       const c = champMap[s.id]
       return !c || !groupedChampIds.has(c.id)
     }))
   }, [stages, champMap, closedChampGroupsList])
 
-  // Campeonatos com stage "ativa": open ou live (locked encerrado nunca aparece aqui)
+  // Campeonatos com stage ativa: open (montando lineup) ou live (partida em andamento)
   const activeChampGroups = useMemo(() =>
     Object.values(champGroups)
-      .filter(g => g.open || g.locked?.lineup_status === 'live')
+      .filter(g => g.open || g.live)
       .sort((a, b) => {
-        // open primeiro, depois locked
+        // open primeiro, depois live
         if (a.open && !b.open) return -1
         if (!a.open && b.open) return 1
-        const sa = a.open || a.locked
-        const sb = b.open || b.locked
+        const sa = a.open || a.live
+        const sb = b.open || b.live
         return new Date(sa?.start_date || '9999') - new Date(sb?.start_date || '9999')
       }),
     [champGroups]
   )
 
-  // Locked sem preview filhos → vai para Resultados (live nunca vai para Resultados)
-  const pureLockedStages = useMemo(() => {
-    const activeLockedIds = new Set(
-      activeChampGroups.filter(g => g.locked && !g.open).map(g => g.locked.id)
-    )
-    return sortByDate(
-      stages.filter(s => s.lineup_status === 'locked' && !activeLockedIds.has(s.id)),
-      true
-    )
-  }, [stages, activeChampGroups])
+  // Stages finished → seção Resultados
+  const pureLockedStages = useMemo(() =>
+    sortByDate(stages.filter(s => s.stage_phase === 'finished'), true),
+    [stages]
+  )
 
   const hasActive = activeChampGroups.length > 0
 
@@ -911,25 +900,25 @@ export default function Dashboard() {
                         lineup={myLineups[g.open.id]}
                         champMap={champMap}
                         navigate={navigate}
-                        previewCount={g.previews.length}
+                        previewCount={g.upcomings.length}
                         expanded={isExpanded}
                         onToggle={toggle}
                       />
                     )}
-                    {!g.open && g.locked && (
+                    {!g.open && g.live && (
                       <LockedActiveCard
-                        s={g.locked}
-                        lineup={myLineups[g.locked.id]}
+                        s={g.live}
+                        lineup={myLineups[g.live.id]}
                         champMap={champMap}
                         navigate={navigate}
-                        previewCount={g.previews.length}
+                        previewCount={g.upcomings.length}
                         expanded={isExpanded}
                         onToggle={toggle}
                       />
                     )}
 
-                    {/* Cards preview — compactos e recuados, colapsáveis */}
-                    {g.previews.length > 0 && isExpanded && (
+                    {/* Cards upcoming — próximos dias, compactos e recuados, colapsáveis */}
+                    {g.upcomings.length > 0 && isExpanded && (
                       <div style={{ marginLeft: 'clamp(32px, 15%, 120px)', marginTop: '10px' }}>
                         <div style={{
                           paddingLeft: '16px',
@@ -939,7 +928,7 @@ export default function Dashboard() {
                           flexDirection: 'column',
                           gap: '8px',
                         }}>
-                          {g.previews.map(s => (
+                          {g.upcomings.map(s => (
                             <PreviewCard key={s.id} s={s} champMap={champMap} navigate={navigate} />
                           ))}
                         </div>

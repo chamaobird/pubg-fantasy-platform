@@ -5,9 +5,12 @@ APScheduler — três jobs para o XAMA Fantasy.
 lineup_control (a cada 1 minuto)
 ─────────────────────────────────
 Verifica todos os stages com lineup_status != 'locked' e aplica as transições:
-  closed → open   se agora >= lineup_open_at
-  open   → locked se agora >= lineup_close_at
+  closed → open    se agora >= lineup_open_at
+  open   → locked  se agora >= lineup_close_at  (também: stage_phase → live)
       └─ antes do lock: replica o dia anterior para usuários sem lineup (#042)
+
+Nota: stage_phase é automático SOMENTE para upcoming→live (quando a lineup fecha).
+      A transição live→finished deve ser feita manualmente pelo admin no painel.
 
 scoring (a cada 1 minuto)
 ──────────────────────────
@@ -43,7 +46,7 @@ def _lineup_control_job() -> None:
         now = datetime.now(tz=timezone.utc)
         stages = (
             db.query(Stage)
-            .filter(Stage.lineup_status.notin_(["locked", "live"]))
+            .filter(Stage.lineup_status.notin_(["locked"]))
             .all()
         )
         if not stages:
@@ -75,8 +78,9 @@ def _process_stage_status(db, stage, now: datetime) -> None:
             _maybe_send_over_budget_reminders(db, stage, now)
         if stage.lineup_close_at and now >= stage.lineup_close_at:
             _replicate_missing_lineups(db, stage, now)
-            stage.lineup_status = "live"
-            logger.info("lineup_control: stage %s (%s) → live", stage.id, stage.name)
+            stage.lineup_status = "locked"
+            stage.stage_phase = "live"  # exibe como "EM JOGO" no dashboard
+            logger.info("lineup_control: stage %s (%s) → locked / phase=live", stage.id, stage.name)
 
     if stage.lineup_status != old_status:
         db.add(stage)

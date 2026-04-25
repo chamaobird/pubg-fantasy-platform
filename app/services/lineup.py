@@ -422,12 +422,7 @@ def replicate_all_missing_lineups(db: Session, stage_day_id: int) -> dict:
 def _assert_lineup_open(stage: Stage) -> None:
     """
     Garante que a stage está com lineup_status='open'.
-    'preview' permite visualização mas bloqueia submissão.
     """
-    if stage.lineup_status == "preview":
-        raise ValueError(
-            "Lineup desabilitado — Aguardando confirmação do roster para esta stage."
-        )
     if stage.lineup_status != "open":
         raise ValueError(
             f"Lineups não estão abertos para esta stage "

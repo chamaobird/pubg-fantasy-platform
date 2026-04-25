@@ -12,10 +12,14 @@ Endpoints admin:
   GET  /admin/stages/{stage_id}/lineups        Todos os lineups de uma stage (admin)
 
 Status válidos para lineup_status:
-  closed  — padrão; lineup não visível nem editável
-  preview — stage visível com roster/stats mas lineup desabilitado (aguardando confirmação)
+  closed  — padrão; lineup não editável
   open    — lineup aberto para montagem
-  locked  — stage encerrada; lineup visível mas não editável
+  locked  — lineup travado; não editável
+
+Status válidos para stage_phase (controle de exibição no dashboard):
+  upcoming  — aguardando abertura
+  live      — partida em andamento (EM JOGO)
+  finished  — encerrada; aparece em Resultados
 """
 from __future__ import annotations
 
@@ -206,7 +210,7 @@ def get_user_lineups_for_stage(
     stage = db.query(Stage).filter(Stage.id == stage_id).first()
     if not stage:
         raise HTTPException(status_code=404, detail="Stage não encontrada")
-    if stage.lineup_status not in {"locked", "live"}:
+    if stage.stage_phase not in {"live", "finished"}:
         raise HTTPException(
             status_code=403,
             detail="Lineup de outros managers só visível após encerramento da stage",
@@ -266,10 +270,10 @@ def get_my_lineups_for_stage(
     summary="[Admin] Override manual de lineup_status",
     description=(
         "Força a transição de lineup_status para qualquer valor válido. "
-        "Valores aceitos: closed, open, locked, preview. "
-        "Use 'preview' para abrir a visualização do roster/stats sem permitir montagem de lineup. "
+        "Valores aceitos: closed, open, locked. "
         "Use em emergências quando o APScheduler falhar ou o horário precisar "
-        "ser ajustado manualmente. Ação é logada como OVERRIDE MANUAL."
+        "ser ajustado manualmente. Ação é logada como OVERRIDE MANUAL. "
+        "Para controlar a exibição no dashboard (live/finished), use PATCH /admin/stages/{id} com stage_phase."
     ),
 )
 def force_status_endpoint(

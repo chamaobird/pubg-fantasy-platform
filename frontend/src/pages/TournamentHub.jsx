@@ -57,13 +57,11 @@ export default function TournamentHub() {
   }, [id])
 
   const isFinished = stage ? (!stage.is_active) : false
-  const isLocked   = stage ? (stage.lineup_status === 'locked' || stage.lineup_status === 'live') : false
-  const isPreview  = stage ? (stage.lineup_status === 'preview') : false
+  const isLocked   = stage ? (stage.lineup_status === 'locked') : false
   const isClosed   = stage ? (stage.lineup_status === 'closed')  : false
   const canEdit    = stage ? (stage.lineup_status === 'open') : false
 
   // closed: não exibe tab de lineup (ainda não está disponível)
-  // preview: tab Lineup visível mas com botões travados
   const showLineupTab = !isFinished && !isClosed
 
   const ALL_TABS = [
