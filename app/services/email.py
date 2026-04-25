@@ -227,6 +227,49 @@ def send_lineup_open_notification(
     return _send(to_email, f"XAMA Fantasy — Lineup aberta: {stage_name}", _html(content))
 
 
+def send_over_budget_notification(
+    to_email: str,
+    username: str,
+    stage_name: str,
+    stage_id: int,
+    total_cost: float,
+    budget_cap: int = 100,
+) -> bool:
+    """
+    Avisa o usuário que seu lineup replicado extrapolou o budget após repricing.
+    O lineup foi invalidado e ele precisa montar um novo antes do fechamento.
+    """
+    stage_url = f"{settings.FRONTEND_URL}/tournament/{stage_id}"
+    content = f"""
+      <h2 class="title">Lineup Inválido — Budget Excedido</h2>
+      <p class="text">
+        Olá, <strong style="color: {_TEXT};">{username}</strong>.<br><br>
+        O lineup que foi carregado automaticamente para
+        <strong style="color: {_TEXT};">{stage_name}</strong>
+        excedeu o limite de budget após o reajuste de preços dos jogadores.<br><br>
+        <strong style="color: #f97316;">Custo do lineup:</strong>
+        <strong style="color: {_TEXT};">{total_cost:.0f} créditos</strong>
+        &nbsp;/&nbsp; Limite: <strong style="color: {_TEXT};">{budget_cap} créditos</strong>
+      </p>
+      <p class="text" style="margin-top: -16px;">
+        Seu lineup atual foi <strong style="color: #f87171;">invalidado</strong> e
+        <strong>não pontuará</strong> até que você monte um novo dentro do orçamento.
+        Monte seu time agora antes do fechamento das lineups.
+      </p>
+      <div class="btn-wrap">
+        <a href="{stage_url}" class="btn">Montar novo lineup &rarr;</a>
+      </div>
+      <p class="expiry">
+        Você está recebendo este email por ser participante da XAMA Fantasy League.
+      </p>
+    """
+    return _send(
+        to_email,
+        f"XAMA Fantasy — Lineup inválido: budget excedido em {stage_name}",
+        _html(content),
+    )
+
+
 def broadcast_lineup_open(db, stage_name: str, stage_id: int, close_iso: str | None) -> dict:
     """
     Envia notificação de lineup aberta para todos os usuários verificados e ativos.

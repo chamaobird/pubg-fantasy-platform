@@ -279,6 +279,15 @@ def replicate_lineup_for_day(
         if rid in roster_map_rep
     )
 
+    # Invalida se ultrapassar o budget após repricing
+    BUDGET_CAP = 100
+    if total_cost > BUDGET_CAP:
+        is_valid = False
+        logger.warning(
+            "[Lineup] replicate: user=%s stage_day=%s — total_cost=%.2f excede budget cap=%s, lineup marcado inválido",
+            user_id, stage_day_id, total_cost, BUDGET_CAP,
+        )
+
     # Cria lineup replicado
     new_lineup = Lineup(
         user_id            = user_id,
