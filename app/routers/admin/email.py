@@ -353,7 +353,7 @@ def get_email_checklist(
     stages_rows = db.execute(
         text("""
             SELECT s.id, s.name, s.short_name, s.lineup_status, s.stage_phase,
-                   c.short_name AS champ_short_name
+                   c.short_name AS champ_short_name, s.championship_id, c.name AS champ_name
             FROM stage s
             JOIN championship c ON c.id = s.championship_id
             WHERE s.stage_phase != 'upcoming'
@@ -403,17 +403,20 @@ def get_email_checklist(
             tpl_meta = TEMPLATES.get(tpl_key, {})
 
             items.append({
-                "stage_id":       s[0],
-                "stage_name":     stage_label,
-                "stage_short":    s[2],
-                "lineup_status":  s[3],
-                "stage_phase":    s[4],
-                "template_key":   tpl_key,
-                "template_label": tpl_meta.get("label", tpl_key),
-                "status":         "sent" if log_info else "pending",
-                "last_sent_at":   log_info["last_sent_at"] if log_info else None,
-                "total_sent":     log_info["total_sent"] if log_info else 0,
-                "urgency":        urgency,
+                "stage_id":         s[0],
+                "stage_name":       stage_label,
+                "stage_short":      s[2],
+                "lineup_status":    s[3],
+                "stage_phase":      s[4],
+                "championship_id":  s[6],
+                "champ_name":       s[7],
+                "champ_short_name": s[5],
+                "template_key":     tpl_key,
+                "template_label":   tpl_meta.get("label", tpl_key),
+                "status":           "sent" if log_info else "pending",
+                "last_sent_at":     log_info["last_sent_at"] if log_info else None,
+                "total_sent":       log_info["total_sent"] if log_info else 0,
+                "urgency":          urgency,
             })
 
     return items

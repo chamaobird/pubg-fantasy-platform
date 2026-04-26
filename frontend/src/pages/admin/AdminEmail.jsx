@@ -16,6 +16,120 @@ const URGENCY_COLOR = {
   medium: { bg: 'rgba(99,102,241,0.08)', border: 'rgba(99,102,241,0.25)', dot: '#818cf8' },
 }
 
+const DISMISSED_KEY = 'xama_email_checklist_dismissed_stages'
+
+function ChecklistGroup({ group, card, onDismiss, onDispatch, isDismissed, onRestore }) {
+  return (
+    <div style={{ ...card, opacity: isDismissed ? 0.55 : 1 }}>
+      {/* Header da stage */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-xama-text)', flex: 1 }}>
+          {group.stage_name}
+        </div>
+        <span style={{
+          fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20,
+          background: group.lineup_status === 'open' ? 'rgba(74,222,128,0.15)' : 'rgba(100,116,139,0.15)',
+          color: group.lineup_status === 'open' ? '#4ade80' : 'var(--color-xama-muted)',
+          letterSpacing: '0.06em', textTransform: 'uppercase',
+        }}>{group.lineup_status}</span>
+        <span style={{
+          fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20,
+          background: 'rgba(99,102,241,0.12)', color: '#a5b4fc',
+          letterSpacing: '0.06em', textTransform: 'uppercase',
+        }}>{group.stage_phase}</span>
+
+        {/* Botão descartar / restaurar */}
+        {onDismiss && (
+          <button
+            onClick={() => onDismiss(group.stage_id)}
+            title="Descartar pendências desta stage"
+            style={{
+              marginLeft: 4, padding: '3px 10px', borderRadius: 6,
+              border: '1px solid rgba(248,113,113,0.25)',
+              background: 'rgba(248,113,113,0.08)',
+              color: '#f87171', cursor: 'pointer', fontSize: 12, fontWeight: 600,
+            }}
+          >
+            Descartar
+          </button>
+        )}
+        {onRestore && (
+          <button
+            onClick={() => onRestore(group.stage_id)}
+            title="Restaurar esta stage"
+            style={{
+              marginLeft: 4, padding: '3px 10px', borderRadius: 6,
+              border: '1px solid var(--color-xama-border)',
+              background: 'rgba(255,255,255,0.04)',
+              color: 'var(--color-xama-muted)', cursor: 'pointer', fontSize: 12,
+            }}
+          >
+            Restaurar
+          </button>
+        )}
+      </div>
+
+      {/* Items */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {group.items.map(item => {
+          const colors = URGENCY_COLOR[item.urgency] || URGENCY_COLOR.medium
+          const sent   = item.status === 'sent'
+          return (
+            <div key={item.template_key} style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              padding: '10px 14px', borderRadius: 8,
+              background: sent ? 'rgba(255,255,255,0.02)' : colors.bg,
+              border: `1px solid ${sent ? 'var(--color-xama-border)' : colors.border}`,
+              opacity: sent ? 0.7 : 1,
+            }}>
+              <div style={{
+                width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+                background: sent ? '#4ade80' : colors.dot,
+              }} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-xama-text)' }}>
+                  {item.template_label}
+                </div>
+                {sent && item.last_sent_at ? (
+                  <div style={{ fontSize: 11, color: 'var(--color-xama-muted)', marginTop: 2 }}>
+                    Enviado em {new Date(item.last_sent_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+                    {item.total_sent > 0 && ` · ${item.total_sent} destinatários`}
+                  </div>
+                ) : !sent ? (
+                  <div style={{ fontSize: 11, color: colors.dot, marginTop: 2 }}>
+                    {item.urgency === 'high' ? 'Pendente — recomendado' : 'Pendente — opcional'}
+                  </div>
+                ) : null}
+              </div>
+              {!isDismissed && (
+                <button
+                  onClick={() => onDispatch(item)}
+                  style={{
+                    padding: '6px 14px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                    background: sent ? 'rgba(255,255,255,0.06)' : 'var(--color-xama-orange)',
+                    color: sent ? 'var(--color-xama-muted)' : '#0d0f14',
+                    fontWeight: 600, fontSize: 12, whiteSpace: 'nowrap',
+                  }}
+                >
+                  {sent ? 'Reenviar' : 'Disparar'}
+                </button>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function loadDismissed() {
+  try { return new Set(JSON.parse(localStorage.getItem(DISMISSED_KEY) || '[]')) }
+  catch { return new Set() }
+}
+function saveDismissed(set) {
+  localStorage.setItem(DISMISSED_KEY, JSON.stringify([...set]))
+}
+
 export default function AdminEmail({ token }) {
   const [templates, setTemplates]           = useState([])
   const [selected, setSelected]             = useState(null)
@@ -28,7 +142,13 @@ export default function AdminEmail({ token }) {
   const [result, setResult]                 = useState(null)
   const [error, setError]                   = useState(null)
 
-  // stage/championship selectors
+  // checklist controls
+  const [dismissedStages, setDismissedStages]   = useState(loadDismissed)
+  const [champChecklist, setChampChecklist]      = useState('')   // filtro de championship
+  const [showSent, setShowSent]                  = useState(false)
+  const [showDismissed, setShowDismissed]        = useState(false)
+
+  // stage/championship selectors (aba Disparar)
   const [championships, setChampionships]   = useState([])
   const [stages, setStages]                 = useState([])
   const [champFilter, setChampFilter]       = useState('')
@@ -121,15 +241,33 @@ export default function AdminEmail({ token }) {
   function prefillFromChecklist(item) {
     const tpl = templates.find(t => t.key === item.template_key)
     if (!tpl) return
-
     const stageShape = {
-      id:           item.stage_id,
-      stage_name:   item.stage_name,
+      id:            item.stage_id,
+      stage_name:    item.stage_name,
       lineup_status: item.lineup_status,
-      stage_phase:  item.stage_phase,
+      stage_phase:   item.stage_phase,
     }
     applyTemplate(tpl, stageShape)
     setTab('dispatch')
+  }
+
+  function dismissStage(stageId) {
+    const next = new Set(dismissedStages)
+    next.add(String(stageId))
+    setDismissedStages(next)
+    saveDismissed(next)
+  }
+
+  function restoreStage(stageId) {
+    const next = new Set(dismissedStages)
+    next.delete(String(stageId))
+    setDismissedStages(next)
+    saveDismissed(next)
+  }
+
+  function restoreAll() {
+    setDismissedStages(new Set())
+    saveDismissed(new Set())
   }
 
   const templateNeedsStage = selected?.variables?.some(v => STAGE_VARS.has(v.key))
@@ -205,16 +343,38 @@ export default function AdminEmail({ token }) {
     textTransform: 'uppercase', marginBottom: 6,
   }
 
-  // ── Checklist agrupado por stage ───────────────────────────────────────────
+  // ── Checklist — filtros e agrupamento ─────────────────────────────────────
 
-  const pendingCount = checklist.filter(i => i.status === 'pending').length
+  // championships únicos presentes no checklist (para o filtro da aba)
+  const checklistChamps = [...new Map(
+    checklist.map(i => [i.championship_id, { id: i.championship_id, short_name: i.champ_short_name, name: i.champ_name }])
+  ).values()].sort((a, b) => a.short_name.localeCompare(b.short_name))
 
-  const checklistByStage = checklist.reduce((acc, item) => {
+  const filteredChecklist = checklist.filter(item => {
+    if (champChecklist && String(item.championship_id) !== String(champChecklist)) return false
+    if (!showSent && item.status === 'sent') return false
+    return true
+  })
+
+  const pendingCount = checklist.filter(i =>
+    i.status === 'pending' && !dismissedStages.has(String(i.stage_id))
+  ).length
+
+  // Agrupa por stage, respeitando dismissed
+  const visibleGroups = {}
+  const dismissedGroups = {}
+  for (const item of filteredChecklist) {
     const key = item.stage_id
-    if (!acc[key]) acc[key] = { stage_id: item.stage_id, stage_name: item.stage_name, lineup_status: item.lineup_status, stage_phase: item.stage_phase, items: [] }
-    acc[key].items.push(item)
-    return acc
-  }, {})
+    const isDismissed = dismissedStages.has(String(key))
+    const target = isDismissed ? dismissedGroups : visibleGroups
+    if (!target[key]) target[key] = {
+      stage_id: item.stage_id, stage_name: item.stage_name,
+      lineup_status: item.lineup_status, stage_phase: item.stage_phase,
+      championship_id: item.championship_id, champ_short_name: item.champ_short_name,
+      items: [],
+    }
+    target[key].items.push(item)
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -249,85 +409,96 @@ export default function AdminEmail({ token }) {
       {/* ── Aba Pendências ─────────────────────────────────────────────── */}
       {tab === 'checklist' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {checklist.length === 0 ? (
+
+          {/* Controles da aba */}
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            {/* Filtro de championship */}
+            <div style={{ minWidth: 200, flex: '1 1 200px', maxWidth: 320 }}>
+              <select
+                value={champChecklist}
+                onChange={e => setChampChecklist(e.target.value)}
+                style={{ ...selectStyle, width: '100%' }}
+              >
+                <option value=''>Todos os campeonatos</option>
+                {checklistChamps.map(c => (
+                  <option key={c.id} value={String(c.id)}>{c.short_name} — {c.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Toggle enviados */}
+            <button onClick={() => setShowSent(v => !v)} style={{
+              padding: '8px 14px', borderRadius: 8, border: `1px solid ${showSent ? 'rgba(74,222,128,0.3)' : 'var(--color-xama-border)'}`,
+              background: showSent ? 'rgba(74,222,128,0.08)' : 'rgba(255,255,255,0.04)',
+              color: showSent ? '#4ade80' : 'var(--color-xama-muted)',
+              cursor: 'pointer', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap',
+            }}>
+              {showSent ? 'Ocultar enviados' : 'Mostrar enviados'}
+            </button>
+
+            {/* Toggle descartados */}
+            {dismissedStages.size > 0 && (
+              <button onClick={() => setShowDismissed(v => !v)} style={{
+                padding: '8px 14px', borderRadius: 8, border: '1px solid var(--color-xama-border)',
+                background: 'rgba(255,255,255,0.04)',
+                color: 'var(--color-xama-muted)',
+                cursor: 'pointer', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap',
+              }}>
+                {showDismissed ? 'Ocultar descartados' : `Descartados (${dismissedStages.size})`}
+              </button>
+            )}
+
+            {/* Restaurar todos */}
+            {dismissedStages.size > 0 && (
+              <button onClick={restoreAll} style={{
+                padding: '8px 14px', borderRadius: 8, border: 'none',
+                background: 'rgba(255,255,255,0.04)', color: 'var(--color-xama-muted)',
+                cursor: 'pointer', fontSize: 12,
+              }}>
+                Restaurar todos
+              </button>
+            )}
+          </div>
+
+          {/* Stages visíveis */}
+          {Object.values(visibleGroups).length === 0 && Object.values(dismissedGroups).length === 0 ? (
             <div style={{ ...card, color: 'var(--color-xama-muted)', fontSize: 13 }}>
-              Nenhuma stage ativa com pendências de email.
+              Nenhuma stage com pendências para os filtros selecionados.
             </div>
           ) : (
-            Object.values(checklistByStage).map(group => (
-              <div key={group.stage_id} style={card}>
-                {/* Stage header */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-xama-text)' }}>
-                    {group.stage_name}
+            <>
+              {Object.values(visibleGroups).map(group => (
+                <ChecklistGroup
+                  key={group.stage_id}
+                  group={group}
+                  card={card}
+                  onDismiss={dismissStage}
+                  onDispatch={prefillFromChecklist}
+                  isDismissed={false}
+                  onRestore={null}
+                />
+              ))}
+
+              {/* Descartados (colapsáveis) */}
+              {showDismissed && Object.values(dismissedGroups).length > 0 && (
+                <div>
+                  <div style={{ fontSize: 11, color: 'var(--color-xama-muted)', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8, marginTop: 4 }}>
+                    Descartados
                   </div>
-                  <span style={{
-                    fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20,
-                    background: group.lineup_status === 'open' ? 'rgba(74,222,128,0.15)' : 'rgba(100,116,139,0.15)',
-                    color: group.lineup_status === 'open' ? '#4ade80' : 'var(--color-xama-muted)',
-                    letterSpacing: '0.06em', textTransform: 'uppercase',
-                  }}>{group.lineup_status}</span>
-                  <span style={{
-                    fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20,
-                    background: 'rgba(99,102,241,0.12)',
-                    color: '#a5b4fc',
-                    letterSpacing: '0.06em', textTransform: 'uppercase',
-                  }}>{group.stage_phase}</span>
+                  {Object.values(dismissedGroups).map(group => (
+                    <ChecklistGroup
+                      key={group.stage_id}
+                      group={group}
+                      card={card}
+                      onDismiss={null}
+                      onDispatch={prefillFromChecklist}
+                      isDismissed={true}
+                      onRestore={restoreStage}
+                    />
+                  ))}
                 </div>
-
-                {/* Items */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {group.items.map(item => {
-                    const colors = URGENCY_COLOR[item.urgency] || URGENCY_COLOR.medium
-                    const sent   = item.status === 'sent'
-                    return (
-                      <div key={item.template_key} style={{
-                        display: 'flex', alignItems: 'center', gap: 12,
-                        padding: '10px 14px', borderRadius: 8,
-                        background: sent ? 'rgba(255,255,255,0.02)' : colors.bg,
-                        border: `1px solid ${sent ? 'var(--color-xama-border)' : colors.border}`,
-                        opacity: sent ? 0.7 : 1,
-                      }}>
-                        {/* status dot */}
-                        <div style={{
-                          width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-                          background: sent ? '#4ade80' : colors.dot,
-                        }} />
-
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-xama-text)' }}>
-                            {item.template_label}
-                          </div>
-                          {sent && item.last_sent_at && (
-                            <div style={{ fontSize: 11, color: 'var(--color-xama-muted)', marginTop: 2 }}>
-                              Enviado em {new Date(item.last_sent_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
-                              {item.total_sent > 0 && ` · ${item.total_sent} destinatários`}
-                            </div>
-                          )}
-                          {!sent && (
-                            <div style={{ fontSize: 11, color: colors.dot, marginTop: 2 }}>
-                              {item.urgency === 'high' ? 'Pendente — recomendado' : 'Pendente — opcional'}
-                            </div>
-                          )}
-                        </div>
-
-                        <button
-                          onClick={() => prefillFromChecklist(item)}
-                          style={{
-                            padding: '6px 14px', borderRadius: 6, border: 'none', cursor: 'pointer',
-                            background: sent ? 'rgba(255,255,255,0.06)' : 'var(--color-xama-orange)',
-                            color: sent ? 'var(--color-xama-muted)' : '#0d0f14',
-                            fontWeight: 600, fontSize: 12, whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {sent ? 'Reenviar' : 'Disparar'}
-                        </button>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            ))
+              )}
+            </>
           )}
         </div>
       )}
