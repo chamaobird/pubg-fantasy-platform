@@ -525,7 +525,7 @@ export default function AdminEmail({ token }) {
     if (champChecklist && String(item.championship_id) !== String(champChecklist)) continue
     if (!showSent && item.status === 'sent') continue
     const key = item.stage_id
-    const isDism = !!dismissed[String(key)]
+    const isDism = String(key) in dismissed
     const target = isDism ? dismissedGroups : visibleGroups
     if (!target[key]) target[key] = {
       stage_id: key, stage_name: item.stage_name,
