@@ -99,6 +99,47 @@ def list_stages(
     return q.order_by(Stage.id.desc()).all()
 
 
+# ── Tournament match discovery ────────────────────────────────────────────────
+# IMPORTANTE: deve ficar ANTES de /{stage_id} — FastAPI respeita ordem de registro.
+
+@router.get("/tournament-matches")
+def list_tournament_matches(
+    tournament_id: str,
+    db: Session = Depends(get_db),
+):
+    """
+    Busca todos os match IDs de um torneio na PUBG API e cruza com o banco
+    para indicar quais já foram importados.
+    Retorna lista ordenada: novos primeiro, depois importados.
+    """
+    from app.services.match_discovery import discover_matches_tournament
+    from app.models.match import Match
+
+    all_ids = discover_matches_tournament(tournament_id)
+    if not all_ids:
+        return []
+
+    imported_matches = (
+        db.query(Match)
+        .filter(Match.pubg_match_id.in_(all_ids))
+        .all()
+    )
+    imported_map = {m.pubg_match_id: m for m in imported_matches}
+
+    result = []
+    for mid in all_ids:
+        m = imported_map.get(mid)
+        result.append({
+            "match_id": mid,
+            "imported": m is not None,
+            "stage_day_id": m.stage_day_id if m else None,
+            "played_at": m.played_at.isoformat() if m and m.played_at else None,
+        })
+
+    result.sort(key=lambda x: x["imported"])  # novos primeiro
+    return result
+
+
 @router.get("/{stage_id}", response_model=StageResponse)
 def get_stage(
     stage_id: int,
@@ -172,44 +213,3 @@ def delete_stage(
 
     db.delete(stage)
     db.commit()
-
-
-# ── Tournament match discovery ────────────────────────────────────────────────
-
-@router.get("/tournament-matches")
-def list_tournament_matches(
-    tournament_id: str,
-    db: Session = Depends(get_db),
-):
-    """
-    Busca todos os match IDs de um torneio na PUBG API e cruza com o banco
-    para indicar quais já foram importados.
-    Retorna lista ordenada: novos primeiro, depois importados.
-    """
-    from app.services.match_discovery import discover_matches_tournament
-    from app.models.match import Match
-
-    all_ids = discover_matches_tournament(tournament_id)
-    if not all_ids:
-        return []
-
-    imported_matches = (
-        db.query(Match)
-        .filter(Match.pubg_match_id.in_(all_ids))
-        .all()
-    )
-    imported_map = {m.pubg_match_id: m for m in imported_matches}
-
-    result = []
-    for mid in all_ids:
-        m = imported_map.get(mid)
-        result.append({
-            "match_id": mid,
-            "imported": m is not None,
-            "stage_day_id": m.stage_day_id if m else None,
-            "played_at": m.played_at.isoformat() if m and m.played_at else None,
-        })
-
-    # novos primeiro
-    result.sort(key=lambda x: x["imported"])
-    return result

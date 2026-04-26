@@ -170,7 +170,11 @@ export default function AdminOpsPanel({ stageId, token }) {
       )
       const data = await res.json().catch(() => null)
       if (!res.ok) {
-        setFetchResult({ ok: false, message: data?.detail || `HTTP ${res.status}` })
+        const detail = data?.detail
+        const msg = Array.isArray(detail)
+          ? detail.map(e => e.msg || JSON.stringify(e)).join('; ')
+          : (typeof detail === 'string' ? detail : `HTTP ${res.status}`)
+        setFetchResult({ ok: false, message: msg })
         return
       }
       setTournamentMatches(data)
