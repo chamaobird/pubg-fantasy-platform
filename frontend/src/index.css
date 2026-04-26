@@ -54,7 +54,7 @@
 
 /* ─── Reset / base ──────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
-html, body { height: 100%; margin: 0; }
+html, body { height: 100%; margin: 0; color-scheme: dark; }
 body {
   background: #0d0f14;
   color: #dce1ea;
@@ -79,6 +79,19 @@ body {
 .tab-btn.active { color: #f0c040; border-bottom-color: #f0c040; }
 
 /* ─── Shared form elements ──────────────────────────────────────────── */
+
+/*
+ * PADRÃO XAMA PARA SELECTS NATIVOS
+ * ─────────────────────────────────
+ * O popup nativo do OS (Windows/Chrome) lê color-scheme do html/body, NÃO do
+ * elemento select individual. Por isso `color-scheme: dark` está em html,body.
+ * A regra abaixo é redundante mas serve de fallback para outros navegadores.
+ *
+ * Todo <select> deve usar .dark-select para o styling do elemento em si.
+ * Para dropdowns com busca embutida, use SearchableSelect de Modal.jsx.
+ */
+select { color-scheme: dark; }
+
 .dark-input {
   background: var(--surface-3); border: 1px solid var(--surface-4); border-radius: 6px;
   color: #dce1ea; font-size: 13px; padding: 8px 12px; width: 100%;
@@ -88,6 +101,7 @@ body {
 .dark-input:focus { border-color: #3d4d6e; }
 
 .dark-select {
+  color-scheme: dark;                               /* popup do SO fica escuro */
   background: var(--surface-3); border: 1px solid var(--surface-4); border-radius: 6px;
   color: #dce1ea; font-size: 13px; padding: 8px 12px; width: 100%;
   cursor: pointer; outline: none; transition: border-color 0.15s;
