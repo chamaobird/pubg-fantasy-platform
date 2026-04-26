@@ -3,7 +3,45 @@
 
 ---
 
-## Estado Atual — 25/04/2026 (noite) — D2 encerrado; D3 aberto; Admin Email implementado
+## Estado Atual — 26/04/2026 — Admin Email completo: checklist, 8 templates, mark-sent
+
+### Estado das Finals
+| Stage | Status | Detalhes |
+|---|---|---|
+| PAS Finals D1 (stage 24) | `locked` / `finished` | scoring completo |
+| PAS Finals D2 (stage 25) | `open` / `upcoming` | 13 lineups montados, 4 ativos pós-D1 |
+| PAS Finals D3 (stage 26) | `closed` / `upcoming` | 0 newcomers, pricing pronto quando D2 fechar |
+| PEC Finals D1 (stage 27) | `locked` / `finished` | scoring completo |
+| PEC Finals D2 (stage 28) | `locked` / `finished` | scoring completo |
+| PEC Finals D3 (stage 29) | `open` / `upcoming` | pricing recalculado, 0 newcomers, 63 rosters |
+
+### Próximas tarefas operacionais (D3)
+1. PAS D3 (stage 26): carregar partidas → scoring → reprice (0 newcomers, tudo certo) → abrir lineup
+2. PEC D3 (stage 29): já aberta, em andamento
+
+### Pendências de Admin Email
+- Testar os templates em produção (nunca foram disparados de verdade)
+- Considerar agendamento futuro de disparos (não apenas manual)
+
+### Backlog restante
+- Admin endpoint "Replicar lineups faltando" para evitar SQL manual em transições cross-stage
+- Cuidado: replicação automática só funciona dentro da mesma stage (day N-1); cross-stage requer script manual
+
+### ✅ Concluído nesta sessão (26/04/2026)
+- **5 novos templates de email**: `lineup_closing_soon`, `results_available`, `stage_recap`, `price_rebalance`, `championship_start` — com funções de build/send/broadcast completas em `app/services/email.py`
+- **Personalização de broadcast**: todos os templates agora incluem saudação `Olá, {username}`; broadcasts fazem fetch de (email, username) em vez de só email; fallback para 'jogador'
+- **Checklist de pendências** (`GET /admin/email/checklist`): calcula automaticamente quais templates ainda não foram enviados por stage ativa, com base em `lineup_status`/`stage_phase` vs histórico do `email_log`; regras configuráveis via `_CHECKLIST_RULES`
+- **Aba "Pendências" no AdminEmail.jsx**: exibida por padrão, agrupa por stage, mostra urgência (high/medium), clique prefill o formulário de disparo com stage_id e template já selecionados
+- **Filtros do checklist**: dropdown de championship derivado dos próprios dados (sem fetch extra); toggle "Mostrar enviados" (ocultos por padrão)
+- **Dismiss por stage**: botão X arquiva o grupo de uma stage no localStorage; toggle "Descartados (N)" revela arquivados; restore individual ou restore-all
+- **Arquivados separados**: seção colapsada por padrão abaixo das pendências ativas
+- **Expiry picker em painel separado**: campo customizado dias/horas fora do formulário principal, não confunde com variáveis de template
+- **`POST /checklist/mark-sent`**: registra email como "já enviado" sem disparar nada — útil quando o envio foi feito por outro canal; grava `EmailLog` com `recipient_group="manual"` e `sent_count=0`
+- **Fix popup branco Windows**: `color-scheme: dark` em html/body; SearchableSelect substituído no checklist
+
+---
+
+## Sessão 25/04/2026 (noite) — D2 encerrado; D3 aberto; Admin Email implementado
 
 ### Estado das Finals
 | Stage | Status | Detalhes |

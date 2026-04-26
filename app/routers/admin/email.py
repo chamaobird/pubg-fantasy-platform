@@ -422,6 +422,40 @@ def get_email_checklist(
     return items
 
 
+class MarkSentRequest(BaseModel):
+    stage_id: int
+    template_key: str
+
+
+@router.post("/checklist/mark-sent", status_code=status.HTTP_200_OK)
+def mark_sent_manually(
+    req: MarkSentRequest,
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(require_admin),
+):
+    """
+    Registra um email como 'já enviado' sem disparar nada.
+    Útil quando o email foi enviado por outro canal e só precisa fechar a pendência.
+    """
+    tpl_meta = TEMPLATES.get(req.template_key, {})
+    subject = f"XAMA Fantasy — {tpl_meta.get('label', req.template_key)} [marcado manualmente]"
+
+    log = EmailLog(
+        template_key    = req.template_key,
+        subject         = subject,
+        recipient_group = "manual",
+        stage_id        = req.stage_id,
+        sent_count      = 0,
+        failed_count    = 0,
+        variables       = {"note": "Marcado como enviado manualmente pelo admin"},
+        triggered_by    = f"{current_user.username} (manual)",
+        sent_at         = datetime.now(timezone.utc),
+    )
+    db.add(log)
+    db.commit()
+    return {"ok": True, "log_id": log.id}
+
+
 @router.get("/stages")
 def list_stages_for_email(
     championship_id: Optional[int] = None,
