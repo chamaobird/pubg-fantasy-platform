@@ -1,5 +1,5 @@
 // frontend/src/pages/admin/AdminEmail.jsx
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { API_BASE_URL } from '../../config'
 import { SearchableSelect } from './Modal'
 
@@ -8,7 +8,6 @@ const RECIPIENT_LABELS = {
   no_lineup: 'Usuários sem lineup na stage',
 }
 
-// Variáveis preenchidas via seletor de stage (não campo de texto livre)
 const STAGE_VARS = new Set(['stage_id', 'stage_name'])
 
 const URGENCY_COLOR = {
@@ -16,120 +15,210 @@ const URGENCY_COLOR = {
   medium: { bg: 'rgba(99,102,241,0.08)', border: 'rgba(99,102,241,0.25)', dot: '#818cf8' },
 }
 
-const DISMISSED_KEY = 'xama_email_checklist_dismissed_stages'
+// ── Dismiss storage (formato v2: { stageId: expiresAtISO | null }) ────────────
+const DISMISSED_KEY = 'xama_email_checklist_dismissed_v2'
 
-function ChecklistGroup({ group, card, onDismiss, onDispatch, isDismissed, onRestore }) {
+function loadDismissed() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(DISMISSED_KEY) || '{}')
+    const now = Date.now()
+    const valid = {}
+    for (const [id, exp] of Object.entries(raw)) {
+      if (exp === null || new Date(exp).getTime() > now) valid[id] = exp
+    }
+    return valid
+  } catch { return {} }
+}
+
+function saveDismissed(obj) {
+  localStorage.setItem(DISMISSED_KEY, JSON.stringify(obj))
+}
+
+function isExpired(exp) {
+  if (exp === null) return false          // permanente
+  return new Date(exp).getTime() <= Date.now()
+}
+
+function expiryLabel(exp) {
+  if (exp === null) return 'Permanente'
+  const d = new Date(exp)
+  return `Até ${d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}`
+}
+
+// ── Componente ChecklistGroup ─────────────────────────────────────────────────
+function ChecklistGroup({ group, card, onDismiss, onRestore, onDispatch, onMarkSent, isDismissed, isCollapsed, onToggle }) {
+  const [showExpiry, setShowExpiry] = useState(false)
+  const allOptional = group.items.every(i => i.urgency === 'medium')
+
+  function handleDismiss(duration) {
+    const now = new Date()
+    let exp = null
+    if (duration === 'week') {
+      now.setDate(now.getDate() + 7)
+      exp = now.toISOString()
+    } else if (duration === 'month') {
+      now.setMonth(now.getMonth() + 1)
+      exp = now.toISOString()
+    }
+    // duration === 'permanent' → exp = null
+    onDismiss(group.stage_id, exp)
+    setShowExpiry(false)
+  }
+
+  const btnBase = {
+    padding: '3px 10px', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontWeight: 600, border: 'none',
+  }
+
   return (
-    <div style={{ ...card, opacity: isDismissed ? 0.55 : 1 }}>
-      {/* Header da stage */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-xama-text)', flex: 1 }}>
+    <div style={{ ...card, opacity: isDismissed ? 0.55 : 1, marginBottom: 0 }}>
+      {/* ── Cabeçalho da stage ── */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: isCollapsed ? 0 : 14 }}>
+        {/* Toggle colapso */}
+        <button onClick={onToggle} style={{
+          background: 'none', border: 'none', cursor: 'pointer',
+          color: 'var(--color-xama-muted)', fontSize: 13, padding: '2px 4px', lineHeight: 1,
+        }}>
+          {isCollapsed ? '▶' : '▼'}
+        </button>
+
+        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-xama-text)', flex: 1, cursor: 'pointer' }} onClick={onToggle}>
           {group.stage_name}
+          {allOptional && !isCollapsed && (
+            <span style={{ marginLeft: 8, fontSize: 10, color: '#818cf8', fontWeight: 400 }}>opcional</span>
+          )}
         </div>
+
         <span style={{
-          fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20,
+          fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 20,
           background: group.lineup_status === 'open' ? 'rgba(74,222,128,0.15)' : 'rgba(100,116,139,0.15)',
           color: group.lineup_status === 'open' ? '#4ade80' : 'var(--color-xama-muted)',
           letterSpacing: '0.06em', textTransform: 'uppercase',
         }}>{group.lineup_status}</span>
+
         <span style={{
-          fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20,
+          fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 20,
           background: 'rgba(99,102,241,0.12)', color: '#a5b4fc',
           letterSpacing: '0.06em', textTransform: 'uppercase',
         }}>{group.stage_phase}</span>
 
-        {/* Botão descartar / restaurar */}
-        {onDismiss && (
-          <button
-            onClick={() => onDismiss(group.stage_id)}
-            title="Descartar pendências desta stage"
-            style={{
-              marginLeft: 4, padding: '3px 10px', borderRadius: 6,
-              border: '1px solid rgba(248,113,113,0.25)',
-              background: 'rgba(248,113,113,0.08)',
-              color: '#f87171', cursor: 'pointer', fontSize: 12, fontWeight: 600,
-            }}
-          >
+        {/* Descartar / expiry picker / restaurar */}
+        {!isDismissed && !showExpiry && (
+          <button onClick={() => setShowExpiry(true)} style={{
+            ...btnBase, background: 'rgba(248,113,113,0.08)',
+            border: '1px solid rgba(248,113,113,0.25)', color: '#f87171',
+          }}>
             Descartar
           </button>
         )}
-        {onRestore && (
-          <button
-            onClick={() => onRestore(group.stage_id)}
-            title="Restaurar esta stage"
-            style={{
-              marginLeft: 4, padding: '3px 10px', borderRadius: 6,
-              border: '1px solid var(--color-xama-border)',
-              background: 'rgba(255,255,255,0.04)',
-              color: 'var(--color-xama-muted)', cursor: 'pointer', fontSize: 12,
-            }}
-          >
+        {!isDismissed && showExpiry && (
+          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+            <span style={{ fontSize: 11, color: 'var(--color-xama-muted)', whiteSpace: 'nowrap' }}>Por quanto tempo?</span>
+            {[['week', '1 sem.'], ['month', '1 mês'], ['permanent', 'Sempre']].map(([d, label]) => (
+              <button key={d} onClick={() => handleDismiss(d)} style={{
+                ...btnBase, background: 'rgba(255,255,255,0.06)',
+                border: '1px solid var(--color-xama-border)', color: 'var(--color-xama-muted)',
+              }}>{label}</button>
+            ))}
+            <button onClick={() => setShowExpiry(false)} style={{
+              ...btnBase, background: 'none', border: 'none', color: 'var(--color-xama-muted)', fontSize: 14,
+            }}>✕</button>
+          </div>
+        )}
+        {isDismissed && (
+          <button onClick={() => onRestore(group.stage_id)} style={{
+            ...btnBase, background: 'rgba(255,255,255,0.04)',
+            border: '1px solid var(--color-xama-border)', color: 'var(--color-xama-muted)',
+          }}>
             Restaurar
           </button>
         )}
       </div>
 
-      {/* Items */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {group.items.map(item => {
-          const colors = URGENCY_COLOR[item.urgency] || URGENCY_COLOR.medium
-          const sent   = item.status === 'sent'
-          return (
-            <div key={item.template_key} style={{
-              display: 'flex', alignItems: 'center', gap: 12,
-              padding: '10px 14px', borderRadius: 8,
-              background: sent ? 'rgba(255,255,255,0.02)' : colors.bg,
-              border: `1px solid ${sent ? 'var(--color-xama-border)' : colors.border}`,
-              opacity: sent ? 0.7 : 1,
-            }}>
-              <div style={{
-                width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-                background: sent ? '#4ade80' : colors.dot,
-              }} />
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-xama-text)' }}>
-                  {item.template_label}
+      {/* ── Resumo colapsado ── */}
+      {isCollapsed && (
+        <div style={{ fontSize: 12, color: 'var(--color-xama-muted)', paddingLeft: 26, cursor: 'pointer' }} onClick={onToggle}>
+          {group.items.filter(i => i.status === 'pending').length} pendentes
+          · {group.items.filter(i => i.status === 'sent').length} enviados
+          {allOptional && ' · apenas opcionais'}
+        </div>
+      )}
+
+      {/* ── Items expandidos ── */}
+      {!isCollapsed && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+          {group.items.map(item => {
+            const colors = URGENCY_COLOR[item.urgency] || URGENCY_COLOR.medium
+            const sent   = item.status === 'sent'
+            return (
+              <div key={item.template_key} style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '9px 12px', borderRadius: 8,
+                background: sent ? 'rgba(255,255,255,0.02)' : colors.bg,
+                border: `1px solid ${sent ? 'var(--color-xama-border)' : colors.border}`,
+                opacity: sent ? 0.65 : 1,
+              }}>
+                <div style={{
+                  width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+                  background: sent ? '#4ade80' : colors.dot,
+                }} />
+
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-xama-text)' }}>
+                    {item.template_label}
+                  </div>
+                  {sent && item.last_sent_at ? (
+                    <div style={{ fontSize: 11, color: 'var(--color-xama-muted)', marginTop: 1 }}>
+                      Enviado {new Date(item.last_sent_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+                      {item.total_sent > 0 && ` · ${item.total_sent} dest.`}
+                    </div>
+                  ) : !sent ? (
+                    <div style={{ fontSize: 11, color: colors.dot, marginTop: 1 }}>
+                      {item.urgency === 'high' ? 'Recomendado' : 'Opcional'}
+                    </div>
+                  ) : null}
                 </div>
-                {sent && item.last_sent_at ? (
-                  <div style={{ fontSize: 11, color: 'var(--color-xama-muted)', marginTop: 2 }}>
-                    Enviado em {new Date(item.last_sent_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
-                    {item.total_sent > 0 && ` · ${item.total_sent} destinatários`}
+
+                {!isDismissed && (
+                  <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                    {/* Já enviei */}
+                    {!sent && (
+                      <button
+                        onClick={() => onMarkSent(item)}
+                        title="Marcar como enviado sem disparar"
+                        style={{
+                          padding: '5px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                          background: 'rgba(255,255,255,0.04)', border: '1px solid var(--color-xama-border)',
+                          color: 'var(--color-xama-muted)', cursor: 'pointer', whiteSpace: 'nowrap',
+                        }}
+                      >
+                        Já enviei
+                      </button>
+                    )}
+                    {/* Disparar / Reenviar */}
+                    <button
+                      onClick={() => onDispatch(item)}
+                      style={{
+                        padding: '5px 12px', borderRadius: 6, fontSize: 11, fontWeight: 700,
+                        background: sent ? 'rgba(255,255,255,0.05)' : 'var(--color-xama-orange)',
+                        border: 'none',
+                        color: sent ? 'var(--color-xama-muted)' : '#0d0f14',
+                        cursor: 'pointer', whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {sent ? 'Reenviar' : 'Disparar'}
+                    </button>
                   </div>
-                ) : !sent ? (
-                  <div style={{ fontSize: 11, color: colors.dot, marginTop: 2 }}>
-                    {item.urgency === 'high' ? 'Pendente — recomendado' : 'Pendente — opcional'}
-                  </div>
-                ) : null}
+                )}
               </div>
-              {!isDismissed && (
-                <button
-                  onClick={() => onDispatch(item)}
-                  style={{
-                    padding: '6px 14px', borderRadius: 6, border: 'none', cursor: 'pointer',
-                    background: sent ? 'rgba(255,255,255,0.06)' : 'var(--color-xama-orange)',
-                    color: sent ? 'var(--color-xama-muted)' : '#0d0f14',
-                    fontWeight: 600, fontSize: 12, whiteSpace: 'nowrap',
-                  }}
-                >
-                  {sent ? 'Reenviar' : 'Disparar'}
-                </button>
-              )}
-            </div>
-          )
-        })}
-      </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
 
-function loadDismissed() {
-  try { return new Set(JSON.parse(localStorage.getItem(DISMISSED_KEY) || '[]')) }
-  catch { return new Set() }
-}
-function saveDismissed(set) {
-  localStorage.setItem(DISMISSED_KEY, JSON.stringify([...set]))
-}
-
+// ── Componente principal ──────────────────────────────────────────────────────
 export default function AdminEmail({ token }) {
   const [templates, setTemplates]           = useState([])
   const [selected, setSelected]             = useState(null)
@@ -143,20 +232,22 @@ export default function AdminEmail({ token }) {
   const [error, setError]                   = useState(null)
 
   // checklist controls
-  const [dismissedStages, setDismissedStages]   = useState(loadDismissed)
-  const [champChecklist, setChampChecklist]      = useState('')   // filtro de championship
-  const [showSent, setShowSent]                  = useState(false)
-  const [showDismissed, setShowDismissed]        = useState(false)
+  const [dismissed, setDismissed]         = useState(loadDismissed)   // { stageId: expiresAt|null }
+  const [collapsedStages, setCollapsedStages] = useState(() => new Set())
+  const autoCollapsedRef = useRef(false)
+  const [champChecklist, setChampChecklist] = useState('')
+  const [showSent, setShowSent]           = useState(false)
+  const [showDismissed, setShowDismissed] = useState(false)
 
-  // stage/championship selectors (aba Disparar)
-  const [championships, setChampionships]   = useState([])
-  const [stages, setStages]                 = useState([])
-  const [champFilter, setChampFilter]       = useState('')
-  const [selectedStage, setSelectedStage]   = useState(null)
+  // aba Disparar — seletores
+  const [championships, setChampionships] = useState([])
+  const [stages, setStages]               = useState([])
+  const [champFilter, setChampFilter]     = useState('')
+  const [selectedStage, setSelectedStage] = useState(null)
 
   // preview modal
-  const [preview, setPreview]               = useState(null)
-  const [previewing, setPreviewing]         = useState(false)
+  const [preview, setPreview]             = useState(null)
+  const [previewing, setPreviewing]       = useState(false)
 
   const headers = useCallback(() => ({
     'Content-Type': 'application/json',
@@ -175,6 +266,22 @@ export default function AdminEmail({ token }) {
 
     loadChecklist()
   }, [])
+
+  // Auto-colapsa stages opcionais na primeira carga
+  useEffect(() => {
+    if (checklist.length === 0 || autoCollapsedRef.current) return
+    const groups = {}
+    for (const item of checklist) {
+      if (!groups[item.stage_id]) groups[item.stage_id] = []
+      groups[item.stage_id].push(item)
+    }
+    const toCollapse = new Set()
+    for (const [id, items] of Object.entries(groups)) {
+      if (items.every(i => i.urgency === 'medium')) toCollapse.add(String(id))
+    }
+    setCollapsedStages(toCollapse)
+    autoCollapsedRef.current = true
+  }, [checklist])
 
   useEffect(() => {
     const url = champFilter
@@ -206,15 +313,12 @@ export default function AdminEmail({ token }) {
       stage_name: prefillStage.stage_name,
     } : {})
     setSelectedStage(prefillStage ? {
-      id:           prefillStage.id,
+      id:            prefillStage.id,
       lineup_status: prefillStage.lineup_status,
-      stage_phase:  prefillStage.stage_phase,
-      // minimal shape for display
+      stage_phase:   prefillStage.stage_phase,
     } : null)
     setRecipientGroup(tpl.recipient_groups[0])
-    setResult(null)
-    setError(null)
-    setPreview(null)
+    setResult(null); setError(null); setPreview(null)
   }
 
   function handleStageSelect(stageId) {
@@ -237,45 +341,54 @@ export default function AdminEmail({ token }) {
     setPreview(null)
   }
 
-  // Pré-preenche formulário a partir de um item do checklist e muda para aba dispatch
   function prefillFromChecklist(item) {
     const tpl = templates.find(t => t.key === item.template_key)
     if (!tpl) return
-    const stageShape = {
-      id:            item.stage_id,
-      stage_name:    item.stage_name,
-      lineup_status: item.lineup_status,
-      stage_phase:   item.stage_phase,
-    }
-    applyTemplate(tpl, stageShape)
+    applyTemplate(tpl, { id: item.stage_id, stage_name: item.stage_name, lineup_status: item.lineup_status, stage_phase: item.stage_phase })
     setTab('dispatch')
   }
 
-  function dismissStage(stageId) {
-    const next = new Set(dismissedStages)
-    next.add(String(stageId))
-    setDismissedStages(next)
+  function dismissStage(stageId, expiresAt) {
+    const next = { ...dismissed, [String(stageId)]: expiresAt }
+    setDismissed(next)
     saveDismissed(next)
   }
 
   function restoreStage(stageId) {
-    const next = new Set(dismissedStages)
-    next.delete(String(stageId))
-    setDismissedStages(next)
+    const next = { ...dismissed }
+    delete next[String(stageId)]
+    setDismissed(next)
     saveDismissed(next)
   }
 
   function restoreAll() {
-    setDismissedStages(new Set())
-    saveDismissed(new Set())
+    setDismissed({})
+    saveDismissed({})
   }
 
-  const templateNeedsStage = selected?.variables?.some(v => STAGE_VARS.has(v.key))
+  function toggleCollapse(stageId) {
+    setCollapsedStages(prev => {
+      const next = new Set(prev)
+      if (next.has(String(stageId))) next.delete(String(stageId))
+      else next.add(String(stageId))
+      return next
+    })
+  }
+
+  async function handleMarkSent(item) {
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/email/checklist/mark-sent`, {
+        method: 'POST',
+        headers: headers(),
+        body: JSON.stringify({ stage_id: item.stage_id, template_key: item.template_key }),
+      })
+      if (res.ok) loadChecklist()
+    } catch {}
+  }
 
   async function handlePreview() {
     if (!selected) return
-    setPreviewing(true)
-    setError(null)
+    setPreviewing(true); setError(null)
     try {
       const res = await fetch(`${API_BASE_URL}/admin/email/preview`, {
         method: 'POST',
@@ -285,11 +398,8 @@ export default function AdminEmail({ token }) {
       const data = await res.json()
       if (!res.ok) throw new Error(data.detail || 'Erro ao gerar preview')
       setPreview(data)
-    } catch (e) {
-      setError(e.message)
-    } finally {
-      setPreviewing(false)
-    }
+    } catch (e) { setError(e.message) }
+    finally { setPreviewing(false) }
   }
 
   async function handleDispatch() {
@@ -310,14 +420,11 @@ export default function AdminEmail({ token }) {
       setResult(data)
       loadChecklist()
       if (tab === 'logs') loadLogs()
-    } catch (e) {
-      setError(e.message)
-    } finally {
-      setLoading(false)
-    }
+    } catch (e) { setError(e.message) }
+    finally { setLoading(false) }
   }
 
-  // ── Estilos ────────────────────────────────────────────────────────────────
+  // ── Estilos base ─────────────────────────────────────────────────────────────
 
   const card = {
     background: 'rgba(18,21,28,0.92)',
@@ -331,50 +438,50 @@ export default function AdminEmail({ token }) {
     borderRadius: 8, padding: '9px 12px',
     color: 'var(--color-xama-text)', fontSize: 14, outline: 'none',
   }
-  const selectStyle = {
-    ...inputStyle, cursor: 'pointer', colorScheme: 'dark',
-    appearance: 'none',
-    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2364748b' stroke-width='1.5' fill='none'/%3E%3C/svg%3E")`,
-    backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center', paddingRight: 30,
-  }
   const labelStyle = {
     display: 'block', fontSize: 11, fontWeight: 600,
     color: 'var(--color-xama-muted)', letterSpacing: '0.08em',
     textTransform: 'uppercase', marginBottom: 6,
   }
 
-  // ── Checklist — filtros e agrupamento ─────────────────────────────────────
+  // ── Checklist — derivações ────────────────────────────────────────────────
 
-  // championships únicos presentes no checklist (para o filtro da aba)
+  const dismissedCount = Object.keys(dismissed).length
+
+  // Contagem de pendentes por championship (excluindo descartados)
+  const champPendingCount = {}
+  for (const item of checklist) {
+    if (item.status === 'pending' && !dismissed[String(item.stage_id)]) {
+      champPendingCount[item.championship_id] = (champPendingCount[item.championship_id] || 0) + 1
+    }
+  }
+
+  const pendingCount = Object.values(champPendingCount).reduce((a, b) => a + b, 0)
+
+  // Championships únicos no checklist
   const checklistChamps = [...new Map(
     checklist.map(i => [i.championship_id, { id: i.championship_id, short_name: i.champ_short_name, name: i.champ_name }])
   ).values()].sort((a, b) => a.short_name.localeCompare(b.short_name))
 
-  const filteredChecklist = checklist.filter(item => {
-    if (champChecklist && String(item.championship_id) !== String(champChecklist)) return false
-    if (!showSent && item.status === 'sent') return false
-    return true
-  })
-
-  const pendingCount = checklist.filter(i =>
-    i.status === 'pending' && !dismissedStages.has(String(i.stage_id))
-  ).length
-
-  // Agrupa por stage, respeitando dismissed
+  // Filtrar + agrupar por stage
   const visibleGroups = {}
   const dismissedGroups = {}
-  for (const item of filteredChecklist) {
+  for (const item of checklist) {
+    if (champChecklist && String(item.championship_id) !== String(champChecklist)) continue
+    if (!showSent && item.status === 'sent') continue
     const key = item.stage_id
-    const isDismissed = dismissedStages.has(String(key))
-    const target = isDismissed ? dismissedGroups : visibleGroups
+    const isDism = !!dismissed[String(key)]
+    const target = isDism ? dismissedGroups : visibleGroups
     if (!target[key]) target[key] = {
-      stage_id: item.stage_id, stage_name: item.stage_name,
+      stage_id: key, stage_name: item.stage_name,
       lineup_status: item.lineup_status, stage_phase: item.stage_phase,
       championship_id: item.championship_id, champ_short_name: item.champ_short_name,
       items: [],
     }
     target[key].items.push(item)
   }
+
+  const templateNeedsStage = selected?.variables?.some(v => STAGE_VARS.has(v.key))
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -406,29 +513,31 @@ export default function AdminEmail({ token }) {
         ))}
       </div>
 
-      {/* ── Aba Pendências ─────────────────────────────────────────────── */}
+      {/* ── Aba Pendências ──────────────────────────────────────────────────── */}
       {tab === 'checklist' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-          {/* Controles da aba */}
+          {/* Controles */}
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-            {/* Filtro de championship */}
+            {/* Filtro championship — SearchableSelect evita popup nativo do OS (branco no Windows) */}
             <div style={{ minWidth: 200, flex: '1 1 200px', maxWidth: 320 }}>
-              <select
+              <SearchableSelect
                 value={champChecklist}
-                onChange={e => setChampChecklist(e.target.value)}
-                style={{ ...selectStyle, width: '100%' }}
-              >
-                <option value=''>Todos os campeonatos</option>
-                {checklistChamps.map(c => (
-                  <option key={c.id} value={String(c.id)}>{c.short_name} — {c.name}</option>
-                ))}
-              </select>
+                onChange={setChampChecklist}
+                options={[
+                  { value: '', label: `Todos os campeonatos${pendingCount > 0 ? ` (${pendingCount} pendentes)` : ''}` },
+                  ...checklistChamps.map(c => ({
+                    value: String(c.id),
+                    label: `${c.short_name} — ${c.name}${champPendingCount[c.id] ? ` (${champPendingCount[c.id]})` : ''}`,
+                  })),
+                ]}
+                placeholder="Filtrar championship..."
+              />
             </div>
 
-            {/* Toggle enviados */}
             <button onClick={() => setShowSent(v => !v)} style={{
-              padding: '8px 14px', borderRadius: 8, border: `1px solid ${showSent ? 'rgba(74,222,128,0.3)' : 'var(--color-xama-border)'}`,
+              padding: '8px 14px', borderRadius: 8,
+              border: `1px solid ${showSent ? 'rgba(74,222,128,0.3)' : 'var(--color-xama-border)'}`,
               background: showSent ? 'rgba(74,222,128,0.08)' : 'rgba(255,255,255,0.04)',
               color: showSent ? '#4ade80' : 'var(--color-xama-muted)',
               cursor: 'pointer', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap',
@@ -436,53 +545,52 @@ export default function AdminEmail({ token }) {
               {showSent ? 'Ocultar enviados' : 'Mostrar enviados'}
             </button>
 
-            {/* Toggle descartados */}
-            {dismissedStages.size > 0 && (
-              <button onClick={() => setShowDismissed(v => !v)} style={{
-                padding: '8px 14px', borderRadius: 8, border: '1px solid var(--color-xama-border)',
-                background: 'rgba(255,255,255,0.04)',
-                color: 'var(--color-xama-muted)',
-                cursor: 'pointer', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap',
-              }}>
-                {showDismissed ? 'Ocultar descartados' : `Descartados (${dismissedStages.size})`}
-              </button>
-            )}
-
-            {/* Restaurar todos */}
-            {dismissedStages.size > 0 && (
-              <button onClick={restoreAll} style={{
-                padding: '8px 14px', borderRadius: 8, border: 'none',
-                background: 'rgba(255,255,255,0.04)', color: 'var(--color-xama-muted)',
-                cursor: 'pointer', fontSize: 12,
-              }}>
-                Restaurar todos
-              </button>
+            {dismissedCount > 0 && (
+              <>
+                <button onClick={() => setShowDismissed(v => !v)} style={{
+                  padding: '8px 14px', borderRadius: 8,
+                  border: '1px solid var(--color-xama-border)',
+                  background: 'rgba(255,255,255,0.04)', color: 'var(--color-xama-muted)',
+                  cursor: 'pointer', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap',
+                }}>
+                  {showDismissed ? 'Ocultar descartados' : `Descartados (${dismissedCount})`}
+                </button>
+                <button onClick={restoreAll} style={{
+                  padding: '8px 14px', borderRadius: 8, border: 'none',
+                  background: 'rgba(255,255,255,0.04)', color: 'var(--color-xama-muted)',
+                  cursor: 'pointer', fontSize: 12,
+                }}>
+                  Restaurar todos
+                </button>
+              </>
             )}
           </div>
 
-          {/* Stages visíveis */}
+          {/* Grupos visíveis */}
           {Object.values(visibleGroups).length === 0 && Object.values(dismissedGroups).length === 0 ? (
             <div style={{ ...card, color: 'var(--color-xama-muted)', fontSize: 13 }}>
               Nenhuma stage com pendências para os filtros selecionados.
             </div>
           ) : (
-            <>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {Object.values(visibleGroups).map(group => (
                 <ChecklistGroup
                   key={group.stage_id}
                   group={group}
                   card={card}
-                  onDismiss={dismissStage}
-                  onDispatch={prefillFromChecklist}
                   isDismissed={false}
+                  isCollapsed={collapsedStages.has(String(group.stage_id))}
+                  onToggle={() => toggleCollapse(group.stage_id)}
+                  onDismiss={dismissStage}
                   onRestore={null}
+                  onDispatch={prefillFromChecklist}
+                  onMarkSent={handleMarkSent}
                 />
               ))}
 
-              {/* Descartados (colapsáveis) */}
               {showDismissed && Object.values(dismissedGroups).length > 0 && (
-                <div>
-                  <div style={{ fontSize: 11, color: 'var(--color-xama-muted)', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8, marginTop: 4 }}>
+                <>
+                  <div style={{ fontSize: 11, color: 'var(--color-xama-muted)', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', paddingTop: 4 }}>
                     Descartados
                   </div>
                   {Object.values(dismissedGroups).map(group => (
@@ -490,20 +598,23 @@ export default function AdminEmail({ token }) {
                       key={group.stage_id}
                       group={group}
                       card={card}
-                      onDismiss={null}
-                      onDispatch={prefillFromChecklist}
                       isDismissed={true}
+                      isCollapsed={collapsedStages.has(String(group.stage_id))}
+                      onToggle={() => toggleCollapse(group.stage_id)}
+                      onDismiss={null}
                       onRestore={restoreStage}
+                      onDispatch={prefillFromChecklist}
+                      onMarkSent={handleMarkSent}
                     />
                   ))}
-                </div>
+                </>
               )}
-            </>
+            </div>
           )}
         </div>
       )}
 
-      {/* ── Aba Disparar ───────────────────────────────────────────────── */}
+      {/* ── Aba Disparar ────────────────────────────────────────────────────── */}
       {tab === 'dispatch' && (
         <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', flexWrap: 'wrap' }}>
 
@@ -543,7 +654,6 @@ export default function AdminEmail({ token }) {
                   <div style={{ fontSize: 11, fontWeight: 700, color: '#a5b4fc', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 }}>
                     Selecionar Stage
                   </div>
-                  {/* Mostra stage pré-preenchida (do checklist) */}
                   {variables.stage_id && !stages.find(s => s.id === parseInt(variables.stage_id)) ? (
                     <div style={{ fontSize: 13, color: 'var(--color-xama-text)', padding: '8px 12px', background: 'rgba(249,115,22,0.08)', borderRadius: 8, border: '1px solid rgba(249,115,22,0.2)' }}>
                       Stage ID <strong>{variables.stage_id}</strong> — {variables.stage_name}
@@ -593,37 +703,27 @@ export default function AdminEmail({ token }) {
                 </div>
               )}
 
-              {/* Demais variáveis */}
+              {/* Variáveis livres */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 20 }}>
-                {selected.variables
-                  .filter(v => !STAGE_VARS.has(v.key))
-                  .map(v => (
-                    <div key={v.key}>
-                      <label style={labelStyle}>
-                        {v.label}{v.required && <span style={{ color: 'var(--color-xama-orange)' }}> *</span>}
-                      </label>
-                      {v.multiline ? (
-                        <textarea
-                          rows={4}
-                          value={variables[v.key] || ''}
-                          onChange={e => setVar(v.key, e.target.value)}
-                          style={{ ...inputStyle, resize: 'vertical' }}
-                        />
-                      ) : (
-                        <input
-                          type={v.type === 'number' ? 'number' : 'text'}
-                          value={variables[v.key] || ''}
-                          onChange={e => setVar(v.key, e.target.value)}
-                          style={inputStyle}
-                          placeholder={v.required ? '' : 'Opcional'}
-                        />
-                      )}
-                    </div>
-                  ))}
+                {selected.variables.filter(v => !STAGE_VARS.has(v.key)).map(v => (
+                  <div key={v.key}>
+                    <label style={labelStyle}>
+                      {v.label}{v.required && <span style={{ color: 'var(--color-xama-orange)' }}> *</span>}
+                    </label>
+                    {v.multiline ? (
+                      <textarea rows={4} value={variables[v.key] || ''} onChange={e => setVar(v.key, e.target.value)}
+                        style={{ ...inputStyle, resize: 'vertical' }} />
+                    ) : (
+                      <input type={v.type === 'number' ? 'number' : 'text'}
+                        value={variables[v.key] || ''} onChange={e => setVar(v.key, e.target.value)}
+                        style={inputStyle} placeholder={v.required ? '' : 'Opcional'} />
+                    )}
+                  </div>
+                ))}
               </div>
 
               {/* Destinatários */}
-              {selected.recipient_groups.length > 1 && (
+              {selected.recipient_groups.length > 1 ? (
                 <div style={{ marginBottom: 20 }}>
                   <label style={labelStyle}>Destinatários</label>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -634,14 +734,11 @@ export default function AdminEmail({ token }) {
                         background: recipientGroup === g ? 'rgba(249,115,22,0.15)' : 'rgba(255,255,255,0.05)',
                         color: recipientGroup === g ? 'var(--color-xama-orange)' : 'var(--color-xama-muted)',
                         fontWeight: recipientGroup === g ? 600 : 400,
-                      }}>
-                        {RECIPIENT_LABELS[g] || g}
-                      </button>
+                      }}>{RECIPIENT_LABELS[g] || g}</button>
                     ))}
                   </div>
                 </div>
-              )}
-              {selected.recipient_groups.length === 1 && (
+              ) : (
                 <div style={{ marginBottom: 20, fontSize: 12, color: 'var(--color-xama-muted)' }}>
                   Destinatários: <strong style={{ color: 'var(--color-xama-text)' }}>
                     {RECIPIENT_LABELS[recipientGroup] || recipientGroup}
@@ -666,28 +763,19 @@ export default function AdminEmail({ token }) {
 
               {/* Ações */}
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                <button
-                  onClick={handlePreview}
-                  disabled={previewing}
-                  style={{
-                    padding: '11px 22px', borderRadius: 8, border: '1px solid rgba(99,102,241,0.4)',
-                    cursor: previewing ? 'not-allowed' : 'pointer',
-                    background: 'rgba(99,102,241,0.1)', color: '#a5b4fc',
-                    fontWeight: 600, fontSize: 14,
-                  }}
-                >
+                <button onClick={handlePreview} disabled={previewing} style={{
+                  padding: '11px 22px', borderRadius: 8, border: '1px solid rgba(99,102,241,0.4)',
+                  cursor: previewing ? 'not-allowed' : 'pointer',
+                  background: 'rgba(99,102,241,0.1)', color: '#a5b4fc', fontWeight: 600, fontSize: 14,
+                }}>
                   {previewing ? 'Gerando...' : 'Pré-visualizar'}
                 </button>
-                <button
-                  onClick={handleDispatch}
-                  disabled={loading}
-                  style={{
-                    padding: '11px 28px', borderRadius: 8, border: 'none',
-                    cursor: loading ? 'not-allowed' : 'pointer',
-                    background: loading ? 'rgba(249,115,22,0.4)' : 'var(--color-xama-orange)',
-                    color: '#0d0f14', fontWeight: 700, fontSize: 14, letterSpacing: '0.04em',
-                  }}
-                >
+                <button onClick={handleDispatch} disabled={loading} style={{
+                  padding: '11px 28px', borderRadius: 8, border: 'none',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  background: loading ? 'rgba(249,115,22,0.4)' : 'var(--color-xama-orange)',
+                  color: '#0d0f14', fontWeight: 700, fontSize: 14, letterSpacing: '0.04em',
+                }}>
                   {loading ? 'Enviando...' : 'Disparar email'}
                 </button>
               </div>
@@ -696,7 +784,7 @@ export default function AdminEmail({ token }) {
         </div>
       )}
 
-      {/* ── Aba Histórico ──────────────────────────────────────────────── */}
+      {/* ── Aba Histórico ───────────────────────────────────────────────────── */}
       {tab === 'logs' && (
         <div style={card}>
           <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-xama-text)', marginBottom: 16 }}>
@@ -710,9 +798,7 @@ export default function AdminEmail({ token }) {
                 <thead>
                   <tr>
                     {['#', 'Template', 'Assunto', 'Destinatários', 'Stage', 'Enviados', 'Falhas', 'Por', 'Data'].map(h => (
-                      <th key={h} style={{ textAlign: 'left', padding: '6px 10px', color: 'var(--color-xama-muted)', fontWeight: 600, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', borderBottom: '1px solid var(--color-xama-border)', whiteSpace: 'nowrap' }}>
-                        {h}
-                      </th>
+                      <th key={h} style={{ textAlign: 'left', padding: '6px 10px', color: 'var(--color-xama-muted)', fontWeight: 600, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', borderBottom: '1px solid var(--color-xama-border)', whiteSpace: 'nowrap' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -741,42 +827,24 @@ export default function AdminEmail({ token }) {
 
       {/* Modal de preview */}
       {preview && (
-        <div
-          onClick={() => setPreview(null)}
-          style={{
-            position: 'fixed', inset: 0, zIndex: 1000,
-            background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: 24,
-          }}
-        >
-          <div
-            onClick={e => e.stopPropagation()}
-            style={{
-              background: '#13151f', border: '1px solid var(--color-xama-border)',
-              borderRadius: 14, width: '100%', maxWidth: 560,
-              maxHeight: '90vh', display: 'flex', flexDirection: 'column',
-              overflow: 'hidden',
-            }}
-          >
+        <div onClick={() => setPreview(null)} style={{
+          position: 'fixed', inset: 0, zIndex: 1000,
+          background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: '#13151f', border: '1px solid var(--color-xama-border)',
+            borderRadius: 14, width: '100%', maxWidth: 560,
+            maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden',
+          }}>
             <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--color-xama-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-xama-text)' }}>Pré-visualização</div>
-                <div style={{ fontSize: 11, color: 'var(--color-xama-muted)', marginTop: 2 }}>
-                  Assunto: {preview.subject}
-                </div>
+                <div style={{ fontSize: 11, color: 'var(--color-xama-muted)', marginTop: 2 }}>Assunto: {preview.subject}</div>
               </div>
-              <button
-                onClick={() => setPreview(null)}
-                style={{ background: 'none', border: 'none', color: 'var(--color-xama-muted)', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}
-              >✕</button>
+              <button onClick={() => setPreview(null)} style={{ background: 'none', border: 'none', color: 'var(--color-xama-muted)', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>✕</button>
             </div>
-            <iframe
-              srcDoc={preview.html}
-              title="Email preview"
-              sandbox="allow-same-origin"
-              style={{ flex: 1, border: 'none', minHeight: 480 }}
-            />
+            <iframe srcDoc={preview.html} title="Email preview" sandbox="allow-same-origin" style={{ flex: 1, border: 'none', minHeight: 480 }} />
           </div>
         </div>
       )}
