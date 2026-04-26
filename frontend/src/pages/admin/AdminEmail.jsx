@@ -600,31 +600,14 @@ export default function AdminEmail({ token }) {
               {showSent ? 'Ocultar enviados' : 'Mostrar enviados'}
             </button>
 
-            {dismissedCount > 0 && (
-              <>
-                <button onClick={() => setShowDismissed(v => !v)} style={{
-                  padding: '8px 14px', borderRadius: 8,
-                  border: '1px solid var(--color-xama-border)',
-                  background: 'rgba(255,255,255,0.04)', color: 'var(--color-xama-muted)',
-                  cursor: 'pointer', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap',
-                }}>
-                  {showDismissed ? 'Ocultar descartados' : `Descartados (${dismissedCount})`}
-                </button>
-                <button onClick={restoreAll} style={{
-                  padding: '8px 14px', borderRadius: 8, border: 'none',
-                  background: 'rgba(255,255,255,0.04)', color: 'var(--color-xama-muted)',
-                  cursor: 'pointer', fontSize: 12,
-                }}>
-                  Restaurar todos
-                </button>
-              </>
-            )}
           </div>
 
-          {/* Grupos visíveis */}
-          {Object.values(visibleGroups).length === 0 && Object.values(dismissedGroups).length === 0 ? (
+          {/* Lista principal de pendências */}
+          {Object.values(visibleGroups).length === 0 ? (
             <div style={{ ...card, color: 'var(--color-xama-muted)', fontSize: 13 }}>
-              Nenhuma stage com pendências para os filtros selecionados.
+              {Object.values(dismissedGroups).length > 0
+                ? 'Todas as stages foram arquivadas. Expanda "Arquivados" abaixo para restaurar.'
+                : 'Nenhuma stage com pendências para os filtros selecionados.'}
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -642,11 +625,42 @@ export default function AdminEmail({ token }) {
                   onMarkSent={handleMarkSent}
                 />
               ))}
+            </div>
+          )}
 
-              {showDismissed && Object.values(dismissedGroups).length > 0 && (
-                <>
-                  <div style={{ fontSize: 11, color: 'var(--color-xama-muted)', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', paddingTop: 4 }}>
-                    Descartados
+          {/* Seção Arquivados — separada, colapsada por padrão */}
+          {Object.values(dismissedGroups).length > 0 && (
+            <div style={{ marginTop: 8 }}>
+              <button
+                onClick={() => setShowDismissed(v => !v)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6, width: '100%',
+                  background: 'none', border: 'none', cursor: 'pointer', padding: '6px 2px',
+                }}
+              >
+                <span style={{ fontSize: 12, color: 'var(--color-xama-muted)' }}>
+                  {showDismissed ? '▼' : '▶'}
+                </span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-xama-muted)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                  Arquivados ({Object.values(dismissedGroups).length})
+                </span>
+                {!showDismissed && (
+                  <span style={{ fontSize: 11, color: 'var(--color-xama-muted)', fontWeight: 400 }}>
+                    — clique para expandir
+                  </span>
+                )}
+              </button>
+
+              {showDismissed && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 }}>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <button onClick={restoreAll} style={{
+                      padding: '5px 14px', borderRadius: 6, border: '1px solid var(--color-xama-border)',
+                      background: 'rgba(255,255,255,0.04)', color: 'var(--color-xama-muted)',
+                      cursor: 'pointer', fontSize: 11, fontWeight: 600,
+                    }}>
+                      Restaurar todos
+                    </button>
                   </div>
                   {Object.values(dismissedGroups).map(group => (
                     <ChecklistGroup
@@ -662,7 +676,7 @@ export default function AdminEmail({ token }) {
                       onMarkSent={handleMarkSent}
                     />
                   ))}
-                </>
+                </div>
               )}
             </div>
           )}
