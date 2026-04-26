@@ -13,6 +13,7 @@ export default function AdminPricingPanel({ stageId, token }) {
   const [feedback,     setFeedback]     = useState({})   // { [roster_id]: {ok, msg} }
   const [recalcLoading, setRecalcLoading] = useState(false)
   const [recalcMsg,    setRecalcMsg]    = useState('')
+  const [clearLoading, setClearLoading] = useState(false)
   const [sortKey,      setSortKey]      = useState('team')
   const [sortDir,      setSortDir]      = useState('asc')
 
@@ -101,6 +102,31 @@ export default function AdminPricingPanel({ stageId, token }) {
     }
   }
 
+  async function clearAllOverrides() {
+    const withOverride = roster.filter(r => r.cost_override != null)
+    if (!withOverride.length) return setRecalcMsg('Nenhum override ativo para limpar.')
+    if (!window.confirm(`Remover override de ${withOverride.length} jogador(es)?`)) return
+    setClearLoading(true)
+    setRecalcMsg('')
+    try {
+      await Promise.all(withOverride.map(r =>
+        fetch(`${API_BASE_URL}/admin/pricing/rosters/${r.id}/cost-override`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ cost: null }),
+        })
+      ))
+      setRoster(prev => prev.map(r => ({ ...r, cost_override: null, effective_cost: r.fantasy_cost })))
+      setOverrides({})
+      setRecalcMsg(`✅ ${withOverride.length} override(s) removido(s)`)
+    } catch (e) {
+      setRecalcMsg(`❌ ${e.message}`)
+    } finally {
+      setClearLoading(false)
+      setTimeout(() => setRecalcMsg(''), 5000)
+    }
+  }
+
   async function recalculate() {
     setRecalcLoading(true)
     setRecalcMsg('')
@@ -155,17 +181,30 @@ export default function AdminPricingPanel({ stageId, token }) {
             Defina overrides manuais de custo. Deixe em branco para usar o preço calculado automaticamente.
           </p>
         </div>
-        <button
-          onClick={recalculate}
-          disabled={recalcLoading}
-          style={{
-            padding: '8px 16px', borderRadius: '6px', border: '1px solid rgba(249,115,22,0.3)',
-            background: 'rgba(249,115,22,0.08)', color: 'var(--color-xama-orange)',
-            fontSize: '12px', fontWeight: 700, cursor: recalcLoading ? 'not-allowed' : 'pointer',
-            letterSpacing: '0.06em', textTransform: 'uppercase',
-          }}>
-          {recalcLoading ? '⏳ Recalculando...' : '⚡ Recalcular Pricing'}
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            onClick={clearAllOverrides}
+            disabled={clearLoading}
+            style={{
+              padding: '8px 16px', borderRadius: '6px', border: '1px solid rgba(248,113,113,0.3)',
+              background: 'rgba(248,113,113,0.08)', color: '#f87171',
+              fontSize: '12px', fontWeight: 700, cursor: clearLoading ? 'not-allowed' : 'pointer',
+              letterSpacing: '0.06em', textTransform: 'uppercase',
+            }}>
+            {clearLoading ? '⏳ Limpando...' : '✕ Limpar Todos Overrides'}
+          </button>
+          <button
+            onClick={recalculate}
+            disabled={recalcLoading}
+            style={{
+              padding: '8px 16px', borderRadius: '6px', border: '1px solid rgba(249,115,22,0.3)',
+              background: 'rgba(249,115,22,0.08)', color: 'var(--color-xama-orange)',
+              fontSize: '12px', fontWeight: 700, cursor: recalcLoading ? 'not-allowed' : 'pointer',
+              letterSpacing: '0.06em', textTransform: 'uppercase',
+            }}>
+            {recalcLoading ? '⏳ Recalculando...' : '⚡ Recalcular Pricing'}
+          </button>
+        </div>
       </div>
 
       {recalcMsg && (
