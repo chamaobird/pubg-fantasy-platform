@@ -3,29 +3,46 @@
 
 ---
 
-## Estado Atual — 25/04/2026 (tarde) — D2 em andamento; datas corrigidas no banco
+## Estado Atual — 25/04/2026 (noite) — D2 encerrado; D3 aberto; Admin Email implementado
 
 ### Estado das Finals
 | Stage | Status | Detalhes |
 |---|---|---|
-| PAS Finals D1 (stage 24) | `locked` | scoring completo, encerrado |
-| PAS Finals D2 (stage 25) | `open` | fecha 23:00 UTC (7pm EDT) — scheduler fecha automaticamente |
-| PAS Finals D3 (stage 26) | `preview` | aguardando D2 |
-| PEC Finals D1 (stage 27) | `locked` | scoring completo, encerrado |
-| PEC Finals D2 (stage 28) | `open` | fecha 16:00 UTC (12pm EDT) — reaberta após fecha errada à meia-noite |
-| PEC Finals D3 (stage 29) | `preview` | aguardando D2 |
+| PAS Finals D1 (stage 24) | `locked` / `finished` | scoring completo |
+| PAS Finals D2 (stage 25) | `open` / `upcoming` | 13 lineups montados, 4 ativos pós-D1 |
+| PAS Finals D3 (stage 26) | `closed` / `upcoming` | 0 newcomers, pricing pronto quando D2 fechar |
+| PEC Finals D1 (stage 27) | `locked` / `finished` | scoring completo |
+| PEC Finals D2 (stage 28) | `locked` / `finished` | scoring completo |
+| PEC Finals D3 (stage 29) | `open` / `upcoming` | pricing recalculado, 0 newcomers, 63 rosters |
 
-### Próximas tarefas operacionais (PAS D2 / PEC D2 — hoje)
-1. **Importar partidas D2** via `watch_matches.py` para cada torneio (PEC às 16h UTC, PAS às 23h UTC)
-2. **Resolver PENDINGs** após 1a partida de cada torneio
-3. **Pontuar** → `rescore` → `backfill-stats`
-4. **Transição D2→D3**: o scheduler fecha D2 automaticamente; depois reprice D3 e open D3
+### Próximas tarefas operacionais (D3)
+1. PAS D3 (stage 26): carregar partidas → scoring → reprice (0 newcomers, tudo certo) → abrir lineup
+2. PEC D3 (stage 29): já aberta, em andamento
+
+### Admin Email — pendências para próxima sessão
+- Testar os 3 templates no ambiente de produção (lineup_open, no_lineup_reminder, announcement)
+- Avaliar se faz sentido adicionar template `results_available` (notificação de scoring concluído)
+- Considerar agendamento futuro de disparos (não apenas manual)
 
 ### Backlog restante
 - Admin endpoint "Replicar lineups faltando" para evitar SQL manual em transições cross-stage
 - Cuidado: replicação automática só funciona dentro da mesma stage (day N-1); cross-stage requer script manual
 
-### ✅ Concluído nesta sessão
+### ✅ Concluído nesta sessão (tarde/noite)
+- **Pricing PEC D3 (stage 29)**: corrigido `lineup_status` closed→open, `carries_stats_from` [21,22,23]→[21,22,23,27,28]
+- **Newcomers removidos**: 20 jogadores com `newcomer_to_tier=True` e 15+ partidas válidas → flag limpa, preços recalculados; DIFX (Team Nemesis) saiu de 15 → 35 (maior do lobby)
+- **Análise de pricing**: apresentado funcionamento completo do algoritmo (decay exponencial, tier_weight, régua linear, MIN_VALID_MATCHES)
+- **Admin Email**: nova seção no painel admin com 3 templates (lineup_open, no_lineup_reminder, announcement); POST /dispatch, GET /logs, POST /preview; migration 0025 (email_log)
+- **Preview de email**: modal com iframe renderizando HTML real do email antes de enviar
+- **Seletores de stage/championship**: dropdowns de stage e championship nos templates que precisam de stage_id, ao invés de campos de texto livre
+- **SearchableSelect**: componente reutilizável em Modal.jsx — input com filtragem ao digitar, navegação por teclado (↑↓ Enter Esc), fundo escuro; aplicado em AdminStages, AdminEmail e AdminTeams
+- **Stages finalizadas colapsadas**: AdminStages oculta stages com `stage_phase=finished` por padrão atrás de toggle
+
+---
+
+## Sessão 25/04/2026 (tarde) — D2 em andamento; datas corrigidas no banco; pricing explicado
+
+### ✅ Concluído
 - Polish mobile: `×1.30` removido do card, TAG removida, botões empilhados verticalmente, botão 📈 escondido
 - Person aliases: tabela + endpoints admin + busca por alias no LineupBuilder e PlayerStatsPage
 - Stats page: coluna DIAS (multi-stage) + busca por aliases

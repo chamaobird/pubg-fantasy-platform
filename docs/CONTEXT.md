@@ -42,9 +42,14 @@ rtk gain   # ver economia de tokens ao fim da sessão
 - `0018`: `email_verify_expires_at` (DateTime, nullable) em `user` — tokens de verificação expiram em 24h
 - `0019`: tabelas `team` e `team_member` — modelo de times com membros; partial unique index `uq_team_member_active_person` (1 time ativo por person)
 - `0020`: tabela `person_alias` — aliases únicos globalmente para busca alternativa de jogadores
-- Próxima: `revision = "0021"`, `down_revision = "0020"`
+- `0021`: achievements (tabela `user_achievement`)
+- `0022`: leagues (tabelas `league` e `league_member`)
+- `0023`: `locked_cost` Numeric em `lineup_player`
+- `0024`: coluna `stage_phase` em `stage` (upcoming/preview/live/finished) — arquitetura dois campos
+- `0025`: tabela `email_log` — auditoria de disparos de email admin (id, template_key, subject, recipient_group, stage_id, sent_count, failed_count, variables JSON, triggered_by, sent_at)
+- Próxima: `revision = "0026"`, `down_revision = "0025"`
 - Sempre rodar `python -m alembic` da raiz
-- Verificar antes de criar: `Get-Content alembic\versions\0020_*.py | Select-Object -First 15`
+- Verificar antes de criar: `Get-Content alembic\versions\0025_*.py | Select-Object -First 15`
 
 ## Entidades principais
 ```
@@ -54,6 +59,7 @@ ROSTER                     (person × stage, com fantasy_cost Numeric 6,2)
 LINEUP → LINEUP_PLAYER     (4 titulares + 1 reserva, 1 capitão com ×captain_multiplier)
 USER_DAY_STAT / USER_STAGE_STAT / PERSON_STAGE_STAT
 TEAM → TEAM_MEMBER         (times esportivos com membros; 1 time ativo por person via partial unique index)
+EMAIL_LOG                  (auditoria de disparos de email admin — migration 0025)
 ```
 
 ## lineup_status — valores válidos
@@ -183,6 +189,12 @@ GET   /admin/teams/{id}                                   ← detalhar time com 
 PATCH /admin/teams/{id}                                   ← editar time
 POST  /admin/teams/{id}/members                           ← adicionar membro (enforça 1 time ativo por person)
 DELETE /admin/teams/{id}/members/{person_id}              ← remover membro (set left_at)
+GET   /admin/email/templates                              ← lista templates disponíveis com variáveis e grupos
+POST  /admin/email/dispatch                               ← dispara email (body: {template_key, variables, recipient_group})
+POST  /admin/email/preview                                ← gera {subject, html} sem enviar
+GET   /admin/email/logs                                   ← histórico de disparos (últimos 50)
+GET   /admin/email/stages                                 ← lista stages para dropdowns de email (?championship_id)
+GET   /admin/email/championships                          ← lista championships para dropdowns de email
 ```
 
 ## Times no banco (criados em 22/04/2026)
@@ -328,3 +340,10 @@ GET https://api.pubg.com/shards/pc-tournament/matches/{match_id}  → 200 = pc-t
 - Stage transition guard (`app/routers/admin/stages.py`): todas as transições operacionais permitidas — ver tabela completa acima em "lineup_status — valores válidos"; PATCH com mesmo status (`open → open`) é permitido (útil para atualizar `lineup_close_at` sem mudar status)
 - `_maybe_send_over_budget_reminders(db, stage, now)` em `app/services/scheduler.py`: dispara 1h antes de `lineup_close_at` para stages `open`; envia `send_over_budget_notification` para usuários com `is_valid=False`; guard in-memory `_over_budget_reminder_sent: set[int]` evita reenvio (reset no restart do servidor)
 - **Armadilha seeding de Finals**: `start_date` e `lineup_close_at` do Stage devem ser definidos com o horário real do match (ex: 16:00 UTC), nunca meia-noite. O scheduler usa `stage.lineup_close_at` para disparar `open → live`; valor errado (00:00 UTC) transiciona o stage antes do início do jogo
+- **Pricing — arquitetura**: `DECAY_LAMBDA=0.02`, `MAX_DAYS=150`, `MAX_MATCHES=50`, `MIN_VALID_MATCHES=5` em `app/services/pricing.py`; ppm = Σ(xama_pts × tier_weight × e^(-λ×dias)) / Σ(tier_weight × e^(-λ×dias)); régua linear ppm→[price_min..price_max]; `newcomer_to_tier=True` no Roster força custo fixo (`pricing_newcomer_cost`) independente do ppm calculado
+- **Pricing — armadilha newcomer_to_tier**: flag é definida no seed/importação e nunca resetada automaticamente; jogadores com 15+ partidas mas `newcomer_to_tier=True` recebem custo fixo mesmo com ppm alto — verificar e limpar antes de cada repricing em eventos com times novos
+- **Admin Email**: `app/routers/admin/email.py` — templates fixos no código (`lineup_open`, `no_lineup_reminder`, `announcement`); builders de HTML separados dos sends (`_build_lineup_open_html`, `_build_no_lineup_reminder_html`, `_build_announcement_html` em `email.py`); log gravado em `email_log` a cada disparo; `/preview` retorna `{subject, html}` sem enviar
+- **Admin Email — grupos de destinatários**: `all` = todos verificados e ativos; `no_lineup` = usuários sem lineup em nenhum stage_day da stage (query com NOT EXISTS)
+- **SearchableSelect** em `frontend/src/pages/admin/Modal.jsx`: componente exportado para dropdowns com busca — props `{value, onChange, options:[{value,label}], placeholder, style}`; usar em qualquer select admin com 8+ opções; selects pequenos (3-4 opções) continuam como `<select>` nativo
+- **AdminStages**: stages com `stage_phase=finished` colapsadas por padrão — botão toggle `▶ N stages finalizadas` no rodapé da tabela; ao expandir aparecem com 55% opacidade
+- **stage_phase** (migration 0024): campo independente de `lineup_status`; controla seções do Dashboard (upcoming=aguardando, preview=abrindo em breve, live=em jogo, finished=resultados); `lineup_status` controla submissão (closed/open/locked); TournamentHub deriva `canEdit`, `isPreview`, `isLocked` dos dois campos separadamente
