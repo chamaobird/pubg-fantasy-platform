@@ -48,21 +48,30 @@ function expiryLabel(exp) {
 // ── Componente ChecklistGroup ─────────────────────────────────────────────────
 function ChecklistGroup({ group, card, onDismiss, onRestore, onDispatch, onMarkSent, isDismissed, isCollapsed, onToggle }) {
   const [showExpiry, setShowExpiry] = useState(false)
+  const [customUnit, setCustomUnit]   = useState('days')
+  const [customVal, setCustomVal]     = useState('')
   const allOptional = group.items.every(i => i.urgency === 'medium')
 
-  function handleDismiss(duration) {
-    const now = new Date()
-    let exp = null
-    if (duration === 'week') {
-      now.setDate(now.getDate() + 7)
-      exp = now.toISOString()
-    } else if (duration === 'month') {
-      now.setMonth(now.getMonth() + 1)
-      exp = now.toISOString()
-    }
-    // duration === 'permanent' → exp = null
+  function dismiss(exp) {
     onDismiss(group.stage_id, exp)
     setShowExpiry(false)
+    setCustomVal('')
+  }
+
+  function handlePreset(duration) {
+    const now = new Date()
+    if (duration === 'week')  { now.setDate(now.getDate() + 7);    dismiss(now.toISOString()) }
+    else if (duration === 'month') { now.setMonth(now.getMonth() + 1); dismiss(now.toISOString()) }
+    else dismiss(null)   // permanent
+  }
+
+  function handleCustom() {
+    const n = parseInt(customVal)
+    if (!n || n <= 0) return
+    const now = new Date()
+    if (customUnit === 'hours') now.setHours(now.getHours() + n)
+    else                        now.setDate(now.getDate() + n)
+    dismiss(now.toISOString())
   }
 
   const btnBase = {
@@ -72,7 +81,7 @@ function ChecklistGroup({ group, card, onDismiss, onRestore, onDispatch, onMarkS
   return (
     <div style={{ ...card, opacity: isDismissed ? 0.55 : 1, marginBottom: 0 }}>
       {/* ── Cabeçalho da stage ── */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: isCollapsed ? 0 : 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: (isCollapsed && !showExpiry) ? 0 : 10 }}>
         {/* Toggle colapso */}
         <button onClick={onToggle} style={{
           background: 'none', border: 'none', cursor: 'pointer',
@@ -101,28 +110,17 @@ function ChecklistGroup({ group, card, onDismiss, onRestore, onDispatch, onMarkS
           letterSpacing: '0.06em', textTransform: 'uppercase',
         }}>{group.stage_phase}</span>
 
-        {/* Descartar / expiry picker / restaurar */}
-        {!isDismissed && !showExpiry && (
-          <button onClick={() => setShowExpiry(true)} style={{
-            ...btnBase, background: 'rgba(248,113,113,0.08)',
-            border: '1px solid rgba(248,113,113,0.25)', color: '#f87171',
-          }}>
-            Descartar
+        {!isDismissed && (
+          <button
+            onClick={() => setShowExpiry(v => !v)}
+            style={{
+              ...btnBase,
+              background: showExpiry ? 'rgba(248,113,113,0.18)' : 'rgba(248,113,113,0.08)',
+              border: '1px solid rgba(248,113,113,0.25)', color: '#f87171',
+            }}
+          >
+            {showExpiry ? 'Cancelar' : 'Descartar'}
           </button>
-        )}
-        {!isDismissed && showExpiry && (
-          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-            <span style={{ fontSize: 11, color: 'var(--color-xama-muted)', whiteSpace: 'nowrap' }}>Por quanto tempo?</span>
-            {[['week', '1 sem.'], ['month', '1 mês'], ['permanent', 'Sempre']].map(([d, label]) => (
-              <button key={d} onClick={() => handleDismiss(d)} style={{
-                ...btnBase, background: 'rgba(255,255,255,0.06)',
-                border: '1px solid var(--color-xama-border)', color: 'var(--color-xama-muted)',
-              }}>{label}</button>
-            ))}
-            <button onClick={() => setShowExpiry(false)} style={{
-              ...btnBase, background: 'none', border: 'none', color: 'var(--color-xama-muted)', fontSize: 14,
-            }}>✕</button>
-          </div>
         )}
         {isDismissed && (
           <button onClick={() => onRestore(group.stage_id)} style={{
@@ -133,6 +131,63 @@ function ChecklistGroup({ group, card, onDismiss, onRestore, onDispatch, onMarkS
           </button>
         )}
       </div>
+
+      {/* ── Expiry picker (painel separado, abaixo do header) ── */}
+      {showExpiry && (
+        <div style={{
+          display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8,
+          padding: '10px 14px', marginBottom: isCollapsed ? 0 : 10,
+          background: 'rgba(248,113,113,0.06)', borderRadius: 8,
+          border: '1px solid rgba(248,113,113,0.2)',
+        }}>
+          <span style={{ fontSize: 11, color: '#f87171', fontWeight: 600, marginRight: 2 }}>
+            Ocultar por:
+          </span>
+          {[['week', '1 semana'], ['month', '1 mês'], ['permanent', 'Sempre']].map(([d, label]) => (
+            <button key={d} onClick={() => handlePreset(d)} style={{
+              ...btnBase, padding: '5px 12px',
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid var(--color-xama-border)', color: 'var(--color-xama-text)',
+            }}>{label}</button>
+          ))}
+          {/* Campo personalizado */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 4 }}>
+            <input
+              type="number" min="1" value={customVal}
+              onChange={e => setCustomVal(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleCustom()}
+              placeholder="Ex: 3"
+              style={{
+                width: 64, padding: '4px 8px', borderRadius: 6, fontSize: 12,
+                background: 'rgba(255,255,255,0.06)', border: '1px solid var(--color-xama-border)',
+                color: 'var(--color-xama-text)', outline: 'none',
+              }}
+            />
+            <select
+              value={customUnit} onChange={e => setCustomUnit(e.target.value)}
+              style={{
+                padding: '4px 8px', borderRadius: 6, fontSize: 12, cursor: 'pointer',
+                background: 'rgba(255,255,255,0.06)', border: '1px solid var(--color-xama-border)',
+                color: 'var(--color-xama-text)', outline: 'none', colorScheme: 'dark',
+              }}
+            >
+              <option value="days">dias</option>
+              <option value="hours">horas</option>
+            </select>
+            <button
+              onClick={handleCustom}
+              disabled={!customVal || parseInt(customVal) <= 0}
+              style={{
+                ...btnBase, padding: '5px 10px',
+                background: customVal && parseInt(customVal) > 0 ? 'rgba(249,115,22,0.15)' : 'rgba(255,255,255,0.04)',
+                border: `1px solid ${customVal && parseInt(customVal) > 0 ? 'rgba(249,115,22,0.4)' : 'var(--color-xama-border)'}`,
+                color: customVal && parseInt(customVal) > 0 ? 'var(--color-xama-orange)' : 'var(--color-xama-muted)',
+              }}
+            >OK</button>
+          </div>
+        </div>
+      )}
+
 
       {/* ── Resumo colapsado ── */}
       {isCollapsed && (
