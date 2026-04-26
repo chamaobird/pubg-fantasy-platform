@@ -3,7 +3,44 @@
 
 ---
 
-## Estado Atual — 26/04/2026 — Admin Email completo: checklist, 8 templates, mark-sent
+## Estado Atual — 26/04/2026 (tarde) — Admin Tournament reformulado; pronto para testes UX locais
+
+### Estado das Finals (banco local)
+| Stage | ID | Status | Matches | Lineups | PSS |
+|---|---|---|---|---|---|
+| PEC Finals D1 | 27 | `locked` / `finished` | 5 (320 stats) | 4 | ✅ 64 |
+| PEC Finals D2 | 28 | `locked` / `finished` | 5 (320 stats) | 4 | ✅ 64 |
+| PEC Finals D3 | 29 | `locked` / `finished` | 5 (320 stats) | 1 | ✅ 64 |
+
+### Para iniciar testes UX localmente
+```powershell
+# Backend (raiz do projeto)
+python -m uvicorn app.main:app --reload
+
+# Frontend (outro terminal)
+cd frontend ; npm run dev
+```
+Dados prontos: matches importados, stats calculadas, lineups pontuados. Não precisa rodar nenhum script.
+
+### Backlog restante
+- Admin endpoint "Replicar lineups faltando" para evitar SQL manual em transições cross-stage
+- UX testing local das PEC Finals (próxima sessão)
+
+### ✅ Concluído nesta sessão (26/04/2026 tarde)
+- **Fix descarte permanente no checklist**: `!!null === false` impedia stages com "Sempre" de ir para Arquivados; corrigido para `String(key) in dismissed`
+- **Admin Tournament reformulado** (AdminOpsPanel.jsx):
+  - Removido: Prazo de Fechamento, Schedule JSON, Notificações, Controle de Lineup, Rescore Completo
+  - Nova aba "Buscar por Torneio": input de tournament_id → PUBG API → lista com checkboxes (novo/importado) → importar selecionados
+  - Mantido: aba Manual como alternativa; Stats & Scoring sem mudança funcional
+  - Fix: `dayLabel` não quebra mais em "Invalid Date" quando `d.date` é null
+- **Pricing Admin**: botão "Limpar Todos Overrides" — remove override de todos em paralelo com confirmação
+- **Backend**: `GET /admin/stages/tournament-matches?tournament_id=X` — chama PUBG API, cruza com DB, retorna novos primeiro
+- **Fix routing**: `/tournament-matches` movido para antes de `/{stage_id}` no router (FastAPI respeita ordem de registro)
+- **Fix tela preta**: detail de 422 do FastAPI é array de objetos Pydantic — normalizado para string antes de entrar no estado
+
+---
+
+## Estado Anterior — 26/04/2026 (manhã) — Admin Email completo: checklist, 8 templates, mark-sent
 
 ### Estado das Finals
 | Stage | Status | Detalhes |
