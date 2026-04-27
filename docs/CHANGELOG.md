@@ -3,7 +3,55 @@
 
 ---
 
-## Estado Atual — 26/04/2026 (tarde) — Admin Tournament reformulado; pronto para testes UX locais
+## Estado Atual — 27/04/2026 — Deploy OK; nova stage PAS Playoffs 2 criada; fixes de data/badge
+
+### Estado das stages ativas
+| Stage | ID | Status | Fase |
+|---|---|---|---|
+| PAS1 Playoffs 2 - Dia 1 | (novo, verificar no banco) | `closed` | `preview` |
+- Lineup abre: 27/04/2026 17:00 (hora do browser do user)
+- Lineup fecha: 01/05/2026 19:10 (hora do browser do user)
+- DATA INÍCIO: 01/05/2026 | DATA FIM: 03/05/2026
+
+### Para retomar
+1. Verificar no banco o ID da stage recém-criada (PAS Playoffs 2 - Dia 1)
+2. Confirmar se fuso do browser do admin foi salvo corretamente no lineup_open_at / lineup_close_at
+3. Próximo passo operacional: importar roster dos times do Playoffs 2 e configurar pricing
+
+### Backlog
+- Admin endpoint "Replicar lineups faltando" para evitar SQL manual em transições cross-stage
+- Testar templates de email em produção (nunca foram disparados de verdade)
+
+### ✅ Concluído nesta sessão (27/04/2026)
+- **Segurança**: credenciais PostgreSQL expostas em commit `404285b` via `.claude/settings.local.json` — credencial rotacionada no Render, arquivo adicionado ao `.gitignore`, histórico git purgado com `git-filter-repo`, push forçado
+- **Componente canônico `PlayerStatsTable`** (`frontend/src/components/PlayerStatsTable.jsx`):
+  - Extraída de `PlayerStatsPage.jsx` — fonte única de verdade para a tabela de stats
+  - `PlayerStatsPage` e `ChampionshipGroupDetail` agora compartilham o mesmo componente
+  - Qualquer mudança visual na tabela reflete em todos os lugares automaticamente
+  - Props: `players` (com `person_name`), `shortName`, `showDaysPlayed`, `beforeDate`, `totalCount`, `footerLabel`
+  - Normalização em ChampionshipGroupDetail: `display_name → person_name` antes de passar para o componente
+- **Fix largura da tabela em ChampionshipGroupDetail**: `maxWidth` dinâmico — `1600px` na aba Jogadores, `900px` em Managers (igual PlayerStatsPage)
+- **UX Offseason — Dashboard**:
+  - Seção "Entre Temporadas": card do championship group com posição do usuário + card da última stage
+  - Chips de stats no greeting: Melhor posição, total de stages jogadas, pontuação da última stage
+  - Seção "Resultados" expandida por padrão quando não há campeonatos ativos
+- **UX Offseason — Championships**:
+  - Auto-expande campeonatos encerrados quando não há nenhum ativo
+  - Empty state melhorado: "☕ Entre temporadas" com mensagem contextual
+- **Fix: data exibindo um dia antes** (ex: "30 abr" em vez de "1 mai"):
+  - Root cause: `start_date` salvo como TIMESTAMPTZ midnight UTC; `new Date("2026-05-01T00:00:00Z")` em EDT (UTC-4) = 30 abr 20:00
+  - Fix: `parseDateLocal(iso)` usa `new Date(y, m-1, d)` (midnight local, sem deslocamento UTC) para `start_date` e `end_date`
+  - `buildDateLabel` e `buildDateRange` no Dashboard agora usam este helper para datas de jogo
+- **Fix: badge "Fecha em" → "Abre em" na seção Abrindo em Breve**:
+  - `CountdownBadge` ganhou prop `mode='open'|'close'` (default: `'close'`)
+  - Seção preview do Dashboard passa `mode="open"` → exibe "Abre em Xmin" em laranja (não vermelho)
+- **Form Admin — labels mais claros** (`AdminStages.jsx`):
+  - Bloco informativo explicando a diferença entre os dois pares de campos (lineup timing vs datas das partidas)
+  - Labels: "Lineup abre em (quando users podem montar)", "Lineup fecha em (prazo final de edição)", "Data de início (1ª partida)", "Data de fim (última partida)"
+
+---
+
+## Estado Anterior — 26/04/2026 (tarde) — Admin Tournament reformulado; pronto para testes UX locais
 
 ### Estado das Finals (banco local)
 | Stage | ID | Status | Matches | Lineups | PSS |
