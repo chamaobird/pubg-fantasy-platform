@@ -34,6 +34,35 @@ const BLANK = {
   price_min: 12, price_max: 35,
 }
 
+// ── Timezone helpers ──────────────────────────────────────────────────────────
+
+// Converte ISO UTC → valor para input datetime-local (fuso do browser)
+function utcToLocalInput(iso) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  const offset = d.getTimezoneOffset() // minutos, positivo = atrás do UTC
+  const local = new Date(d.getTime() - offset * 60_000)
+  return local.toISOString().slice(0, 16)
+}
+
+// Converte valor de datetime-local (fuso do browser) → ISO UTC
+function localInputToUtc(localStr) {
+  if (!localStr) return null
+  return new Date(localStr).toISOString()
+}
+
+// Detecta fuso do browser e formata "America/New_York (UTC-4)"
+function detectTzLabel() {
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
+  const offsetMin = new Date().getTimezoneOffset()
+  const offsetH = -offsetMin / 60
+  const sign = offsetH >= 0 ? '+' : ''
+  const abbr = new Intl.DateTimeFormat('en', { timeZoneName: 'short' })
+    .formatToParts(new Date())
+    .find(p => p.type === 'timeZoneName')?.value ?? ''
+  return `${tz}${abbr ? ` · ${abbr}` : ''} (UTC${sign}${offsetH}h)`
+}
+
 function fmtDate(iso) {
   if (!iso) return '—'
   return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })
@@ -601,10 +630,10 @@ export default function AdminStages({ token }) {
       name: s.name, short_name: s.short_name || '', shard: s.shard,
       lineup_status: s.lineup_status,
       stage_phase: s.stage_phase ?? 'upcoming',
-      lineup_open_at: s.lineup_open_at ? s.lineup_open_at.slice(0, 16) : '',
-      lineup_close_at: s.lineup_close_at ? s.lineup_close_at.slice(0, 16) : '',
-      start_date: s.start_date ? s.start_date.slice(0, 10) : '',
-      end_date: s.end_date ? s.end_date.slice(0, 10) : '',
+      lineup_open_at: utcToLocalInput(s.lineup_open_at),
+      lineup_close_at: utcToLocalInput(s.lineup_close_at),
+      start_date: utcToLocalInput(s.start_date),
+      end_date: utcToLocalInput(s.end_date),
       lineup_size: s.lineup_size ?? 4,
       captain_multiplier: s.captain_multiplier ?? 1.3,
       price_min: s.price_min ?? 12,
@@ -623,10 +652,10 @@ export default function AdminStages({ token }) {
         captain_multiplier: parseFloat(form.captain_multiplier),
         price_min: parseFloat(form.price_min),
         price_max: parseFloat(form.price_max),
-        lineup_open_at: form.lineup_open_at || null,
-        lineup_close_at: form.lineup_close_at || null,
-        start_date: form.start_date || null,
-        end_date: form.end_date || null,
+        lineup_open_at: localInputToUtc(form.lineup_open_at),
+        lineup_close_at: localInputToUtc(form.lineup_close_at),
+        start_date: localInputToUtc(form.start_date),
+        end_date: localInputToUtc(form.end_date),
       }
       if (modal.mode === 'create') {
         await call('POST', '/admin/stages', body)
@@ -862,12 +891,14 @@ export default function AdminStages({ token }) {
             </Field>
           </div>
 
-          {/* Bloco de datas com hint explicativo */}
-          <div style={{ background: 'rgba(249,115,22,0.04)', border: '1px solid rgba(249,115,22,0.15)', borderRadius: 8, padding: '12px 14px', fontSize: 11, color: 'var(--color-xama-muted)', lineHeight: 1.6 }}>
-            <span style={{ color: 'var(--color-xama-orange)', fontWeight: 700 }}>LINEUP ABRE/FECHA</span>
-            {' '}— quando os usuários podem editar o lineup (ex: abre hoje, fecha antes das partidas).{' '}
-            <span style={{ color: 'var(--color-xama-orange)', fontWeight: 700 }}>DATA INÍCIO/FIM</span>
-            {' '}— datas das partidas (ex: 01/05 – 03/05). Esses campos são independentes.
+          {/* Badge de timezone + hint */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 8, padding: '10px 14px' }}>
+            <span style={{ fontSize: 15, flexShrink: 0 }}>🕐</span>
+            <div style={{ fontSize: 11, color: 'var(--color-xama-muted)', lineHeight: 1.6 }}>
+              <span style={{ color: '#a5b4fc', fontWeight: 700 }}>Fuso detectado: {detectTzLabel()}</span>
+              <br />
+              Todos os horários abaixo devem ser inseridos no <strong style={{ color: 'var(--color-xama-text)' }}>seu fuso local</strong> — a conversão para UTC é feita automaticamente ao salvar.
+            </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -880,11 +911,11 @@ export default function AdminStages({ token }) {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <Field label="Data de início (1ª partida)">
-              <input style={inputStyle} type="date" value={form.start_date} onChange={f('start_date')} />
+            <Field label="Data/hora da 1ª partida">
+              <input style={inputStyle} type="datetime-local" value={form.start_date} onChange={f('start_date')} />
             </Field>
-            <Field label="Data de fim (última partida)">
-              <input style={inputStyle} type="date" value={form.end_date} onChange={f('end_date')} />
+            <Field label="Data/hora da última partida">
+              <input style={inputStyle} type="datetime-local" value={form.end_date} onChange={f('end_date')} />
             </Field>
           </div>
 

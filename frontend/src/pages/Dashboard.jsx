@@ -128,12 +128,22 @@ function fmtTime(iso) {
 }
 
 // "Qui, 1 mai · 21:00"
-// start_date → mostra só a data local (sem hora, evita shift de fuso)
+// start_date → se tem hora (não é meia-noite UTC), usa conversão UTC→local completa (data + hora)
+//             se é meia-noite UTC (formato antigo, date-only), usa parseDateLocal para evitar shift
 // lineup_open_at → datetime completo, mostra hora
 function buildDateLabel(stage) {
   if (stage.start_date) {
-    const d = parseDateLocal(stage.start_date)
-    return d.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' })
+    const d = new Date(stage.start_date)
+    const isMidnightUtc = d.getUTCHours() === 0 && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0
+    if (isMidnightUtc) {
+      // formato antigo (date-only): usa parseDateLocal para não deslocar o dia
+      const ld = parseDateLocal(stage.start_date)
+      return ld.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' })
+    }
+    // novo formato (datetime): usa UTC→local completo para data e hora ficarem alinhadas
+    const datePart = d.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' })
+    const timePart = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+    return `${datePart} · ${timePart}`
   }
   const src = stage.lineup_open_at
   if (!src) return null
@@ -906,9 +916,25 @@ export default function Dashboard() {
   }, [stages, champMap])
 
   // Stages em preview (lobby aberto, lineup fechado) — seção "Abrindo em Breve"
+  // Exclui stages com lineup_status='open': essas já aparecem em "Lineup Aberta"
   const previewStages = useMemo(() =>
-    sortByDate(stages.filter(s => s.stage_phase === 'preview')),
+    sortByDate(stages.filter(s => s.stage_phase === 'preview' && s.lineup_status !== 'open')),
     [stages]
+  )
+
+  // Campeonatos com stage ativa: open (montando lineup) ou live (partida em andamento)
+  const activeChampGroups = useMemo(() =>
+    Object.values(champGroups)
+      .filter(g => g.open || g.live)
+      .sort((a, b) => {
+        // open primeiro, depois live
+        if (a.open && !b.open) return -1
+        if (!a.open && b.open) return 1
+        const sa = a.open || a.live
+        const sb = b.open || b.live
+        return new Date(sa?.start_date || '9999') - new Date(sb?.start_date || '9999')
+      }),
+    [champGroups]
   )
 
   // Championships com stages aguardando abertura (upcoming, sem open/live/preview)
@@ -927,29 +953,18 @@ export default function Dashboard() {
   }, [champGroups])
 
   // Stages upcoming soltas sem championship group
+  // Exclui: championships em closedChampGroupsList (já têm card próprio)
+  //         championships em activeChampGroups (upcoming já aparecem como sub-cards do OpenCard)
   const closedStages = useMemo(() => {
     const groupedChampIds = new Set(closedChampGroupsList.map(g => g.champ.id))
+    const activeChampIds  = new Set(activeChampGroups.map(g => g.champ.id))
     return sortByDate(stages.filter(s => {
       if (s.stage_phase !== 'upcoming' || s.lineup_status === 'open') return false
       const c = champMap[s.id]
-      return !c || !groupedChampIds.has(c.id)
+      if (!c) return true
+      return !groupedChampIds.has(c.id) && !activeChampIds.has(c.id)
     }))
-  }, [stages, champMap, closedChampGroupsList])
-
-  // Campeonatos com stage ativa: open (montando lineup) ou live (partida em andamento)
-  const activeChampGroups = useMemo(() =>
-    Object.values(champGroups)
-      .filter(g => g.open || g.live)
-      .sort((a, b) => {
-        // open primeiro, depois live
-        if (a.open && !b.open) return -1
-        if (!a.open && b.open) return 1
-        const sa = a.open || a.live
-        const sb = b.open || b.live
-        return new Date(sa?.start_date || '9999') - new Date(sb?.start_date || '9999')
-      }),
-    [champGroups]
-  )
+  }, [stages, champMap, closedChampGroupsList, activeChampGroups])
 
   // Stages finished → seção Resultados
   const pureLockedStages = useMemo(() =>

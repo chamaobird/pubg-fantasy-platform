@@ -67,7 +67,7 @@ export default function TournamentHub() {
   const showLineupTab = !isFinished && !isClosed
 
   const ALL_TABS = [
-    ...(showLineupTab ? [{ id: TAB_LINEUP, label: isLocked ? 'Meus Resultados' : isPreview ? 'Ver Lobby' : 'Montar Lineup', icon: isLocked ? '📊' : isPreview ? '👁️' : '⚔️' }] : []),
+    ...(showLineupTab ? [{ id: TAB_LINEUP, label: isLocked ? 'Meus Resultados' : (isPreview && !canEdit) ? 'Ver Lobby' : 'Montar Lineup', icon: isLocked ? '📊' : (isPreview && !canEdit) ? '👁️' : '⚔️' }] : []),
     { id: TAB_LEADERBOARD, label: 'Leaderboard', icon: '🏆' },
     { id: TAB_STATS,       label: 'Stats',        icon: '📊' },
     ...(isAdmin ? [{ id: TAB_ADMIN, label: 'Admin', icon: '⚙️' }] : []),

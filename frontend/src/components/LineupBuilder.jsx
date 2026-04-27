@@ -129,8 +129,9 @@ export default function LineupBuilder({
     [myLineups, activeStageDayId]
   )
 
-  // isLocked: true quando preview ou stage não está aberta
-  const isLocked = isPreview || !canEdit
+  // isLocked: true apenas quando lineup não está aberta (canEdit=false)
+  // preview + open = montagem permitida; preview + closed = bloqueado
+  const isLocked = !canEdit
 
   // ── Derived — budget ────────────────────────────────────────────────────
   const totalCost = useMemo(
@@ -477,8 +478,8 @@ export default function LineupBuilder({
             </div>
           )}
 
-          {/* Banner preview — aguardando confirmação */}
-          {isPreview && (
+          {/* Banner preview — aguardando confirmação (só quando preview E lineup ainda fechado) */}
+          {isPreview && !canEdit && (
             <div style={{
               background: 'rgba(249,115,22,0.08)',
               border: '1px solid rgba(249,115,22,0.3)',
