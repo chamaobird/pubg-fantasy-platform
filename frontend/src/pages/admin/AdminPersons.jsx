@@ -29,6 +29,7 @@ export default function AdminPersons({ token }) {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [includeInactive, setIncludeInactive] = useState(false)
+  const [regionFilter, setRegionFilter] = useState('')
   const [modal, setModal] = useState(null) // null | { mode: 'create'|'edit', data: {} }
   const [msg, setMsg] = useState('')
   const [saving, setSaving] = useState(false)
@@ -49,11 +50,15 @@ export default function AdminPersons({ token }) {
       const params = new URLSearchParams()
       if (search) params.set('search', search)
       if (includeInactive) params.set('include_inactive', 'true')
+      if (regionFilter) params.set('region', regionFilter)
       const data = await call('GET', `/admin/persons?${params}`)
       setPersons(Array.isArray(data) ? data : [])
     } catch (e) { setPersons([]) }
     finally { setLoading(false) }
-  }, [call, search, includeInactive])
+  }, [call, search, includeInactive, regionFilter])
+
+  // Regiões únicas presentes na lista atual (para o filtro)
+  const regions = [...new Set(persons.map(p => p.team_region).filter(Boolean))].sort()
 
   useEffect(() => { load() }, [load])
 
@@ -132,8 +137,22 @@ export default function AdminPersons({ token }) {
       />
 
       {/* Filtros */}
-      <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 14 }}>
+      <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 14, flexWrap: 'wrap' }}>
         <SearchBar value={search} onChange={setSearch} placeholder="Buscar por nome..." />
+        <select
+          value={regionFilter}
+          onChange={e => setRegionFilter(e.target.value)}
+          style={{
+            ...selectStyle,
+            minWidth: 140, maxWidth: 180,
+            fontSize: 12, padding: '5px 10px',
+          }}
+        >
+          <option value="">Todas as regiões</option>
+          {regions.map(r => (
+            <option key={r} value={r}>{r}</option>
+          ))}
+        </select>
         <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--color-xama-muted)', whiteSpace: 'nowrap', cursor: 'pointer' }}>
           <input type="checkbox" checked={includeInactive} onChange={e => setIncludeInactive(e.target.checked)} />
           Incluir inativos
@@ -152,6 +171,8 @@ export default function AdminPersons({ token }) {
               <tr>
                 <SortableHeader label="ID" col="id" sort={sort} onSort={toggle} />
                 <SortableHeader label="Nome" col="display_name" sort={sort} onSort={toggle} />
+                <SortableHeader label="Time" col="team" sort={sort} onSort={toggle} />
+                <SortableHeader label="Região" col="region" sort={sort} onSort={toggle} />
                 <SortableHeader label="Status" col="status" sort={sort} onSort={toggle} />
                 <SortableHeader label="Contas" col="accounts" sort={sort} onSort={toggle} />
                 <th style={thStyle}></th>
@@ -159,14 +180,32 @@ export default function AdminPersons({ token }) {
             </thead>
             <tbody>
               {apply(persons, {
-                id: p => p.id,
+                id:           p => p.id,
                 display_name: p => p.display_name,
-                status: p => p.is_active ? 0 : 1,
-                accounts: p => p.accounts?.length ?? 0,
+                team:         p => p.team_tag ?? '',
+                region:       p => p.team_region ?? '',
+                status:       p => p.is_active ? 0 : 1,
+                accounts:     p => p.accounts?.length ?? 0,
               }).map(p => (
                 <tr key={p.id} style={{ opacity: p.is_active ? 1 : 0.5 }}>
                   <td style={{ ...tdStyle, color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace', fontSize: 12 }}>{p.id}</td>
                   <td style={{ ...tdStyle, fontWeight: 600 }}>{p.display_name}</td>
+                  <td style={{ ...tdStyle, fontFamily: 'JetBrains Mono, monospace', fontSize: 12 }}>
+                    {p.team_tag
+                      ? <span style={{ color: 'var(--color-xama-orange)', fontWeight: 700 }}>{p.team_tag}</span>
+                      : <span style={{ color: 'var(--color-xama-muted)', opacity: 0.4 }}>—</span>
+                    }
+                  </td>
+                  <td style={{ ...tdStyle, fontSize: 12 }}>
+                    {p.team_region
+                      ? <span style={{
+                          padding: '2px 8px', borderRadius: 4,
+                          background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)',
+                          color: '#a5b4fc', fontFamily: 'JetBrains Mono, monospace', fontSize: 11, fontWeight: 600,
+                        }}>{p.team_region}</span>
+                      : <span style={{ color: 'var(--color-xama-muted)', opacity: 0.4 }}>—</span>
+                    }
+                  </td>
                   <td style={tdStyle}>
                     <StatusBadge status={p.is_active ? 'open' : 'locked'} />
                   </td>

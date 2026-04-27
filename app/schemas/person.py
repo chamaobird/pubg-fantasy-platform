@@ -108,3 +108,10 @@ class PersonAliasResponse(BaseModel):
 class PersonDetailResponse(PersonResponse):
     accounts: List[PlayerAccountResponse] = []
     aliases: List[PersonAliasResponse] = []
+
+
+class PersonAdminListResponse(PersonResponse):
+    """Resposta estendida para listagem admin — inclui time e região atuais."""
+    accounts: List[PlayerAccountResponse] = []
+    team_tag: Optional[str] = None
+    team_region: Optional[str] = None

@@ -15,6 +15,7 @@ from app.models.user import User
 from app.schemas.person import (
     PersonAliasCreate,
     PersonAliasResponse,
+    PersonAdminListResponse,
     PersonCreate,
     PersonDetailResponse,
     PersonResponse,
@@ -75,19 +76,44 @@ def create_person(
     return person
 
 
-@router.get("", response_model=list[PersonResponse])
+@router.get("", response_model=list[PersonAdminListResponse])
 def list_persons(
     search: Optional[str] = Query(None, description="Filter by display_name (case-insensitive)"),
     include_inactive: bool = False,
+    region: Optional[str] = Query(None, description="Filter by team region"),
     db: Session = Depends(get_db),
     _admin: User = Depends(require_admin),
-) -> list[Person]:
-    q = db.query(Person)
+) -> list[PersonAdminListResponse]:
+    from app.models.team import Team
+    from app.models.team_member import TeamMember
+    from sqlalchemy import and_
+
+    rows = (
+        db.query(Person, Team.tag, Team.region)
+        .outerjoin(
+            TeamMember,
+            and_(TeamMember.person_id == Person.id, TeamMember.left_at.is_(None)),
+        )
+        .outerjoin(Team, Team.id == TeamMember.team_id)
+        .filter(Person.is_active == True if not include_inactive else True)  # noqa: E712
+    )
+
     if not include_inactive:
-        q = q.filter(Person.is_active == True)  # noqa: E712
+        rows = rows.filter(Person.is_active == True)  # noqa: E712
     if search:
-        q = q.filter(Person.display_name.ilike(f"%{search}%"))
-    return q.order_by(Person.display_name).all()
+        rows = rows.filter(Person.display_name.ilike(f"%{search}%"))
+    if region:
+        rows = rows.filter(Team.region.ilike(f"%{region}%"))
+
+    rows = rows.order_by(Person.display_name).all()
+
+    result = []
+    for person, team_tag, team_region in rows:
+        item = PersonAdminListResponse.model_validate(person)
+        item.team_tag = team_tag
+        item.team_region = team_region
+        result.append(item)
+    return result
 
 
 @router.get("/{person_id}", response_model=PersonDetailResponse)
