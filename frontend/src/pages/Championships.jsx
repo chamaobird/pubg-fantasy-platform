@@ -526,6 +526,7 @@ export default function Championships() {
   const [loading, setLoading]             = useState(true)
   const [error, setError]                 = useState('')
   const [showInactive, setShowInactive]   = useState(false)
+  const [autoExpanded, setAutoExpanded]   = useState(false) // flag: só auto-expande uma vez
 
   useEffect(() => {
     setLoading(true)
@@ -592,6 +593,14 @@ export default function Championships() {
   const hasAnythingActive = sortedActiveGroups.length > 0 || sortedActiveUngrouped.length > 0
   const finishedCount = finishedGroups.length + finishedUngrouped.length
 
+  // Ideia 2 — auto-expande encerrados quando não há nada ativo
+  useEffect(() => {
+    if (!loading && !hasAnythingActive && finishedCount > 0 && !autoExpanded) {
+      setShowInactive(true)
+      setAutoExpanded(true)
+    }
+  }, [loading, hasAnythingActive, finishedCount, autoExpanded])
+
   return (
     <div style={{ minHeight: '100vh', background: 'transparent', position: 'relative' }}>
       <Navbar />
@@ -636,8 +645,14 @@ export default function Championships() {
                 ))}
               </div>
             ) : (
-              <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--color-xama-muted)', fontSize: 18 }}>
-                Nenhum campeonato ativo no momento.
+              <div style={{ padding: '32px 0 24px', textAlign: 'center' }}>
+                <div style={{ fontSize: '36px', marginBottom: '12px' }}>☕</div>
+                <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-xama-muted)', letterSpacing: '0.05em', marginBottom: '6px' }}>
+                  Entre temporadas
+                </div>
+                <div style={{ fontSize: '13px', color: 'var(--color-xama-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
+                  Nenhum campeonato ativo — confira os resultados abaixo.
+                </div>
               </div>
             )}
 

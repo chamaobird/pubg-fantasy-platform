@@ -698,6 +698,76 @@ function ClosedPrimaryCard({ s, champMap, navigate, nextCount = 0, expanded = tr
   )
 }
 
+// ── OffseasonGroupCard ───────────────────────────────────────────────────────
+
+function OffseasonGroupCard({ group, userEntry, navigate }) {
+  const rankColors = ['#f0c040', '#b4bcc8', '#cd7f50']
+  const isTop3 = userEntry?.rank != null && userEntry.rank <= 3
+
+  return (
+    <div style={{
+      background: 'var(--surface-1)',
+      border: '1px solid rgba(255,255,255,0.08)',
+      borderRadius: 'var(--radius-card)',
+      padding: '18px 22px',
+      position: 'relative', overflow: 'hidden',
+      display: 'flex', alignItems: 'center', gap: '22px', flexWrap: 'wrap',
+    }}>
+      <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 80% 50%, rgba(240,192,64,0.05) 0%, transparent 60%)', pointerEvents: 'none' }} />
+
+      <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '80px', height: '80px', opacity: 0.75 }}>
+        <StageChampLogo champName={group.short_name || group.name} size={72} />
+      </div>
+
+      <div style={{ flex: 1, minWidth: '160px' }}>
+        <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace', marginBottom: '5px' }}>
+          Resultado final
+        </div>
+        <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--color-xama-text)', lineHeight: 1.15, letterSpacing: '-0.02em', marginBottom: '4px' }}>
+          {group.name}
+        </div>
+        <div style={{ fontSize: '11px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace' }}>
+          {group.championship_ids?.length ?? '?'} fase{(group.championship_ids?.length ?? 0) !== 1 ? 's' : ''} · encerrado
+        </div>
+      </div>
+
+      <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+        <span style={{
+          fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em',
+          padding: '3px 10px', borderRadius: 4,
+          background: 'rgba(107,114,128,0.1)', border: '1px solid rgba(107,114,128,0.2)',
+          color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace',
+        }}>ENCERRADO</span>
+
+        {userEntry ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+            {userEntry.rank && (
+              <span style={{
+                fontSize: '28px', fontWeight: 800, lineHeight: 1,
+                fontFamily: 'JetBrains Mono, monospace',
+                color: isTop3 ? rankColors[userEntry.rank - 1] : 'var(--color-xama-text)',
+              }}>
+                #{userEntry.rank}
+              </span>
+            )}
+            <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-xama-orange)', fontFamily: 'JetBrains Mono, monospace' }}>
+              {Number(userEntry.total_points).toFixed(2)} pts
+            </span>
+          </div>
+        ) : (
+          <span style={{ fontSize: '12px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace' }}>
+            Sem participação
+          </span>
+        )}
+
+        <Button variant="secondary" size="sm" onClick={() => navigate(`/group/${group.id}`)}>
+          VER RANKING
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 // ── Main ─────────────────────────────────────────────────────────────────────
 
 export default function Dashboard() {
@@ -711,6 +781,9 @@ export default function Dashboard() {
   const [myLineups,      setMyLineups]      = useState({})
   const [loading,        setLoading]        = useState(true)
   const [expandedChamps, setExpandedChamps] = useState({})
+  const [apiGroups,      setApiGroups]      = useState([])
+  const [profileHistory, setProfileHistory] = useState([])
+  const [groupLeaderEntry, setGroupLeaderEntry] = useState(null)
 
   const toggleChamp = (champId) =>
     setExpandedChamps(prev => ({ ...prev, [champId]: !(prev[champId] !== false) }))
@@ -746,6 +819,23 @@ export default function Dashboard() {
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
+
+  // Busca championship groups (para offseason card)
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/championship-groups/`)
+      .then(r => r.ok ? r.json() : [])
+      .then(setApiGroups)
+      .catch(() => {})
+  }, [])
+
+  // Busca histórico do usuário (para stat chips)
+  useEffect(() => {
+    if (!user?.id || !token) return
+    fetch(`${API_BASE_URL}/profile/${user.id}/history`, { headers: H })
+      .then(r => r.ok ? r.json() : [])
+      .then(setProfileHistory)
+      .catch(() => {})
+  }, [user?.id, token])
 
   // Busca lineups para stages open E locked (para mostrar pontuação em Resultados)
   useEffect(() => {
@@ -849,6 +939,43 @@ export default function Dashboard() {
 
   const hasActive = activeChampGroups.length > 0
 
+  // Offseason: nenhum ativo, nenhum preview, dados carregados
+  const isOffseason = !loading && !hasActive && previewStages.length === 0
+
+  // Grupo mais recente para o card de offseason
+  const offseasonGroup = useMemo(() => {
+    if (apiGroups.length === 0) return null
+    return [...apiGroups].sort((a, b) => b.id - a.id)[0]
+  }, [apiGroups])
+
+  // Busca posição do usuário no grupo offseason
+  useEffect(() => {
+    if (!isOffseason || !offseasonGroup || !user?.id) return
+    setGroupLeaderEntry(null)
+    fetch(`${API_BASE_URL}/championship-groups/${offseasonGroup.id}/leaderboard?limit=500`)
+      .then(r => r.ok ? r.json() : [])
+      .then(entries => {
+        const entry = entries.find(e => e.user_id === user.id)
+        setGroupLeaderEntry(entry || null)
+      })
+      .catch(() => {})
+  }, [isOffseason, offseasonGroup?.id, user?.id])
+
+  // Métricas do perfil para os stat chips
+  const profileStats = useMemo(() => {
+    if (!profileHistory.length) return null
+    const withRank = profileHistory.filter(h => h.rank != null)
+    const bestRank = withRank.length > 0 ? Math.min(...withRank.map(h => h.rank)) : null
+    const last = profileHistory[0]
+    return {
+      bestRank,
+      totalStages: profileHistory.length,
+      lastPts: last?.total_points,
+      lastRank: last?.rank,
+      lastChampName: last?.championship_name,
+    }
+  }, [profileHistory])
+
   const displayName = user?.display_name || user?.username
     || (user?.email ? user.email.split('@')[0] : 'jogador')
 
@@ -876,6 +1003,37 @@ export default function Dashboard() {
           <p style={{ fontSize: '22px', color: 'var(--color-xama-muted)', margin: 0 }}>
             Bem-vindo ao XAMA Fantasy — aqui está o resumo do seu fantasy.
           </p>
+
+          {/* Ideia 3 — Stat chips do perfil */}
+          {profileStats && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '16px' }}>
+              {profileStats.bestRank && (
+                <span style={{
+                  fontSize: '12px', fontWeight: 700, padding: '4px 12px', borderRadius: 20,
+                  background: 'rgba(240,192,64,0.1)', border: '1px solid rgba(240,192,64,0.25)',
+                  color: '#f0c040', fontFamily: 'JetBrains Mono, monospace',
+                }}>
+                  🏆 Melhor posição: #{profileStats.bestRank}
+                </span>
+              )}
+              <span style={{
+                fontSize: '12px', fontWeight: 700, padding: '4px 12px', borderRadius: 20,
+                background: 'rgba(148,163,184,0.08)', border: '1px solid rgba(148,163,184,0.15)',
+                color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace',
+              }}>
+                📅 {profileStats.totalStages} stage{profileStats.totalStages !== 1 ? 's' : ''} jogadas
+              </span>
+              {profileStats.lastPts != null && (
+                <span style={{
+                  fontSize: '12px', fontWeight: 700, padding: '4px 12px', borderRadius: 20,
+                  background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.2)',
+                  color: 'var(--color-xama-orange)', fontFamily: 'JetBrains Mono, monospace',
+                }}>
+                  🎯 Última: {profileStats.lastPts.toFixed(2)} pts{profileStats.lastRank ? ` · #${profileStats.lastRank}` : ''}
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* ── SEÇÃO 1 — CAMPEONATOS ATIVOS ── */}
@@ -944,6 +1102,83 @@ export default function Dashboard() {
                   </div>
                 )
               })}
+            </div>
+          </div>
+        )}
+
+        {/* ── SEÇÃO OFFSEASON — ENTRE TEMPORADAS (Ideia 1) ── */}
+        {isOffseason && (
+          <div style={{ marginBottom: '48px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px' }}>
+              <span style={{ fontSize: '20px' }}>☕</span>
+              <span style={{ fontSize: '19px', fontWeight: 700, letterSpacing: '0.08em', color: 'var(--color-xama-muted)', textTransform: 'uppercase' }}>
+                Entre Temporadas
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Card do último championship group */}
+              {offseasonGroup && (
+                <OffseasonGroupCard
+                  group={offseasonGroup}
+                  userEntry={groupLeaderEntry}
+                  navigate={navigate}
+                />
+              )}
+
+              {/* Card da última stage jogada */}
+              {pureLockedStages[0] && (() => {
+                const lastStage  = pureLockedStages[0]
+                const lastLineup = myLineups[lastStage.id]
+                const champ      = champMap[lastStage.id]
+                return (
+                  <div
+                    onClick={() => navigate(`/tournament/${lastStage.id}?tab=leaderboard`)}
+                    style={{
+                      background: 'var(--surface-1)',
+                      border: '1px solid rgba(255,255,255,0.06)',
+                      borderRadius: 'var(--radius-card)',
+                      padding: '14px 18px',
+                      display: 'flex', alignItems: 'center', gap: '16px',
+                      cursor: 'pointer', transition: 'border-color 0.15s, background 0.15s',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(249,115,22,0.3)'; e.currentTarget.style.background = 'rgba(249,115,22,0.03)' }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; e.currentTarget.style.background = 'var(--surface-1)' }}
+                  >
+                    <div style={{ flexShrink: 0, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.6 }}>
+                      <StageChampLogo champName={champ?.name} size={32} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-xama-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {lastStage.name}
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace', marginTop: '2px' }}>
+                        {champ?.name ? <span style={{ color: 'rgba(249,115,22,0.6)' }}>{champ.name}</span> : null}
+                        {champ?.name && ' · '}Último resultado
+                      </div>
+                    </div>
+                    <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+                      {lastLineup?.total_points != null ? (
+                        <>
+                          <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-xama-orange)', fontFamily: 'JetBrains Mono, monospace' }}>
+                            {fmt1(lastLineup.total_points)} pts
+                          </span>
+                          {lastLineup.rank && (
+                            <span style={{ fontSize: '11px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace' }}>
+                              #{lastLineup.rank}
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <span style={{ fontSize: '11px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace' }}>
+                          Ver resultados
+                        </span>
+                      )}
+                      <span style={{ color: 'var(--color-xama-muted)', fontSize: '16px' }}>›</span>
+                    </div>
+                  </div>
+                )
+              })()}
             </div>
           </div>
         )}
@@ -1075,7 +1310,7 @@ export default function Dashboard() {
 
         {/* ── SEÇÃO 5 — RESULTADOS ── */}
         {pureLockedStages.length > 0 && (
-          <CollapseSection title="Resultados" icon="📊" count={pureLockedStages.length} defaultOpen={false}>
+          <CollapseSection title="Resultados" icon="📊" count={pureLockedStages.length} defaultOpen={isOffseason}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {pureLockedStages.map(s => {
                 const lineup = myLineups[s.id]
