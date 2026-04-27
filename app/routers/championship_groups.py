@@ -14,7 +14,7 @@ GET /championship-groups/{id}/leaderboard
     todos os championships do grupo.
 
 GET /championship-groups/{id}/player-stats
-    Stats combinadas de jogadores — soma PersonStageStat de todos os
+    Stats combinadas de jogadores — agrega MatchStat de todos os
     stages de todos os championships do grupo.
 """
 from __future__ import annotations
@@ -28,9 +28,12 @@ from typing import Optional
 from app.database import get_db
 from app.models.championship_group import ChampionshipGroup, ChampionshipGroupMember
 from app.models.championship import Championship
+from app.models.match import Match
+from app.models.match_stat import MatchStat
+from app.models.roster import Roster
 from app.models.stage import Stage
+from app.models.stage_day import StageDay
 from app.models.person import Person
-from app.models.person_stage_stat import PersonStageStat
 from app.models.user import User
 from app.models.user_stat import UserStageStat
 
@@ -68,9 +71,16 @@ class GroupPlayerStatEntry(BaseModel):
     rank: int
     person_id: int
     display_name: str
+    team_name: Optional[str]
+    fantasy_cost: Optional[float]
     total_xama_points: float
     matches_played: int
     pts_per_match: Optional[float]
+    total_kills: int
+    total_assists: int
+    total_damage: float
+    total_knocks: int
+    total_wins: int
 
     model_config = {"from_attributes": True}
 
@@ -216,7 +226,9 @@ def get_group_player_stats(
     db: Session = Depends(get_db),
 ) -> list[GroupPlayerStatEntry]:
     """
-    Agrega PersonStageStat de todos os stages do grupo por jogador.
+    Agrega MatchStat de todos os stages do grupo por jogador.
+    Inclui kills, damage, assists, knocks, wins, além de xama_points.
+    team_name e fantasy_cost são buscados da stage mais recente do grupo.
     Ordena por total_xama_points DESC.
     """
     _get_group_or_404(group_id, db)
@@ -225,38 +237,81 @@ def get_group_player_stats(
     if not stage_ids:
         return []
 
-    rows = (
-        db.query(
-            PersonStageStat.person_id.label("person_id"),
-            func.sum(PersonStageStat.total_xama_points).label("total_xama_points"),
-            func.sum(PersonStageStat.matches_played).label("matches_played"),
-        )
-        .filter(PersonStageStat.stage_id.in_(stage_ids))
-        .group_by(PersonStageStat.person_id)
-        .order_by(func.sum(PersonStageStat.total_xama_points).desc())
-        .limit(limit)
+    # Agrega MatchStat via Match → StageDay → stage_id
+    stat_rows = (
+        db.query(MatchStat)
+        .join(Match, MatchStat.match_id == Match.id)
+        .join(StageDay, Match.stage_day_id == StageDay.id)
+        .filter(StageDay.stage_id.in_(stage_ids))
         .all()
     )
 
-    person_ids = [r.person_id for r in rows]
+    if not stat_rows:
+        return []
+
+    from collections import defaultdict
+    agg: dict[int, dict] = defaultdict(lambda: {
+        "xama_points": 0.0,
+        "matches": 0,
+        "kills": 0,
+        "assists": 0,
+        "damage": 0.0,
+        "knocks": 0,
+        "wins": 0,
+    })
+
+    for ms in stat_rows:
+        a = agg[ms.person_id]
+        a["xama_points"] += float(ms.xama_points or 0)
+        a["matches"] += 1
+        a["kills"] += int(ms.kills or 0)
+        a["assists"] += int(ms.assists or 0)
+        a["damage"] += float(ms.damage or 0)
+        a["knocks"] += int(ms.knocks or 0)
+        if ms.placement == 1:
+            a["wins"] += 1
+
+    # team_name e fantasy_cost: busca do stage mais recente do grupo
+    latest_stage_id = max(stage_ids)
+    person_ids = list(agg.keys())
+    rosters = (
+        db.query(Roster)
+        .filter(Roster.stage_id == latest_stage_id, Roster.person_id.in_(person_ids))
+        .all()
+    )
+    cost_map = {r.person_id: r.effective_cost for r in rosters}
+    team_map = {r.person_id: r.team_name for r in rosters if r.team_name}
+
     name_map = {
         p.id: p.display_name
         for p in db.query(Person).filter(Person.id.in_(person_ids)).all()
     }
 
     result = []
-    for idx, r in enumerate(rows):
-        total = float(r.total_xama_points or 0)
-        played = int(r.matches_played or 0)
-        ppm = round(total / played, 4) if played > 0 else None
+    for person_id, a in agg.items():
+        total = round(a["xama_points"], 2)
+        played = a["matches"]
+        ppm = round(total / played, 2) if played > 0 else None
         result.append(
             GroupPlayerStatEntry(
-                rank=idx + 1,
-                person_id=r.person_id,
-                display_name=name_map.get(r.person_id, "—"),
+                rank=0,  # preenchido após sort
+                person_id=person_id,
+                display_name=name_map.get(person_id, "—"),
+                team_name=team_map.get(person_id),
+                fantasy_cost=cost_map.get(person_id),
                 total_xama_points=total,
                 matches_played=played,
                 pts_per_match=ppm,
+                total_kills=a["kills"],
+                total_assists=a["assists"],
+                total_damage=round(a["damage"], 1),
+                total_knocks=a["knocks"],
+                total_wins=a["wins"],
             )
         )
+
+    result.sort(key=lambda x: x.total_xama_points, reverse=True)
+    result = result[:limit]
+    for idx, entry in enumerate(result):
+        entry.rank = idx + 1
     return result
