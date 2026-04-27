@@ -1,7 +1,9 @@
 // frontend/src/pages/Championships.jsx
 // XAMA Fantasy — Listagem de championships com stages aninhadas
 // Consome: GET /championships/?include_inactive=true
+//          GET /championship-groups/ (grupos vindos da API)
 // Navega para: /tournament/:stageId (TournamentHub)
+//              /group/:id (ChampionshipGroupDetail)
 
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -9,25 +11,6 @@ import { useAuth } from '../App'
 import { API_BASE_URL } from '../config'
 import Navbar from '../components/Navbar'
 import { STATUS_COLOR, statusConfig } from '../utils/statusColors'
-
-// ── Tournament Groups Config ───────────────────────────────────────────────────
-// Championships cujos nomes contenham os padrões abaixo são agrupados num
-// card pai. Os que não baterem em nenhum grupo ficam standalone (comportamento antigo).
-
-const TOURNAMENT_GROUPS = [
-  {
-    key: 'pas-2026-s1',
-    displayName: 'PUBG Americas Series 1 2026',
-    shortName: 'PAS',
-    matches: name => name.toUpperCase().includes('PAS') || /americas series/i.test(name),
-  },
-  {
-    key: 'pec-2026-spring',
-    displayName: 'PUBG EMEA Championship: 2026 Spring',
-    shortName: 'PEC',
-    matches: name => name.toUpperCase().includes('PEC') || /emea/i.test(name),
-  },
-]
 
 // ── Helpers de data ───────────────────────────────────────────────────────────
 
@@ -331,6 +314,9 @@ function ArchivedSubCard({ championship, navigate }) {
 // Card pai que agrupa championships de um mesmo torneio
 
 function TournamentGroupCard({ group, championships, navigate }) {
+  // group pode ter { key, displayName, shortName } (legado) ou
+  // { id, name, short_name, ... } (vindo da API)
+  const groupId = group.id ?? null
   const hasOpen     = championships.some(c => c.stages.some(s => s.lineup_status === 'open'))
   const hasLive     = championships.some(c => c.stages.some(s => s.stage_phase === 'live'))
   const hasPreview  = championships.some(c => c.stages.some(s => s.stage_phase === 'preview'))
@@ -354,6 +340,8 @@ function TournamentGroupCard({ group, championships, navigate }) {
     return aOpen - bOpen
   })
 
+  const displayName = group.displayName ?? group.name
+  const shortName   = group.shortName   ?? group.short_name
   const borderColor = hasOpen
     ? 'rgba(74,222,128,0.2)'
     : hasLive ? 'rgba(249,115,22,0.2)'
@@ -380,14 +368,14 @@ function TournamentGroupCard({ group, championships, navigate }) {
 
       {/* Cabeçalho do torneio pai */}
       <div style={{ padding: '22px 22px 14px', display: 'flex', alignItems: 'center', gap: 16 }}>
-        <ChampLogo name={group.shortName} size={52} />
+        <ChampLogo name={shortName} size={52} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{
             fontSize: 22, fontWeight: 800, color: 'var(--color-xama-text)',
             lineHeight: 1.2,
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           }}>
-            {group.displayName}
+            {displayName}
           </div>
           <div style={{
             fontSize: 12, color: 'var(--color-xama-muted)', marginTop: 4,
@@ -402,6 +390,30 @@ function TournamentGroupCard({ group, championships, navigate }) {
             {allFinished && <span style={{ marginLeft: 8, color: 'var(--color-xama-muted)' }}>• encerrado</span>}
           </div>
         </div>
+
+        {/* Botão de leaderboard unificado — só aparece se o grupo veio da API (tem id) */}
+        {groupId && (
+          <button
+            onClick={e => { e.stopPropagation(); navigate(`/group/${groupId}`) }}
+            style={{
+              flexShrink: 0,
+              padding: '7px 14px',
+              background: 'rgba(249,115,22,0.1)',
+              border: '1px solid rgba(249,115,22,0.35)',
+              borderRadius: 8,
+              color: 'var(--color-xama-orange)',
+              fontSize: 12, fontWeight: 700, cursor: 'pointer',
+              fontFamily: "'JetBrains Mono', monospace",
+              letterSpacing: '0.05em',
+              transition: 'background 0.15s',
+              whiteSpace: 'nowrap',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(249,115,22,0.18)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'rgba(249,115,22,0.1)'}
+          >
+            🏆 Ranking
+          </button>
+        )}
       </div>
 
       {/* Conteúdo interno */}
@@ -510,32 +522,43 @@ export default function Championships() {
   const navigate = useNavigate()
 
   const [championships, setChampionships] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [showInactive, setShowInactive] = useState(false)
+  const [apiGroups, setApiGroups]         = useState([])   // grupos vindos da API
+  const [loading, setLoading]             = useState(true)
+  const [error, setError]                 = useState('')
+  const [showInactive, setShowInactive]   = useState(false)
 
   useEffect(() => {
     setLoading(true)
-    fetch(`${API_BASE_URL}/championships/?include_inactive=true`)
-      .then(r => r.ok ? r.json() : Promise.reject(`HTTP ${r.status}`))
-      .then(data => { setChampionships(Array.isArray(data) ? data : []); setLoading(false) })
+    Promise.all([
+      fetch(`${API_BASE_URL}/championships/?include_inactive=true`).then(r => r.ok ? r.json() : []),
+      fetch(`${API_BASE_URL}/championship-groups/`).then(r => r.ok ? r.json() : []),
+    ])
+      .then(([champsData, groupsData]) => {
+        setChampionships(Array.isArray(champsData) ? champsData : [])
+        setApiGroups(Array.isArray(groupsData) ? groupsData : [])
+        setLoading(false)
+      })
       .catch(() => { setError('Erro ao carregar campeonatos'); setLoading(false) })
   }, [])
 
   // ── Agrupamento ──────────────────────────────────────────────────────────────
+  // Prioridade: grupos da API (championship_ids). Championships não presentes em
+  // nenhum grupo ficam standalone.
 
-  const groupMap = {}   // key -> { group, championships: [] }
-  const ungrouped = []
+  const groupedChampionshipIds = new Set(
+    apiGroups.flatMap(g => g.championship_ids ?? [])
+  )
 
-  championships.forEach(c => {
-    const group = TOURNAMENT_GROUPS.find(g => g.matches(c.name))
-    if (group) {
-      if (!groupMap[group.key]) groupMap[group.key] = { group, championships: [] }
-      groupMap[group.key].championships.push(c)
-    } else {
-      ungrouped.push(c)
+  // Monta mapa key -> { group, championships: [] } para os grupos da API
+  const groupMap = {}
+  apiGroups.forEach(g => {
+    const groupChamps = championships.filter(c => (g.championship_ids ?? []).includes(c.id))
+    if (groupChamps.length > 0) {
+      groupMap[`api-${g.id}`] = { group: g, championships: groupChamps }
     }
   })
+
+  const ungrouped = championships.filter(c => !groupedChampionshipIds.has(c.id))
 
   const isGroupActive = entry =>
     entry.championships.some(c =>
@@ -545,8 +568,11 @@ export default function Championships() {
   const activeGroups   = Object.values(groupMap).filter(isGroupActive)
   const finishedGroups = Object.values(groupMap).filter(e => !isGroupActive(e))
 
-  // Ordena grupos ativos: aqueles com lineup open primeiro
+  // Ordena grupos ativos: display_order da API primeiro, depois open
   const sortedActiveGroups = [...activeGroups].sort((a, b) => {
+    const aOrder = a.group.display_order ?? 99
+    const bOrder = b.group.display_order ?? 99
+    if (aOrder !== bOrder) return aOrder - bOrder
     const aOpen = a.championships.some(c => c.stages.some(s => s.lineup_status === 'open')) ? 0 : 1
     const bOpen = b.championships.some(c => c.stages.some(s => s.lineup_status === 'open')) ? 0 : 1
     return aOpen - bOpen

@@ -56,6 +56,9 @@ function RosterPanel({ stage, token }) {
   // edit inline
   const [editingId, setEditingId] = useState(null)
   const [editTeam, setEditTeam] = useState('')
+  // reprocess
+  const [reprocessing, setReprocessing] = useState(false)
+  const [reprocessResult, setReprocessResult] = useState(null)
 
   const refresh = useCallback(() => {
     setLoading(true)
@@ -115,6 +118,19 @@ function RosterPanel({ stage, token }) {
     } catch (e) { setMsg('!' + e.message) }
   }
 
+  const handleReprocessAll = async () => {
+    if (!confirm(`Reprocessar TODAS as partidas do stage "${stage.name}"?\nIsso rebusca cada partida da API da PUBG e recalcula as stats com o roster atual.`)) return
+    setReprocessing(true); setReprocessResult(null); setMsg('')
+    try {
+      const res = await call('POST', `/admin/stages/${stage.id}/reprocess-all-matches`)
+      setReprocessResult(res)
+      const skipped = res.players_skipped_total > 0 ? `, ${res.players_skipped_total} jogadores não resolvidos` : ''
+      const errs = res.matches_errored > 0 ? `, ${res.matches_errored} erros` : ''
+      setMsg(`${res.matches_ok}/${res.matches_total} partidas reprocessadas${skipped}${errs}`)
+    } catch (e) { setMsg('!' + e.message) }
+    finally { setReprocessing(false) }
+  }
+
   const handleAddPlayer = async (person) => {
     if (!addTeam.trim()) { setMsg('!Informe o nome do time antes de adicionar.'); return }
     try {
@@ -161,10 +177,49 @@ function RosterPanel({ stage, token }) {
             {msg.startsWith('!') ? msg.slice(1) : msg}
           </span>
         )}
-        <button onClick={() => { setMsg(''); refresh() }} style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--color-xama-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
-          ↺ Recarregar
-        </button>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
+          <button onClick={() => { setMsg(''); refresh() }} style={{ fontSize: 11, color: 'var(--color-xama-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
+            ↺ Recarregar
+          </button>
+          <button
+            onClick={handleReprocessAll}
+            disabled={reprocessing}
+            style={{
+              fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 6,
+              background: reprocessing ? 'rgba(99,102,241,0.05)' : 'rgba(99,102,241,0.1)',
+              color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.35)',
+              cursor: reprocessing ? 'default' : 'pointer', transition: 'all 0.15s',
+            }}
+          >
+            {reprocessing ? '⟳ Reprocessando...' : '⟳ Reprocessar Partidas'}
+          </button>
+        </div>
       </div>
+
+      {/* Resultado do reprocess */}
+      {reprocessResult && (
+        <div style={{
+          marginBottom: 12, padding: '10px 14px', borderRadius: 8,
+          background: reprocessResult.matches_errored > 0 ? 'rgba(239,68,68,0.07)' : 'rgba(99,102,241,0.07)',
+          border: `1px solid ${reprocessResult.matches_errored > 0 ? 'rgba(239,68,68,0.25)' : 'rgba(99,102,241,0.25)'}`,
+          fontSize: 12, fontFamily: 'JetBrains Mono, monospace',
+          color: reprocessResult.matches_errored > 0 ? '#f87171' : '#a5b4fc',
+        }}>
+          <div style={{ fontWeight: 700, marginBottom: 4 }}>
+            {reprocessResult.matches_ok}/{reprocessResult.matches_total} partidas OK
+            {reprocessResult.players_skipped_total > 0 && ` · ${reprocessResult.players_skipped_total} jogadores sem conta mapeada`}
+            {reprocessResult.matches_errored > 0 && ` · ${reprocessResult.matches_errored} erros`}
+          </div>
+          <div style={{ color: 'var(--color-xama-muted)' }}>
+            Total XAMA: {reprocessResult.total_pts?.toFixed(2)} pts
+            {reprocessResult.players_skipped_total > 0 && (
+              <span style={{ color: '#f87171', marginLeft: 12 }}>
+                ⚠ Jogadores não resolvidos — verifique o roster e mapeamento de contas PUBG
+              </span>
+            )}
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div style={{ fontSize: 13, color: 'var(--color-xama-muted)', marginBottom: 16 }}>Carregando...</div>

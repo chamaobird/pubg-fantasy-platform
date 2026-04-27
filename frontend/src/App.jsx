@@ -15,6 +15,7 @@ import AppBackground from './components/AppBackground'
 import Admin from './pages/Admin'
 import Leagues from './pages/Leagues'
 import LeagueDetail from './pages/LeagueDetail'
+import ChampionshipGroupDetail from './pages/ChampionshipGroupDetail'
 
 export const AuthContext = createContext(null)
 export const useAuth = () => useContext(AuthContext)
@@ -122,6 +123,11 @@ export default function App() {
           } />
           <Route path="/leagues/:id" element={
             <RequireAuth><LeagueDetail /></RequireAuth>
+          } />
+
+          {/* Championship Groups */}
+          <Route path="/group/:id" element={
+            <RequireAuth><ChampionshipGroupDetail /></RequireAuth>
           } />
 
           {/* Redirect legado */}

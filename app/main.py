@@ -19,6 +19,7 @@ from app.routers.lineups import router as lineups_router
 from app.jobs.lineup_control import run_lineup_control
 from app.routers.stages import router as stages_router
 from app.routers.championships import router as championships_router
+from app.routers.championship_groups import router as championship_groups_router
 from app.routers.profile import router as profile_router
 from app.routers.achievements import router as achievements_router
 from app.routers.leagues import router as leagues_router
@@ -216,6 +217,7 @@ app.include_router(admin_import.router)
 app.include_router(lineups_router)
 app.include_router(stages_router)
 app.include_router(championships_router)
+app.include_router(championship_groups_router)
 app.include_router(profile_router)
 app.include_router(achievements_router)
 app.include_router(leagues_router)
