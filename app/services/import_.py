@@ -75,8 +75,13 @@ class MatchImportResult:
     match_id:      Optional[int] = None
     players_ok:    int = 0
     players_skipped: int = 0
+    unresolved_aliases: list = None   # aliases que não foram resolvidos para nenhum Person
     total_pts:     float = 0.0
     error:         Optional[str] = None
+
+    def __post_init__(self):
+        if self.unresolved_aliases is None:
+            self.unresolved_aliases = []
 
 
 # ---------------------------------------------------------------------------
@@ -150,22 +155,26 @@ def import_stage_matches(
         stage_id, imported, reprocessed, skipped, len(errors),
     )
 
+    all_unresolved = sorted({a for r in results for a in r.unresolved_aliases})
+
     return {
-        "stage_id":    stage_id,
-        "shard":       shard,
-        "total":       len(pubg_match_ids),
-        "imported":    imported,
-        "reprocessed": reprocessed,
-        "skipped":     skipped,
-        "errors":      [{"match_id": e.pubg_match_id, "error": e.error} for e in errors],
-        "matches":     [
+        "stage_id":          stage_id,
+        "shard":             shard,
+        "total":             len(pubg_match_ids),
+        "imported":          imported,
+        "reprocessed":       reprocessed,
+        "skipped":           skipped,
+        "unresolved_players": all_unresolved,
+        "errors":            [{"match_id": e.pubg_match_id, "error": e.error} for e in errors],
+        "matches":           [
             {
-                "pubg_match_id":    r.pubg_match_id,
-                "status":          r.status,
-                "match_id":        r.match_id,
-                "players_ok":      r.players_ok,
-                "players_skipped": r.players_skipped,
-                "total_pts":       r.total_pts,
+                "pubg_match_id":     r.pubg_match_id,
+                "status":           r.status,
+                "match_id":         r.match_id,
+                "players_ok":       r.players_ok,
+                "players_skipped":  r.players_skipped,
+                "unresolved":       r.unresolved_aliases,
+                "total_pts":        r.total_pts,
             }
             for r in results
         ],
@@ -351,12 +360,13 @@ def _import_single_match(
     )
 
     return MatchImportResult(
-        pubg_match_id   = pubg_match_id,
-        status          = status,
-        match_id        = match.id,
-        players_ok      = summary["players_processed"],
-        players_skipped = len(unresolved),
-        total_pts       = summary["total_points_awarded"],
+        pubg_match_id      = pubg_match_id,
+        status             = status,
+        match_id           = match.id,
+        players_ok         = summary["players_processed"],
+        players_skipped    = len(unresolved),
+        unresolved_aliases = unresolved,
+        total_pts          = summary["total_points_awarded"],
     )
 
 

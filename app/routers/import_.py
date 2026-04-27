@@ -192,15 +192,19 @@ def reprocess_all_matches_endpoint(
     total_skip  = sum(r.get("players_skipped", 0) for r in results)
     total_pts   = sum(r.get("total_pts", 0.0) for r in results)
 
+    # Agrega aliases únicos não resolvidos em todos os matches
+    all_unresolved = sorted({a for r in results for a in r.get("unresolved", [])})
+
     return {
-        "stage_id":        stage_id,
-        "matches_total":   len(rows),
-        "matches_ok":      total_ok,
-        "matches_errored": len(errors),
+        "stage_id":              stage_id,
+        "matches_total":         len(rows),
+        "matches_ok":            total_ok,
+        "matches_errored":       len(errors),
         "players_skipped_total": total_skip,
-        "total_pts":       round(total_pts, 2),
-        "errors":          errors,
-        "matches":         results,
+        "unresolved_players":    all_unresolved,
+        "total_pts":             round(total_pts, 2),
+        "errors":                errors,
+        "matches":               results,
     }
 
 

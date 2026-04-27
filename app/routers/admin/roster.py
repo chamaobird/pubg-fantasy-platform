@@ -166,6 +166,71 @@ def update_roster_entry(
     return roster
 
 
+@router.get("/preflight")
+def preflight_roster(
+    stage_id: int,
+    db: Session = Depends(get_db),
+    _admin: User = Depends(require_admin),
+):
+    """
+    Valida o roster da stage antes de importar partidas.
+
+    Para cada jogador ativo (is_available=True), verifica se existe um
+    PlayerAccount com account_id real (não PENDING_*) no shard da stage.
+
+    Retorna lista de jogadores problemáticos:
+      - sem_conta: não tem nenhum PlayerAccount no shard correto
+      - pendente:  tem apenas accounts PENDING_* (nunca resolvido pela API)
+    """
+    from app.models.player_account import PlayerAccount
+
+    stage = _get_stage_or_404(db, stage_id)
+    shard = stage.shard
+
+    roster_rows = (
+        db.query(Roster)
+        .join(Person, Roster.person_id == Person.id)
+        .filter(Roster.stage_id == stage_id, Roster.is_available == True)
+        .all()
+    )
+
+    issues = []
+    for r in roster_rows:
+        accounts = (
+            db.query(PlayerAccount)
+            .filter(
+                PlayerAccount.person_id == r.person_id,
+                PlayerAccount.shard == shard,
+            )
+            .all()
+        )
+
+        real_accounts   = [a for a in accounts if not a.account_id.startswith("PENDING_")]
+        pending_accounts = [a for a in accounts if a.account_id.startswith("PENDING_")]
+
+        if real_accounts:
+            continue  # OK — tem pelo menos uma conta real
+
+        person = db.query(Person).filter(Person.id == r.person_id).first()
+        issues.append({
+            "roster_id":   r.id,
+            "person_id":   r.person_id,
+            "person_name": person.display_name if person else str(r.person_id),
+            "team_name":   r.team_name,
+            "status":      "pendente" if pending_accounts else "sem_conta",
+            "pending_ids": [a.account_id for a in pending_accounts],
+        })
+
+    return {
+        "stage_id":     stage_id,
+        "shard":        shard,
+        "total_active": len(roster_rows),
+        "issues_count": len(issues),
+        "ok":           len(issues) == 0,
+        "issues":       issues,
+    }
+
+
 @router.get("/teams", response_model=list[TeamInRoster])
 def list_teams_in_roster(
     stage_id: int,

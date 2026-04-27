@@ -88,6 +88,9 @@ function RosterPanel({ stage, token }) {
   // reprocess
   const [reprocessing, setReprocessing] = useState(false)
   const [reprocessResult, setReprocessResult] = useState(null)
+  // preflight
+  const [preflighting, setPreflighting] = useState(false)
+  const [preflightResult, setPreflightResult] = useState(null)
 
   const refresh = useCallback(() => {
     setLoading(true)
@@ -145,6 +148,15 @@ function RosterPanel({ stage, token }) {
       setRoster(prev => prev.map(x => x.id === r.id ? { ...x, team_name: editTeam || null } : x))
       setEditingId(null)
     } catch (e) { setMsg('!' + e.message) }
+  }
+
+  const handlePreflight = async () => {
+    setPreflighting(true); setPreflightResult(null)
+    try {
+      const res = await call('GET', `/admin/stages/${stage.id}/roster/preflight`)
+      setPreflightResult(res)
+    } catch (e) { setMsg('!' + e.message) }
+    finally { setPreflighting(false) }
   }
 
   const handleReprocessAll = async () => {
@@ -211,6 +223,18 @@ function RosterPanel({ stage, token }) {
             ↺ Recarregar
           </button>
           <button
+            onClick={handlePreflight}
+            disabled={preflighting}
+            style={{
+              fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 6,
+              background: preflighting ? 'rgba(249,115,22,0.03)' : 'rgba(249,115,22,0.08)',
+              color: 'var(--color-xama-orange)', border: '1px solid rgba(249,115,22,0.35)',
+              cursor: preflighting ? 'default' : 'pointer', transition: 'all 0.15s',
+            }}
+          >
+            {preflighting ? '⚙ Verificando...' : '⚙ Preflight'}
+          </button>
+          <button
             onClick={handleReprocessAll}
             disabled={reprocessing}
             style={{
@@ -225,6 +249,47 @@ function RosterPanel({ stage, token }) {
         </div>
       </div>
 
+      {/* Resultado do preflight */}
+      {preflightResult && (
+        <div style={{
+          marginBottom: 12, padding: '10px 14px', borderRadius: 8,
+          background: preflightResult.ok ? 'rgba(74,222,128,0.05)' : 'rgba(249,115,22,0.07)',
+          border: `1px solid ${preflightResult.ok ? 'rgba(74,222,128,0.25)' : 'rgba(249,115,22,0.35)'}`,
+          fontSize: 12, fontFamily: 'JetBrains Mono, monospace',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: preflightResult.issues?.length > 0 ? 8 : 0 }}>
+            <span style={{ fontWeight: 700, color: preflightResult.ok ? 'var(--color-xama-green)' : 'var(--color-xama-orange)' }}>
+              {preflightResult.ok
+                ? `✓ Preflight OK — ${preflightResult.total_active} jogadores com conta ${preflightResult.shard} vinculada`
+                : `⚠ ${preflightResult.issues_count} jogador${preflightResult.issues_count !== 1 ? 'es' : ''} sem conta ${preflightResult.shard} válida`
+              }
+            </span>
+            <button onClick={() => setPreflightResult(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-xama-muted)', fontSize: 13 }}>✕</button>
+          </div>
+          {preflightResult.issues?.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {preflightResult.issues.map(issue => (
+                <div key={issue.roster_id} style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '5px 8px', borderRadius: 6,
+                  background: issue.status === 'pendente' ? 'rgba(249,115,22,0.06)' : 'rgba(239,68,68,0.06)',
+                  border: `1px solid ${issue.status === 'pendente' ? 'rgba(249,115,22,0.2)' : 'rgba(239,68,68,0.2)'}`,
+                }}>
+                  <span style={{ fontWeight: 700, color: issue.status === 'pendente' ? 'var(--color-xama-orange)' : '#f87171', minWidth: 68 }}>
+                    {issue.status === 'pendente' ? 'PENDENTE' : 'SEM CONTA'}
+                  </span>
+                  <span style={{ color: 'var(--color-xama-text)', flex: 1 }}>{issue.person_name}</span>
+                  <span style={{ color: 'var(--color-xama-muted)' }}>{issue.team_name}</span>
+                  {issue.pending_ids?.length > 0 && (
+                    <span style={{ color: 'rgba(249,115,22,0.6)', fontSize: 10 }}>{issue.pending_ids[0]}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Resultado do reprocess */}
       {reprocessResult && (
         <div style={{
@@ -236,17 +301,28 @@ function RosterPanel({ stage, token }) {
         }}>
           <div style={{ fontWeight: 700, marginBottom: 4 }}>
             {reprocessResult.matches_ok}/{reprocessResult.matches_total} partidas OK
-            {reprocessResult.players_skipped_total > 0 && ` · ${reprocessResult.players_skipped_total} jogadores sem conta mapeada`}
+            {reprocessResult.players_skipped_total > 0 && ` · ${reprocessResult.players_skipped_total} skippados`}
             {reprocessResult.matches_errored > 0 && ` · ${reprocessResult.matches_errored} erros`}
           </div>
-          <div style={{ color: 'var(--color-xama-muted)' }}>
+          <div style={{ color: 'var(--color-xama-muted)', marginBottom: reprocessResult.unresolved_players?.length > 0 ? 6 : 0 }}>
             Total XAMA: {reprocessResult.total_pts?.toFixed(2)} pts
-            {reprocessResult.players_skipped_total > 0 && (
-              <span style={{ color: '#f87171', marginLeft: 12 }}>
-                ⚠ Jogadores não resolvidos — verifique o roster e mapeamento de contas PUBG
-              </span>
-            )}
           </div>
+          {reprocessResult.unresolved_players?.length > 0 && (
+            <div>
+              <div style={{ color: '#f87171', fontWeight: 700, marginBottom: 4 }}>
+                ⚠ {reprocessResult.unresolved_players.length} alias não resolvido{reprocessResult.unresolved_players.length !== 1 ? 's' : ''} (sem conta mapeada):
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                {reprocessResult.unresolved_players.map(alias => (
+                  <span key={alias} style={{
+                    padding: '2px 8px', borderRadius: 4, fontSize: 11,
+                    background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
+                    color: '#f87171',
+                  }}>{alias}</span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
