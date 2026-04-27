@@ -62,26 +62,29 @@ function useCountdown(targetIso) {
   return remaining
 }
 
-function CountdownBadge({ targetIso }) {
+function CountdownBadge({ targetIso, mode = 'close' }) {
+  // mode='close' → "Fecha em" (prazo de edição do lineup)
+  // mode='open'  → "Abre em"  (seção preview — conta até o lineup abrir)
   const r = useCountdown(targetIso)
   if (!r) return null
 
+  const verb = mode === 'open' ? 'Abre em' : 'Fecha em'
   let label, color, bg, border
   if (r.diff > 24 * 3_600_000) {
-    label = `Fecha em ${r.days}d ${r.hours}h`
+    label = `${verb} ${r.days}d ${r.hours}h`
     color = 'var(--color-xama-muted)'
     bg    = 'rgba(148,163,184,0.06)'
     border = 'rgba(148,163,184,0.15)'
   } else if (r.diff > 3_600_000) {
-    label = `Fecha em ${r.hours}h ${r.mins}min`
+    label = `${verb} ${r.hours}h ${r.mins}min`
     color = 'var(--color-xama-orange)'
     bg    = 'rgba(249,115,22,0.08)'
     border = 'rgba(249,115,22,0.25)'
   } else {
-    label = `⚠ Fecha em ${r.hours > 0 ? `${r.hours}h ` : ''}${r.mins}min`
-    color = '#f87171'
-    bg    = 'rgba(248,113,113,0.08)'
-    border = 'rgba(248,113,113,0.25)'
+    label = `⚠ ${verb} ${r.hours > 0 ? `${r.hours}h ` : ''}${r.mins}min`
+    color = mode === 'open' ? 'var(--color-xama-orange)' : '#f87171'
+    bg    = mode === 'open' ? 'rgba(249,115,22,0.08)' : 'rgba(248,113,113,0.08)'
+    border = mode === 'open' ? 'rgba(249,115,22,0.25)' : 'rgba(248,113,113,0.25)'
   }
 
   return (
@@ -96,6 +99,15 @@ function CountdownBadge({ targetIso }) {
   )
 }
 
+// start_date / end_date são "datas de jogo" — armazenados como TIMESTAMPTZ midnight UTC.
+// Ao usar new Date("2026-05-01T00:00:00Z") o browser converte para fuso local e mostra "30 abr".
+// Solução: parsear a parte YYYY-MM-DD como data local (sem deslocamento UTC).
+function parseDateLocal(iso) {
+  if (!iso) return null
+  const [y, m, d] = iso.substring(0, 10).split('-').map(Number)
+  return new Date(y, m - 1, d) // midnight local — sem shift de fuso
+}
+
 // Formata "Qui, 17 abr" a partir de ISO string
 function fmtDateFull(iso) {
   if (!iso) return null
@@ -106,7 +118,7 @@ function fmtDateFull(iso) {
   })
 }
 
-// Formata "21:00" no fuso de Brasília
+// Formata "21:00" no fuso local
 function fmtTime(iso) {
   if (!iso) return null
   return new Date(iso).toLocaleTimeString('pt-BR', {
@@ -115,26 +127,34 @@ function fmtTime(iso) {
   })
 }
 
-// "Qui, 17 abr · 21:00" — usa start_date preferencial, fallback lineup_open_at
+// "Qui, 1 mai · 21:00"
+// start_date → mostra só a data local (sem hora, evita shift de fuso)
+// lineup_open_at → datetime completo, mostra hora
 function buildDateLabel(stage) {
-  const src = stage.start_date || stage.lineup_open_at
+  if (stage.start_date) {
+    const d = parseDateLocal(stage.start_date)
+    return d.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' })
+  }
+  const src = stage.lineup_open_at
   if (!src) return null
   const date = fmtDateFull(src)
   const time = fmtTime(src)
   return time ? `${date} · ${time}` : date
 }
 
-// Range "17–19 abr" para stages multi-dia
+// Range "1–3 mai" para stages multi-dia
 function buildDateRange(stage) {
-  const start = stage.start_date || stage.lineup_open_at
-  const end   = stage.end_date   || stage.lineup_close_at
+  const startD = stage.start_date ? parseDateLocal(stage.start_date) : null
+  const endD   = stage.end_date   ? parseDateLocal(stage.end_date)   : null
+  const start  = startD || (stage.lineup_open_at ? new Date(stage.lineup_open_at) : null)
+  const end    = endD   || (stage.lineup_close_at ? new Date(stage.lineup_close_at) : null)
   if (!start) return null
-  const d1 = new Date(start).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
+  const d1 = start.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
   if (!end) return d1
-  const endDay   = new Date(end).toLocaleDateString('pt-BR', { day: '2-digit' })
-  const endMonth = new Date(end).toLocaleDateString('pt-BR', { month: 'short' })
-  const startDay = new Date(start).toLocaleDateString('pt-BR', { day: '2-digit' })
-  const startMonth = new Date(start).toLocaleDateString('pt-BR', { month: 'short' })
+  const endDay    = end.toLocaleDateString('pt-BR', { day: '2-digit' })
+  const endMonth  = end.toLocaleDateString('pt-BR', { month: 'short' })
+  const startDay  = start.toLocaleDateString('pt-BR', { day: '2-digit' })
+  const startMonth = start.toLocaleDateString('pt-BR', { month: 'short' })
   if (startMonth === endMonth) return `${startDay}–${endDay} ${startMonth}`
   return `${startDay} ${startMonth} – ${endDay} ${endMonth}`
 }
@@ -1224,7 +1244,7 @@ export default function Dashboard() {
                         {dateLabel && <span>{dateLabel}</span>}
                       </div>
                       <div style={{ marginTop: '6px' }}>
-                        <CountdownBadge targetIso={s.lineup_open_at} />
+                        <CountdownBadge targetIso={s.lineup_open_at} mode="open" />
                       </div>
                     </div>
                     <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>

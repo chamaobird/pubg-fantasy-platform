@@ -862,20 +862,28 @@ export default function AdminStages({ token }) {
             </Field>
           </div>
 
+          {/* Bloco de datas com hint explicativo */}
+          <div style={{ background: 'rgba(249,115,22,0.04)', border: '1px solid rgba(249,115,22,0.15)', borderRadius: 8, padding: '12px 14px', fontSize: 11, color: 'var(--color-xama-muted)', lineHeight: 1.6 }}>
+            <span style={{ color: 'var(--color-xama-orange)', fontWeight: 700 }}>LINEUP ABRE/FECHA</span>
+            {' '}— quando os usuários podem editar o lineup (ex: abre hoje, fecha antes das partidas).{' '}
+            <span style={{ color: 'var(--color-xama-orange)', fontWeight: 700 }}>DATA INÍCIO/FIM</span>
+            {' '}— datas das partidas (ex: 01/05 – 03/05). Esses campos são independentes.
+          </div>
+
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <Field label="Lineup abre em">
+            <Field label="Lineup abre em (quando users podem montar)">
               <input style={inputStyle} type="datetime-local" value={form.lineup_open_at} onChange={f('lineup_open_at')} />
             </Field>
-            <Field label="Lineup fecha em">
+            <Field label="Lineup fecha em (prazo final de edição)">
               <input style={inputStyle} type="datetime-local" value={form.lineup_close_at} onChange={f('lineup_close_at')} />
             </Field>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <Field label="Data de início">
+            <Field label="Data de início (1ª partida)">
               <input style={inputStyle} type="date" value={form.start_date} onChange={f('start_date')} />
             </Field>
-            <Field label="Data de fim">
+            <Field label="Data de fim (última partida)">
               <input style={inputStyle} type="date" value={form.end_date} onChange={f('end_date')} />
             </Field>
           </div>
