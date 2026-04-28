@@ -1,7 +1,7 @@
 // frontend/src/components/TournamentLeaderboard.jsx
 // XAMA Fantasy — Leaderboard com filtro hierárquico por campeonato/fase/dia
 
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { API_BASE_URL } from '../config'
 import TeamLogo from './TeamLogo'
 import { formatTeamTag } from '../utils/teamUtils'
@@ -115,11 +115,14 @@ export default function TournamentLeaderboard({
   const [submissions,        setSubmissions]  = useState([])
   const [submissionsLoading, setSubLoading]   = useState(false)
 
-  // Modal: ver time de outro manager (apenas quando locked)
+  // Modo Espectador — visível quando locked/live (lineup fechado para edição)
   const isLocked = lineupStatus === 'locked' || lineupStatus === 'live'
-  const [viewUser,      setViewUser]      = useState(null)   // { userId, username }
-  const [userLineups,   setUserLineups]   = useState([])
-  const [lineupLoading, setLineupLoading] = useState(false)
+  const [viewUser, setViewUser] = useState(null)   // { userId, username }
+
+  // Stages relevantes para o modal (baseado na seleção do leaderboard)
+  const selectedStageIds = isLocked
+    ? siblingStages.map(s => s.id)   // sempre mostra o campeonato completo no modal
+    : []
 
   const myRowRef      = useRef(null)
   const hasScrolledRef = useRef(false)
@@ -210,20 +213,6 @@ export default function TournamentLeaderboard({
       .catch(() => setSubmissions([]))
       .finally(() => setSubLoading(false))
   }, [isOpen, stageId]) // eslint-disable-line
-
-  // ── Fetch lineup do manager selecionado ────────────────────────────────
-  useEffect(() => {
-    if (!viewUser || !stageId || !token) return
-    setLineupLoading(true)
-    setUserLineups([])
-    fetch(`${API_BASE_URL}/lineups/stage/${stageId}/user/${viewUser.userId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(r => r.ok ? r.json() : [])
-      .then(data => setUserLineups(Array.isArray(data) ? data : []))
-      .catch(() => setUserLineups([]))
-      .finally(() => setLineupLoading(false))
-  }, [viewUser]) // eslint-disable-line
 
   // ── Fechar modal com Esc ────────────────────────────────────────────────
   useEffect(() => {
@@ -539,7 +528,7 @@ export default function TournamentLeaderboard({
                     const isTop3   = pos <= 3
                     const isMe     = entry.user_id === myUserId
                     const pts      = getPoints(entry)
-                    const canClick = isLocked && token && !isMe
+                    const canClick = isLocked && token
                     return (
                       <tr key={entry.user_id}
                         ref={isMe ? myRowRef : null}
@@ -580,8 +569,13 @@ export default function TournamentLeaderboard({
                             )}
                             {canClick && (
                               <span className="text-[9px] font-bold px-1.5 py-0.5 rounded"
-                                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'var(--color-xama-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
-                                ver time
+                                style={{
+                                  background: isMe ? 'rgba(20,184,166,0.10)' : 'rgba(255,255,255,0.04)',
+                                  border: isMe ? '1px solid rgba(20,184,166,0.30)' : '1px solid rgba(255,255,255,0.08)',
+                                  color: isMe ? '#2dd4bf' : 'var(--color-xama-muted)',
+                                  fontFamily: "'JetBrains Mono', monospace",
+                                }}>
+                                {isMe ? 'meu time' : 'ver time'}
                               </span>
                             )}
                           </div>
@@ -614,12 +608,15 @@ export default function TournamentLeaderboard({
 
     </div>
 
-    {/* ── Modal: time do manager ─────────────────────────────────────────── */}
+    {/* ── Modal Espectador: lineup do manager ───────────────────────────── */}
     {viewUser && (
       <ManagerLineupModal
         username={viewUser.username}
-        lineups={userLineups}
-        loading={lineupLoading}
+        userId={viewUser.userId}
+        isMe={viewUser.userId === myUserId}
+        stageIds={selectedStageIds}
+        token={token}
+        siblingStages={siblingStages}
         onClose={() => setViewUser(null)}
       />
     )}
@@ -704,13 +701,54 @@ function fmtName(name) {
   const idx = name.indexOf('_')
   return idx !== -1 ? name.slice(idx + 1) : name
 }
-function fmtTag(name) {
-  if (!name) return null
-  const idx = name.indexOf('_')
-  return idx !== -1 ? name.slice(0, idx) : null
+
+/** Monta lookup: stage_day_id → { dayNumber, stageName, stageId } */
+function buildDayMap(siblingStages) {
+  const map = new Map()
+  for (const stage of siblingStages) {
+    for (const day of (stage.stage_days || [])) {
+      map.set(day.id, {
+        dayNumber: day.day_number,
+        stageName: stage.name ?? `Stage ${stage.id}`,
+        stageId: stage.id,
+      })
+    }
+  }
+  return map
 }
 
-function ManagerLineupModal({ username, lineups, loading, onClose }) {
+function ManagerLineupModal({ username, userId, isMe = false, stageIds = [], token, siblingStages = [], onClose }) {
+  const [stageLineups, setStageLineups] = useState([]) // [{stageId, stageName, lineups}]
+  const [loading, setLoading] = useState(true)
+
+  const dayMap = useMemo(() => buildDayMap(siblingStages), [siblingStages])
+
+  useEffect(() => {
+    if (!userId || !stageIds.length) return
+    setLoading(true)
+    setStageLineups([])
+    Promise.all(
+      stageIds.map(sid =>
+        fetch(`${API_BASE_URL}/lineups/stage/${sid}/user/${userId}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        })
+          .then(r => r.ok ? r.json() : [])
+          .catch(() => [])
+          .then(lineups => ({
+            stageId:   sid,
+            stageName: siblingStages.find(s => s.id === sid)?.name ?? `Stage ${sid}`,
+            lineups:   Array.isArray(lineups) ? lineups : [],
+          }))
+      )
+    ).then(results => {
+      setStageLineups(results.filter(r => r.lineups.length > 0).sort((a, b) => a.stageId - b.stageId))
+      setLoading(false)
+    })
+  }, [userId, stageIds, token]) // eslint-disable-line
+
+  const totalLineups = stageLineups.reduce((s, sg) => s + sg.lineups.length, 0)
+  const multiStage   = stageLineups.length > 1
+
   return (
     <div
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
@@ -725,13 +763,13 @@ function ManagerLineupModal({ username, lineups, loading, onClose }) {
         background: 'var(--color-xama-surface)',
         border: '1px solid var(--color-xama-border)',
         borderRadius: 14,
-        width: '100%', maxWidth: 520,
-        maxHeight: '80vh',
+        width: '100%', maxWidth: 540,
+        maxHeight: '85vh',
         display: 'flex', flexDirection: 'column',
         overflow: 'hidden',
         boxShadow: '0 24px 64px rgba(0,0,0,0.6)',
       }}>
-        {/* Header do modal */}
+        {/* Header */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '14px 18px',
@@ -740,10 +778,17 @@ function ManagerLineupModal({ username, lineups, loading, onClose }) {
         }}>
           <div>
             <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--color-xama-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
-              Time de
+              {isMe ? 'Meu lineup' : 'Time de'}
             </div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-xama-text)', fontFamily: "'JetBrains Mono', monospace" }}>
-              {username}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-xama-text)', fontFamily: "'JetBrains Mono', monospace" }}>
+                {username}
+              </span>
+              {isMe && (
+                <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', padding: '2px 6px', borderRadius: 4, background: 'rgba(20,184,166,0.18)', border: '1px solid rgba(20,184,166,0.4)', color: '#2dd4bf' }}>
+                  EU
+                </span>
+              )}
             </div>
           </div>
           <button
@@ -761,17 +806,32 @@ function ManagerLineupModal({ username, lineups, loading, onClose }) {
         {/* Conteúdo */}
         <div style={{ overflowY: 'auto', padding: '12px 16px', flex: 1 }}>
           {loading && (
-            <p style={{ textAlign: 'center', padding: '40px 0', color: 'var(--color-xama-muted)', fontSize: 13 }}>
+            <p style={{ textAlign: 'center', padding: '48px 0', color: 'var(--color-xama-muted)', fontSize: 13 }}>
               Carregando…
             </p>
           )}
-          {!loading && lineups.length === 0 && (
-            <p style={{ textAlign: 'center', padding: '40px 0', color: 'var(--color-xama-muted)', fontSize: 13 }}>
-              Nenhum lineup encontrado para esta stage.
+          {!loading && totalLineups === 0 && (
+            <p style={{ textAlign: 'center', padding: '48px 0', color: 'var(--color-xama-muted)', fontSize: 13 }}>
+              Nenhum lineup encontrado.
             </p>
           )}
-          {!loading && lineups.map(lineup => (
-            <ModalLineupCard key={lineup.id} lineup={lineup} />
+          {!loading && stageLineups.map(({ stageId, stageName, lineups }) => (
+            <div key={stageId}>
+              {multiStage && (
+                <div style={{
+                  fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
+                  color: 'var(--color-xama-orange)', fontFamily: "'JetBrains Mono', monospace",
+                  padding: '6px 2px 8px', marginTop: 4,
+                  borderBottom: '1px solid rgba(249,115,22,0.15)',
+                  marginBottom: 10,
+                }}>
+                  {stageName}
+                </div>
+              )}
+              {lineups.map(lineup => (
+                <ModalLineupCard key={lineup.id} lineup={lineup} dayMap={dayMap} multiStage={multiStage} />
+              ))}
+            </div>
           ))}
         </div>
 
@@ -790,7 +850,7 @@ function ManagerLineupModal({ username, lineups, loading, onClose }) {
   )
 }
 
-function ModalLineupCard({ lineup }) {
+function ModalLineupCard({ lineup, dayMap, multiStage }) {
   const titulares = (lineup.players || [])
     .filter(p => p.slot_type === 'titular')
     .sort((a, b) => {
@@ -798,13 +858,15 @@ function ModalLineupCard({ lineup }) {
       if (b.is_captain) return 1
       return (b.points_earned ?? -Infinity) - (a.points_earned ?? -Infinity)
     })
-  const reserva  = (lineup.players || []).find(p => p.slot_type === 'reserve')
+  const reserva   = (lineup.players || []).find(p => p.slot_type === 'reserve')
   const isPending = lineup.total_points == null
+  const dayInfo   = dayMap?.get(lineup.stage_day_id)
+  const dayLabel  = dayInfo ? `Dia ${dayInfo.dayNumber}` : 'Dia'
 
   return (
     <div style={{
       background: 'var(--surface-1)', border: '1px solid var(--color-xama-border)',
-      borderRadius: 10, overflow: 'hidden', marginBottom: 14,
+      borderRadius: 10, overflow: 'hidden', marginBottom: 12,
     }}>
       {/* Cabeçalho do card */}
       <div style={{
@@ -813,7 +875,7 @@ function ModalLineupCard({ lineup }) {
         background: 'var(--surface-2)', borderBottom: '1px solid var(--color-xama-border)',
       }}>
         <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--color-xama-muted)' }}>
-          Total do dia
+          {dayLabel}
         </span>
         <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 20, fontWeight: 700, color: isPending ? 'var(--color-xama-muted)' : 'var(--color-xama-orange)' }}>
           {isPending ? '—' : Number(lineup.total_points).toFixed(2)}
