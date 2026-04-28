@@ -9,7 +9,7 @@ Responsável por:
 
 Fórmula XAMA (todas as constantes documentadas abaixo):
   ┌─────────────────────────────────────────────────────────────────┐
-  │  Kills         × 10     pts                                    │
+  │  Kills         × 5      pts                                    │
   │  Assists       × 1      pts                                    │
   │  Knocks        × 1      pts                                    │
   │  Damage        × 0.03   pts por ponto de dano                  │
@@ -46,7 +46,7 @@ logger = logging.getLogger(__name__)
 # Constantes da fórmula — edite aqui para ajustar pontuação
 # ---------------------------------------------------------------------------
 
-POINTS_PER_KILL        = 10.0
+POINTS_PER_KILL        =  5.0
 POINTS_PER_ASSIST      =  1.0
 POINTS_PER_KNOCK       =  1.0
 POINTS_PER_DAMAGE      =  0.03   # por ponto de dano

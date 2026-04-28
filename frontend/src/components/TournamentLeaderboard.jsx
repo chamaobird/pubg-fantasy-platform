@@ -105,7 +105,9 @@ export default function TournamentLeaderboard({
   const [panelOpen,    setPanelOpen]    = useState(false)
   const panelRef = useRef(null)
 
-  const [rankings,  setRankings]  = useState([])
+  const [rankings,     setRankings]     = useState([])
+  const [rankDeltaMap, setRankDeltaMap] = useState(new Map()) // user_id → delta
+  const rankingsRef = useRef([]) // snapshot do fetch anterior para calcular deltas
   const [loading,   setLoading]   = useState(false)
   const [error,     setError]     = useState(null)
   const [myUserId,  setMyUserId]  = useState(null)
@@ -126,10 +128,30 @@ export default function TournamentLeaderboard({
     && selectedKeys.size === 1
     && selectedKeys.has(`stage_${stageId}`)
 
+  // ── Setas de posição: calcula delta vs fetch anterior ─────────────────────
+  useEffect(() => {
+    if (rankings.length === 0) return
+    const prevMap = rankingsRef.current
+    if (prevMap.size > 0) {
+      const deltas = new Map()
+      rankings.forEach((e, idx) => {
+        const newRank = e.rank ?? idx + 1
+        const prevRank = prevMap.get(e.user_id)
+        if (prevRank !== undefined && prevRank !== newRank) {
+          deltas.set(e.user_id, prevRank - newRank) // positivo = subiu
+        }
+      })
+      setRankDeltaMap(deltas)
+    }
+    rankingsRef.current = new Map(rankings.map((e, idx) => [e.user_id, e.rank ?? idx + 1]))
+  }, [rankings])
+
   // ── Reset ao trocar de stage ────────────────────────────────────────────
   useEffect(() => {
     setSelectedKeys(new Set(['__champ__']))
     setRankings([])
+    setRankDeltaMap(new Map())
+    rankingsRef.current = new Map()
     setError(null)
     setSubmissions([])
     hasScrolledRef.current = false
@@ -532,10 +554,18 @@ export default function TournamentLeaderboard({
                         onMouseEnter={e => { if (!isMe) e.currentTarget.style.background = canClick ? '#1e2435' : '#161b27' }}
                         onMouseLeave={e => { e.currentTarget.style.background = isMe ? 'rgba(20,184,166,0.06)' : isTop3 ? RANK_BG[pos] : 'transparent' }}>
                         <td className="px-4 py-[13px]">
-                          <span className="text-[13px] font-bold tabular-nums"
-                            style={{ fontFamily: "'JetBrains Mono', monospace", color: isTop3 ? RANK_COLORS[pos] : 'var(--surface-4)' }}>
-                            {String(pos).padStart(2, '0')}
-                          </span>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                            <span className="text-[13px] font-bold tabular-nums"
+                              style={{ fontFamily: "'JetBrains Mono', monospace", color: isTop3 ? RANK_COLORS[pos] : 'var(--surface-4)' }}>
+                              {String(pos).padStart(2, '0')}
+                            </span>
+                            {(() => {
+                              const delta = rankDeltaMap.get(entry.user_id)
+                              if (!delta) return null
+                              if (delta > 0) return <span style={{ fontSize: '8px', fontWeight: 700, color: '#4ade80', lineHeight: 1 }}>▲{delta}</span>
+                              return <span style={{ fontSize: '8px', fontWeight: 700, color: '#f87171', lineHeight: 1 }}>▼{Math.abs(delta)}</span>
+                            })()}
+                          </div>
                         </td>
                         <td className="px-4 py-[13px]">
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>

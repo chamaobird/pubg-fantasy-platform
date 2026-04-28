@@ -27,7 +27,7 @@ if (!document.getElementById('xama-fonts')) {
 const fmt2   = (v) => v != null ? Number(v).toFixed(2)  : '—'
 const fmtInt = (v) => v != null ? Math.round(v)         : '—'
 
-const KILL_PTS  = 10.0
+const KILL_PTS  =  5.0
 const ASSIST_PTS = 1.0
 const KNOCK_PTS  = 1.0
 const DMG_PTS    = 0.03
@@ -99,6 +99,45 @@ const COLUMNS = [
     render: (p) => p.matches_played ?? '—' },
 ]
 
+// ── Badges de destaque ────────────────────────────────────────────────────────
+const BADGE_DEFS = [
+  { key: 'total_kills',   icon: '💀', title: 'Top Fragger',   color: '#fb923c', bg: 'rgba(251,146,60,0.15)',  border: 'rgba(251,146,60,0.40)', min: 1 },
+  { key: 'total_damage',  icon: '💥', title: 'Top Damage',    color: '#f0c040', bg: 'rgba(240,192,64,0.15)',  border: 'rgba(240,192,64,0.40)', min: 100 },
+  { key: 'total_knocks',  icon: '👊', title: 'Top Knocks',    color: '#60a5fa', bg: 'rgba(96,165,250,0.15)',  border: 'rgba(96,165,250,0.40)', min: 1 },
+  { key: 'total_assists', icon: '🤝', title: 'Top Assists',   color: '#34d399', bg: 'rgba(52,211,153,0.15)',  border: 'rgba(52,211,153,0.40)', min: 1 },
+  { key: 'total_wins',    icon: '🏆', title: 'Mais Vitórias', color: '#f0c040', bg: 'rgba(240,192,64,0.15)',  border: 'rgba(240,192,64,0.40)', min: 1 },
+]
+
+function computeBadgeMap(players) {
+  const result = new Map() // person_id → Set<badgeKey>
+  for (const def of BADGE_DEFS) {
+    const vals = players.map(p => Number(p[def.key] || 0))
+    const maxVal = Math.max(...vals)
+    if (maxVal < def.min) continue
+    players.forEach(p => {
+      if (Number(p[def.key] || 0) === maxVal) {
+        if (!result.has(p.person_id)) result.set(p.person_id, new Set())
+        result.get(p.person_id).add(def.key)
+      }
+    })
+  }
+  return result
+}
+
+function RankDelta({ currentRank, prevRank }) {
+  if (prevRank === undefined || prevRank === null) return null
+  const delta = prevRank - currentRank
+  if (delta === 0) return (
+    <span style={{ fontSize: '8px', color: 'rgba(255,255,255,0.15)', lineHeight: 1 }}>─</span>
+  )
+  if (delta > 0) return (
+    <span style={{ fontSize: '8px', fontWeight: 700, color: '#4ade80', lineHeight: 1 }}>▲{delta}</span>
+  )
+  return (
+    <span style={{ fontSize: '8px', fontWeight: 700, color: '#f87171', lineHeight: 1 }}>▼{Math.abs(delta)}</span>
+  )
+}
+
 // ── Sub-componentes ───────────────────────────────────────────────────────────
 function SortIcon({ active, dir }) {
   if (!active) return <span className="ml-0.5 opacity-20 text-[9px]">⇅</span>
@@ -126,12 +165,15 @@ export default function PlayerStatsTable({
   beforeDate = null,
   totalCount = null,
   footerLabel = null,
+  prevRankMap = null,   // Map<person_id, rank> — para setas de posição
 }) {
   const [search, setSearch]         = useState('')
   const [teamFilter, setTeamFilter] = useState('')
   const [sortKey, setSortKey]       = useState('pts_per_match')
   const [sortDir, setSortDir]       = useState('desc')
   const [historyPlayer, setHistoryPlayer] = useState(null)
+
+  const badgeMap = useMemo(() => computeBadgeMap(players), [players])
 
   const visibleColumns = showDaysPlayed ? COLUMNS : COLUMNS.filter(c => !c.multiOnly)
 
@@ -255,9 +297,14 @@ export default function PlayerStatsTable({
 
                     {/* Rank */}
                     <td style={{ padding: '10px 12px' }}>
-                      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '13px', fontWeight: 700, color: idx < 3 ? rankColors[idx] : 'var(--surface-4)' }}>
-                        {String(idx + 1).padStart(2, '0')}
-                      </span>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '13px', fontWeight: 700, color: idx < 3 ? rankColors[idx] : 'var(--surface-4)' }}>
+                          {String(idx + 1).padStart(2, '0')}
+                        </span>
+                        {sortKey === 'pts_per_match' && prevRankMap && (
+                          <RankDelta currentRank={idx + 1} prevRank={prevRankMap.get(p.person_id)} />
+                        )}
+                      </div>
                     </td>
 
                     {/* Time */}
@@ -272,17 +319,37 @@ export default function PlayerStatsTable({
 
                     {/* Jogador */}
                     <td style={{ padding: '10px 12px' }}>
-                      <span
-                        onClick={() => setHistoryPlayer({
-                          person_id: p.person_id,
-                          person_name: playerName,
-                          team_name: teamTag,
-                        })}
-                        style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-xama-text)', cursor: 'pointer', borderBottom: '1px dashed rgba(249,115,22,0.4)', paddingBottom: '1px' }}
-                        title="Ver histórico de partidas"
-                      >
-                        {playerName}
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        <span
+                          onClick={() => setHistoryPlayer({
+                            person_id: p.person_id,
+                            person_name: playerName,
+                            team_name: teamTag,
+                          })}
+                          style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-xama-text)', cursor: 'pointer', borderBottom: '1px dashed rgba(249,115,22,0.4)', paddingBottom: '1px' }}
+                          title="Ver histórico de partidas"
+                        >
+                          {playerName}
+                        </span>
+                        {badgeMap.has(p.person_id) && (
+                          <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap' }}>
+                            {BADGE_DEFS.filter(d => badgeMap.get(p.person_id).has(d.key)).map(def => (
+                              <span key={def.key} title={def.title} style={{
+                                fontSize: '11px',
+                                background: def.bg,
+                                border: `1px solid ${def.border}`,
+                                borderRadius: '4px',
+                                padding: '1px 5px',
+                                cursor: 'default',
+                                lineHeight: 1.5,
+                                userSelect: 'none',
+                              }}>
+                                {def.icon}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </td>
 
                     {/* Colunas numéricas */}

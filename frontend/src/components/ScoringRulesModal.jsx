@@ -62,7 +62,7 @@ export default function ScoringRulesModal({ captainMultiplier = 1.30, onClose })
                 </tr>
               </thead>
               <tbody>
-                <Row label="Kill"           value="+10"  note="Por eliminação" color="var(--color-xama-orange)" />
+                <Row label="Kill"           value="+5"   note="Por eliminação" color="var(--color-xama-orange)" />
                 <Row label="Assist"         value="+1"   note="Por assistência" />
                 <Row label="Knock"          value="+1"   note="Por derrubada" />
                 <Row label="Dano"           value="+0.03" note="Por ponto de dano causado" color="var(--color-xama-gold)" />
@@ -148,7 +148,7 @@ export default function ScoringRulesModal({ captainMultiplier = 1.30, onClose })
                 Jogador com: <strong style={{ color: 'var(--color-xama-text)' }}>3 kills · 1 assist · 200 dano · sobreviveu até o top 3</strong>
               </div>
               {[
-                { label: '3 kills',       calc: '3 × 10',    pts: '+30',  color: 'var(--color-xama-orange)' },
+                { label: '3 kills',       calc: '3 × 5',     pts: '+15',  color: 'var(--color-xama-orange)' },
                 { label: '1 assist',      calc: '1 × 1',     pts: '+1',   color: 'var(--color-xama-text)' },
                 { label: '200 dano',      calc: '200 × 0.03',pts: '+6',   color: 'var(--color-xama-gold)' },
                 { label: 'Late game',     calc: 'bônus',     pts: '+4',   color: 'var(--color-xama-blue)' },
@@ -161,11 +161,11 @@ export default function ScoringRulesModal({ captainMultiplier = 1.30, onClose })
               ))}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, paddingTop: 8, borderTop: '1px solid var(--color-xama-border)' }}>
                 <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-xama-text)' }}>Total</span>
-                <span style={{ fontSize: 16, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-orange)' }}>41 pts</span>
+                <span style={{ fontSize: 16, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-orange)' }}>26 pts</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
                 <span style={{ fontSize: 13, color: 'var(--color-xama-gold)' }}>⭐ Como capitão (×{mult})</span>
-                <span style={{ fontSize: 16, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-gold)' }}>{(41 * Number(mult)).toFixed(1)} pts</span>
+                <span style={{ fontSize: 16, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-gold)' }}>{(26 * Number(mult)).toFixed(1)} pts</span>
               </div>
             </div>
           </div>

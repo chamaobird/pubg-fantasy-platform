@@ -467,7 +467,7 @@ export default function LineupBuilder({
                   '4 titulares + 1 reserva dentro do budget de 100',
                   'A reserva deve custar ≤ ao titular mais barato',
                   'Clique ⭐ num slot para definir o Capitão — ele recebe ×1.30 nos pontos',
-                  'Pontos: Kill +10 · Assist +1 · Knock +1 · Dano ×0.03',
+                  'Pontos: Kill +5 · Assist +1 · Knock +1 · Dano ×0.03',
                 ].map(tip => (
                   <div key={tip} style={{ fontSize: 12, color: 'var(--color-xama-muted)', display: 'flex', gap: 6 }}>
                     <span style={{ color: 'var(--color-xama-blue)', flexShrink: 0 }}>›</span>
@@ -842,7 +842,7 @@ export default function LineupBuilder({
               🔥 XAMA
             </span>
             {[
-              'Kill +10', 'Assist +1', 'Knock +1', 'Dano ×0.03', 'Morte precoce −15', 'Late Game bônus', `Cap ×${Number(stage?.captain_multiplier ?? 1.30).toFixed(2)}`
+              'Kill +5', 'Assist +1', 'Knock +1', 'Dano ×0.03', 'Morte precoce −15', 'Late Game bônus', `Cap ×${Number(stage?.captain_multiplier ?? 1.30).toFixed(2)}`
             ].map(item => (
               <span key={item} style={{ fontSize: 11, color: 'var(--color-xama-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
                 {item}

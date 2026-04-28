@@ -144,6 +144,9 @@ export default function PlayerStatsPage({
   const [multiLoading, setMultiLoading] = useState(false)
   const [error, setError]           = useState(null)
 
+  // ── Stats do dia anterior (para setas de posição) ─────────────────────────
+  const [prevDayStats, setPrevDayStats] = useState([])
+
   useEffect(() => {
     setStageDays([]); setSelectedDayId(null)
     setMatches([]); setSelectedMatchId(null)
@@ -163,6 +166,19 @@ export default function PlayerStatsPage({
       .then(setMatches)
       .catch(() => {})
   }, [stageId, selectedDayId])
+
+  // ── Fetch stats do dia anterior (para setas ↑/↓) ─────────────────────────
+  useEffect(() => {
+    setPrevDayStats([])
+    if (!stageId || !selectedDayId || stageDays.length === 0) return
+    const currentIdx = stageDays.findIndex(d => d.id === selectedDayId)
+    if (currentIdx <= 0) return
+    const prevDay = stageDays[currentIdx - 1]
+    fetch(`${API_BASE}/stages/${stageId}/player-stats?limit=500&stage_day_id=${prevDay.id}`)
+      .then(r => r.ok ? r.json() : [])
+      .then(setPrevDayStats)
+      .catch(() => {})
+  }, [stageId, selectedDayId, stageDays])
 
   useEffect(() => {
     if (!stageId) return
@@ -192,6 +208,13 @@ export default function PlayerStatsPage({
 
   const activeStats   = isSingleCurrentStage ? stats : multiStats
   const activeLoading = isSingleCurrentStage ? loading : multiLoading
+
+  // Mapa de rank anterior por pts_per_match (para setas de posição no Dia X vs Dia X-1)
+  const prevRankMap = useMemo(() => {
+    if (!prevDayStats.length || !selectedDayId) return null
+    const sorted = [...prevDayStats].sort((a, b) => (b.pts_per_match || 0) - (a.pts_per_match || 0))
+    return new Map(sorted.map((p, idx) => [p.person_id, idx + 1]))
+  }, [prevDayStats, selectedDayId])
 
   const selectedDay   = stageDays.find(d => d.id === selectedDayId)
   const selectedMatch = matches.find(m => m.id === selectedMatchId)
@@ -390,6 +413,7 @@ export default function PlayerStatsPage({
             beforeDate={beforeDate}
             totalCount={activeStats.length}
             footerLabel={filterLabel}
+            prevRankMap={isSingleCurrentStage && selectedDayId ? prevRankMap : null}
           />
         )}
       </div>
