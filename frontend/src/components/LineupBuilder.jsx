@@ -576,7 +576,7 @@ export default function LineupBuilder({
               })()}
 
               {/* Botão salvar / editar */}
-              {!isPreview && (() => {
+              {!(isPreview && !canEdit) && (() => {
                 // "Editar" quando lineup existe e nada mudou; "Salvar" quando há alteração
                 const isEditMode = !!currentDayLineup && !hasChangedFromSaved
                 const active = !isEditMode && canSave && !saveLoading
@@ -733,7 +733,7 @@ export default function LineupBuilder({
             )}
 
             {/* 6º slot: botão Salvar/Editar — mobile only (desktop usa header) */}
-            {!isPreview && (() => {
+            {!(isPreview && !canEdit) && (() => {
               const isEditMode = !!currentDayLineup && !hasChangedFromSaved
               const active = !isEditMode && canSave && !saveLoading
               return (
