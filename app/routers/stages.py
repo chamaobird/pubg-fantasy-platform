@@ -126,6 +126,7 @@ class RosterPlayerOut(BaseModel):
     newcomer_to_tier: bool
     is_available: bool
     aliases: list[str] = []
+    trend: Optional[str] = None   # "up" | "down" | "neutral" | None (dados insuficientes)
 
     model_config = {"from_attributes": True}
 
@@ -339,6 +340,55 @@ def list_day_matches(
     ]
 
 
+def _compute_trend_map(db: Session, person_ids: list[int]) -> dict[int, Optional[str]]:
+    """
+    Computa tendência de forma para cada person_id com base nas últimas 10 partidas.
+    Compara média das últimas 3 (recente) vs média das 10 (histórico).
+    Requer ≥ 4 partidas; retorna None se dados insuficientes.
+    """
+    if not person_ids:
+        return {}
+
+    # Window function: rank cada MatchStat por played_at DESC dentro de cada person
+    ranked = (
+        db.query(
+            MatchStat.person_id.label("person_id"),
+            MatchStat.xama_points.label("xama_points"),
+            func.row_number().over(
+                partition_by=MatchStat.person_id,
+                order_by=Match.played_at.desc(),
+            ).label("rn"),
+        )
+        .join(Match, MatchStat.match_id == Match.id)
+        .filter(MatchStat.person_id.in_(person_ids))
+        .subquery()
+    )
+
+    rows = db.query(ranked).filter(ranked.c.rn <= 10).all()
+
+    # Agrupa por person — lista já ordenada por rn (1 = mais recente)
+    from collections import defaultdict
+    pts_map: dict[int, list[float]] = defaultdict(list)
+    for row in sorted(rows, key=lambda r: r.rn):
+        pts_map[row.person_id].append(float(row.xama_points or 0.0))
+
+    def _trend(pts: list[float]) -> Optional[str]:
+        if len(pts) < 4:
+            return None
+        avg_all = sum(pts) / len(pts)
+        if avg_all == 0:
+            return None
+        avg_recent = sum(pts[:3]) / 3
+        ratio = avg_recent / avg_all
+        if ratio > 1.15:
+            return "up"
+        if ratio < 0.85:
+            return "down"
+        return "neutral"
+
+    return {pid: _trend(pts) for pid, pts in pts_map.items()}
+
+
 @router.get(
     "/{stage_id}/roster",
     response_model=list[RosterPlayerOut],
@@ -359,6 +409,8 @@ def list_stage_roster(stage_id: int, db: Session = Depends(get_db)) -> list[Rost
     for row in alias_rows:
         alias_map.setdefault(row.person_id, []).append(row.alias)
 
+    trend_map = _compute_trend_map(db, person_ids)
+
     return [
         RosterPlayerOut(
             id=r.id,
@@ -371,6 +423,7 @@ def list_stage_roster(stage_id: int, db: Session = Depends(get_db)) -> list[Rost
             newcomer_to_tier=r.newcomer_to_tier,
             is_available=r.is_available,
             aliases=alias_map.get(r.person_id, []),
+            trend=trend_map.get(r.person_id),
         )
         for r in rosters
     ]

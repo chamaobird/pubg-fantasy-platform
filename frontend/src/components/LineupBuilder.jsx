@@ -919,6 +919,20 @@ export default function LineupBuilder({
                           {p.newcomer_to_tier && (
                             <span style={{ marginLeft: 4, fontSize: 9, color: '#60a5fa', fontWeight: 700 }}>NEW</span>
                           )}
+                          {p.trend === 'up' && (
+                            <span
+                              title="Em alta — média das últimas 3 partidas acima da histórica"
+                              style={{ marginLeft: 5, fontSize: 11, color: '#4ade80', fontWeight: 800, verticalAlign: 'middle' }}>
+                              ▲
+                            </span>
+                          )}
+                          {p.trend === 'down' && (
+                            <span
+                              title="Em queda — média das últimas 3 partidas abaixo da histórica"
+                              style={{ marginLeft: 5, fontSize: 11, color: '#f87171', fontWeight: 800, verticalAlign: 'middle' }}>
+                              ▼
+                            </span>
+                          )}
                         </td>
                         {COLS.slice(2).map(col => (
                           <td key={col.key}
