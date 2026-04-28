@@ -9,6 +9,7 @@ from app.database import get_db
 from app.dependencies import require_admin
 from app.models.championship import Championship
 from app.models.stage import Stage
+from app.models.stage_day import StageDay
 from app.models.user import User
 from app.schemas.stage import StageCreate, StageResponse, StageUpdate
 
@@ -82,6 +83,18 @@ def create_stage(
 
     stage = Stage(**body.model_dump())
     db.add(stage)
+    db.flush()  # popula stage.id antes de criar o StageDay
+
+    # Auto-cria StageDay(day_number=1) quando start_date está preenchido.
+    # Premissa: cada stage representa um único dia de jogo.
+    if stage.start_date:
+        db.add(StageDay(
+            stage_id=stage.id,
+            day_number=1,
+            date=stage.start_date.date(),
+            lineup_close_at=stage.lineup_close_at,
+        ))
+
     db.commit()
     db.refresh(stage)
     return stage
