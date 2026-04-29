@@ -3,6 +3,27 @@
 
 ---
 
+## Refresh — 29/04/2026 — Landing redesenhada (feature/landing-refresh)
+
+### LandingPage v5 — Design refresh
+- `frontend/src/pages/LandingPage.jsx` — substituição completa preservando toda lógica de auth
+  - Header sticky com `backdrop-filter: blur(14px)` + gradiente laranja na border-bottom + pill "LIVE — PAS 2025" com pulse
+  - HUD decorativo SVG (diamantes concêntricos + mira + ticks angulares) atrás do hero, oculto em ≤880px
+  - H1 maior: `clamp(38px, 6vw, 64px)`, `line-height: 0.95`, tracking `-0.02em`; "Domine" com `text-shadow` laranja
+  - Stats como chips pílula com ícones SVG inline, números em dourado mono
+  - Auth card premium: accent bar com glow radial, inner border highlight, corner highlight
+  - Toggle com thumb deslizante animado (`cubic-bezier(0.65,0.05,0.36,1)`) via classe CSS `is-register`
+  - Inputs com triple glow laranja no `:focus`
+  - Submit com gradiente vertical + `translateY(-1px) scale(1.01)` no hover + arrow slide
+  - Animações `lp-fadeup` staggered (0s / 0.1s / 0.2s / 0.3s) no hero
+  - Footer com `backdrop-filter` e background semi-transparente
+  - CSS isolado em `.lp-*` scoped via `<style>` inline
+- `frontend/src/main.jsx` — fontes migradas de Google Fonts inline para `@fontsource`
+- `frontend/package.json` — adicionados `@fontsource/rajdhani`, `@fontsource/inter`, `@fontsource/jetbrains-mono`
+- **Lógica auth preservada integralmente**: `doLogin`, `doRegister`, `doForgot`, `doResend`, `handleGoogleLogin`, `useAuth`, `API_BASE_URL`
+
+---
+
 ## Estado Atual — 27/04/2026 — Deploy OK; nova stage PAS Playoffs 2 criada; fixes de data/badge
 
 ### Estado das stages ativas

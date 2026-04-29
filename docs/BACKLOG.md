@@ -8,6 +8,9 @@
 - [ ] #PAS-14 Após 1ª partida (17/04): atualizar PlayerAccount id=308 (Gustav) — substituir account_id=PENDING_Gustav e shard=pending pelos valores reais do PUBG API
 
 ### Tech debt rápido
+- [ ] Fix: `LeagueDetail.jsx:152` — duplicate `style` attribute no header do Leaderboard. Fundir em um único objeto: `style={{ ...ST, marginBottom: 0 }}`. Detectado durante build do refresh da landing (feature/landing-refresh) mas é bug pré-existente fora do escopo daquela task.
+
+
 - [ ] Corrigir comentário no `app/services/scoring.py` linha ~14: capitão `×1.25` → `×1.30`
 - [ ] `TeamLogo.jsx`: remover alias `flcn → flc` (display_names já corrigidos no banco)
 

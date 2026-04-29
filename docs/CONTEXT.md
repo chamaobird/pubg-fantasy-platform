@@ -3,7 +3,7 @@
 
 ## Stack
 - Backend: FastAPI + Python 3.11 + SQLAlchemy síncrono (Session) + PostgreSQL (Render)
-- Frontend: React 18 + Vite 5 + Tailwind CSS v4
+- Frontend: React 18 + Vite 5 + Tailwind CSS v4 + `@fontsource/rajdhani`, `@fontsource/inter`, `@fontsource/jetbrains-mono`
 - Auth: JWT (bcrypt + SHA256 prehash) + Google OAuth (redirect flow) + email verification (Resend)
 - Scheduler: APScheduler — lineup_control (1min), scoring (1min), pricing (30min), match_import (2min)
 - Deploy: Render.com — backend + db + frontend (auto-deploy no push)
@@ -113,7 +113,7 @@ EMAIL_FROM=noreply@chamaobird.xyz
 
 ## Rotas do frontend
 ```
-/                     → LandingPage
+/                     → LandingPage (v5 — design refresh em feature/landing-refresh, aguardando merge para main)
 /dashboard            → Dashboard
 /championships        → Championships
 /tournament/:id       → TournamentHub
