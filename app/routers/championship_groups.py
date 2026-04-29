@@ -250,23 +250,24 @@ def get_group_player_stats(
         return []
 
     from collections import defaultdict
+    from decimal import Decimal as _D
     agg: dict[int, dict] = defaultdict(lambda: {
-        "xama_points": 0.0,
+        "xama_points": _D("0"),
         "matches": 0,
         "kills": 0,
         "assists": 0,
-        "damage": 0.0,
+        "damage": _D("0"),
         "knocks": 0,
         "wins": 0,
     })
 
     for ms in stat_rows:
         a = agg[ms.person_id]
-        a["xama_points"] += float(ms.xama_points or 0)
+        a["xama_points"] += ms.xama_points or _D("0")
         a["matches"] += 1
         a["kills"] += int(ms.kills or 0)
         a["assists"] += int(ms.assists or 0)
-        a["damage"] += float(ms.damage or 0)
+        a["damage"] += ms.damage or _D("0")
         a["knocks"] += int(ms.knocks or 0)
         if ms.placement == 1:
             a["wins"] += 1
@@ -295,9 +296,9 @@ def get_group_player_stats(
 
     result = []
     for person_id, a in agg.items():
-        total = round(a["xama_points"], 2)
+        total  = float(a["xama_points"])   # Decimal → float para o schema
         played = a["matches"]
-        ppm = round(total / played, 2) if played > 0 else None
+        ppm    = round(total / played, 2) if played > 0 else None
         result.append(
             GroupPlayerStatEntry(
                 rank=0,  # preenchido após sort
@@ -305,12 +306,12 @@ def get_group_player_stats(
                 display_name=name_map.get(person_id, "—"),
                 team_name=team_map.get(person_id),
                 fantasy_cost=cost_map.get(person_id),
-                total_xama_points=total,
+                total_xama_points=round(total, 2),
                 matches_played=played,
                 pts_per_match=ppm,
                 total_kills=a["kills"],
                 total_assists=a["assists"],
-                total_damage=round(a["damage"], 1),
+                total_damage=float(round(a["damage"], 1)),
                 total_knocks=a["knocks"],
                 total_wins=a["wins"],
             )

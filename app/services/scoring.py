@@ -32,6 +32,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from decimal import Decimal, ROUND_HALF_UP
 from typing import Optional
 
 from sqlalchemy import func
@@ -333,22 +334,29 @@ def _adjust_person_stage_stat(
         .first()
     )
 
+    # Converte delta para Decimal com 2dp para evitar acumulação de erro de float
+    delta = Decimal(str(round(delta_pts, 2)))
+
     if pss:
-        pss.total_xama_points = max(0.0, round(float(pss.total_xama_points) + delta_pts, 4))
+        current   = pss.total_xama_points  # já é Decimal (Numeric(10,2))
+        new_total = max(Decimal("0"), current + delta)
+        pss.total_xama_points = new_total
         if not reprocess:
             pss.matches_played += 1
         if pss.matches_played > 0:
-            pss.pts_per_match = round(float(pss.total_xama_points) / pss.matches_played, 4)
+            pss.pts_per_match = (new_total / pss.matches_played).quantize(
+                Decimal("0.0001"), rounding=ROUND_HALF_UP
+            )
         pss.updated_at = datetime.now(timezone.utc)
     else:
-        if delta_pts < 0:
+        if delta < 0:
             return
         pss = PersonStageStat(
-            person_id          = person_id,
-            stage_id           = stage_id,
-            total_xama_points  = round(delta_pts, 4),
-            matches_played     = 0 if reprocess else 1,
-            pts_per_match      = round(delta_pts, 4) if not reprocess else 0.0,
+            person_id         = person_id,
+            stage_id          = stage_id,
+            total_xama_points = delta,
+            matches_played    = 0 if reprocess else 1,
+            pts_per_match     = delta if not reprocess else Decimal("0"),
         )
         db.add(pss)
 
@@ -374,13 +382,13 @@ def recalculate_person_stage_stat(
         .all()
     )
 
-    # Acumula em memória
+    # Acumula em memória usando Decimal para evitar erro de ponto flutuante
     accum: dict[int, dict] = {}  # person_id → {total_pts, matches}
     for s in stats:
         if s.person_id not in accum:
-            accum[s.person_id] = {"total_xama_points": 0.0, "matches": 0}
-        accum[s.person_id]["total_xama_points"] += float(s.xama_points or 0)
-        accum[s.person_id]["matches"]      += 1
+            accum[s.person_id] = {"total_xama_points": Decimal("0"), "matches": 0}
+        accum[s.person_id]["total_xama_points"] += s.xama_points or Decimal("0")
+        accum[s.person_id]["matches"] += 1
 
     # Deleta registros existentes da stage
     db.query(PersonStageStat).filter(
@@ -389,14 +397,14 @@ def recalculate_person_stage_stat(
 
     # Recria
     for person_id, data in accum.items():
-        total   = round(data["total_xama_points"], 4)
+        total   = data["total_xama_points"]
         matches = data["matches"]
         db.add(PersonStageStat(
             person_id         = person_id,
             stage_id          = stage_id,
             total_xama_points = total,
             matches_played    = matches,
-            pts_per_match     = round(total / matches, 4) if matches > 0 else 0.0,
+            pts_per_match     = (total / matches).quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP) if matches > 0 else Decimal("0"),
         ))
 
     db.flush()
