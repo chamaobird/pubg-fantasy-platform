@@ -48,18 +48,22 @@ function aggregateStats(allResults) {
           total_damage: 0,
           total_knocks: 0,
           total_wins: 0,
+          total_late_game_pts: 0,
+          total_early_deaths: 0,
           stage_idxs: new Set(),
           pts_by_stage: [],
         })
       }
       const a = map.get(p.person_id)
-      a.total_xama_points += p.total_xama_points || 0
-      a.matches_played    += p.matches_played || 0
-      a.total_kills       += p.total_kills || 0
-      a.total_assists     += p.total_assists || 0
-      a.total_damage      += p.total_damage || 0
-      a.total_knocks      += p.total_knocks || 0
-      a.total_wins        += p.total_wins || 0
+      a.total_xama_points  += p.total_xama_points || 0
+      a.matches_played     += p.matches_played || 0
+      a.total_kills        += p.total_kills || 0
+      a.total_assists      += p.total_assists || 0
+      a.total_damage       += p.total_damage || 0
+      a.total_knocks       += p.total_knocks || 0
+      a.total_wins         += p.total_wins || 0
+      a.total_late_game_pts += p.total_late_game_pts || 0
+      a.total_early_deaths += p.total_early_deaths || 0
       if (p.fantasy_cost != null) a.fantasy_cost = p.fantasy_cost
       a.stage_idxs.add(stageIdx)
       a.pts_by_stage[stageIdx] = (a.pts_by_stage[stageIdx] || 0) + (p.total_xama_points || 0)
