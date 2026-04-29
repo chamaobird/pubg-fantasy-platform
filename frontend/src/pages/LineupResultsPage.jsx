@@ -28,18 +28,14 @@ async function get(url, token) {
   return res.json()
 }
 
-// ── survivalPts (mesma fórmula do PlayerStatsPage) ────────────────────────────
+// ── survivalPts — usa campos diretos do DB para não depender de multiplicadores históricos ──
 
-const KILL_PTS = 3.0
-const ASS_PTS  = 1.0
-const DMG_PTS  = 0.03
+const EARLY_DEATH_PENALTY = -15
 
 function calcSurvivalPts(stat) {
-  if (!stat || stat.total_xama_points == null) return null
-  const combatPts = (stat.total_kills || 0) * KILL_PTS
-    + (stat.total_assists || 0) * ASS_PTS
-    + Math.floor((stat.total_damage || 0) * DMG_PTS)
-  return Math.round((stat.total_xama_points || 0) - combatPts)
+  if (!stat || stat.total_late_game_pts == null) return null
+  const earlyDeathPts = (stat.total_early_deaths || 0) * EARLY_DEATH_PENALTY
+  return Math.round((stat.total_late_game_pts || 0) + earlyDeathPts)
 }
 
 // ── Colunas de stats ──────────────────────────────────────────────────────────
