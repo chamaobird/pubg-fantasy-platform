@@ -816,7 +816,11 @@ export default function Dashboard() {
   const [groupLeaderEntry, setGroupLeaderEntry] = useState(null)
 
   const toggleChamp = (champId) =>
-    setExpandedChamps(prev => ({ ...prev, [champId]: !(prev[champId] !== false) }))
+    setExpandedChamps(prev => {
+      const defaultExpanded = activeChampGroups.length === 1
+      const current = prev[champId] !== undefined ? prev[champId] : defaultExpanded
+      return { ...prev, [champId]: !current }
+    })
 
   useEffect(() => {
     if (!token) return
@@ -1089,7 +1093,11 @@ export default function Dashboard() {
             {/* Um bloco por campeonato ativo */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
               {activeChampGroups.map(g => {
-                const isExpanded = expandedChamps[g.champ.id] !== false  // default: expanded
+                // Com múltiplos campeonatos ativos, sub-cards começam recolhidos por padrão
+                const defaultExpanded = activeChampGroups.length === 1
+                const isExpanded = expandedChamps[g.champ.id] !== undefined
+                  ? expandedChamps[g.champ.id]
+                  : defaultExpanded
                 const toggle = () => toggleChamp(g.champ.id)
                 return (
                   <div key={g.champ.id}>
