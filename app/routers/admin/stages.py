@@ -198,6 +198,20 @@ def update_stage(
     for field, value in updates.items():
         setattr(stage, field, value)
 
+    # Sincroniza o StageDay do dia 1 quando start_date ou lineup_close_at mudam.
+    # Premissa: cada stage tem um único dia (day_number=1).
+    if "start_date" in updates or "lineup_close_at" in updates:
+        day1 = (
+            db.query(StageDay)
+            .filter(StageDay.stage_id == stage_id, StageDay.day_number == 1)
+            .first()
+        )
+        if day1:
+            if "start_date" in updates and stage.start_date:
+                day1.date = stage.start_date.date()
+            if "lineup_close_at" in updates:
+                day1.lineup_close_at = stage.lineup_close_at
+
     db.commit()
     db.refresh(stage)
     return stage
