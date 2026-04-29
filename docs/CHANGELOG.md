@@ -3,6 +3,15 @@
 
 ---
 
+## Estado Atual — 29/04/2026 — Landing v5 deployada em main
+
+### Próximos passos
+1. Aguardar deploy do Render concluir e validar visualmente em produção
+2. Importar roster dos times para stages 31, 32, 34, 35 (PAS Playoffs 2)
+3. Fix: `LeagueDetail.jsx:152` — duplicate `style` attribute (ver BACKLOG)
+
+---
+
 ## Refresh — 29/04/2026 — Landing redesenhada (feature/landing-refresh)
 
 ### LandingPage v5 — Design refresh

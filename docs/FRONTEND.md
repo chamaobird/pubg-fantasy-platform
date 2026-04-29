@@ -11,6 +11,7 @@ Deploy automático no Render a cada `git push origin main`.
 ## Stack
 - React 18 + Vite 5
 - Tailwind CSS v4 + CSS customizado em `frontend/src/index.css`
+- Fontes via `@fontsource`: `rajdhani/700`, `inter/400+500`, `jetbrains-mono/400+700` (importadas em `main.jsx`)
 - React Router (rotas em `frontend/src/App.jsx`)
 - Axios via `frontend/src/api/` (usar sempre — nunca raw `fetch()`)
 - API base: `https://pubg-fantasy-platform.onrender.com` (em `frontend/src/config.ts`)
@@ -19,7 +20,7 @@ Deploy automático no Render a cada `git push origin main`.
 
 | Rota | Arquivo | Descrição |
 |------|---------|-----------|
-| `/` | `pages/LandingPage.jsx` | Landing pública com login/registro |
+| `/` | `pages/LandingPage.jsx` | Landing pública com login/registro — v5: header sticky, HUD SVG, stats chips, auth card premium (CSS scoped `.lp-*`) |
 | `/dashboard` | `pages/Dashboard.jsx` | Cards de campeonatos pós-login |
 | `/championships` | `pages/Championships.jsx` | Lista de campeonatos |
 | `/tournament/:id` | `pages/TournamentHub.jsx` | Hub do torneio (Leaderboard, Lineup, Stats) |
