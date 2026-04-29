@@ -132,7 +132,7 @@ def score_stage_day(db: Session, stage_day_id: int) -> dict:
 def _score_lineup(
     db: Session,
     lineup: Lineup,
-    match_stats_by_person: dict[int, float],
+    match_stats_by_person: dict[int, Decimal],
     survival_by_person: dict[int, int],
     captain_multiplier: float,
 ) -> None:
@@ -146,8 +146,7 @@ def _score_lineup(
 
     for lp in lineup.players:
         person_id = lp.roster.person_id
-        raw_pts = match_stats_by_person.get(person_id, 0.0)
-        pts = Decimal(str(round(raw_pts, 2)))
+        pts = match_stats_by_person.get(person_id, Decimal("0"))
 
         if lp.is_captain:
             pts = (pts * Decimal(str(captain_multiplier))).quantize(Decimal("0.01"))
@@ -444,10 +443,10 @@ def _recalculate_stage_ranks(db: Session, stage_id: int) -> int:
 def _load_match_stats_for_day(
     db: Session,
     stage_day_id: int,
-) -> tuple[dict[int, float], dict[int, int]]:
+) -> tuple[dict[int, Decimal], dict[int, int]]:
     """
     Retorna:
-      match_pts_by_person: {person_id: total_fantasy_points}
+      match_pts_by_person: {person_id: total_fantasy_points} como Decimal
       survival_by_person:  {person_id: total_survival_seconds}
     """
     rows = (
@@ -462,6 +461,6 @@ def _load_match_stats_for_day(
         .all()
     )
 
-    pts_map  = {row.person_id: float(row.total_pts  or 0) for row in rows}
-    surv_map = {row.person_id: int(row.total_surv   or 0) for row in rows}
+    pts_map  = {row.person_id: Decimal(str(row.total_pts or 0)) for row in rows}
+    surv_map = {row.person_id: int(row.total_surv or 0) for row in rows}
     return pts_map, surv_map

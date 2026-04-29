@@ -47,18 +47,18 @@ logger = logging.getLogger(__name__)
 # Constantes da fórmula — edite aqui para ajustar pontuação
 # ---------------------------------------------------------------------------
 
-POINTS_PER_KILL        =  5.0
-POINTS_PER_ASSIST      =  1.0
-POINTS_PER_KNOCK       =  1.0
-POINTS_PER_DAMAGE      =  0.03   # por ponto de dano
-EARLY_DEATH_PENALTY    = -15.0   # survival < 600s E kills == 0
+POINTS_PER_KILL        =  5      # inteiro exato
+POINTS_PER_ASSIST      =  1      # inteiro exato
+POINTS_PER_KNOCK       =  1      # inteiro exato
+POINTS_PER_DAMAGE      =  Decimal("0.03")   # Decimal exato — evita erro de ponto flutuante
+EARLY_DEATH_PENALTY    = -15     # inteiro exato
 EARLY_DEATH_THRESHOLD  =  600    # segundos (10 minutos)
-LATE_GAME_SURVIVOR_PTS =  10.0   # bônus para sobreviventes do time vencedor
+LATE_GAME_SURVIVOR_PTS =  10     # inteiro exato
 LATE_GAME_THRESHOLD    =  60     # segundos antes do fim = "estava vivo"
 
 # Sequências de bônus para jogadores que morreram logo após o vencedor
 # Índice = N (número de sobreviventes do time vencedor) − 1
-_LATE_GAME_NEXT_BONUSES: dict[int, list[float]] = {
+_LATE_GAME_NEXT_BONUSES: dict[int, list[int]] = {
     4: [2, 2, 1, 1],
     3: [4, 2, 2, 1, 1],
     2: [5, 4, 2, 2, 1, 1],
@@ -88,32 +88,38 @@ class PlayerStatInput:
 # Cálculo puro (sem DB) — testável isoladamente
 # ---------------------------------------------------------------------------
 
-def calculate_base_points(stat: PlayerStatInput) -> tuple[float, bool]:
+def calculate_base_points(stat: PlayerStatInput) -> tuple[Decimal, bool]:
     """
     Calcula base_points de um jogador (sem late game bonus).
 
+    Usa Decimal em toda a cadeia aritmética para evitar erros de ponto
+    flutuante — especialmente em damage × 0.03 (0.03 não é representável
+    exatamente em float binário).
+
     Returns:
-        (base_pts, is_early_death)
+        (base_pts: Decimal com 2dp, is_early_death)
     """
-    kill_pts   = stat.kills        * POINTS_PER_KILL
-    assist_pts = stat.assists      * POINTS_PER_ASSIST
-    knock_pts  = stat.knocks       * POINTS_PER_KNOCK
-    dmg_pts    = stat.damage_dealt * POINTS_PER_DAMAGE
+    kill_pts   = Decimal(stat.kills)   * POINTS_PER_KILL
+    assist_pts = Decimal(stat.assists) * POINTS_PER_ASSIST
+    knock_pts  = Decimal(stat.knocks)  * POINTS_PER_KNOCK
+    # Converte damage para Decimal via string para evitar artefatos de float
+    dmg_pts    = Decimal(str(round(stat.damage_dealt, 2))) * POINTS_PER_DAMAGE
 
     is_early_death = (
         stat.survival_secs < EARLY_DEATH_THRESHOLD
         and stat.kills == 0
     )
-    early_death_pts = EARLY_DEATH_PENALTY if is_early_death else 0.0
+    early_death_pts = Decimal(EARLY_DEATH_PENALTY) if is_early_death else Decimal("0")
 
     base = kill_pts + assist_pts + knock_pts + dmg_pts + early_death_pts
-    return round(base, 4), is_early_death
+    base = base.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    return base, is_early_death
 
 
 def calculate_late_game_bonuses(
     all_stats: list[PlayerStatInput],
     duration_secs: int,
-) -> dict[int, float]:
+) -> dict[int, Decimal]:
     """
     Calcula o late game bonus por person_id para uma partida.
 
@@ -136,11 +142,11 @@ def calculate_late_game_bonuses(
     survivors = [s for s in winners if s.survival_secs >= survivor_threshold]
     N = max(len(survivors), 1)
 
-    bonuses: dict[int, float] = {}
+    bonuses: dict[int, Decimal] = {}
 
     # Sobreviventes do time vencedor
     for s in survivors:
-        bonuses[s.person_id] = LATE_GAME_SURVIVOR_PTS
+        bonuses[s.person_id] = Decimal(LATE_GAME_SURVIVOR_PTS)
 
     # Próximos a morrer (todos os jogadores, excluindo sobreviventes do vencedor,
     # ordenados por survival_secs descrescente)
@@ -154,7 +160,7 @@ def calculate_late_game_bonuses(
     for i, bonus_pts in enumerate(extra_bonuses):
         if i >= len(others):
             break
-        bonuses[others[i].person_id] = bonus_pts
+        bonuses[others[i].person_id] = Decimal(bonus_pts)
 
     return bonuses
 
@@ -162,17 +168,18 @@ def calculate_late_game_bonuses(
 def calculate_match_points_all(
     all_stats: list[PlayerStatInput],
     duration_secs: int,
-) -> dict[int, float]:
+) -> dict[int, Decimal]:
     """
     Calcula fantasy_points final (base + late game) para todos os jogadores
-    de uma partida. Retorna dict {person_id: total_pts}.
+    de uma partida. Retorna dict {person_id: total_pts} como Decimal(2dp).
     """
     late_bonuses = calculate_late_game_bonuses(all_stats, duration_secs)
-    result: dict[int, float] = {}
+    result: dict[int, Decimal] = {}
     for stat in all_stats:
         base, _ = calculate_base_points(stat)
-        bonus = late_bonuses.get(stat.person_id, 0.0)
-        result[stat.person_id] = round(base + bonus, 2)
+        bonus = late_bonuses.get(stat.person_id, Decimal("0"))
+        total = (base + bonus).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        result[stat.person_id] = total
     return result
 
 
@@ -183,16 +190,17 @@ def get_scoring_breakdown(stat: PlayerStatInput, duration_secs: int) -> dict:
     """
     base, is_early_death = calculate_base_points(stat)
     late_bonuses = calculate_late_game_bonuses([stat], duration_secs)
-    late_bonus = late_bonuses.get(stat.person_id, 0.0)
+    late_bonus = late_bonuses.get(stat.person_id, Decimal("0"))
+    dmg_pts = (Decimal(str(round(stat.damage_dealt, 2))) * POINTS_PER_DAMAGE).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
     return {
-        "kills":       {"value": stat.kills,        "multiplier": POINTS_PER_KILL,   "points": round(stat.kills * POINTS_PER_KILL, 2)},
-        "assists":     {"value": stat.assists,       "multiplier": POINTS_PER_ASSIST, "points": round(stat.assists * POINTS_PER_ASSIST, 2)},
-        "knocks":      {"value": stat.knocks,        "multiplier": POINTS_PER_KNOCK,  "points": round(stat.knocks * POINTS_PER_KNOCK, 2)},
-        "damage":      {"value": stat.damage_dealt,  "multiplier": POINTS_PER_DAMAGE, "points": round(stat.damage_dealt * POINTS_PER_DAMAGE, 2)},
-        "early_death": {"value": is_early_death,     "points": EARLY_DEATH_PENALTY if is_early_death else 0.0},
-        "late_game":   {"value": late_bonus,         "points": late_bonus},
-        "total":       round(base + late_bonus, 2),
+        "kills":       {"value": stat.kills,        "multiplier": float(POINTS_PER_KILL),   "points": float(stat.kills * POINTS_PER_KILL)},
+        "assists":     {"value": stat.assists,       "multiplier": float(POINTS_PER_ASSIST), "points": float(stat.assists * POINTS_PER_ASSIST)},
+        "knocks":      {"value": stat.knocks,        "multiplier": float(POINTS_PER_KNOCK),  "points": float(stat.knocks * POINTS_PER_KNOCK)},
+        "damage":      {"value": stat.damage_dealt,  "multiplier": float(POINTS_PER_DAMAGE), "points": float(dmg_pts)},
+        "early_death": {"value": is_early_death,     "points": float(EARLY_DEATH_PENALTY) if is_early_death else 0.0},
+        "late_game":   {"value": float(late_bonus),  "points": float(late_bonus)},
+        "total":       float((base + late_bonus).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)),
     }
 
 
@@ -227,14 +235,14 @@ def process_match_stats(
     final_points = calculate_match_points_all(all_stats, duration_secs)
     late_bonuses = calculate_late_game_bonuses(all_stats, duration_secs)
 
-    processed     = 0
-    total_pts     = 0.0
-    skipped       = 0
+    processed = 0
+    total_pts = Decimal("0")
+    skipped   = 0
 
     for stat in all_stats:
-        pts     = final_points.get(stat.person_id, 0.0)
-        base, _ = calculate_base_points(stat)
-        late    = late_bonuses.get(stat.person_id, 0.0)
+        pts:  Decimal = final_points.get(stat.person_id, Decimal("0"))
+        base, _       = calculate_base_points(stat)
+        late: Decimal = late_bonuses.get(stat.person_id, Decimal("0"))
 
         # Upsert MATCH_STAT
         existing = (
@@ -249,7 +257,7 @@ def process_match_stats(
         if existing:
             # Reprocess: desconta pontos antigos do PERSON_STAGE_STAT
             if stage_id:
-                _adjust_person_stage_stat(db, stat.person_id, stage_id, -float(existing.xama_points or 0), reprocess=True)
+                _adjust_person_stage_stat(db, stat.person_id, stage_id, -(existing.xama_points or Decimal("0")), reprocess=True)
 
             existing.account_id_used = stat.account_id_used
             existing.kills           = stat.kills
@@ -287,14 +295,14 @@ def process_match_stats(
         logger.debug(
             "[Scoring] person_id=%s: %.2f pts (base=%.2f late=%.2f) "
             "k=%d a=%d d=%.0f p=%d",
-            stat.person_id, pts, base, late,
+            stat.person_id, float(pts), float(base), float(late),
             stat.kills, stat.assists, stat.damage_dealt, stat.placement,
         )
 
     db.flush()
     logger.info(
         "[Scoring] match_id=%s: %d jogadores, %.1f pts distribuídos",
-        match.id, processed, total_pts,
+        match.id, processed, float(total_pts),
     )
 
     return {
@@ -302,7 +310,7 @@ def process_match_stats(
         "pubg_match_id":        match.pubg_match_id,
         "players_processed":    processed,
         "players_skipped":      skipped,
-        "total_points_awarded": round(total_pts, 2),
+        "total_points_awarded": float(total_pts.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)),
     }
 
 
@@ -314,7 +322,7 @@ def _adjust_person_stage_stat(
     db: Session,
     person_id: int,
     stage_id: int,
-    delta_pts: float,
+    delta_pts: Decimal,
     reprocess: bool,
 ) -> None:
     """
@@ -322,6 +330,7 @@ def _adjust_person_stage_stat(
     Cria o registro se não existir.
 
     Args:
+        delta_pts: Decimal — pontos a adicionar/subtrair (já em 2dp)
         reprocess: se True, apenas ajusta total_points e matches_played
                    sem incrementar matches_played novamente.
     """
@@ -334,8 +343,7 @@ def _adjust_person_stage_stat(
         .first()
     )
 
-    # Converte delta para Decimal com 2dp para evitar acumulação de erro de float
-    delta = Decimal(str(round(delta_pts, 2)))
+    delta = delta_pts.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
     if pss:
         current   = pss.total_xama_points  # já é Decimal (Numeric(10,2))
