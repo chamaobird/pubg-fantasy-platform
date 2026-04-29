@@ -45,11 +45,11 @@ const COLUMNS = [
   { key: 'fantasy_cost',
     label: 'PREÇO', title: 'Preço fantasy atual', right: true,
     render: (p) => (
-      <span style={{ color: 'var(--color-xama-gold)', fontWeight: 700 }}>
-        {Number(p.fantasy_cost || 0).toFixed(2)}
+      <span style={{ color: p.fantasy_cost != null ? 'var(--color-xama-gold)' : 'var(--color-xama-muted)', fontWeight: 700 }}>
+        {p.fantasy_cost != null ? Number(p.fantasy_cost).toFixed(2) : '—'}
       </span>
     ),
-    sortVal: (p) => Number(p.fantasy_cost || 0) },
+    sortVal: (p) => Number(p.fantasy_cost ?? 0) },
 
   { key: 'pts_per_match',
     label: 'PTS/G', title: 'Pontos XAMA por jogo', right: true,

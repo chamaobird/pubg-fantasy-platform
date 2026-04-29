@@ -271,16 +271,22 @@ def get_group_player_stats(
         if ms.placement == 1:
             a["wins"] += 1
 
-    # team_name e fantasy_cost: busca do stage mais recente do grupo
-    latest_stage_id = max(stage_ids)
+    # team_name e fantasy_cost: usa o roster mais recente de cada jogador
+    # (stage_id DESC para que o primeiro encontrado por jogador seja o mais novo)
     person_ids = list(agg.keys())
     rosters = (
         db.query(Roster)
-        .filter(Roster.stage_id == latest_stage_id, Roster.person_id.in_(person_ids))
+        .filter(Roster.stage_id.in_(stage_ids), Roster.person_id.in_(person_ids))
+        .order_by(Roster.stage_id.desc())
         .all()
     )
-    cost_map = {r.person_id: r.effective_cost for r in rosters}
-    team_map = {r.person_id: r.team_name for r in rosters if r.team_name}
+    cost_map: dict[int, float] = {}
+    team_map: dict[int, str]   = {}
+    for r in rosters:
+        if r.person_id not in cost_map and r.effective_cost is not None:
+            cost_map[r.person_id] = r.effective_cost
+        if r.person_id not in team_map and r.team_name:
+            team_map[r.person_id] = r.team_name
 
     name_map = {
         p.id: p.display_name
