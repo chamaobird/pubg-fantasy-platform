@@ -163,6 +163,10 @@ class PlayerStatOut(BaseModel):
     avg_placement: Optional[float]
     avg_survival_secs: Optional[float]
 
+    # Pontos de sobrevivência diretos do DB (não derivados por subtração)
+    total_late_game_pts: float
+    total_early_deaths: int
+
     # Badge: melhor partida individual da stage
     best_match_pts: Optional[float]
     best_match_id: Optional[int]
@@ -510,6 +514,8 @@ def get_player_stats(
         "wins": 0,
         "placements": [],
         "survival_times": [],
+        "late_game_pts": 0.0,
+        "early_deaths": 0,
         "best_pts": None,
         "best_match_id": None,
         "pts_by_day": defaultdict(float),
@@ -535,6 +541,13 @@ def get_player_stats(
             a["placements"].append(ms.placement)
         if ms.survival_time is not None:
             a["survival_times"].append(ms.survival_time)
+        a["late_game_pts"] += float(ms.late_game_bonus or 0)
+        is_early = (
+            (ms.survival_time or 0) < 600
+            and (ms.kills or 0) == 0
+        )
+        if is_early:
+            a["early_deaths"] += 1
         if a["best_pts"] is None or pts > a["best_pts"]:
             a["best_pts"] = pts
             a["best_match_id"] = ms.match_id
@@ -584,6 +597,8 @@ def get_player_stats(
             total_wins=a["wins"],
             avg_placement=round(sum(a["placements"]) / len(a["placements"]), 1) if a["placements"] else None,
             avg_survival_secs=round(sum(a["survival_times"]) / len(a["survival_times"]), 0) if a["survival_times"] else None,
+            total_late_game_pts=round(a["late_game_pts"], 2),
+            total_early_deaths=a["early_deaths"],
             best_match_pts=round(a["best_pts"], 2) if a["best_pts"] is not None else None,
             best_match_id=a["best_match_id"],
             fantasy_cost=cost_map.get(person_id),

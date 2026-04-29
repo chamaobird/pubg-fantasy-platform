@@ -81,6 +81,8 @@ class GroupPlayerStatEntry(BaseModel):
     total_damage: float
     total_knocks: int
     total_wins: int
+    total_late_game_pts: float
+    total_early_deaths: int
 
     model_config = {"from_attributes": True}
 
@@ -259,6 +261,8 @@ def get_group_player_stats(
         "damage": _D("0"),
         "knocks": 0,
         "wins": 0,
+        "late_game_pts": _D("0"),
+        "early_deaths": 0,
     })
 
     for ms in stat_rows:
@@ -271,6 +275,9 @@ def get_group_player_stats(
         a["knocks"] += int(ms.knocks or 0)
         if ms.placement == 1:
             a["wins"] += 1
+        a["late_game_pts"] += ms.late_game_bonus or _D("0")
+        if (ms.survival_time or 0) < 600 and (ms.kills or 0) == 0:
+            a["early_deaths"] += 1
 
     # team_name e fantasy_cost: usa o roster mais recente de cada jogador
     # (stage_id DESC para que o primeiro encontrado por jogador seja o mais novo)
@@ -314,6 +321,8 @@ def get_group_player_stats(
                 total_damage=float(round(a["damage"], 1)),
                 total_knocks=a["knocks"],
                 total_wins=a["wins"],
+                total_late_game_pts=float(a["late_game_pts"]),
+                total_early_deaths=a["early_deaths"],
             )
         )
 

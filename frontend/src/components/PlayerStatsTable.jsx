@@ -27,19 +27,13 @@ if (!document.getElementById('xama-fonts')) {
 const fmt2   = (v) => v != null ? Number(v).toFixed(2)  : '—'
 const fmtInt = (v) => v != null ? Math.round(v)         : '—'
 
-const KILL_PTS  =  5.0
-const ASSIST_PTS = 1.0
-const KNOCK_PTS  = 1.0
-const DMG_PTS    = 0.03
+const EARLY_DEATH_PENALTY = -15
 function survivalPts(p) {
-  if (p.total_xama_points == null) return null
-  const combatPts = (p.total_kills   || 0) * KILL_PTS
-    + (p.total_assists || 0) * ASSIST_PTS
-    + (p.total_knocks  || 0) * KNOCK_PTS
-    + (p.total_damage  || 0) * DMG_PTS
-  // O valor verdadeiro é sempre inteiro (late_game_bonus + early_death_penalty).
-  // Math.round descarta ruído de ponto flutuante da subtração damage×0.03.
-  return Math.round((p.total_xama_points || 0) - combatPts)
+  if (p.total_late_game_pts == null) return null
+  // Usa campos diretos do DB para evitar dependência nos multiplicadores históricos.
+  // late_game_bonus vem de MatchStat.late_game_bonus (já correto para qualquer fórmula).
+  const earlyDeathPts = (p.total_early_deaths || 0) * EARLY_DEATH_PENALTY
+  return Math.round((p.total_late_game_pts || 0) + earlyDeathPts)
 }
 
 // ── Colunas ───────────────────────────────────────────────────────────────────
