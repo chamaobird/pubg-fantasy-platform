@@ -37,7 +37,9 @@ function survivalPts(p) {
     + (p.total_assists || 0) * ASSIST_PTS
     + (p.total_knocks  || 0) * KNOCK_PTS
     + (p.total_damage  || 0) * DMG_PTS
-  return Math.round(((p.total_xama_points || 0) - combatPts) * 100) / 100
+  // O valor verdadeiro é sempre inteiro (late_game_bonus + early_death_penalty).
+  // Math.round descarta ruído de ponto flutuante da subtração damage×0.03.
+  return Math.round((p.total_xama_points || 0) - combatPts)
 }
 
 // ── Colunas ───────────────────────────────────────────────────────────────────
@@ -90,7 +92,7 @@ const COLUMNS = [
     render: (p) => {
       const sp = survivalPts(p)
       if (sp == null) return '—'
-      return <span style={{ color: sp >= 0 ? 'var(--color-xama-text)' : '#f87171' }}>{fmt2(sp)}</span>
+      return <span style={{ color: sp >= 0 ? 'var(--color-xama-text)' : '#f87171' }}>{fmtInt(sp)}</span>
     },
     sortVal: (p) => survivalPts(p) ?? 0 },
 

@@ -12,7 +12,7 @@ Fórmula XAMA (todas as constantes documentadas abaixo):
   │  Kills         × 5      pts                                    │
   │  Assists       × 1      pts                                    │
   │  Knocks        × 1      pts                                    │
-  │  Damage        × 0.03   pts por ponto de dano                  │
+  │  Damage        × 0.03   pts (arredondado para inteiro)         │
   │  Morte precoce → −15    se survival < 600s E kills == 0        │
   │  Late game     → bônus por sobreviver até o final (ver abaixo) │
   │  Capitão       → ×1.30  aplicado na camada de lineup scoring   │
@@ -112,7 +112,7 @@ def calculate_base_points(stat: PlayerStatInput) -> tuple[Decimal, bool]:
     early_death_pts = Decimal(EARLY_DEATH_PENALTY) if is_early_death else Decimal("0")
 
     base = kill_pts + assist_pts + knock_pts + dmg_pts + early_death_pts
-    base = base.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    base = base.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
     return base, is_early_death
 
 
@@ -178,7 +178,7 @@ def calculate_match_points_all(
     for stat in all_stats:
         base, _ = calculate_base_points(stat)
         bonus = late_bonuses.get(stat.person_id, Decimal("0"))
-        total = (base + bonus).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        total = (base + bonus).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
         result[stat.person_id] = total
     return result
 
@@ -200,7 +200,7 @@ def get_scoring_breakdown(stat: PlayerStatInput, duration_secs: int) -> dict:
         "damage":      {"value": stat.damage_dealt,  "multiplier": float(POINTS_PER_DAMAGE), "points": float(dmg_pts)},
         "early_death": {"value": is_early_death,     "points": float(EARLY_DEATH_PENALTY) if is_early_death else 0.0},
         "late_game":   {"value": float(late_bonus),  "points": float(late_bonus)},
-        "total":       float((base + late_bonus).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)),
+        "total":       float((base + late_bonus).quantize(Decimal("1"), rounding=ROUND_HALF_UP)),
     }
 
 
@@ -343,7 +343,7 @@ def _adjust_person_stage_stat(
         .first()
     )
 
-    delta = delta_pts.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    delta = delta_pts.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
 
     if pss:
         current   = pss.total_xama_points  # já é Decimal (Numeric(10,2))
