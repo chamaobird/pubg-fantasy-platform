@@ -841,7 +841,7 @@ export default function LandingPage({ redirectTo = '/dashboard' }) {
             <span className="lp-status-dot" />
             <span className="lp-status-live">LIVE</span>
             <span className="lp-status-sep lp-status-meta">—</span>
-            <span className="lp-status-meta">PAS 2025</span>
+            <span className="lp-status-meta">PAS 2026 · PEC 2026</span>
           </div>
         </div>
       </header>
