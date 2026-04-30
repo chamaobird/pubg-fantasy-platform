@@ -92,7 +92,7 @@ UPDATE stage SET lineup_status = 'locked'  WHERE id = <stage_id>;
 
 ## Auth — fluxo
 - Cadastro email/senha → email de verificação → login
-- Google OAuth: `/auth/google` → Google → `/auth/google/callback` → `/auth/callback?code=<opaco>` → `POST /auth/exchange-code` → JWT em JSON (nunca na URL)
+- Google OAuth: `/auth/google` → Google → `/auth/google/callback` → `/auth/callback?code=<opaco>` → `POST /auth/exchange-code` → JWT em JSON (nunca na URL). Código opaco: TTL 120s, uso único, persistido em tabela `oauth_code` (migration 0028+0029). Email/senha: JWT retornado direto no JSON, nunca em URL.
 - Forgot password: `POST /auth/forgot-password` → email → `/auth/reset-password?token=`
 - Email verification aponta para BACKEND_URL/auth/verify (não frontend)
 - Resend domínio: chamaobird.xyz (verificado) — EMAIL_FROM=noreply@chamaobird.xyz

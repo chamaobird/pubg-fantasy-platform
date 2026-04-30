@@ -18,17 +18,18 @@ Olá! Vamos retomar o desenvolvimento do XAMA Fantasy.
 
 **Próxima sessão: Sessão C — Onboarding e estado vazio do Dashboard**
 > Ver plano detalhado em `docs/XAMA_PLANO_SESSOES.md` → Sessão C
-> Pré-requisito: confirmar que Sessão A está coletando dados (PostHog) antes de iniciar C
+> Pré-requisito: aguardar pelo menos 5 dias de dados no PostHog antes de iniciar C
+> Janela de espera: ataques pontuais ao backlog 🟡 (SEC-002/003, Mobile Fase 2, etc.) se houver tempo
 
 **Pendências operacionais (BACKLOG 🟠):**
 - **hwinn**: rodar queries SQL de investigação de pricing e reportar resultado
 - **#PAS-13**: validar Steam names via `manage_player_accounts.py`
 - **#PAS-14**: atualizar PlayerAccount id=308 (Gustav) com account_id real
 
-**Backlog de segurança:**
-- ~~SEC-001~~: resolvido (30/04/2026)
+**Backlog de segurança (🟡 Média prioridade):**
+- ~~SEC-001~~: resolvido e validado em prod (30/04/2026)
 - **SEC-002**: JWT 7 dias sem revogação (ver BACKLOG)
-- **SEC-003**: tokens de reset/verify em query string (ver BACKLOG)
+- **SEC-003**: tokens reset/verify em URL — risco baixo, avaliar depois
 
 **Rotina Claude Code:**
 ```powershell

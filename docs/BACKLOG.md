@@ -8,11 +8,6 @@
 - [x] Corrigir comentário no `app/services/scoring.py` ~L14: `×1.25` → `×1.30` — já estava correto, nada a fazer
 - [x] `TeamLogo.jsx`: remover alias `flcn → flc` — alias já inexistente no arquivo, nada a fazer
 
-### Segurança
-- [x] **SEC-001**: OAuth callback refatorado — `?token=JWT` substituído por `?code=<opaco>` + `POST /auth/exchange-code` (TTL 120s, uso único, Postgres). (30/04/2026)
-  - Hotfix: migration 0029 corrige `oauth_code.user_id` de `INTEGER` → `VARCHAR(36)` — erro 500 em prod por tipo incorreto (User.id é UUID como String(36))
-- [ ] **SEC-002**: JWT de 7 dias sem revogação — se token vazar, acesso válido por até 7 dias. Mitigações possíveis: refresh token + access token de vida curta (ex: 15min), ou blocklist de tokens revogados no logout.
-- [ ] **SEC-003**: Tokens de reset de senha e verificação de email ainda trafegam em query string (`?token=`). Risco menor (tokens opacos, curta duração, uso único) — avaliar se vale refatorar para POST também.
 
 ---
 
@@ -25,6 +20,10 @@
 ---
 
 ## 🟡 Média prioridade
+
+### Segurança
+- [ ] **SEC-002**: JWT de 7 dias sem revogação — se token vazar, acesso válido por até 7 dias. Mitigações: refresh token + access token de vida curta (15min), ou blocklist no logout.
+- [ ] **SEC-003**: Tokens de reset de senha e verificação de email ainda trafegam em query string (`?token=`). Risco menor (tokens opacos, curta duração, uso único) — avaliar refatoração para POST.
 
 ### Mobile — Fase 2 (componentes, sessão dedicada)
 - [ ] #MOB-04 LineupBuilder: layout em cards por jogador em vez de tabela
@@ -65,13 +64,10 @@
 
 ## 🟢 Concluído
 
-### SEC-001 — 30/04/2026 — OAuth callback seguro
-- [x] Migration 0028 (`oauth_code`): code PK, user_id, is_admin, expires_at, created_at
-- [x] `app/models/oauth_code.py` + registrado em `models/__init__.py`
-- [x] `google_callback`: gera código opaco (TTL 120s) e redireciona com `?code=`
-- [x] `POST /auth/exchange-code`: cleanup oportunístico + troca código por JWT + uso único
-- [x] `AuthCallback.jsx`: lê `?code=`, faz POST, retry 1x, estado de erro com botão "Tentar novamente"
-- [ ] Validação final em produção: PostHog deve mostrar `?code=` sem JWT
+### SEC-001 — 30/04/2026 — OAuth callback seguro ✅ validado em prod
+- [x] Implementação Opção C (código opaco + `POST /auth/exchange-code`). TTL 120s, uso único, persistido em tabela `oauth_code`.
+- [x] Migration 0028 (criação) + 0029 (hotfix tipo UUID). Hotfix necessário: `user_id` foi inicialmente declarado `INTEGER` quando todas as FKs do projeto usam `String(36)` para `User.id`. **Lição: ao propor schemas com FK, sempre verificar o tipo da coluna referenciada antes de implementar.**
+- [x] 3 testes em prod passaram: login Google end-to-end (`?code=` na URL) + reuso do code retorna tela de erro + PostHog confirma URLs sem JWT.
 
 ### Sessão B — 30/04/2026 — Limpeza de débitos rápidos
 - [x] Fix `LeagueDetail.jsx:152` — duplicate style attr corrigido
