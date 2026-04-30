@@ -3,6 +3,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { API_BASE_URL } from '../config'
+import { track } from '../lib/analytics'
 import TeamLogo from './TeamLogo'
 import { formatTeamTag } from '../utils/teamUtils'
 
@@ -114,6 +115,10 @@ export default function TournamentLeaderboard({
 
   const [submissions,        setSubmissions]  = useState([])
   const [submissionsLoading, setSubLoading]   = useState(false)
+
+  useEffect(() => {
+    if (stageId) track('leaderboard_viewed', { stage_id: stageId })
+  }, [stageId])
 
   // Modo Espectador — visível quando locked/live (lineup fechado para edição)
   const isLocked = lineupStatus === 'locked' || lineupStatus === 'live'

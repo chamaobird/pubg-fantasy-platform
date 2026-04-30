@@ -1,5 +1,6 @@
 // frontend/src/App.jsx
 import { useState, useEffect, createContext, useContext } from 'react'
+import { identifyUser, resetUser } from './lib/analytics'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import LandingPage from './pages/LandingPage'
 import Championships from './pages/Championships'
@@ -12,6 +13,7 @@ import AuthCallback from './pages/AuthCallback'
 import ResetPasswordPage from './pages/ResetPasswordPage'
 import SetupUsername from './pages/SetupUsername'
 import AppBackground from './components/AppBackground'
+import FeedbackButton from './components/FeedbackButton'
 import Admin from './pages/Admin'
 import Leagues from './pages/Leagues'
 import LeagueDetail from './pages/LeagueDetail'
@@ -50,6 +52,7 @@ function RequireAuth({ children }) {
       <div style={{ position: 'relative', zIndex: 2 }}>
         {children}
       </div>
+      <FeedbackButton />
     </>
   )
 }
@@ -71,12 +74,18 @@ export default function App() {
     }
     setSessionExpiredMsg('')
     setToken(t)
+    // Identifica o usuário no PostHog com o sub do JWT
+    try {
+      const payload = JSON.parse(atob(t.split('.')[1]))
+      if (payload?.sub) identifyUser(payload.sub)
+    } catch { /* token malformado — ignora */ }
   }
 
   const handleLogout = () => {
     localStorage.removeItem('wf_token')
     localStorage.removeItem('wf_redirect')
     setToken('')
+    resetUser()
   }
 
   // Escuta o evento global de sessão expirada (disparado por qualquer fetch que receba 401)

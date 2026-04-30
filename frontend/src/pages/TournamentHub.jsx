@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../App'
 import { API_BASE_URL } from '../config'
+import { track } from '../lib/analytics'
 import TournamentLayout from '../components/TournamentLayout'
 import LineupBuilder from '../components/LineupBuilder'
 import TournamentLeaderboard from '../components/TournamentLeaderboard'
@@ -46,6 +47,7 @@ export default function TournamentHub() {
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         setStage(data)
+        if (data) track('tournament_opened', { stage_id: Number(id), championship_id: data.championship_id ?? null })
         if (data?.championship_id) {
           fetch(`${API_BASE_URL}/stages/?championship_id=${data.championship_id}`)
             .then(r => r.ok ? r.json() : [])

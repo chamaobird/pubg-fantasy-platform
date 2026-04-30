@@ -4,6 +4,7 @@
 
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { API_BASE_URL } from '../config'
+import { track } from '../lib/analytics'
 import TeamLogo from './TeamLogo'
 import PlayerHistoryModal from './PlayerHistoryModal'
 import ScoringRulesModal from './ScoringRulesModal'
@@ -116,6 +117,17 @@ export default function LineupBuilder({
 
   // ── Ref para evitar re-popular o builder após edições do usuário ────────
   const loadedLineupIdRef = useRef(null)
+
+  // ── Analytics: lineup_started / lineup_abandoned ─────────────────────────
+  const _savedRef = useRef(false)
+  useEffect(() => {
+    if (!canEdit || !stageId) return
+    _savedRef.current = false
+    track('lineup_started', { stage_id: stageId })
+    return () => {
+      if (!_savedRef.current) track('lineup_abandoned', { stage_id: stageId })
+    }
+  }, [canEdit, stageId])
 
   // ── Stage day ativo ─────────────────────────────────────────────────────
   const activeStageDayId = useMemo(() => {
@@ -359,6 +371,8 @@ export default function LineupBuilder({
           captain_roster_id:  captainId,
         }),
       })
+      _savedRef.current = true
+      track('lineup_saved', { stage_id: stageId })
       setSaveSuccess(data)
     } catch (e) {
       setSaveError(parseErrorMessage(e))

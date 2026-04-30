@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { API_BASE_URL as API_BASE } from '../config'
+import { track } from '../lib/analytics'
 import PlayerStatsTable from './PlayerStatsTable'
 
 const MAP_DISPLAY = {
@@ -88,6 +89,10 @@ export default function PlayerStatsPage({
 }) {
   const [stageId, setStageId] = useState(propStageId ? Number(propStageId) : null)
   useEffect(() => { setStageId(propStageId ? Number(propStageId) : null) }, [propStageId])
+
+  useEffect(() => {
+    if (propStageId) track('player_stats_opened', { stage_id: Number(propStageId) })
+  }, [propStageId])
 
   const allSiblings = useMemo(() => [...(siblingStages || [])].sort((a, b) => a.id - b.id), [siblingStages])
   const [selectedStageIds, setSelectedStageIds] = useState(() => propStageId ? [Number(propStageId)] : [])

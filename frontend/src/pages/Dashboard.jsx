@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../App'
 import { API_BASE_URL } from '../config'
+import { track } from '../lib/analytics'
 import Navbar from '../components/Navbar'
 import { Card, CardTitle } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
@@ -821,6 +822,8 @@ export default function Dashboard() {
       const current = prev[champId] !== undefined ? prev[champId] : defaultExpanded
       return { ...prev, [champId]: !current }
     })
+
+  useEffect(() => { track('dashboard_viewed') }, [])
 
   useEffect(() => {
     if (!token) return

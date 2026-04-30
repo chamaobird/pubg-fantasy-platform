@@ -7,6 +7,7 @@ import { useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../App'
 import { API_BASE_URL } from '../config'
+import { track } from '../lib/analytics'
 
 export default function AuthCallback() {
   const [searchParams] = useSearchParams()
@@ -20,6 +21,7 @@ export default function AuthCallback() {
       return
     }
 
+    track('login_completed', { method: 'google' })
     setToken(token)
 
     // Verifica se o usuário já tem username; se não, força setup

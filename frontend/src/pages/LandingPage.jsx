@@ -6,6 +6,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../App'
 import { API_BASE_URL } from '../config'
+import { track } from '../lib/analytics'
 
 // ── Traduz erros do backend para PT-BR ───────────────────────────────────────
 function translateError(msg) {
@@ -87,6 +88,7 @@ function AuthCard({ redirectTo = '/dashboard', sessionExpiredMsg = '' }) {
       const data = await res.json().catch(() => null)
       if (!res.ok) throw new Error(data?.detail || `HTTP ${res.status}`)
       if (!data?.access_token) throw new Error('Sem token na resposta')
+      track('login_completed', { method: 'password' })
       finish(data.access_token)
     } catch (err) { setLoginError(parseError(err)) }
     finally { setLoginLoading(false) }
@@ -112,6 +114,7 @@ function AuthCard({ redirectTo = '/dashboard', sessionExpiredMsg = '' }) {
         }
         throw new Error(msg)
       }
+      track('signup_completed')
       setRegSuccess('Conta criada! Verifique seu email para ativar o acesso.')
       setRegEmail(''); setRegUsername(''); setRegPassword('')
     } catch (err) { setRegError(parseError(err)) }
