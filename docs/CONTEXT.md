@@ -113,7 +113,7 @@ EMAIL_FROM=noreply@chamaobird.xyz
 
 ## Rotas do frontend
 ```
-/                     → LandingPage (v5 — design refresh em feature/landing-refresh, aguardando merge para main)
+/                     → LandingPage (v5 — design refresh deployado em 29/04/2026)
 /dashboard            → Dashboard
 /championships        → Championships
 /tournament/:id       → TournamentHub

@@ -10,6 +10,7 @@ import AdminStages from './admin/AdminStages'
 import AdminTeams from './admin/AdminTeams'
 import AdminEmail from './admin/AdminEmail'
 import AdminChampionshipGroups from './admin/AdminChampionshipGroups'
+import AdminFeedback from './admin/AdminFeedback'
 
 const SECTIONS = [
   { key: 'persons',             label: 'Jogadores',    icon: '👤', desc: 'Persons e contas PUBG' },
@@ -18,6 +19,7 @@ const SECTIONS = [
   { key: 'championship-groups', label: 'Grupos',       icon: '🔗', desc: 'Rankings unificados' },
   { key: 'stages',              label: 'Stages',       icon: '📅', desc: 'Fases e status' },
   { key: 'email',               label: 'Email',        icon: '✉️', desc: 'Comunicação com usuários' },
+  { key: 'feedback',            label: 'Feedback',     icon: '💬', desc: 'Feedbacks dos usuários' },
 ]
 
 function getIsAdmin(token) {
@@ -47,6 +49,7 @@ export default function Admin() {
       case 'championship-groups': return <AdminChampionshipGroups token={token} />
       case 'stages':        return <AdminStages token={token} />
       case 'email':         return <AdminEmail token={token} />
+      case 'feedback':      return <AdminFeedback token={token} />
       default:              return null
     }
   }

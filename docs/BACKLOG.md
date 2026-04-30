@@ -28,7 +28,7 @@
 
 ### Debt técnico UI — Categoria B (pós PAS1)
 - [ ] #DEBT-B1 Tokens CSS para surfaces secundárias: `#0f1219` → `--surface-2`, `#1a1f2e` → `--surface-3`, `#2a3046` → `--border-2`, `#13161f` → `--row-hover` — ~30 ocorrências em `index.css` + JSX
-- [ ] #DEBT-B2 LandingPage: paleta própria (`#08090d`, `#f1f5f9` etc.) — avaliar se vale criar tokens separados
+- [x] #DEBT-B2 LandingPage: paleta própria — resolvido em LandingPage v5 com tokens `--lp-*` scoped inline no componente (29/04/2026)
 
 ### UX — Championships.jsx
 - [ ] #UX-CHAMP-02 Avaliar se Championships vira página mais rica (stats, datas, histórico)
