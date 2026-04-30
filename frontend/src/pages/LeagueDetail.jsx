@@ -149,7 +149,7 @@ export default function LeagueDetail() {
           {/* Leaderboard */}
           <div style={CS}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-              <div style={ST} style={{ marginBottom: 0 }}>Leaderboard</div>
+              <div style={{ ...ST, marginBottom: 0 }}>Leaderboard</div>
               {stages.length > 0 && (
                 <select
                   value={selectedStage}
