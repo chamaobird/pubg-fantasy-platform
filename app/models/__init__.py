@@ -15,6 +15,8 @@ from app.models.person_alias import PersonAlias
 from app.models.achievement import UserAchievement
 from app.models.league import League, LeagueMember
 from app.models.email_log import EmailLog
+from app.models.feedback import Feedback
+from app.models.oauth_code import OAuthCode
 
 __all__ = [
     "User",
@@ -37,4 +39,6 @@ __all__ = [
     "League",
     "LeagueMember",
     "EmailLog",
+    "Feedback",
+    "OAuthCode",
 ]
