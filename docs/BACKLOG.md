@@ -17,7 +17,7 @@
 
 ## 🟠 Operacional (torneio — executar manualmente)
 
-- [ ] **hwinn — pricing**: investigar se há `cost_override` travando o preço. Rodar queries SQL de análise e decidir: remover override (deixar automático) ou confirmar que já está correto. Ver queries preparadas em sessão B (30/04/2026).
+- [x] **hwinn — pricing**: investigado em 30/04/2026 — stage atual já em automático (20.20). Overrides em stages históricas (15, 24) preservados. Nenhuma ação necessária.
 - [ ] **#PAS-13**: Validar/corrigir Steam names via `scripts/pubg/manage_player_accounts.py` (após 1ª partida do torneio relevante)
 - [ ] **#PAS-14**: Atualizar `PlayerAccount id=308` (Gustav) — substituir `account_id=PENDING_Gustav` e `shard=pending` pelos valores reais do PUBG API
 
@@ -69,7 +69,7 @@
 - [x] Sort padrão por team name em `PlayerStatsTable` (default `team asc`, secundário `person_name asc`) e `LineupBuilder` (default `team asc`, secundário `fantasy_cost desc`)
 - [x] 13 arquivos legados deletados: Landing, Login, Register, CreateTeam, MyTeams, TeamDetail, Players, Leaderboard, Tournaments, TournamentSelect, NotFound, ProtectedRoute, context/AuthContext
 - [x] Confirmado: `scoring.py` já tinha `×1.30` e `TeamLogo.jsx` já sem alias `flcn` — zero trabalho
-- [ ] hwinn pricing — aguardando resultados de queries SQL (investigação pendente com Birdo)
+- [x] hwinn pricing — investigação 30/04/2026: stage atual (id 30) já em pricing automático (20.20). Overrides históricos em stages 15 e 24 preservados como registro operacional. Nenhuma ação necessária.
 
 ### Sessão A — 29/04/2026 — Instrumentação + Feedback widget
 - [x] A.1 — PostHog no frontend: analytics (track events), session replay, identify/reset no AuthContext, guard de ambiente (só produção via `import.meta.env.PROD`)
