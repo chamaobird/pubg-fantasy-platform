@@ -14,6 +14,9 @@
 - [ ] Corrigir comentário no `app/services/scoring.py` linha ~14: capitão `×1.25` → `×1.30`
 - [ ] `TeamLogo.jsx`: remover alias `flcn → flc` (display_names já corrigidos no banco)
 
+### Segurança
+- [ ] **SEC-001**: Refatorar OAuth callback para não expor JWT na URL — atualmente em `/auth/callback?token=eyJ...`, vaza para PostHog, browser history, server logs e Referer headers. Mover para fragment (`#`) ou state opaco + troca por token via POST.
+
 ---
 
 ## 🟡 Média prioridade
@@ -56,6 +59,12 @@
 ---
 
 ## 🟢 Concluído
+
+### Sessão A — 29/04/2026 — Instrumentação + Feedback widget
+- [x] A.1 — PostHog no frontend: analytics (track events), session replay, identify/reset no AuthContext, guard de ambiente (só produção via `import.meta.env.PROD`)
+- [x] A.2 — Widget de feedback: migration 0026 (tabela `feedback`), `POST /feedback` (público, rate-limited), `GET /admin/feedback` (admin), `FeedbackButton.jsx` (botão fixo bottom-right), `AdminFeedback.jsx` (aba "Feedback" em Admin.jsx)
+- [x] Migrations 0026 e 0027 aplicadas em prod
+- [x] Senha do Postgres rotacionada manualmente; `DATABASE_URL` atualizada no Render
 
 ### Sessão 15/04/2026 — Leaderboard avançado + OAuth username + UX lineup
 - [x] Migrations 0014/0015: `survival_secs` + `captain_pts` em `user_stage_stat` e `user_day_stat`
@@ -108,6 +117,9 @@
 ---
 
 ## 🔵 Infraestrutura / Workflow
+
+### Dev environment
+- [ ] **DEV-001**: Configurar Postgres local para dev/teste de migrations sem usar prod
 
 ### Claude Code — rotina de sessão
 ```powershell

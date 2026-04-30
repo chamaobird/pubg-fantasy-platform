@@ -34,7 +34,7 @@ rtk gain   # ver economia de tokens ao fim da sessão
 - PowerShell: usar `;` em vez de `&&` para encadear comandos
 
 ## Migrations (cadeia real)
-`0001 → 0002 → 4bfb4ef75223 → 0003 → 0004 → 0005 → 0006 → 0007 → 0008 → 0009 → 0010 → 0011 → 0012 → 0013 → 0014 → 0015 → 0016 → 0017 → 0018 → 0019 → 0020`
+`0001 → 0002 → 4bfb4ef75223 → 0003 → 0004 → 0005 → 0006 → 0007 → 0008 → 0009 → 0010 → 0011 → 0012 → 0013 → 0014 → 0015 → 0016 → 0017 → 0018 → 0019 → 0020 → 0021 → 0022 → 0023 → 0024 → 0025 → 0026 → 0027`
 - `0014`: `survival_secs` + `captain_pts` em `user_stage_stat`
 - `0015`: `survival_secs` + `captain_pts` em `user_day_stat`
 - `0016`: `match_schedule` (JSONB) + `last_import_at` em `stage_day`
@@ -47,9 +47,11 @@ rtk gain   # ver economia de tokens ao fim da sessão
 - `0023`: `locked_cost` Numeric em `lineup_player`
 - `0024`: coluna `stage_phase` em `stage` (upcoming/preview/live/finished) — arquitetura dois campos
 - `0025`: tabela `email_log` — auditoria de disparos de email admin (id, template_key, subject, recipient_group, stage_id, sent_count, failed_count, variables JSON, triggered_by, sent_at)
-- Próxima: `revision = "0026"`, `down_revision = "0025"`
+- `0026`: tabela `feedback` — id, user_id FK nullable, page VARCHAR(120), message TEXT, rating SMALLINT nullable, user_agent VARCHAR(300), created_at TIMESTAMP
+- `0027`: (verificar no banco: `Get-Content alembic\versions\0027_*.py | Select-Object -First 15`)
+- Próxima: `revision = "0028"`, `down_revision = "0027"`
 - Sempre rodar `python -m alembic` da raiz
-- Verificar antes de criar: `Get-Content alembic\versions\0025_*.py | Select-Object -First 15`
+- Verificar antes de criar: `Get-Content alembic\versions\0027_*.py | Select-Object -First 15`
 
 ## Entidades principais
 ```
@@ -96,7 +98,7 @@ UPDATE stage SET lineup_status = 'locked'  WHERE id = <stage_id>;
 
 ## Env vars críticas (Render backend)
 ```
-DATABASE_URL
+DATABASE_URL          ← rotacionada manualmente em 27/04/2026 e em 30/04/2026; nunca usar a de prod localmente
 SECRET_KEY
 GOOGLE_CLIENT_ID=697343070083-au4k11q2j8s0kr0q41e1lbsjkv73k4ni.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET
@@ -105,6 +107,14 @@ BACKEND_URL=https://pubg-fantasy-platform.onrender.com
 RESEND_API_KEY
 EMAIL_FROM=noreply@chamaobird.xyz
 ```
+
+## Env vars críticas (Render frontend)
+```
+VITE_POSTHOG_KEY      ← Project API Key do PostHog
+VITE_POSTHOG_HOST     ← ex: https://us.i.posthog.com
+```
+
+> **Política de segurança:** `DATABASE_URL` de produção nunca deve ser usada em ambiente local. Para migrations e queries locais, usar uma instância Postgres local (DEV-001 no BACKLOG).
 
 ## URLs de produção
 - Frontend: https://pubg-fantasy-frontend.onrender.com
@@ -144,6 +154,7 @@ GET/PATCH /auth/me
 POST /auth/login | /auth/register | /auth/forgot-password | /auth/reset-password
 GET  /auth/verify?token= | /auth/google | /auth/google/callback
 POST /auth/resend-verification
+POST /feedback                                                   ← público; associa user_id se token presente; rate limit 5/min por IP
 ```
 
 ## Endpoints admin
@@ -195,6 +206,7 @@ POST  /admin/email/preview                                ← gera {subject, htm
 GET   /admin/email/logs                                   ← histórico de disparos (últimos 50)
 GET   /admin/email/stages                                 ← lista stages para dropdowns de email (?championship_id)
 GET   /admin/email/championships                          ← lista championships para dropdowns de email
+GET   /admin/feedback                                     ← lista feedbacks recebidos (admin, paginado, desc created_at)
 ```
 
 ## Times no banco (criados em 22/04/2026)
@@ -299,6 +311,13 @@ GET https://api.pubg.com/tournaments/{id}         → pegar primeiro match_id
 GET https://api.pubg.com/shards/pc-tournament/matches/{match_id}  → 200 = pc-tournament, 404 = steam
 ```
 
+## Instrumentação
+
+- **PostHog** (frontend): analytics de eventos + session replay. Inicializado em `main.jsx` com `VITE_POSTHOG_KEY` e `VITE_POSTHOG_HOST`. Guard `import.meta.env.PROD` — NÃO dispara em dev local. Utilitário `src/lib/analytics.js` exporta `track(event, props)` que encapsula PostHog.
+- **Identify/reset**: `posthog.identify(user.id, { email, username, is_admin })` ao logar; `posthog.reset()` ao deslogar — em `App.jsx` no AuthContext.
+- **Eventos instrumentados**: `login_completed`, `signup_completed`, `dashboard_viewed`, `tournament_opened`, `lineup_started`, `lineup_saved`, `lineup_abandoned`, `leaderboard_viewed`, `player_stats_opened`, `feedback_submitted`.
+- **Feedback in-app**: tabela `feedback` (migration 0026) + `POST /feedback` (público, rate-limited via slowapi) + `GET /admin/feedback` (admin). Frontend: `FeedbackButton.jsx` (botão flutuante fixed bottom-right, renderizado no `ProtectedRoute`) + `AdminFeedback.jsx` (aba "Feedback" em `Admin.jsx`). Service em `src/api/feedback.js`.
+
 ## Notas importantes
 - `pricing_n_matches`: campo DEPRECATED no modelo Stage
 - MatchStat está em `app/models/match_stat.py` (NÃO em `app/models/match.py`)
@@ -351,4 +370,4 @@ GET https://api.pubg.com/shards/pc-tournament/matches/{match_id}  → 200 = pc-t
 - **CountdownBadge** no Dashboard tem prop `mode='open'|'close'` (default 'close'): modo `open` exibe "Abre em" em laranja (para seção preview que conta até `lineup_open_at`); modo `close` exibe "Fecha em" em laranja/vermelho conforme urgência
 - **PlayerStatsTable** (`frontend/src/components/PlayerStatsTable.jsx`): componente canônico da tabela de stats — fonte única de verdade. Usado em `PlayerStatsPage` e `ChampionshipGroupDetail`. Players devem ter `person_name` (ChampionshipGroupDetail normaliza `display_name → person_name` antes de passar). Props: `players`, `shortName`, `showDaysPlayed`, `beforeDate`, `totalCount`, `footerLabel`
 - **ChampionshipGroupDetail**: `maxWidth` dinâmico via `tab === 'players' ? 1600 : 900` para manter dimensões idênticas ao PlayerStatsPage
-- **Segurança**: `.claude/settings.local.json` adicionado ao `.gitignore` — continha credenciais do banco. Nunca commitar; credenciais foram rotacionadas em 27/04/2026
+- **Segurança**: `.claude/settings.local.json` adicionado ao `.gitignore` — continha credenciais do banco. Nunca commitar; `DATABASE_URL` rotacionada em 27/04/2026 e novamente em 30/04/2026 (senha do Postgres rotacionada manualmente pelo Birdo, DATABASE_URL atualizada no Render). **Nunca usar `DATABASE_URL` de produção em ambiente local.**
