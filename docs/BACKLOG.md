@@ -2,20 +2,24 @@
 
 ## 🔴 Alta prioridade — próxima sessão
 
-### Operacional
-- [ ] Ajustar preço do hwinn via AdminPricingPanel (valor ~13.24 — confirmar)
-- [ ] #PAS-13 Após 1ª partida (17/04): validar/corrigir Steam names via `scripts/pubg/manage_player_accounts.py`
-- [ ] #PAS-14 Após 1ª partida (17/04): atualizar PlayerAccount id=308 (Gustav) — substituir account_id=PENDING_Gustav e shard=pending pelos valores reais do PUBG API
-
 ### Tech debt rápido
-- [ ] Fix: `LeagueDetail.jsx:152` — duplicate `style` attribute no header do Leaderboard. Fundir em um único objeto: `style={{ ...ST, marginBottom: 0 }}`. Detectado durante build do refresh da landing (feature/landing-refresh) mas é bug pré-existente fora do escopo daquela task.
+- [x] Fix: `LeagueDetail.jsx:152` — duplicate `style` attribute corrigido (30/04/2026)
+- [x] Sort padrão por team name em `PlayerStatsTable` e `LineupBuilder` (30/04/2026)
+- [x] Corrigir comentário no `app/services/scoring.py` ~L14: `×1.25` → `×1.30` — já estava correto, nada a fazer
+- [x] `TeamLogo.jsx`: remover alias `flcn → flc` — alias já inexistente no arquivo, nada a fazer
 
-
-- [ ] Corrigir comentário no `app/services/scoring.py` linha ~14: capitão `×1.25` → `×1.30`
-- [ ] `TeamLogo.jsx`: remover alias `flcn → flc` (display_names já corrigidos no banco)
+### Segurança
 
 ### Segurança
 - [ ] **SEC-001**: Refatorar OAuth callback para não expor JWT na URL — atualmente em `/auth/callback?token=eyJ...`, vaza para PostHog, browser history, server logs e Referer headers. Mover para fragment (`#`) ou state opaco + troca por token via POST.
+
+---
+
+## 🟠 Operacional (torneio — executar manualmente)
+
+- [ ] **hwinn — pricing**: investigar se há `cost_override` travando o preço. Rodar queries SQL de análise e decidir: remover override (deixar automático) ou confirmar que já está correto. Ver queries preparadas em sessão B (30/04/2026).
+- [ ] **#PAS-13**: Validar/corrigir Steam names via `scripts/pubg/manage_player_accounts.py` (após 1ª partida do torneio relevante)
+- [ ] **#PAS-14**: Atualizar `PlayerAccount id=308` (Gustav) — substituir `account_id=PENDING_Gustav` e `shard=pending` pelos valores reais do PUBG API
 
 ---
 
@@ -59,6 +63,13 @@
 ---
 
 ## 🟢 Concluído
+
+### Sessão B — 30/04/2026 — Limpeza de débitos rápidos
+- [x] Fix `LeagueDetail.jsx:152` — duplicate style attr corrigido
+- [x] Sort padrão por team name em `PlayerStatsTable` (default `team asc`, secundário `person_name asc`) e `LineupBuilder` (default `team asc`, secundário `fantasy_cost desc`)
+- [x] 13 arquivos legados deletados: Landing, Login, Register, CreateTeam, MyTeams, TeamDetail, Players, Leaderboard, Tournaments, TournamentSelect, NotFound, ProtectedRoute, context/AuthContext
+- [x] Confirmado: `scoring.py` já tinha `×1.30` e `TeamLogo.jsx` já sem alias `flcn` — zero trabalho
+- [ ] hwinn pricing — aguardando resultados de queries SQL (investigação pendente com Birdo)
 
 ### Sessão A — 29/04/2026 — Instrumentação + Feedback widget
 - [x] A.1 — PostHog no frontend: analytics (track events), session replay, identify/reset no AuthContext, guard de ambiente (só produção via `import.meta.env.PROD`)
