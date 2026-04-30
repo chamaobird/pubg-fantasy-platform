@@ -104,8 +104,8 @@ export default function LineupBuilder({
   // ── UI ──────────────────────────────────────────────────────────────────
   const [searchName,   setSearchName]   = useState('')
   const [teamFilter,   setTeamFilter]   = useState(null)   // null = todos os times
-  const [sortKey,      setSortKey]      = useState('effective_cost')
-  const [sortDir,      setSortDir]      = useState('desc')
+  const [sortKey,      setSortKey]      = useState('team')
+  const [sortDir,      setSortDir]      = useState('asc')
   const [saveLoading,  setSaveLoading]  = useState(false)
   const [saveError,    setSaveError]    = useState('')
   const [saveSuccess,  setSaveSuccess]  = useState(null)
@@ -198,7 +198,14 @@ export default function LineupBuilder({
     return [...filteredPlayers].sort((a, b) => {
       let aVal, bVal
       if (sortKey === 'name')            { aVal = formatPlayerName(a.person_name, a.team_name); bVal = formatPlayerName(b.person_name, b.team_name) }
-      else if (sortKey === 'team')       { aVal = formatTeamTag(a.person_name, a.team_name); bVal = formatTeamTag(b.person_name, b.team_name) }
+      else if (sortKey === 'team') {
+        aVal = formatTeamTag(a.person_name, a.team_name)
+        bVal = formatTeamTag(b.person_name, b.team_name)
+        if (aVal === bVal) {
+          // secondary: fantasy_cost desc
+          return (Number(b.effective_cost) || 0) - (Number(a.effective_cost) || 0)
+        }
+      }
       else if (PRIOR_KEYS.has(sortKey)) {
         const sa = priorStats[a.person_id]; const sb = priorStats[b.person_id]
         aVal = sa ? sa[sortKey] : null

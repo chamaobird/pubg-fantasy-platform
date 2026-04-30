@@ -165,8 +165,8 @@ export default function PlayerStatsTable({
 }) {
   const [search, setSearch]         = useState('')
   const [teamFilter, setTeamFilter] = useState('')
-  const [sortKey, setSortKey]       = useState('pts_per_match')
-  const [sortDir, setSortDir]       = useState('desc')
+  const [sortKey, setSortKey]       = useState('team')
+  const [sortDir, setSortDir]       = useState('asc')
   const [historyPlayer, setHistoryPlayer] = useState(null)
 
   const badgeMap = useMemo(() => computeBadgeMap(players), [players])
@@ -194,6 +194,10 @@ export default function PlayerStatsTable({
       if (sortKey === 'team') {
         av = formatTeamTag(a.person_name, a.team_name)
         bv = formatTeamTag(b.person_name, b.team_name)
+        if (av === bv) {
+          // secondary: person_name asc
+          return formatPlayerName(a.person_name).localeCompare(formatPlayerName(b.person_name))
+        }
       } else if (sortKey === 'name') {
         av = formatPlayerName(a.person_name)
         bv = formatPlayerName(b.person_name)
