@@ -8,14 +8,17 @@ Auth endpoints:
   POST /auth/forgot-password       - solicita reset de senha
   POST /auth/reset-password        - aplica nova senha via token
   GET  /auth/google                - redirect to Google consent screen
-  GET  /auth/google/callback       - OAuth callback
+  GET  /auth/google/callback       - OAuth callback (redireciona com ?code= opaco, nunca JWT)
+  POST /auth/exchange-code         - troca codigo opaco por JWT (uso unico, TTL 120s)
   GET  /auth/me                    - current user info
   PATCH /auth/me                   - update username / avatar_url
 """
 from __future__ import annotations
 
 import logging
+import secrets
 import urllib.parse
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from app.core.limiter import limiter
@@ -26,6 +29,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.database import get_db
 from app.dependencies import get_current_user
+from app.models.oauth_code import OAuthCode
 from app.models.user import User
 from app.schemas.auth import (
     LoginRequest,
@@ -60,6 +64,11 @@ class ForgotPasswordRequest(BaseModel):
 class ResetPasswordRequest(BaseModel):
     token: str
     new_password: str
+
+class ExchangeCodeRequest(BaseModel):
+    code: str
+
+OAUTH_CODE_TTL_SECONDS = 120
 
 
 # -- Register ------------------------------------------------------------------
@@ -207,9 +216,46 @@ async def google_callback(
         )
 
     user = get_or_create_google_user(db, google_info)
-    token = create_access_token(user.id, user.is_admin)
-    frontend_url = f"{settings.FRONTEND_URL}/auth/callback?token={token}"
-    return RedirectResponse(frontend_url)
+
+    # Gera código opaco de uso único — JWT nunca aparece na URL
+    opaque_code = secrets.token_urlsafe(32)
+    expires_at = datetime.now(timezone.utc) + timedelta(seconds=OAUTH_CODE_TTL_SECONDS)
+    db.add(OAuthCode(
+        code=opaque_code,
+        user_id=user.id,
+        is_admin=user.is_admin,
+        expires_at=expires_at,
+    ))
+    db.commit()
+
+    return RedirectResponse(f"{settings.FRONTEND_URL}/auth/callback?code={opaque_code}")
+
+
+@router.post("/exchange-code", response_model=TokenResponse)
+@limiter.limit("10/minute")
+def exchange_code(
+    request: Request,
+    body: ExchangeCodeRequest,
+    db: Session = Depends(get_db),
+) -> TokenResponse:
+    """Troca código opaco de OAuth por JWT. Uso único, TTL 120s."""
+    # Cleanup oportunístico de códigos expirados
+    db.query(OAuthCode).filter(OAuthCode.expires_at < datetime.now(timezone.utc)).delete()
+    db.commit()
+
+    record = db.query(OAuthCode).filter(OAuthCode.code == body.code).first()
+    if not record:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="invalid or expired code",
+        )
+
+    # Deleta antes de gerar o JWT — garante uso único mesmo em requests concorrentes
+    db.delete(record)
+    db.commit()
+
+    token = create_access_token(record.user_id, record.is_admin)
+    return TokenResponse(access_token=token)
 
 
 # -- Me ------------------------------------------------------------------------
