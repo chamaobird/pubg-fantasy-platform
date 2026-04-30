@@ -10,8 +10,8 @@ Olá! Vamos retomar o desenvolvimento do XAMA Fantasy.
 **Branch ativo:** `main`
 
 **Estado atual (30/04/2026):**
-- Migrations aplicadas até `0027` em prod — **`0028` (oauth_code) criada localmente, aplicar no Render antes do deploy**
-- Próxima migration: `0029`, `down_revision = "0028"`
+- Migrations aplicadas até `0029` em prod (0028 oauth_code + 0029 hotfix user_id type)
+- Próxima migration: `0030`, `down_revision = "0029"`
 - Sessões A, B e SEC-001 concluídas: PostHog + feedback + limpeza de débitos + OAuth seguro
 - PAS1 Playoffs 2 ativos: championships 12+13, stages 30+33 reprecificadas
 - Stages 31, 32, 34, 35: ainda sem roster importado

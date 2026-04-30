@@ -9,7 +9,8 @@
 - [x] `TeamLogo.jsx`: remover alias `flcn → flc` — alias já inexistente no arquivo, nada a fazer
 
 ### Segurança
-- [x] **SEC-001**: OAuth callback refatorado — `?token=JWT` substituído por `?code=<opaco>` + `POST /auth/exchange-code` (TTL 120s, uso único, Postgres). Deployar para confirmar no PostHog. (30/04/2026)
+- [x] **SEC-001**: OAuth callback refatorado — `?token=JWT` substituído por `?code=<opaco>` + `POST /auth/exchange-code` (TTL 120s, uso único, Postgres). (30/04/2026)
+  - Hotfix: migration 0029 corrige `oauth_code.user_id` de `INTEGER` → `VARCHAR(36)` — erro 500 em prod por tipo incorreto (User.id é UUID como String(36))
 - [ ] **SEC-002**: JWT de 7 dias sem revogação — se token vazar, acesso válido por até 7 dias. Mitigações possíveis: refresh token + access token de vida curta (ex: 15min), ou blocklist de tokens revogados no logout.
 - [ ] **SEC-003**: Tokens de reset de senha e verificação de email ainda trafegam em query string (`?token=`). Risco menor (tokens opacos, curta duração, uso único) — avaliar se vale refatorar para POST também.
 

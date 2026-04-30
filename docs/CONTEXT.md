@@ -34,7 +34,7 @@ rtk gain   # ver economia de tokens ao fim da sessão
 - PowerShell: usar `;` em vez de `&&` para encadear comandos
 
 ## Migrations (cadeia real)
-`0001 → 0002 → 4bfb4ef75223 → 0003 → 0004 → 0005 → 0006 → 0007 → 0008 → 0009 → 0010 → 0011 → 0012 → 0013 → 0014 → 0015 → 0016 → 0017 → 0018 → 0019 → 0020 → 0021 → 0022 → 0023 → 0024 → 0025 → 0026 → 0027 → 0028`
+`0001 → 0002 → 4bfb4ef75223 → 0003 → 0004 → 0005 → 0006 → 0007 → 0008 → 0009 → 0010 → 0011 → 0012 → 0013 → 0014 → 0015 → 0016 → 0017 → 0018 → 0019 → 0020 → 0021 → 0022 → 0023 → 0024 → 0025 → 0026 → 0027 → 0028 → 0029`
 - `0014`: `survival_secs` + `captain_pts` em `user_stage_stat`
 - `0015`: `survival_secs` + `captain_pts` em `user_day_stat`
 - `0016`: `match_schedule` (JSONB) + `last_import_at` em `stage_day`
@@ -49,10 +49,11 @@ rtk gain   # ver economia de tokens ao fim da sessão
 - `0025`: tabela `email_log` — auditoria de disparos de email admin (id, template_key, subject, recipient_group, stage_id, sent_count, failed_count, variables JSON, triggered_by, sent_at)
 - `0026`: tabela `feedback` — id, user_id FK nullable, page VARCHAR(120), message TEXT, rating SMALLINT nullable, user_agent VARCHAR(300), created_at TIMESTAMP
 - `0027`: tabela `feedback` (ver Sessão A)
-- `0028`: tabela `oauth_code` — code PK VARCHAR(64), user_id INTEGER, is_admin BOOLEAN, expires_at TIMESTAMPTZ, created_at TIMESTAMPTZ
-- Próxima: `revision = "0029"`, `down_revision = "0028"`
+- `0028`: tabela `oauth_code` — code PK VARCHAR(64), user_id VARCHAR(36), is_admin BOOLEAN, expires_at TIMESTAMPTZ, created_at TIMESTAMPTZ
+- `0029`: hotfix — corrige `oauth_code.user_id` de INTEGER para VARCHAR(36) (User.id é UUID como String)
+- Próxima: `revision = "0030"`, `down_revision = "0029"`
 - Sempre rodar `python -m alembic` da raiz
-- Verificar antes de criar: `Get-Content alembic\versions\0028_*.py | Select-Object -First 15`
+- Verificar antes de criar: `Get-Content alembic\versions\0029_*.py | Select-Object -First 15`
 
 ## Entidades principais
 ```
