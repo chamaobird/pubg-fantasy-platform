@@ -9,9 +9,9 @@
 - [x] `TeamLogo.jsx`: remover alias `flcn → flc` — alias já inexistente no arquivo, nada a fazer
 
 ### Segurança
-
-### Segurança
-- [ ] **SEC-001**: Refatorar OAuth callback para não expor JWT na URL — atualmente em `/auth/callback?token=eyJ...`, vaza para PostHog, browser history, server logs e Referer headers. Mover para fragment (`#`) ou state opaco + troca por token via POST.
+- [x] **SEC-001**: OAuth callback refatorado — `?token=JWT` substituído por `?code=<opaco>` + `POST /auth/exchange-code` (TTL 120s, uso único, Postgres). Deployar para confirmar no PostHog. (30/04/2026)
+- [ ] **SEC-002**: JWT de 7 dias sem revogação — se token vazar, acesso válido por até 7 dias. Mitigações possíveis: refresh token + access token de vida curta (ex: 15min), ou blocklist de tokens revogados no logout.
+- [ ] **SEC-003**: Tokens de reset de senha e verificação de email ainda trafegam em query string (`?token=`). Risco menor (tokens opacos, curta duração, uso único) — avaliar se vale refatorar para POST também.
 
 ---
 
@@ -63,6 +63,14 @@
 ---
 
 ## 🟢 Concluído
+
+### SEC-001 — 30/04/2026 — OAuth callback seguro
+- [x] Migration 0028 (`oauth_code`): code PK, user_id, is_admin, expires_at, created_at
+- [x] `app/models/oauth_code.py` + registrado em `models/__init__.py`
+- [x] `google_callback`: gera código opaco (TTL 120s) e redireciona com `?code=`
+- [x] `POST /auth/exchange-code`: cleanup oportunístico + troca código por JWT + uso único
+- [x] `AuthCallback.jsx`: lê `?code=`, faz POST, retry 1x, estado de erro com botão "Tentar novamente"
+- [ ] Validação final em produção: PostHog deve mostrar `?code=` sem JWT
 
 ### Sessão B — 30/04/2026 — Limpeza de débitos rápidos
 - [x] Fix `LeagueDetail.jsx:152` — duplicate style attr corrigido

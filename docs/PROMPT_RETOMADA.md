@@ -10,8 +10,9 @@ Olá! Vamos retomar o desenvolvimento do XAMA Fantasy.
 **Branch ativo:** `main`
 
 **Estado atual (30/04/2026):**
-- Migrations aplicadas até `0027` (próxima: `0028`, `down_revision = "0027"`)
-- Sessões A e B concluídas: PostHog + feedback + limpeza de débitos + legados deletados
+- Migrations aplicadas até `0027` em prod — **`0028` (oauth_code) criada localmente, aplicar no Render antes do deploy**
+- Próxima migration: `0029`, `down_revision = "0028"`
+- Sessões A, B e SEC-001 concluídas: PostHog + feedback + limpeza de débitos + OAuth seguro
 - PAS1 Playoffs 2 ativos: championships 12+13, stages 30+33 reprecificadas
 - Stages 31, 32, 34, 35: ainda sem roster importado
 
@@ -25,7 +26,9 @@ Olá! Vamos retomar o desenvolvimento do XAMA Fantasy.
 - **#PAS-14**: atualizar PlayerAccount id=308 (Gustav) com account_id real
 
 **Backlog de segurança:**
-- **SEC-001**: Refatorar OAuth callback para não expor JWT na URL (ver BACKLOG)
+- ~~SEC-001~~: resolvido (30/04/2026)
+- **SEC-002**: JWT 7 dias sem revogação (ver BACKLOG)
+- **SEC-003**: tokens de reset/verify em query string (ver BACKLOG)
 
 **Rotina Claude Code:**
 ```powershell

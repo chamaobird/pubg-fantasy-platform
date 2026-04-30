@@ -34,7 +34,7 @@ rtk gain   # ver economia de tokens ao fim da sessão
 - PowerShell: usar `;` em vez de `&&` para encadear comandos
 
 ## Migrations (cadeia real)
-`0001 → 0002 → 4bfb4ef75223 → 0003 → 0004 → 0005 → 0006 → 0007 → 0008 → 0009 → 0010 → 0011 → 0012 → 0013 → 0014 → 0015 → 0016 → 0017 → 0018 → 0019 → 0020 → 0021 → 0022 → 0023 → 0024 → 0025 → 0026 → 0027`
+`0001 → 0002 → 4bfb4ef75223 → 0003 → 0004 → 0005 → 0006 → 0007 → 0008 → 0009 → 0010 → 0011 → 0012 → 0013 → 0014 → 0015 → 0016 → 0017 → 0018 → 0019 → 0020 → 0021 → 0022 → 0023 → 0024 → 0025 → 0026 → 0027 → 0028`
 - `0014`: `survival_secs` + `captain_pts` em `user_stage_stat`
 - `0015`: `survival_secs` + `captain_pts` em `user_day_stat`
 - `0016`: `match_schedule` (JSONB) + `last_import_at` em `stage_day`
@@ -48,10 +48,11 @@ rtk gain   # ver economia de tokens ao fim da sessão
 - `0024`: coluna `stage_phase` em `stage` (upcoming/preview/live/finished) — arquitetura dois campos
 - `0025`: tabela `email_log` — auditoria de disparos de email admin (id, template_key, subject, recipient_group, stage_id, sent_count, failed_count, variables JSON, triggered_by, sent_at)
 - `0026`: tabela `feedback` — id, user_id FK nullable, page VARCHAR(120), message TEXT, rating SMALLINT nullable, user_agent VARCHAR(300), created_at TIMESTAMP
-- `0027`: (verificar no banco: `Get-Content alembic\versions\0027_*.py | Select-Object -First 15`)
-- Próxima: `revision = "0028"`, `down_revision = "0027"`
+- `0027`: tabela `feedback` (ver Sessão A)
+- `0028`: tabela `oauth_code` — code PK VARCHAR(64), user_id INTEGER, is_admin BOOLEAN, expires_at TIMESTAMPTZ, created_at TIMESTAMPTZ
+- Próxima: `revision = "0029"`, `down_revision = "0028"`
 - Sempre rodar `python -m alembic` da raiz
-- Verificar antes de criar: `Get-Content alembic\versions\0027_*.py | Select-Object -First 15`
+- Verificar antes de criar: `Get-Content alembic\versions\0028_*.py | Select-Object -First 15`
 
 ## Entidades principais
 ```
@@ -90,7 +91,7 @@ UPDATE stage SET lineup_status = 'locked'  WHERE id = <stage_id>;
 
 ## Auth — fluxo
 - Cadastro email/senha → email de verificação → login
-- Google OAuth: `/auth/google` → Google → `/auth/google/callback` → `/auth/callback?token=`
+- Google OAuth: `/auth/google` → Google → `/auth/google/callback` → `/auth/callback?code=<opaco>` → `POST /auth/exchange-code` → JWT em JSON (nunca na URL)
 - Forgot password: `POST /auth/forgot-password` → email → `/auth/reset-password?token=`
 - Email verification aponta para BACKEND_URL/auth/verify (não frontend)
 - Resend domínio: chamaobird.xyz (verificado) — EMAIL_FROM=noreply@chamaobird.xyz
@@ -155,6 +156,7 @@ POST /auth/login | /auth/register | /auth/forgot-password | /auth/reset-password
 GET  /auth/verify?token= | /auth/google | /auth/google/callback
 POST /auth/resend-verification
 POST /feedback                                                   ← público; associa user_id se token presente; rate limit 5/min por IP
+POST /auth/exchange-code                                         ← troca código opaco OAuth por JWT (uso único, TTL 120s, rate limit 10/min)
 ```
 
 ## Endpoints admin
@@ -370,4 +372,5 @@ GET https://api.pubg.com/shards/pc-tournament/matches/{match_id}  → 200 = pc-t
 - **CountdownBadge** no Dashboard tem prop `mode='open'|'close'` (default 'close'): modo `open` exibe "Abre em" em laranja (para seção preview que conta até `lineup_open_at`); modo `close` exibe "Fecha em" em laranja/vermelho conforme urgência
 - **PlayerStatsTable** (`frontend/src/components/PlayerStatsTable.jsx`): componente canônico da tabela de stats — fonte única de verdade. Usado em `PlayerStatsPage` e `ChampionshipGroupDetail`. Players devem ter `person_name` (ChampionshipGroupDetail normaliza `display_name → person_name` antes de passar). Props: `players`, `shortName`, `showDaysPlayed`, `beforeDate`, `totalCount`, `footerLabel`
 - **ChampionshipGroupDetail**: `maxWidth` dinâmico via `tab === 'players' ? 1600 : 900` para manter dimensões idênticas ao PlayerStatsPage
-- **Segurança**: `.claude/settings.local.json` adicionado ao `.gitignore` — continha credenciais do banco. Nunca commitar; `DATABASE_URL` rotacionada em 27/04/2026 e novamente em 30/04/2026 (senha do Postgres rotacionada manualmente pelo Birdo, DATABASE_URL atualizada no Render). **Nunca usar `DATABASE_URL` de produção em ambiente local.**
+- **Segurança**: `.claude/settings.local.json` adicionado ao `.gitignore` — continha credenciais do banco. Nunca commitar; `DATABASE_URL` rotacionada em 27/04/2026 e 30/04/2026. **Nunca usar `DATABASE_URL` de produção localmente.**
+- **OAuth callback (SEC-001 resolvido)**: JWT não trafega mais em URL. Fluxo: `?code=<opaco>` → `POST /auth/exchange-code` → JWT em JSON. Tabela `oauth_code` (migration 0028), TTL 120s, uso único, cleanup oportunístico.
