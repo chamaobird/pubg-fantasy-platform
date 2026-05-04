@@ -173,6 +173,9 @@ def update_stage(
 
     updates = body.model_dump(exclude_unset=True)
 
+    if "championship_id" in updates:
+        _validate_championship(db, updates["championship_id"])
+
     if "carries_stats_from" in updates and updates["carries_stats_from"]:
         _validate_carries_stats_from(db, updates["carries_stats_from"])
 

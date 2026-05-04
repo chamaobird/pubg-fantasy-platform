@@ -73,6 +73,7 @@ class StageCreate(BaseModel):
 # ── Update ────────────────────────────────────────────────────────────────────
 
 class StageUpdate(BaseModel):
+    championship_id: Optional[int] = None
     name: Optional[str] = None
     short_name: Optional[str] = None
     shard: Optional[str] = None
