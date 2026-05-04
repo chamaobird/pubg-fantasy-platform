@@ -7,6 +7,7 @@ export const TEAM_NAME_TO_TAG = {
   // PAS stages — playoff teams + regular season
   'Affinity':           'AFi',
   'Also Known As':      'AKA',
+  'Also known as':      'AKA',  // variante DB (lowercase k)
   'Athletes of Christ': 'FE',    // alias histórico (Playoffs 1)
   'GodLike':            'GodL',  // renomeado para Playoffs 2
   'BESTIA':             'BST',
@@ -23,6 +24,7 @@ export const TEAM_NAME_TO_TAG = {
   'Injected':           'INJ',
   'Last Breath':        'LB',
   'Nevermind':          'NVM',
+  'NEVERMIND':          'NVM',  // variante DB (all caps)
   'Newgen Allstars':    'NA',
   'No Way':             'NW',
   'Pest Control':       'PEST',
