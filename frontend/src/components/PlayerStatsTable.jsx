@@ -165,7 +165,7 @@ export default function PlayerStatsTable({
 }) {
   const [search, setSearch]         = useState('')
   const [teamFilter, setTeamFilter] = useState('')
-  const [sortKey, setSortKey]       = useState('pts_per_match')
+  const [sortKey, setSortKey]       = useState('fantasy_cost')
   const [sortDir, setSortDir]       = useState('desc')
   const [historyPlayer, setHistoryPlayer] = useState(null)
 
@@ -189,29 +189,34 @@ export default function PlayerStatsTable({
 
   const sorted = useMemo(() => {
     if (!sortKey) return filtered
+
+    const getVal = (p, key) => {
+      if (key === 'team') return formatTeamTag(p.person_name, p.team_name)
+      if (key === 'name') return formatPlayerName(p.person_name)
+      if (key === 'survival_pts') return survivalPts(p)
+      const col = COLUMNS.find(c => c.key === key)
+      if (col?.sortVal) return col.sortVal(p)
+      return p[key]
+    }
+
+    const cmp = (a, b, key, dir) => {
+      const av = getVal(a, key)
+      const bv = getVal(b, key)
+      const an = av ?? (dir === 'desc' ? -Infinity : Infinity)
+      const bn = bv ?? (dir === 'desc' ? -Infinity : Infinity)
+      if (typeof an === 'string') return dir === 'asc' ? an.localeCompare(bn) : bn.localeCompare(an)
+      return dir === 'desc' ? bn - an : an - bn
+    }
+
     return [...filtered].sort((a, b) => {
-      let av, bv
-      if (sortKey === 'team') {
-        av = formatTeamTag(a.person_name, a.team_name)
-        bv = formatTeamTag(b.person_name, b.team_name)
-        if (av === bv) {
-          // secondary: person_name asc
-          return formatPlayerName(a.person_name).localeCompare(formatPlayerName(b.person_name))
-        }
-      } else if (sortKey === 'name') {
-        av = formatPlayerName(a.person_name)
-        bv = formatPlayerName(b.person_name)
-      } else if (sortKey === 'survival_pts') {
-        av = survivalPts(a); bv = survivalPts(b)
-      } else {
-        const col = COLUMNS.find(c => c.key === sortKey)
-        if (col?.sortVal) { av = col.sortVal(a); bv = col.sortVal(b) }
-        else { av = a[sortKey]; bv = b[sortKey] }
-      }
-      av = av ?? (sortDir === 'desc' ? -Infinity : Infinity)
-      bv = bv ?? (sortDir === 'desc' ? -Infinity : Infinity)
-      if (typeof av === 'string') return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av)
-      return sortDir === 'desc' ? bv - av : av - bv
+      // Ordenação primária pelo usuário
+      let r = cmp(a, b, sortKey, sortDir)
+      if (r !== 0) return r
+      // Cascade de tiebreakers: preço desc → PTS/G desc → time asc
+      if (sortKey !== 'fantasy_cost')   { r = cmp(a, b, 'fantasy_cost',  'desc'); if (r !== 0) return r }
+      if (sortKey !== 'pts_per_match')  { r = cmp(a, b, 'pts_per_match', 'desc'); if (r !== 0) return r }
+      if (sortKey !== 'team')           { r = cmp(a, b, 'team',          'asc');  if (r !== 0) return r }
+      return 0
     })
   }, [filtered, sortKey, sortDir])
 

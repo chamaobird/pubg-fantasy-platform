@@ -104,8 +104,8 @@ export default function LineupBuilder({
   // ── UI ──────────────────────────────────────────────────────────────────
   const [searchName,   setSearchName]   = useState('')
   const [teamFilter,   setTeamFilter]   = useState(null)   // null = todos os times
-  const [sortKey,      setSortKey]      = useState('team')
-  const [sortDir,      setSortDir]      = useState('asc')
+  const [sortKey,      setSortKey]      = useState('effective_cost')
+  const [sortDir,      setSortDir]      = useState('desc')
   const [saveLoading,  setSaveLoading]  = useState(false)
   const [saveError,    setSaveError]    = useState('')
   const [saveSuccess,  setSaveSuccess]  = useState(null)
@@ -195,28 +195,33 @@ export default function LineupBuilder({
 
   const sortedPlayers = useMemo(() => {
     const PRIOR_KEYS = new Set(['pts_per_match', 'kills_per_match', 'damage_per_match', 'assists_per_match', 'total_wins', 'late_game_pts_per_match'])
-    return [...filteredPlayers].sort((a, b) => {
-      let aVal, bVal
-      if (sortKey === 'name')            { aVal = formatPlayerName(a.person_name, a.team_name); bVal = formatPlayerName(b.person_name, b.team_name) }
-      else if (sortKey === 'team') {
-        aVal = formatTeamTag(a.person_name, a.team_name)
-        bVal = formatTeamTag(b.person_name, b.team_name)
-        if (aVal === bVal) {
-          // secondary: fantasy_cost desc
-          return (Number(b.effective_cost) || 0) - (Number(a.effective_cost) || 0)
-        }
-      }
-      else if (PRIOR_KEYS.has(sortKey)) {
-        const sa = priorStats[a.person_id]; const sb = priorStats[b.person_id]
-        aVal = sa ? sa[sortKey] : null
-        bVal = sb ? sb[sortKey] : null
-      }
-      else                               { aVal = a[sortKey]; bVal = b[sortKey] }
+
+    const getVal = (p, key) => {
+      if (key === 'name') return formatPlayerName(p.person_name, p.team_name)
+      if (key === 'team') return formatTeamTag(p.person_name, p.team_name)
+      if (PRIOR_KEYS.has(key)) { const s = priorStats[p.person_id]; return s ? s[key] : null }
+      return p[key]
+    }
+
+    const cmp = (a, b, key, dir) => {
+      const aVal = getVal(a, key)
+      const bVal = getVal(b, key)
       if (aVal == null && bVal == null) return 0
       if (aVal == null) return 1
       if (bVal == null) return -1
-      if (typeof aVal === 'string') return sortDir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal)
-      return sortDir === 'asc' ? aVal - bVal : bVal - aVal
+      if (typeof aVal === 'string') return dir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal)
+      return dir === 'asc' ? aVal - bVal : bVal - aVal
+    }
+
+    return [...filteredPlayers].sort((a, b) => {
+      // Ordenação primária pelo usuário
+      let r = cmp(a, b, sortKey, sortDir)
+      if (r !== 0) return r
+      // Cascade de tiebreakers: preço desc → PTS/G desc → time asc
+      if (sortKey !== 'effective_cost') { r = cmp(a, b, 'effective_cost', 'desc'); if (r !== 0) return r }
+      if (sortKey !== 'pts_per_match')  { r = cmp(a, b, 'pts_per_match',  'desc'); if (r !== 0) return r }
+      if (sortKey !== 'team')           { r = cmp(a, b, 'team',           'asc');  if (r !== 0) return r }
+      return 0
     })
   }, [filteredPlayers, sortKey, sortDir, priorStats])
 
