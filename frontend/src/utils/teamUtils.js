@@ -7,7 +7,8 @@ export const TEAM_NAME_TO_TAG = {
   // PAS stages — playoff teams + regular season
   'Affinity':           'AFi',
   'Also Known As':      'AKA',
-  'Athletes of Christ': 'FE',
+  'Athletes of Christ': 'FE',    // alias histórico (Playoffs 1)
+  'GodLike':            'GodL',  // renomeado para Playoffs 2
   'BESTIA':             'BST',
   'Chupinskys':         'INSK',
   'Collector':          'CLR',
