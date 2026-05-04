@@ -18,6 +18,7 @@ import Admin from './pages/Admin'
 import Leagues from './pages/Leagues'
 import LeagueDetail from './pages/LeagueDetail'
 import ChampionshipGroupDetail from './pages/ChampionshipGroupDetail'
+import FaceoffPage from './pages/FaceoffPage'
 
 export const AuthContext = createContext(null)
 export const useAuth = () => useContext(AuthContext)
@@ -164,6 +165,11 @@ export default function App() {
 
           <Route path="/auth/reset-password" element={
             <ResetPasswordPage />
+          } />
+
+          {/* Faceoff */}
+          <Route path="/faceoff/:championshipId" element={
+            <FaceoffPage token={token} />
           } />
 
           {/* Admin */}

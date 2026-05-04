@@ -12,10 +12,12 @@ import AdminPricingPanel from '../components/AdminPricingPanel'
 import AdminOpsPanel from '../components/AdminOpsPanel'
 import PriceHistoryModal from '../components/PriceHistoryModal'
 import LineupResultsPage from './LineupResultsPage'
+import FaceoffPage from './FaceoffPage'
 
 const TAB_LINEUP      = 'lineup'
 const TAB_LEADERBOARD = 'leaderboard'
 const TAB_STATS       = 'stats'
+const TAB_FACEOFF     = 'faceoff'
 const TAB_ADMIN       = 'admin'
 
 function decodeJwtPayload(token) {
@@ -72,6 +74,7 @@ export default function TournamentHub() {
     ...(showLineupTab ? [{ id: TAB_LINEUP, label: isLocked ? 'Meus Resultados' : (isPreview && !canEdit) ? 'Ver Lobby' : 'Montar Lineup', icon: isLocked ? '📊' : (isPreview && !canEdit) ? '👁️' : '⚔️' }] : []),
     { id: TAB_LEADERBOARD, label: 'Leaderboard', icon: '🏆' },
     { id: TAB_STATS,       label: 'Stats',        icon: '📊' },
+    ...(stage?.championship_id ? [{ id: TAB_FACEOFF, label: 'Faceoff', icon: '⚔️' }] : []),
     ...(isAdmin ? [{ id: TAB_ADMIN, label: 'Admin', icon: '⚙️' }] : []),
   ]
 
@@ -127,6 +130,12 @@ export default function TournamentHub() {
             shortName={stage?.short_name ?? ''}
             siblingStages={siblingStages}
             championshipId={stage?.championship_id ?? null}
+          />
+        )}
+        {activeTab === TAB_FACEOFF && stage?.championship_id && (
+          <FaceoffPage
+            token={token}
+            championshipId={String(stage.championship_id)}
           />
         )}
         {activeTab === TAB_ADMIN && isAdmin && (

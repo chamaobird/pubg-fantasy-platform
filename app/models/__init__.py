@@ -17,6 +17,7 @@ from app.models.league import League, LeagueMember
 from app.models.email_log import EmailLog
 from app.models.feedback import Feedback
 from app.models.oauth_code import OAuthCode
+from app.models.faceoff import Faceoff, FaceoffVote
 
 __all__ = [
     "User",
@@ -41,4 +42,6 @@ __all__ = [
     "EmailLog",
     "Feedback",
     "OAuthCode",
+    "Faceoff",
+    "FaceoffVote",
 ]

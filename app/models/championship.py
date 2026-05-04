@@ -9,6 +9,7 @@ from app.database import Base
 
 if TYPE_CHECKING:
     from app.models.stage import Stage
+    from app.models.faceoff import Faceoff
 
 
 class Championship(Base):
@@ -36,6 +37,9 @@ class Championship(Base):
     # relationships
     stages: Mapped[List["Stage"]] = relationship(
         "Stage", back_populates="championship", lazy="select"
+    )
+    faceoffs: Mapped[List["Faceoff"]] = relationship(
+        "Faceoff", back_populates="championship", lazy="select", cascade="all, delete-orphan"
     )
 
     def __repr__(self) -> str:

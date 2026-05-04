@@ -4,6 +4,8 @@ FastAPI dependencies for authentication and authorization.
 """
 from __future__ import annotations
 
+from typing import Optional
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
@@ -12,7 +14,8 @@ from app.database import get_db
 from app.models.user import User
 from app.services.auth import decode_access_token, get_user_by_id
 
-bearer_scheme = HTTPBearer()
+bearer_scheme          = HTTPBearer()
+bearer_scheme_optional = HTTPBearer(auto_error=False)
 
 
 def get_current_user(
@@ -39,6 +42,19 @@ def get_current_user(
         )
 
     return user
+
+
+def get_current_user_optional(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme_optional),
+    db: Session = Depends(get_db),
+) -> Optional[User]:
+    """Like get_current_user but returns None instead of raising 401 when unauthenticated."""
+    if not credentials:
+        return None
+    payload = decode_access_token(credentials.credentials)
+    if payload is None:
+        return None
+    return get_user_by_id(db, payload["sub"])
 
 
 def require_admin(current_user: User = Depends(get_current_user)) -> User:

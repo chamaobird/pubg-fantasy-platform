@@ -10,6 +10,7 @@ from app.routers.admin.scoring import router as scoring_router
 from app.routers.admin.teams import router as teams_router
 from app.routers.admin.email import router as email_router
 from app.routers.admin.championship_groups import router as championship_groups_router
+from app.routers.admin.faceoffs import router as faceoffs_router
 
 router = APIRouter()
 router.include_router(championships_router)
@@ -22,3 +23,4 @@ router.include_router(scoring_router)
 router.include_router(teams_router)
 router.include_router(email_router)
 router.include_router(championship_groups_router)
+router.include_router(faceoffs_router)
