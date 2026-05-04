@@ -1,0 +1,25 @@
+Fetch this design file, read its readme, and implement the relevant aspects of the design. https://api.anthropic.com/v1/design/h/rg4NvoOua9b3j9O8Nff52Q?open_file=XAMA+Landing.html
+Implement: Implemente esta landing como o novo arquivo de landing/login do projeto 
+React + Vite (frontend/). Estamos num branch novo: feature/landing-refresh.
+
+Contexto do projeto:
+- Frontend: React + Vite em frontend/
+- Backend: FastAPI em app/ (não tocar)
+- A landing atual é a página pública de login/cadastro
+
+Ao integrar, PRESERVE obrigatoriamente:
+- Handlers existentes de Google OAuth, login email/senha e cadastro 
+  (conectados ao backend FastAPI via endpoints já existentes)
+- Rotas do React Router já configuradas
+- Imports e referências a assets em public/ (logos de times, torneios)
+- TeamLogo.jsx e suas exceções de fallback (afi, op em .jpeg)
+
+Trate a entrega assim:
+1. Antes de modificar qualquer arquivo, mostre um plano de integração
+2. Identifique qual arquivo atual será substituído (provavelmente algo 
+   como frontend/src/pages/Landing.jsx ou Login.jsx)
+3. Mostre diff antes de aplicar
+4. Adicione fontes via @fontsource (Rajdhani 700, Inter 400/500, 
+   JetBrains Mono 400/700) se ainda não estiverem instaladas
+5. Não execute npm install nem inicie o dev server — só prepare o código
+6. Atualize CHANGELOG.md mencionando o refresh da landing
