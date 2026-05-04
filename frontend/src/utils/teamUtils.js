@@ -28,6 +28,7 @@ export const TEAM_NAME_TO_TAG = {
   'Newgen Allstars':    'NA',
   'No Way':             'NW',
   'Pest Control':       'PEST',
+  'PEST Control':       'PEST',  // variante DB (PEST maiúsculo)
   'RENT FREE':          'FR',
   'ROC Esports':        'ROC',
   'Team FATE':          'FATE',

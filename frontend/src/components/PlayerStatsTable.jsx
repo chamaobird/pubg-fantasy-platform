@@ -165,8 +165,8 @@ export default function PlayerStatsTable({
 }) {
   const [search, setSearch]         = useState('')
   const [teamFilter, setTeamFilter] = useState('')
-  const [sortKey, setSortKey]       = useState('team')
-  const [sortDir, setSortDir]       = useState('asc')
+  const [sortKey, setSortKey]       = useState('pts_per_match')
+  const [sortDir, setSortDir]       = useState('desc')
   const [historyPlayer, setHistoryPlayer] = useState(null)
 
   const badgeMap = useMemo(() => computeBadgeMap(players), [players])
