@@ -2,8 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import FaceoffCard from '../components/FaceoffCard'
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
+import { API_BASE_URL } from '../config'
 
 export default function FaceoffPage({ token, championshipId: championshipIdProp }) {
   const params = useParams()
