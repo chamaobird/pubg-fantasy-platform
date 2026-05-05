@@ -29,11 +29,12 @@ router = APIRouter(
 )
 
 VALID_STATUSES = {"draft", "open", "closed", "resolved"}
+# Admin pode avançar OU reverter status livremente
 VALID_TRANSITIONS = {
-    "draft":    {"open", "resolved"},
-    "open":     {"closed", "resolved"},
-    "closed":   {"resolved"},
-    "resolved": set(),
+    "draft":    {"open"},
+    "open":     {"draft", "closed"},
+    "closed":   {"open", "resolved"},
+    "resolved": {"closed"},   # permite reverter para corrigir
 }
 
 
@@ -57,6 +58,7 @@ class FaceoffUpdateIn(BaseModel):
     seed_a: Optional[int] = None
     seed_b: Optional[int] = None
     status: Optional[str] = None
+    winner_team_name: Optional[str] = None  # override manual do vencedor
 
 
 class FaceoffOut(BaseModel):
@@ -178,6 +180,9 @@ def update_faceoff(
                 status_code=409,
                 detail=f"Transição inválida: {f.status} → {new_st}",
             )
+        # Ao reverter de resolved, limpa o vencedor (a menos que o admin já envie um novo)
+        if f.status == "resolved" and new_st != "resolved" and "winner_team_name" not in updates:
+            f.winner_team_name = None
 
     for field, value in updates.items():
         setattr(f, field, value)

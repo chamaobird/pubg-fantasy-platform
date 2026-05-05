@@ -81,25 +81,25 @@ def _build_out(f: Faceoff, user_id: Optional[str], reveal_pct: bool) -> dict:
 
 @router.get("")
 def list_faceoffs(
-    championship_id: int = Query(...),
+    championship_id: Optional[int] = Query(None),
+    status_filter: Optional[str] = Query(None, alias="status"),
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user_optional),
 ):
     """
-    Lista faceoffs de um campeonato.
+    Lista faceoffs públicos.
+    - championship_id: filtra por campeonato (opcional)
+    - status: filtra por status (ex: 'open')
+    - draft: nunca aparece para usuários
     - status open: percentagens escondidas
     - status closed/resolved: percentagens reveladas
-    - draft: não aparece para usuários
     """
-    faceoffs = (
-        db.query(Faceoff)
-        .filter(
-            Faceoff.championship_id == championship_id,
-            Faceoff.status != "draft",
-        )
-        .order_by(Faceoff.id)
-        .all()
-    )
+    q = db.query(Faceoff).filter(Faceoff.status != "draft")
+    if championship_id is not None:
+        q = q.filter(Faceoff.championship_id == championship_id)
+    if status_filter:
+        q = q.filter(Faceoff.status == status_filter)
+    faceoffs = q.order_by(Faceoff.id).all()
 
     user_id = current_user.id if current_user else None
     return [

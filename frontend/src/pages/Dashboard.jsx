@@ -815,6 +815,7 @@ export default function Dashboard() {
   const [apiGroups,      setApiGroups]      = useState([])
   const [profileHistory, setProfileHistory] = useState([])
   const [groupLeaderEntry, setGroupLeaderEntry] = useState(null)
+  const [openFaceoffs,   setOpenFaceoffs]   = useState([])
 
   const toggleChamp = (champId) =>
     setExpandedChamps(prev => {
@@ -862,6 +863,14 @@ export default function Dashboard() {
     fetch(`${API_BASE_URL}/championship-groups/`)
       .then(r => r.ok ? r.json() : [])
       .then(setApiGroups)
+      .catch(() => {})
+  }, [])
+
+  // Busca faceoffs abertos para o banner
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/faceoffs?status=open`)
+      .then(r => r.ok ? r.json() : [])
+      .then(data => setOpenFaceoffs(Array.isArray(data) ? data : []))
       .catch(() => {})
   }, [])
 
@@ -1077,6 +1086,52 @@ export default function Dashboard() {
             </div>
           )}
         </div>
+
+        {/* ── BANNER FACEOFF ── */}
+        {openFaceoffs.length > 0 && (() => {
+          // Agrupa por championship_id para construir link para o stage correto
+          const champIds = [...new Set(openFaceoffs.map(f => f.championship_id))]
+          // Tenta achar um stage upcoming/preview do campeonato com faceoffs abertos
+          const targetStage = stages.find(s =>
+            champIds.includes(champMap[s.id]?.id) &&
+            (s.stage_phase === 'upcoming' || s.stage_phase === 'preview')
+          )
+          const href = targetStage ? `/tournament/${targetStage.id}?tab=faceoff` : '/championships'
+          const myVoted = openFaceoffs.filter(f => f.my_vote).length
+          const total   = openFaceoffs.length
+          return (
+            <div
+              onClick={() => navigate(href)}
+              style={{
+                marginBottom: 32, padding: '18px 22px',
+                background: 'linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(249,115,22,0.06) 100%)',
+                border: '1px solid rgba(99,102,241,0.3)',
+                borderRadius: 14, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 16,
+                transition: 'border-color 0.15s, background 0.15s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'; e.currentTarget.style.background = 'linear-gradient(135deg, rgba(99,102,241,0.14) 0%, rgba(249,115,22,0.08) 100%)' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.3)'; e.currentTarget.style.background = 'linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(249,115,22,0.06) 100%)' }}
+            >
+              <div style={{ fontSize: 32, flexShrink: 0 }}>⚔️</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--color-xama-text)', letterSpacing: '0.02em' }}>
+                  Team Faceoff está aberto!
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--color-xama-muted)', marginTop: 3 }}>
+                  {myVoted}/{total} confrontos votados · Clique para participar
+                </div>
+              </div>
+              <div style={{
+                fontSize: 11, fontWeight: 700, padding: '5px 14px', borderRadius: 20,
+                background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.35)',
+                color: '#a5b4fc', whiteSpace: 'nowrap',
+              }}>
+                {myVoted === total ? '✓ Votado' : 'Votar agora'}
+              </div>
+            </div>
+          )
+        })()}
 
         {/* ── SEÇÃO 1 — CAMPEONATOS ATIVOS ── */}
         {hasActive && (

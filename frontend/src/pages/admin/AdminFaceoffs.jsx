@@ -26,7 +26,9 @@ const STATUS_COLOR = {
   closed:   'var(--color-xama-orange)',
   resolved: '#a5b4fc',
 }
+// Transições possíveis (espelha o backend)
 const NEXT_STATUS = { draft: 'open', open: 'closed', closed: null }
+const PREV_STATUS = { open: 'draft', closed: 'open', resolved: 'closed' }
 
 export default function AdminFaceoffs({ token }) {
   const call = useCallback(api(token), [token])
@@ -36,7 +38,6 @@ export default function AdminFaceoffs({ token }) {
   const [selectedChamp, setSelectedChamp]   = useState(null)
   const [faceoffs, setFaceoffs]             = useState([])
   const [suggested, setSuggested]           = useState([])
-  // stages disponíveis como fonte (com partidas), agrupadas por championship
   const [availableStages, setAvailableStages] = useState([])
   const [selectedSourceIds, setSelectedSourceIds] = useState(new Set())
   const [loadingStages, setLoadingStages]   = useState(false)
@@ -47,14 +48,12 @@ export default function AdminFaceoffs({ token }) {
   const [editForm, setEditForm]             = useState({})
   const [saving, setSaving]                 = useState(false)
 
-  // Carrega championships
   useEffect(() => {
     call('GET', '/admin/championships?include_inactive=true')
       .then(d => setChampionships(Array.isArray(d) ? d.sort((a, b) => b.id - a.id) : []))
       .catch(() => {})
   }, [call])
 
-  // Ao trocar campeonato: carrega faceoffs + stages disponíveis como fonte
   useEffect(() => {
     if (!champId) return
     const champ = championships.find(c => c.id === parseInt(champId))
@@ -75,25 +74,19 @@ export default function AdminFaceoffs({ token }) {
     finally { setLoading(false) }
   }, [call, champId])
 
-  // Busca stages com partidas importadas — filtra pelo mesmo shard do campeonato selecionado
   const loadAvailableStages = async (champ) => {
     setLoadingStages(true)
     try {
       const allStages = await call('GET', '/admin/stages')
       if (!Array.isArray(allStages)) return
-
-      // Filtra stages do mesmo shard que têm stage_phase finished ou live (têm dados)
       const shard = champ?.shard
       const relevant = allStages
         .filter(s =>
-          s.id !== parseInt(champId) &&
           (!shard || s.shard === shard) &&
           (s.stage_phase === 'finished' || s.stage_phase === 'live')
         )
-        .sort((a, b) => b.id - a.id)  // mais recentes primeiro
+        .sort((a, b) => b.id - a.id)
         .slice(0, 20)
-
-      // Agrupa por championship name
       const grouped = {}
       for (const s of relevant) {
         const key = s.championship_name || s.championship_id || 'Outro'
@@ -125,13 +118,9 @@ export default function AdminFaceoffs({ token }) {
     })
   }
 
-  // Sugerir chaves
   const handleSuggest = async () => {
     if (!champId) return
-    if (selectedSourceIds.size === 0) {
-      setMsg('!Selecione ao menos uma stage de referência abaixo.')
-      return
-    }
+    if (selectedSourceIds.size === 0) { setMsg('!Selecione ao menos uma stage de referência.'); return }
     setSuggesting(true); setMsg(''); setSuggested([])
     try {
       const ids = [...selectedSourceIds].join(',')
@@ -141,7 +130,6 @@ export default function AdminFaceoffs({ token }) {
     finally { setSuggesting(false) }
   }
 
-  // Criar faceoffs a partir das sugestões
   const handleBulkCreate = async () => {
     if (!suggested.length) return
     setSaving(true); setMsg('')
@@ -149,10 +137,8 @@ export default function AdminFaceoffs({ token }) {
       await call('POST', '/admin/faceoffs/bulk', {
         championship_id: parseInt(champId),
         pairs: suggested.map(p => ({
-          team_a_name: p.team_a_name,
-          team_b_name: p.team_b_name,
-          seed_a: p.seed_a,
-          seed_b: p.seed_b,
+          team_a_name: p.team_a_name, team_b_name: p.team_b_name,
+          seed_a: p.seed_a, seed_b: p.seed_b,
         })),
       })
       setSuggested([])
@@ -162,7 +148,7 @@ export default function AdminFaceoffs({ token }) {
     finally { setSaving(false) }
   }
 
-  // Avançar status
+  // Avançar status (→)
   const handleAdvanceStatus = async (f) => {
     const next = NEXT_STATUS[f.status]
     if (!next) return
@@ -172,9 +158,21 @@ export default function AdminFaceoffs({ token }) {
     } catch (e) { setMsg('!' + e.message) }
   }
 
-  // Resolver
+  // Reverter status (←)
+  const handleRevertStatus = async (f) => {
+    const prev = PREV_STATUS[f.status]
+    if (!prev) return
+    if (!confirm(`Reverter "${f.team_a_name} vs ${f.team_b_name}" de ${STATUS_LABEL[f.status]} → ${STATUS_LABEL[prev]}?`)) return
+    try {
+      await call('PATCH', `/admin/faceoffs/${f.id}`, { status: prev })
+      await loadFaceoffs()
+      setMsg(`Revertido para ${STATUS_LABEL[prev]}`)
+    } catch (e) { setMsg('!' + e.message) }
+  }
+
+  // Resolver automaticamente pelo standing
   const handleResolve = async (f) => {
-    if (!confirm(`Resolver faceoff ${f.team_a_name} vs ${f.team_b_name}?\nIsso calcula o vencedor pelo standing do campeonato.`)) return
+    if (!confirm(`Resolver automaticamente "${f.team_a_name} vs ${f.team_b_name}" pelo standing do campeonato?`)) return
     try {
       const res = await call('POST', `/admin/faceoffs/${f.id}/resolve`)
       setMsg(`Resolvido: vencedor = ${res.winner_team_name || 'empate'}`)
@@ -182,24 +180,41 @@ export default function AdminFaceoffs({ token }) {
     } catch (e) { setMsg('!' + e.message) }
   }
 
-  // Deletar draft
+  // Deletar (só draft)
   const handleDelete = async (f) => {
-    if (!confirm(`Deletar faceoff ${f.team_a_name} vs ${f.team_b_name}?`)) return
+    if (!confirm(`Deletar "${f.team_a_name} vs ${f.team_b_name}"?`)) return
     try {
       await call('DELETE', `/admin/faceoffs/${f.id}`)
       await loadFaceoffs()
     } catch (e) { setMsg('!' + e.message) }
   }
 
-  // Editar
+  // Editar — abre modal com todos os campos
   const openEdit = (f) => {
-    setEditForm({ team_a_name: f.team_a_name, team_b_name: f.team_b_name })
+    setEditForm({
+      team_a_name: f.team_a_name,
+      team_b_name: f.team_b_name,
+      seed_a: f.seed_a ?? '',
+      seed_b: f.seed_b ?? '',
+      winner_team_name: f.winner_team_name ?? '',
+    })
     setEditModal(f)
   }
+
   const handleSaveEdit = async () => {
     setSaving(true); setMsg('')
     try {
-      await call('PATCH', `/admin/faceoffs/${editModal.id}`, editForm)
+      const payload = {
+        team_a_name: editForm.team_a_name,
+        team_b_name: editForm.team_b_name,
+        seed_a: editForm.seed_a !== '' ? parseInt(editForm.seed_a) : null,
+        seed_b: editForm.seed_b !== '' ? parseInt(editForm.seed_b) : null,
+      }
+      // winner só incluído se resolved
+      if (editModal.status === 'resolved') {
+        payload.winner_team_name = editForm.winner_team_name || null
+      }
+      await call('PATCH', `/admin/faceoffs/${editModal.id}`, payload)
       setEditModal(null)
       await loadFaceoffs()
     } catch (e) { setMsg('!' + e.message) }
@@ -252,16 +267,16 @@ export default function AdminFaceoffs({ token }) {
             Sugerir Chaves por Performance
           </div>
           <div style={{ fontSize: 12, color: 'var(--color-xama-muted)', marginBottom: 16, lineHeight: 1.5 }}>
-            Selecione as stages anteriores (playoffs, regular season) que serão usadas como base de performance.
-            O sistema ranqueia os times por pontos XAMA/partida e cria os pares <strong style={{ color: 'var(--color-xama-text)' }}>#1 vs #2, #3 vs #4...</strong>
+            Selecione as stages anteriores (playoffs, regular season) como base de performance.
+            O sistema ranqueia os times por pontos XAMA/partida e cria os pares{' '}
+            <strong style={{ color: 'var(--color-xama-text)' }}>#1 vs #2, #3 vs #4...</strong>
           </div>
 
-          {/* Checklist de stages */}
           {loadingStages ? (
-            <div style={{ fontSize: 12, color: 'var(--color-xama-muted)', marginBottom: 14 }}>Carregando stages disponíveis...</div>
+            <div style={{ fontSize: 12, color: 'var(--color-xama-muted)', marginBottom: 14 }}>Carregando stages...</div>
           ) : groupKeys.length === 0 ? (
             <div style={{ fontSize: 12, color: '#f87171', marginBottom: 14 }}>
-              Nenhuma stage com partidas importadas encontrada para o shard <strong>{selectedChamp?.shard}</strong>.
+              Nenhuma stage com partidas encontrada para o shard <strong>{selectedChamp?.shard}</strong>.
             </div>
           ) : (
             <div style={{ marginBottom: 16 }}>
@@ -275,10 +290,7 @@ export default function AdminFaceoffs({ token }) {
                         {groupName}
                       </span>
                       {!allSelected && (
-                        <button
-                          onClick={() => selectAllGroup(stages)}
-                          style={{ fontSize: 10, color: 'var(--color-xama-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
-                        >
+                        <button onClick={() => selectAllGroup(stages)} style={{ fontSize: 10, color: 'var(--color-xama-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
                           selecionar todos
                         </button>
                       )}
@@ -287,29 +299,16 @@ export default function AdminFaceoffs({ token }) {
                       {stages.map(s => {
                         const checked = selectedSourceIds.has(s.id)
                         return (
-                          <label
-                            key={s.id}
-                            style={{
-                              display: 'flex', alignItems: 'center', gap: 6,
-                              padding: '5px 10px', borderRadius: 6, cursor: 'pointer',
-                              border: `1px solid ${checked ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.08)'}`,
-                              background: checked ? 'rgba(99,102,241,0.1)' : 'rgba(255,255,255,0.02)',
-                              fontSize: 12, transition: 'all 0.12s',
-                              userSelect: 'none',
-                            }}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              onChange={() => toggleSourceId(s.id)}
-                              style={{ accentColor: '#6366f1', width: 13, height: 13 }}
-                            />
-                            <span style={{ color: checked ? '#a5b4fc' : 'var(--color-xama-text)' }}>
-                              {s.name}
-                            </span>
-                            <span style={{ fontSize: 10, color: 'var(--color-xama-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
-                              #{s.id}
-                            </span>
+                          <label key={s.id} style={{
+                            display: 'flex', alignItems: 'center', gap: 6,
+                            padding: '5px 10px', borderRadius: 6, cursor: 'pointer',
+                            border: `1px solid ${checked ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.08)'}`,
+                            background: checked ? 'rgba(99,102,241,0.1)' : 'rgba(255,255,255,0.02)',
+                            fontSize: 12, transition: 'all 0.12s', userSelect: 'none',
+                          }}>
+                            <input type="checkbox" checked={checked} onChange={() => toggleSourceId(s.id)} style={{ accentColor: '#6366f1', width: 13, height: 13 }} />
+                            <span style={{ color: checked ? '#a5b4fc' : 'var(--color-xama-text)' }}>{s.name}</span>
+                            <span style={{ fontSize: 10, color: 'var(--color-xama-muted)', fontFamily: "'JetBrains Mono', monospace" }}>#{s.id}</span>
                           </label>
                         )
                       })}
@@ -331,7 +330,6 @@ export default function AdminFaceoffs({ token }) {
             )}
           </div>
 
-          {/* Sugestões geradas */}
           {suggested.length > 0 && (
             <div style={{ marginTop: 16 }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-xama-muted)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
@@ -341,22 +339,16 @@ export default function AdminFaceoffs({ token }) {
                 {suggested.map((p, i) => (
                   <div key={i} style={{
                     padding: '10px 14px', borderRadius: 8,
-                    background: 'rgba(255,255,255,0.03)',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    fontSize: 13,
+                    background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', fontSize: 13,
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                       <span style={{ color: '#f97316', fontWeight: 700 }}>#{p.seed_a} {p.team_a_name}</span>
-                      <span style={{ color: 'var(--color-xama-muted)', fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }}>
-                        {p.pts_per_match_a?.toFixed(1)} pts/g
-                      </span>
+                      <span style={{ color: 'var(--color-xama-muted)', fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }}>{p.pts_per_match_a?.toFixed(1)} pts/g</span>
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--color-xama-muted)', textAlign: 'center', margin: '2px 0' }}>vs</div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span style={{ color: '#6366f1', fontWeight: 700 }}>#{p.seed_b} {p.team_b_name}</span>
-                      <span style={{ color: 'var(--color-xama-muted)', fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }}>
-                        {p.pts_per_match_b?.toFixed(1)} pts/g
-                      </span>
+                      <span style={{ color: 'var(--color-xama-muted)', fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }}>{p.pts_per_match_b?.toFixed(1)} pts/g</span>
                     </div>
                   </div>
                 ))}
@@ -369,9 +361,16 @@ export default function AdminFaceoffs({ token }) {
         </div>
       )}
 
-      {/* Lista de faceoffs existentes */}
+      {/* Lista de faceoffs */}
       {champId && (
         <div style={{ background: 'rgba(18,21,28,0.9)', border: '1px solid var(--color-xama-border)', borderRadius: 12, overflow: 'hidden' }}>
+          {/* Legenda de controles */}
+          <div style={{ padding: '10px 20px', borderBottom: '1px solid var(--color-xama-border)', display: 'flex', gap: 16, fontSize: 11, color: 'var(--color-xama-muted)' }}>
+            <span><strong style={{ color: 'var(--color-xama-text)' }}>→</strong> Avança status</span>
+            <span><strong style={{ color: '#a5b4fc' }}>←</strong> Reverte status</span>
+            <span><strong style={{ color: 'var(--color-xama-green)' }}>⚡</strong> Resolve pelo standing</span>
+            <span><strong style={{ color: 'var(--color-xama-text)' }}>✏</strong> Edita nomes/seeds/winner</span>
+          </div>
           {loading ? (
             <div style={{ padding: 40, textAlign: 'center', color: 'var(--color-xama-muted)' }}>Carregando...</div>
           ) : faceoffs.length === 0 ? (
@@ -383,12 +382,12 @@ export default function AdminFaceoffs({ token }) {
               <thead>
                 <tr>
                   <th style={thStyle}>Seeds</th>
-                  <th style={thStyle}>Time A</th>
-                  <th style={thStyle}>Time B</th>
+                  <th style={thStyle}>Time A (🟠)</th>
+                  <th style={thStyle}>Time B (🟣)</th>
                   <th style={thStyle}>Status</th>
                   <th style={thStyle}>Votos A / B</th>
                   <th style={thStyle}>Vencedor</th>
-                  <th style={thStyle}></th>
+                  <th style={thStyle} colSpan={2}>Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -416,23 +415,79 @@ export default function AdminFaceoffs({ token }) {
                     <td style={{ ...tdStyle, fontWeight: 600, color: 'var(--color-xama-green)' }}>
                       {f.winner_team_name || '—'}
                     </td>
-                    <td style={{ ...tdStyle, textAlign: 'right' }}>
-                      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                    {/* Ações de avanço */}
+                    <td style={{ ...tdStyle }}>
+                      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                        {/* Reverter */}
+                        {PREV_STATUS[f.status] && (
+                          <button
+                            onClick={() => handleRevertStatus(f)}
+                            title={`Reverter para ${STATUS_LABEL[PREV_STATUS[f.status]]}`}
+                            style={{
+                              fontSize: 11, padding: '3px 8px', borderRadius: 6, cursor: 'pointer',
+                              background: 'rgba(165,180,252,0.08)', border: '1px solid rgba(165,180,252,0.3)',
+                              color: '#a5b4fc', fontWeight: 700,
+                            }}
+                          >
+                            ← {STATUS_LABEL[PREV_STATUS[f.status]]}
+                          </button>
+                        )}
+                        {/* Avançar */}
                         {NEXT_STATUS[f.status] && (
-                          <ActBtn small onClick={() => handleAdvanceStatus(f)}>
+                          <button
+                            onClick={() => handleAdvanceStatus(f)}
+                            title={`Avançar para ${STATUS_LABEL[NEXT_STATUS[f.status]]}`}
+                            style={{
+                              fontSize: 11, padding: '3px 8px', borderRadius: 6, cursor: 'pointer',
+                              background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.3)',
+                              color: 'var(--color-xama-orange)', fontWeight: 700,
+                            }}
+                          >
                             → {STATUS_LABEL[NEXT_STATUS[f.status]]}
-                          </ActBtn>
+                          </button>
                         )}
-                        {(f.status === 'closed' || f.status === 'open') && (
-                          <ActBtn small onClick={() => handleResolve(f)}>Resolver</ActBtn>
+                        {/* Resolver automaticamente */}
+                        {f.status === 'closed' && (
+                          <button
+                            onClick={() => handleResolve(f)}
+                            title="Resolver pelo standing do campeonato"
+                            style={{
+                              fontSize: 11, padding: '3px 8px', borderRadius: 6, cursor: 'pointer',
+                              background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.3)',
+                              color: 'var(--color-xama-green)', fontWeight: 700,
+                            }}
+                          >
+                            ⚡ Resolver
+                          </button>
                         )}
+                      </div>
+                    </td>
+                    {/* Editar / Deletar */}
+                    <td style={{ ...tdStyle, textAlign: 'right' }}>
+                      <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
+                        <button
+                          onClick={() => openEdit(f)}
+                          title="Editar"
+                          style={{
+                            fontSize: 11, padding: '3px 8px', borderRadius: 6, cursor: 'pointer',
+                            background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)',
+                            color: 'var(--color-xama-text)', fontWeight: 700,
+                          }}
+                        >
+                          ✏
+                        </button>
                         {f.status === 'draft' && (
-                          <ActBtn small onClick={() => openEdit(f)}>Editar</ActBtn>
-                        )}
-                        {f.status === 'draft' && (
-                          <ActBtn small onClick={() => handleDelete(f)} style={{ color: '#f87171', borderColor: 'rgba(239,68,68,0.35)' }}>
+                          <button
+                            onClick={() => handleDelete(f)}
+                            title="Deletar"
+                            style={{
+                              fontSize: 11, padding: '3px 8px', borderRadius: 6, cursor: 'pointer',
+                              background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.3)',
+                              color: '#f87171', fontWeight: 700,
+                            }}
+                          >
                             ✕
-                          </ActBtn>
+                          </button>
                         )}
                       </div>
                     </td>
@@ -446,22 +501,36 @@ export default function AdminFaceoffs({ token }) {
 
       {/* Modal de edição */}
       {editModal && (
-        <Modal title={`Editar Faceoff #${editModal.id}`} onClose={() => setEditModal(null)} width={420}>
+        <Modal title={`Editar Faceoff #${editModal.id}`} onClose={() => setEditModal(null)} width={440}>
           <Msg msg={msg} />
-          <Field label="Time A">
-            <input
-              style={inputStyle}
-              value={editForm.team_a_name}
-              onChange={e => setEditForm(f => ({ ...f, team_a_name: e.target.value }))}
-            />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <Field label="Seed A">
+              <input style={inputStyle} type="number" value={editForm.seed_a}
+                onChange={e => setEditForm(f => ({ ...f, seed_a: e.target.value }))} />
+            </Field>
+            <Field label="Seed B">
+              <input style={inputStyle} type="number" value={editForm.seed_b}
+                onChange={e => setEditForm(f => ({ ...f, seed_b: e.target.value }))} />
+            </Field>
+          </div>
+          <Field label="Time A (laranja)">
+            <input style={inputStyle} value={editForm.team_a_name}
+              onChange={e => setEditForm(f => ({ ...f, team_a_name: e.target.value }))} />
           </Field>
-          <Field label="Time B">
-            <input
-              style={inputStyle}
-              value={editForm.team_b_name}
-              onChange={e => setEditForm(f => ({ ...f, team_b_name: e.target.value }))}
-            />
+          <Field label="Time B (roxo)">
+            <input style={inputStyle} value={editForm.team_b_name}
+              onChange={e => setEditForm(f => ({ ...f, team_b_name: e.target.value }))} />
           </Field>
+          {editModal.status === 'resolved' && (
+            <Field label="Vencedor (override manual)">
+              <select style={selectStyle} value={editForm.winner_team_name}
+                onChange={e => setEditForm(f => ({ ...f, winner_team_name: e.target.value }))}>
+                <option value="">— empate / nenhum —</option>
+                <option value={editModal.team_a_name}>{editModal.team_a_name}</option>
+                <option value={editModal.team_b_name}>{editModal.team_b_name}</option>
+              </select>
+            </Field>
+          )}
           <SaveBtn loading={saving} onClick={handleSaveEdit} label="Salvar" />
         </Modal>
       )}
