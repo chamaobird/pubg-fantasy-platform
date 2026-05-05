@@ -115,6 +115,67 @@ def list_stages(
 # ── Tournament match discovery ────────────────────────────────────────────────
 # IMPORTANTE: deve ficar ANTES de /{stage_id} — FastAPI respeita ordem de registro.
 
+@router.get("/twire-matches")
+def list_twire_matches(
+    twire_tournament_id: int,
+    page: int = 1,
+    db: Session = Depends(get_db),
+):
+    """
+    Busca matches via Twire GraphQL (backup quando PUBG API falha).
+    Cruza shardInfo (PUBG UUID) com o banco para indicar quais já foram importados.
+    """
+    import requests as _req
+    from app.models.match import Match
+
+    EP = "https://tjjkdyimqrb7jjnc6m5rpefjtu.appsync-api.eu-west-1.amazonaws.com/graphql"
+    KEY = "da2-vqpq6wms5ndbvhl2r7kvzbpmfi"
+    HDR = {"Content-Type": "application/json", "x-api-key": KEY, "Origin": "https://twire.gg"}
+
+    payload = {
+        "query": (
+            '{ getLastestMatches(game: "pubg", tournamentId: %d, page: %d)'
+            " { id shardInfo startDate map } }"
+        ) % (twire_tournament_id, page)
+    }
+
+    try:
+        r = _req.post(EP, headers=HDR, json=payload, timeout=15)
+        data = r.json()
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Twire API error: {exc}")
+
+    if "errors" in data:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Twire GraphQL error: {data['errors'][0].get('message', 'unknown')}",
+        )
+
+    raw_matches = data.get("data", {}).get("getLastestMatches", []) or []
+    all_uuids = [m["shardInfo"] for m in raw_matches if m.get("shardInfo")]
+
+    imported_matches = db.query(Match).filter(Match.pubg_match_id.in_(all_uuids)).all()
+    imported_map = {m.pubg_match_id: m for m in imported_matches}
+
+    result = []
+    for m in raw_matches:
+        uuid = m.get("shardInfo")
+        if not uuid:
+            continue
+        imp = imported_map.get(uuid)
+        result.append({
+            "match_id": uuid,
+            "twire_id": m.get("id"),
+            "imported": imp is not None,
+            "stage_day_id": imp.stage_day_id if imp else None,
+            "played_at": m.get("startDate"),
+            "map": m.get("map"),
+        })
+
+    result.sort(key=lambda x: x["imported"])  # novos primeiro
+    return result
+
+
 @router.get("/tournament-matches")
 def list_tournament_matches(
     tournament_id: str,

@@ -70,6 +70,59 @@ function StatusBadge({ result }) {
   )
 }
 
+function MatchList({ matches, selectedMatches, toggleMatch, toggleAllNew, newMatches, importedMatches }) {
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
+          {newMatches.length} nova(s) · {importedMatches.length} já importada(s)
+        </div>
+        {newMatches.length > 0 && (
+          <button onClick={toggleAllNew} style={btn('ghost', { fontSize: 11, padding: '3px 10px' })}>
+            {newMatches.every(m => selectedMatches.has(m.match_id)) ? 'Desmarcar todas' : 'Selecionar novas'}
+          </button>
+        )}
+      </div>
+      <div style={{ maxHeight: 280, overflowY: 'auto', borderRadius: 8, border: '1px solid rgba(255,255,255,0.07)' }}>
+        {matches.map((m, i) => {
+          const checked = selectedMatches.has(m.match_id)
+          return (
+            <div
+              key={m.match_id}
+              onClick={() => toggleMatch(m.match_id)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '9px 12px', cursor: 'pointer',
+                borderBottom: i < matches.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                background: checked ? 'rgba(249,115,22,0.06)' : 'transparent',
+                opacity: m.imported && !checked ? 0.5 : 1,
+              }}
+            >
+              <input type="checkbox" checked={checked} onChange={() => {}} style={{ accentColor: 'var(--color-xama-orange)', flexShrink: 0 }} />
+              <span style={{ fontFamily: 'monospace', fontSize: 11, color: m.imported ? 'rgba(255,255,255,0.4)' : 'var(--color-xama-text)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {m.match_id}
+              </span>
+              {m.twire_id && (
+                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', flexShrink: 0 }}>
+                  #{m.twire_id}
+                </span>
+              )}
+              {m.imported ? (
+                <span style={{ fontSize: 10, fontWeight: 700, color: '#4ade80', flexShrink: 0 }}>importado</span>
+              ) : (
+                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--color-xama-orange)', flexShrink: 0 }}>novo</span>
+              )}
+              {m.played_at && (
+                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', flexShrink: 0 }}>{fmtUtc(m.played_at)}</span>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 function fmtUtc(iso) {
   if (!iso) return '—'
   try {
@@ -87,12 +140,16 @@ export default function AdminOpsPanel({ stageId, token }) {
   const [daysError, setDaysError] = useState('')
 
   // Import por torneio
-  const [importTab,       setImportTab]       = useState('tournament')  // 'tournament' | 'manual'
+  const [importTab,       setImportTab]       = useState('tournament')  // 'tournament' | 'twire' | 'manual'
   const [tournamentId,    setTournamentId]    = useState('')
   const [tournamentMatches, setTournamentMatches] = useState([])   // [{match_id, imported, played_at, stage_day_id}]
   const [selectedMatches, setSelectedMatches] = useState(new Set())
   const [fetchLoading,    setFetchLoading]    = useState(false)
   const [fetchResult,     setFetchResult]     = useState(null)
+
+  // Twire
+  const [twireTournamentId, setTwireTournamentId] = useState('')
+  const [twirePage,         setTwirePage]         = useState('1')
 
   // Import compartilhado
   const [importDay,      setImportDay]      = useState('')
@@ -181,6 +238,35 @@ export default function AdminOpsPanel({ stageId, token }) {
       // Pré-seleciona apenas os não importados
       setSelectedMatches(new Set(data.filter(m => !m.imported).map(m => m.match_id)))
       if (data.length === 0) setFetchResult({ ok: false, message: 'Nenhuma partida encontrada para este torneio.' })
+    } catch (e) {
+      setFetchResult({ ok: false, message: e.message })
+    } finally {
+      setFetchLoading(false)
+    }
+  }
+
+  async function handleFetchTwire() {
+    const tid = twireTournamentId.trim()
+    if (!tid || isNaN(Number(tid))) return
+    setFetchLoading(true)
+    setFetchResult(null)
+    setTournamentMatches([])
+    setSelectedMatches(new Set())
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/admin/stages/twire-matches?twire_tournament_id=${encodeURIComponent(tid)}&page=${twirePage || 1}`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      )
+      const data = await res.json().catch(() => null)
+      if (!res.ok) {
+        const detail = data?.detail
+        const msg = typeof detail === 'string' ? detail : `HTTP ${res.status}`
+        setFetchResult({ ok: false, message: msg })
+        return
+      }
+      setTournamentMatches(data)
+      setSelectedMatches(new Set(data.filter(m => !m.imported).map(m => m.match_id)))
+      if (data.length === 0) setFetchResult({ ok: false, message: 'Nenhuma partida encontrada no Twire para este torneio.' })
     } catch (e) {
       setFetchResult({ ok: false, message: e.message })
     } finally {
@@ -278,8 +364,8 @@ export default function AdminOpsPanel({ stageId, token }) {
 
         {/* Sub-tabs */}
         <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
-          {[['tournament', 'Por Torneio'], ['manual', 'Manual']].map(([t, label]) => (
-            <button key={t} onClick={() => { setImportTab(t); setImportResult(null) }} style={{
+          {[['tournament', 'Por Torneio'], ['twire', 'Via Twire'], ['manual', 'Manual']].map(([t, label]) => (
+            <button key={t} onClick={() => { setImportTab(t); setImportResult(null); setTournamentMatches([]); setSelectedMatches(new Set()); setFetchResult(null) }} style={{
               padding: '5px 14px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600,
               background: importTab === t ? 'var(--color-xama-orange)' : 'rgba(255,255,255,0.06)',
               color: importTab === t ? '#000' : 'rgba(255,255,255,0.5)',
@@ -317,70 +403,64 @@ export default function AdminOpsPanel({ stageId, token }) {
 
             {/* Lista de partidas */}
             {tournamentMatches.length > 0 && (
-              <div>
-                {/* Cabeçalho */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
-                    {newMatches.length} nova(s) · {importedMatches.length} já importada(s)
-                  </div>
-                  {newMatches.length > 0 && (
-                    <button onClick={toggleAllNew} style={btn('ghost', { fontSize: 11, padding: '3px 10px' })}>
-                      {newMatches.every(m => selectedMatches.has(m.match_id)) ? 'Desmarcar todas' : 'Selecionar novas'}
-                    </button>
-                  )}
-                </div>
+              <MatchList
+                matches={tournamentMatches}
+                selectedMatches={selectedMatches}
+                toggleMatch={toggleMatch}
+                toggleAllNew={toggleAllNew}
+                newMatches={newMatches}
+                importedMatches={importedMatches}
+              />
+            )}
+          </div>
+        )}
 
-                {/* Items */}
-                <div style={{
-                  maxHeight: 280, overflowY: 'auto',
-                  borderRadius: 8, border: '1px solid rgba(255,255,255,0.07)',
-                }}>
-                  {tournamentMatches.map((m, i) => {
-                    const checked = selectedMatches.has(m.match_id)
-                    return (
-                      <div
-                        key={m.match_id}
-                        onClick={() => toggleMatch(m.match_id)}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: 10,
-                          padding: '9px 12px', cursor: 'pointer',
-                          borderBottom: i < tournamentMatches.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
-                          background: checked ? 'rgba(249,115,22,0.06)' : 'transparent',
-                          opacity: m.imported && !checked ? 0.5 : 1,
-                        }}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => {}}
-                          style={{ accentColor: 'var(--color-xama-orange)', flexShrink: 0 }}
-                        />
-                        <span style={{
-                          fontFamily: 'monospace', fontSize: 11,
-                          color: m.imported ? 'rgba(255,255,255,0.4)' : 'var(--color-xama-text)',
-                          flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                        }}>
-                          {m.match_id}
-                        </span>
-                        {m.imported ? (
-                          <span style={{ fontSize: 10, fontWeight: 700, color: '#4ade80', flexShrink: 0 }}>
-                            importado
-                          </span>
-                        ) : (
-                          <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--color-xama-orange)', flexShrink: 0 }}>
-                            novo
-                          </span>
-                        )}
-                        {m.played_at && (
-                          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', flexShrink: 0 }}>
-                            {fmtUtc(m.played_at)}
-                          </span>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
+        {/* ── Tab: Via Twire ── */}
+        {importTab === 'twire' && (
+          <div>
+            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', marginBottom: '10px' }}>
+              Backup quando a PUBG API falha. Informe o ID numérico do torneio no Twire
+              (ex: <code style={{ color: 'var(--color-xama-orange)' }}>2513</code> para PAS,{' '}
+              <code style={{ color: 'var(--color-xama-orange)' }}>2512</code> para PEC).
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+              <input
+                type="number"
+                placeholder="Tournament ID Twire (ex: 2513)"
+                value={twireTournamentId}
+                onChange={e => setTwireTournamentId(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleFetchTwire()}
+                style={{ ...input_, flex: 1 }}
+              />
+              <input
+                type="number"
+                placeholder="Página"
+                value={twirePage}
+                onChange={e => setTwirePage(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleFetchTwire()}
+                style={{ ...input_, width: 72 }}
+                min={1}
+              />
+              <button
+                style={btn('primary', { whiteSpace: 'nowrap' })}
+                onClick={handleFetchTwire}
+                disabled={fetchLoading || !twireTournamentId.trim()}
+              >
+                {fetchLoading ? 'Buscando…' : 'Buscar'}
+              </button>
+            </div>
+            {fetchResult && <StatusBadge result={fetchResult} />}
+
+            {/* Lista de partidas — reutiliza o mesmo bloco abaixo */}
+            {tournamentMatches.length > 0 && (
+              <MatchList
+                matches={tournamentMatches}
+                selectedMatches={selectedMatches}
+                toggleMatch={toggleMatch}
+                toggleAllNew={toggleAllNew}
+                newMatches={newMatches}
+                importedMatches={importedMatches}
+              />
             )}
           </div>
         )}
@@ -420,12 +500,12 @@ export default function AdminOpsPanel({ stageId, token }) {
               </label>
               <button
                 style={btn('primary')}
-                onClick={importTab === 'tournament' ? handleImportTournament : handleImportManual}
-                disabled={importLoading || (importTab === 'tournament' && selectedMatches.size === 0)}
+                onClick={importTab === 'manual' ? handleImportManual : handleImportTournament}
+                disabled={importLoading || (importTab !== 'manual' && selectedMatches.size === 0)}
               >
                 {importLoading
                   ? 'Importando…'
-                  : importTab === 'tournament'
+                  : importTab !== 'manual'
                     ? `Importar ${selectedMatches.size > 0 ? `(${selectedMatches.size})` : ''}`
                     : 'Importar'}
               </button>
