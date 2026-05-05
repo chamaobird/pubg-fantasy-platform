@@ -18,14 +18,22 @@ export default function FaceoffPage({ token, championshipId: championshipIdProp 
   const load = useCallback(async () => {
     setLoading(true); setError('')
     try {
-      const [fo, ch] = await Promise.all([
-        fetch(`${API_BASE_URL}/faceoffs?championship_id=${championshipId}`, { headers }).then(r => r.json()),
-        fetch(`${API_BASE_URL}/championships/${championshipId}`).then(r => r.json()),
-      ])
+      // Faceoffs — principal; championship — opcional (só para nome)
+      const foRes = await fetch(`${API_BASE_URL}/faceoffs?championship_id=${championshipId}`, { headers })
+      if (!foRes.ok) {
+        const err = await foRes.json().catch(() => ({}))
+        throw new Error(err.detail || `Erro HTTP ${foRes.status}`)
+      }
+      const fo = await foRes.json()
       setFaceoffs(Array.isArray(fo) ? fo : [])
-      setChamp(ch?.id ? ch : null)
-    } catch {
-      setError('Erro ao carregar faceoffs.')
+
+      // Championship — não fatal
+      fetch(`${API_BASE_URL}/championships/${championshipId}`)
+        .then(r => r.ok ? r.json() : null)
+        .then(ch => setChamp(ch?.id ? ch : null))
+        .catch(() => {})
+    } catch (e) {
+      setError(`Erro ao carregar faceoffs: ${e.message}`)
     } finally {
       setLoading(false)
     }

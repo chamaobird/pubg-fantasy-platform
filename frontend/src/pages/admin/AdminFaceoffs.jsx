@@ -26,43 +26,94 @@ const STATUS_COLOR = {
   closed:   'var(--color-xama-orange)',
   resolved: '#a5b4fc',
 }
-// Transições possíveis (espelha o backend)
 const NEXT_STATUS = { draft: 'open', open: 'closed', closed: null }
 const PREV_STATUS = { open: 'draft', closed: 'open', resolved: 'closed' }
 
 export default function AdminFaceoffs({ token }) {
   const call = useCallback(api(token), [token])
 
-  const [championships, setChampionships]   = useState([])
-  const [champId, setChampId]               = useState('')
-  const [selectedChamp, setSelectedChamp]   = useState(null)
-  const [faceoffs, setFaceoffs]             = useState([])
-  const [suggested, setSuggested]           = useState([])
-  const [availableStages, setAvailableStages] = useState([])
-  const [selectedSourceIds, setSelectedSourceIds] = useState(new Set())
-  const [loadingStages, setLoadingStages]   = useState(false)
-  const [loading, setLoading]               = useState(false)
-  const [suggesting, setSuggesting]         = useState(false)
-  const [msg, setMsg]                       = useState('')
-  const [editModal, setEditModal]           = useState(null)
-  const [editForm, setEditForm]             = useState({})
-  const [saving, setSaving]                 = useState(false)
+  // Dados globais (carregados uma vez)
+  const [allChampionships, setAllChampionships] = useState([])
+  const [allStages, setAllStages]               = useState([])
+  const [allFaceoffs, setAllFaceoffs]           = useState([])  // todos os faceoffs para badge
+  const [globalLoading, setGlobalLoading]       = useState(true)
 
+  // Estado do campeonato selecionado
+  const [champId, setChampId]           = useState('')
+  const [faceoffs, setFaceoffs]         = useState([])
+  const [suggested, setSuggested]       = useState([])
+  const [selectedSourceIds, setSelectedSourceIds] = useState(new Set())
+  const [loading, setLoading]           = useState(false)
+  const [suggesting, setSuggesting]     = useState(false)
+  const [msg, setMsg]                   = useState('')
+  const [editModal, setEditModal]       = useState(null)
+  const [editForm, setEditForm]         = useState({})
+  const [saving, setSaving]             = useState(false)
+
+  // Carrega tudo de uma vez ao montar
   useEffect(() => {
-    call('GET', '/admin/championships?include_inactive=true')
-      .then(d => setChampionships(Array.isArray(d) ? d.sort((a, b) => b.id - a.id) : []))
+    setGlobalLoading(true)
+    Promise.all([
+      call('GET', '/admin/championships?include_inactive=true'),
+      call('GET', '/admin/stages'),
+      call('GET', '/admin/faceoffs'),
+    ])
+      .then(([champs, stages, faceoffs]) => {
+        setAllChampionships(Array.isArray(champs) ? champs.sort((a, b) => b.id - a.id) : [])
+        setAllStages(Array.isArray(stages) ? stages : [])
+        setAllFaceoffs(Array.isArray(faceoffs) ? faceoffs : [])
+      })
       .catch(() => {})
+      .finally(() => setGlobalLoading(false))
   }, [call])
 
+  // Championships elegíveis: têm ao menos uma stage com phase != 'finished'
+  const eligibleChampionships = allChampionships.filter(c => {
+    const champStages = allStages.filter(s => s.championship_id === c.id)
+    // Se não tem stages, ainda assim mostra (pode ser novo)
+    if (champStages.length === 0) return true
+    // Mostra se ao menos uma stage não está finished
+    return champStages.some(s => s.stage_phase !== 'finished')
+  })
+
+  // Conta de faceoffs por championship (para badge)
+  const faceoffCountByChamp = allFaceoffs.reduce((acc, f) => {
+    acc[f.championship_id] = (acc[f.championship_id] || 0) + 1
+    return acc
+  }, {})
+
+  const selectedChamp = allChampionships.find(c => c.id === parseInt(champId))
+
+  // Stages disponíveis como fonte (mesma região, não pertence ao championship alvo, fase finished ou live)
+  const availableStages = (() => {
+    if (!champId) return {}
+    const shard = selectedChamp?.shard
+    const relevant = allStages
+      .filter(s =>
+        s.championship_id !== parseInt(champId) &&   // exclui stages do campeonato alvo
+        (!shard || s.shard === shard) &&              // mesma região
+        (s.stage_phase === 'finished' || s.stage_phase === 'live')
+      )
+      .sort((a, b) => b.id - a.id)
+      .slice(0, 20)
+
+    const grouped = {}
+    for (const s of relevant) {
+      const key = s.championship_name || s.championship_id || 'Outro'
+      if (!grouped[key]) grouped[key] = []
+      grouped[key].push(s)
+    }
+    return grouped
+  })()
+  const groupKeys = Object.keys(availableStages)
+
+  // Ao trocar campeonato: recarrega faceoffs do campeonato selecionado
   useEffect(() => {
-    if (!champId) return
-    const champ = championships.find(c => c.id === parseInt(champId))
-    setSelectedChamp(champ || null)
+    if (!champId) { setFaceoffs([]); return }
     setSuggested([])
     setSelectedSourceIds(new Set())
     loadFaceoffs()
-    loadAvailableStages(champ)
-  }, [champId, championships])
+  }, [champId])
 
   const loadFaceoffs = useCallback(async () => {
     if (!champId) return
@@ -70,36 +121,14 @@ export default function AdminFaceoffs({ token }) {
     try {
       const data = await call('GET', `/admin/faceoffs?championship_id=${champId}`)
       setFaceoffs(Array.isArray(data) ? data : [])
+      // Atualiza o allFaceoffs para manter o badge atualizado
+      setAllFaceoffs(prev => {
+        const others = prev.filter(f => f.championship_id !== parseInt(champId))
+        return [...others, ...(Array.isArray(data) ? data : [])]
+      })
     } catch (e) { setMsg('!' + e.message) }
     finally { setLoading(false) }
   }, [call, champId])
-
-  const loadAvailableStages = async (champ) => {
-    setLoadingStages(true)
-    try {
-      const allStages = await call('GET', '/admin/stages')
-      if (!Array.isArray(allStages)) return
-      const shard = champ?.shard
-      const relevant = allStages
-        .filter(s =>
-          (!shard || s.shard === shard) &&
-          (s.stage_phase === 'finished' || s.stage_phase === 'live')
-        )
-        .sort((a, b) => b.id - a.id)
-        .slice(0, 20)
-      const grouped = {}
-      for (const s of relevant) {
-        const key = s.championship_name || s.championship_id || 'Outro'
-        if (!grouped[key]) grouped[key] = []
-        grouped[key].push(s)
-      }
-      setAvailableStages(grouped)
-    } catch {
-      setAvailableStages({})
-    } finally {
-      setLoadingStages(false)
-    }
-  }
 
   const toggleSourceId = (id) => {
     setSelectedSourceIds(prev => {
@@ -148,7 +177,6 @@ export default function AdminFaceoffs({ token }) {
     finally { setSaving(false) }
   }
 
-  // Avançar status (→)
   const handleAdvanceStatus = async (f) => {
     const next = NEXT_STATUS[f.status]
     if (!next) return
@@ -158,7 +186,6 @@ export default function AdminFaceoffs({ token }) {
     } catch (e) { setMsg('!' + e.message) }
   }
 
-  // Reverter status (←)
   const handleRevertStatus = async (f) => {
     const prev = PREV_STATUS[f.status]
     if (!prev) return
@@ -170,7 +197,6 @@ export default function AdminFaceoffs({ token }) {
     } catch (e) { setMsg('!' + e.message) }
   }
 
-  // Resolver automaticamente pelo standing
   const handleResolve = async (f) => {
     if (!confirm(`Resolver automaticamente "${f.team_a_name} vs ${f.team_b_name}" pelo standing do campeonato?`)) return
     try {
@@ -180,7 +206,6 @@ export default function AdminFaceoffs({ token }) {
     } catch (e) { setMsg('!' + e.message) }
   }
 
-  // Deletar (só draft)
   const handleDelete = async (f) => {
     if (!confirm(`Deletar "${f.team_a_name} vs ${f.team_b_name}"?`)) return
     try {
@@ -189,7 +214,6 @@ export default function AdminFaceoffs({ token }) {
     } catch (e) { setMsg('!' + e.message) }
   }
 
-  // Editar — abre modal com todos os campos
   const openEdit = (f) => {
     setEditForm({
       team_a_name: f.team_a_name,
@@ -210,7 +234,6 @@ export default function AdminFaceoffs({ token }) {
         seed_a: editForm.seed_a !== '' ? parseInt(editForm.seed_a) : null,
         seed_b: editForm.seed_b !== '' ? parseInt(editForm.seed_b) : null,
       }
-      // winner só incluído se resolved
       if (editModal.status === 'resolved') {
         payload.winner_team_name = editForm.winner_team_name || null
       }
@@ -221,7 +244,14 @@ export default function AdminFaceoffs({ token }) {
     finally { setSaving(false) }
   }
 
-  const groupKeys = Object.keys(availableStages)
+  if (globalLoading) {
+    return (
+      <div>
+        <SectionHeader title="Team Faceoff" />
+        <div style={{ padding: 40, textAlign: 'center', color: 'var(--color-xama-muted)' }}>Carregando...</div>
+      </div>
+    )
+  }
 
   return (
     <div>
@@ -232,16 +262,46 @@ export default function AdminFaceoffs({ token }) {
         <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--color-xama-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
           Campeonato das Finals (alvo)
         </label>
-        <select
-          style={{ ...selectStyle, minWidth: 320 }}
-          value={champId}
-          onChange={e => { setChampId(e.target.value); setMsg('') }}
-        >
-          <option value="">Selecione o campeonato das Finals...</option>
-          {championships.map(c => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          {eligibleChampionships.length === 0 ? (
+            <p style={{ fontSize: 13, color: 'var(--color-xama-muted)' }}>
+              Nenhum campeonato com stages em andamento ou futuras.
+            </p>
+          ) : (
+            eligibleChampionships.map(c => {
+              const count = faceoffCountByChamp[c.id] || 0
+              const isSelected = String(c.id) === champId
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => { setChampId(String(c.id)); setMsg('') }}
+                  style={{
+                    padding: '8px 14px', borderRadius: 8, cursor: 'pointer',
+                    background: isSelected ? 'rgba(249,115,22,0.12)' : 'rgba(255,255,255,0.03)',
+                    border: `1px solid ${isSelected ? 'rgba(249,115,22,0.5)' : 'rgba(255,255,255,0.1)'}`,
+                    color: isSelected ? 'var(--color-xama-orange)' : 'var(--color-xama-text)',
+                    fontWeight: isSelected ? 700 : 400,
+                    fontSize: 13,
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    transition: 'all 0.12s',
+                  }}
+                >
+                  <span>{c.name}</span>
+                  {count > 0 && (
+                    <span style={{
+                      fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 10,
+                      background: isSelected ? 'rgba(249,115,22,0.2)' : 'rgba(99,102,241,0.15)',
+                      color: isSelected ? 'var(--color-xama-orange)' : '#a5b4fc',
+                      border: `1px solid ${isSelected ? 'rgba(249,115,22,0.3)' : 'rgba(99,102,241,0.3)'}`,
+                    }}>
+                      {count} faceoff{count !== 1 ? 's' : ''}
+                    </span>
+                  )}
+                </button>
+              )
+            })
+          )}
+        </div>
       </div>
 
       {msg && (
@@ -267,16 +327,13 @@ export default function AdminFaceoffs({ token }) {
             Sugerir Chaves por Performance
           </div>
           <div style={{ fontSize: 12, color: 'var(--color-xama-muted)', marginBottom: 16, lineHeight: 1.5 }}>
-            Selecione as stages anteriores (playoffs, regular season) como base de performance.
-            O sistema ranqueia os times por pontos XAMA/partida e cria os pares{' '}
-            <strong style={{ color: 'var(--color-xama-text)' }}>#1 vs #2, #3 vs #4...</strong>
+            Selecione stages anteriores da <strong style={{ color: '#a5b4fc' }}>mesma região ({selectedChamp?.shard})</strong> como base de performance.
+            O sistema cria os pares <strong style={{ color: 'var(--color-xama-text)' }}>#1 vs #2, #3 vs #4...</strong>
           </div>
 
-          {loadingStages ? (
-            <div style={{ fontSize: 12, color: 'var(--color-xama-muted)', marginBottom: 14 }}>Carregando stages...</div>
-          ) : groupKeys.length === 0 ? (
+          {groupKeys.length === 0 ? (
             <div style={{ fontSize: 12, color: '#f87171', marginBottom: 14 }}>
-              Nenhuma stage com partidas encontrada para o shard <strong>{selectedChamp?.shard}</strong>.
+              Nenhuma stage com partidas encontrada para a região <strong>{selectedChamp?.shard}</strong>.
             </div>
           ) : (
             <div style={{ marginBottom: 16 }}>
@@ -323,11 +380,6 @@ export default function AdminFaceoffs({ token }) {
             <ActBtn onClick={handleSuggest} disabled={suggesting || selectedSourceIds.size === 0}>
               {suggesting ? 'Calculando...' : `⚡ Sugerir Chaves${selectedSourceIds.size > 0 ? ` (${selectedSourceIds.size} stages)` : ''}`}
             </ActBtn>
-            {selectedSourceIds.size > 0 && (
-              <span style={{ fontSize: 11, color: 'var(--color-xama-muted)' }}>
-                Stages: {[...selectedSourceIds].sort((a, b) => a - b).join(', ')}
-              </span>
-            )}
           </div>
 
           {suggested.length > 0 && (
@@ -361,15 +413,14 @@ export default function AdminFaceoffs({ token }) {
         </div>
       )}
 
-      {/* Lista de faceoffs */}
+      {/* Lista de faceoffs do campeonato selecionado */}
       {champId && (
         <div style={{ background: 'rgba(18,21,28,0.9)', border: '1px solid var(--color-xama-border)', borderRadius: 12, overflow: 'hidden' }}>
-          {/* Legenda de controles */}
-          <div style={{ padding: '10px 20px', borderBottom: '1px solid var(--color-xama-border)', display: 'flex', gap: 16, fontSize: 11, color: 'var(--color-xama-muted)' }}>
+          <div style={{ padding: '10px 20px', borderBottom: '1px solid var(--color-xama-border)', display: 'flex', gap: 16, fontSize: 11, color: 'var(--color-xama-muted)', flexWrap: 'wrap' }}>
             <span><strong style={{ color: 'var(--color-xama-text)' }}>→</strong> Avança status</span>
             <span><strong style={{ color: '#a5b4fc' }}>←</strong> Reverte status</span>
             <span><strong style={{ color: 'var(--color-xama-green)' }}>⚡</strong> Resolve pelo standing</span>
-            <span><strong style={{ color: 'var(--color-xama-text)' }}>✏</strong> Edita nomes/seeds/winner</span>
+            <span><strong>✏</strong> Edita nomes/seeds/winner</span>
           </div>
           {loading ? (
             <div style={{ padding: 40, textAlign: 'center', color: 'var(--color-xama-muted)' }}>Carregando...</div>
@@ -387,7 +438,8 @@ export default function AdminFaceoffs({ token }) {
                   <th style={thStyle}>Status</th>
                   <th style={thStyle}>Votos A / B</th>
                   <th style={thStyle}>Vencedor</th>
-                  <th style={thStyle} colSpan={2}>Ações</th>
+                  <th style={thStyle}>Ações</th>
+                  <th style={thStyle}></th>
                 </tr>
               </thead>
               <tbody>
@@ -415,79 +467,50 @@ export default function AdminFaceoffs({ token }) {
                     <td style={{ ...tdStyle, fontWeight: 600, color: 'var(--color-xama-green)' }}>
                       {f.winner_team_name || '—'}
                     </td>
-                    {/* Ações de avanço */}
-                    <td style={{ ...tdStyle }}>
+                    <td style={tdStyle}>
                       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                        {/* Reverter */}
                         {PREV_STATUS[f.status] && (
-                          <button
-                            onClick={() => handleRevertStatus(f)}
-                            title={`Reverter para ${STATUS_LABEL[PREV_STATUS[f.status]]}`}
-                            style={{
-                              fontSize: 11, padding: '3px 8px', borderRadius: 6, cursor: 'pointer',
-                              background: 'rgba(165,180,252,0.08)', border: '1px solid rgba(165,180,252,0.3)',
-                              color: '#a5b4fc', fontWeight: 700,
-                            }}
-                          >
+                          <button onClick={() => handleRevertStatus(f)} style={{
+                            fontSize: 11, padding: '3px 8px', borderRadius: 6, cursor: 'pointer',
+                            background: 'rgba(165,180,252,0.08)', border: '1px solid rgba(165,180,252,0.3)',
+                            color: '#a5b4fc', fontWeight: 700,
+                          }}>
                             ← {STATUS_LABEL[PREV_STATUS[f.status]]}
                           </button>
                         )}
-                        {/* Avançar */}
                         {NEXT_STATUS[f.status] && (
-                          <button
-                            onClick={() => handleAdvanceStatus(f)}
-                            title={`Avançar para ${STATUS_LABEL[NEXT_STATUS[f.status]]}`}
-                            style={{
-                              fontSize: 11, padding: '3px 8px', borderRadius: 6, cursor: 'pointer',
-                              background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.3)',
-                              color: 'var(--color-xama-orange)', fontWeight: 700,
-                            }}
-                          >
+                          <button onClick={() => handleAdvanceStatus(f)} style={{
+                            fontSize: 11, padding: '3px 8px', borderRadius: 6, cursor: 'pointer',
+                            background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.3)',
+                            color: 'var(--color-xama-orange)', fontWeight: 700,
+                          }}>
                             → {STATUS_LABEL[NEXT_STATUS[f.status]]}
                           </button>
                         )}
-                        {/* Resolver automaticamente */}
                         {f.status === 'closed' && (
-                          <button
-                            onClick={() => handleResolve(f)}
-                            title="Resolver pelo standing do campeonato"
-                            style={{
-                              fontSize: 11, padding: '3px 8px', borderRadius: 6, cursor: 'pointer',
-                              background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.3)',
-                              color: 'var(--color-xama-green)', fontWeight: 700,
-                            }}
-                          >
+                          <button onClick={() => handleResolve(f)} style={{
+                            fontSize: 11, padding: '3px 8px', borderRadius: 6, cursor: 'pointer',
+                            background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.3)',
+                            color: 'var(--color-xama-green)', fontWeight: 700,
+                          }}>
                             ⚡ Resolver
                           </button>
                         )}
                       </div>
                     </td>
-                    {/* Editar / Deletar */}
                     <td style={{ ...tdStyle, textAlign: 'right' }}>
                       <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
-                        <button
-                          onClick={() => openEdit(f)}
-                          title="Editar"
-                          style={{
-                            fontSize: 11, padding: '3px 8px', borderRadius: 6, cursor: 'pointer',
-                            background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)',
-                            color: 'var(--color-xama-text)', fontWeight: 700,
-                          }}
-                        >
-                          ✏
-                        </button>
+                        <button onClick={() => openEdit(f)} style={{
+                          fontSize: 11, padding: '3px 8px', borderRadius: 6, cursor: 'pointer',
+                          background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)',
+                          color: 'var(--color-xama-text)', fontWeight: 700,
+                        }}>✏</button>
                         {f.status === 'draft' && (
-                          <button
-                            onClick={() => handleDelete(f)}
-                            title="Deletar"
-                            style={{
-                              fontSize: 11, padding: '3px 8px', borderRadius: 6, cursor: 'pointer',
-                              background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.3)',
-                              color: '#f87171', fontWeight: 700,
-                            }}
-                          >
-                            ✕
-                          </button>
+                          <button onClick={() => handleDelete(f)} style={{
+                            fontSize: 11, padding: '3px 8px', borderRadius: 6, cursor: 'pointer',
+                            background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.3)',
+                            color: '#f87171', fontWeight: 700,
+                          }}>✕</button>
                         )}
                       </div>
                     </td>

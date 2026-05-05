@@ -151,8 +151,9 @@ def list_faceoffs(
     db: Session = Depends(get_db),
     _admin: User = Depends(require_admin),
 ):
+    """Lista todos os faceoffs, opcionalmente filtrado por campeonato."""
     q = db.query(Faceoff)
-    if championship_id:
+    if championship_id is not None:
         q = q.filter(Faceoff.championship_id == championship_id)
     faceoffs = q.order_by(Faceoff.id).all()
     return [_to_out(f) for f in faceoffs]
