@@ -31,17 +31,21 @@ const NEXT_STATUS = { draft: 'open', open: 'closed', closed: null }
 export default function AdminFaceoffs({ token }) {
   const call = useCallback(api(token), [token])
 
-  const [championships, setChampionships] = useState([])
-  const [champId, setChampId]             = useState('')
-  const [faceoffs, setFaceoffs]           = useState([])
-  const [suggested, setSuggested]         = useState([])
-  const [sourceIds, setSourceIds]         = useState('')
-  const [loading, setLoading]             = useState(false)
-  const [suggesting, setSuggesting]       = useState(false)
-  const [msg, setMsg]                     = useState('')
-  const [editModal, setEditModal]         = useState(null)  // faceoff sendo editado
-  const [editForm, setEditForm]           = useState({})
-  const [saving, setSaving]               = useState(false)
+  const [championships, setChampionships]   = useState([])
+  const [champId, setChampId]               = useState('')
+  const [selectedChamp, setSelectedChamp]   = useState(null)
+  const [faceoffs, setFaceoffs]             = useState([])
+  const [suggested, setSuggested]           = useState([])
+  // stages disponíveis como fonte (com partidas), agrupadas por championship
+  const [availableStages, setAvailableStages] = useState([])
+  const [selectedSourceIds, setSelectedSourceIds] = useState(new Set())
+  const [loadingStages, setLoadingStages]   = useState(false)
+  const [loading, setLoading]               = useState(false)
+  const [suggesting, setSuggesting]         = useState(false)
+  const [msg, setMsg]                       = useState('')
+  const [editModal, setEditModal]           = useState(null)
+  const [editForm, setEditForm]             = useState({})
+  const [saving, setSaving]                 = useState(false)
 
   // Carrega championships
   useEffect(() => {
@@ -49,6 +53,17 @@ export default function AdminFaceoffs({ token }) {
       .then(d => setChampionships(Array.isArray(d) ? d.sort((a, b) => b.id - a.id) : []))
       .catch(() => {})
   }, [call])
+
+  // Ao trocar campeonato: carrega faceoffs + stages disponíveis como fonte
+  useEffect(() => {
+    if (!champId) return
+    const champ = championships.find(c => c.id === parseInt(champId))
+    setSelectedChamp(champ || null)
+    setSuggested([])
+    setSelectedSourceIds(new Set())
+    loadFaceoffs()
+    loadAvailableStages(champ)
+  }, [champId, championships])
 
   const loadFaceoffs = useCallback(async () => {
     if (!champId) return
@@ -60,17 +75,67 @@ export default function AdminFaceoffs({ token }) {
     finally { setLoading(false) }
   }, [call, champId])
 
-  useEffect(() => { loadFaceoffs(); setSuggested([]) }, [loadFaceoffs])
+  // Busca stages com partidas importadas — filtra pelo mesmo shard do campeonato selecionado
+  const loadAvailableStages = async (champ) => {
+    setLoadingStages(true)
+    try {
+      const allStages = await call('GET', '/admin/stages')
+      if (!Array.isArray(allStages)) return
+
+      // Filtra stages do mesmo shard que têm stage_phase finished ou live (têm dados)
+      const shard = champ?.shard
+      const relevant = allStages
+        .filter(s =>
+          s.id !== parseInt(champId) &&
+          (!shard || s.shard === shard) &&
+          (s.stage_phase === 'finished' || s.stage_phase === 'live')
+        )
+        .sort((a, b) => b.id - a.id)  // mais recentes primeiro
+        .slice(0, 20)
+
+      // Agrupa por championship name
+      const grouped = {}
+      for (const s of relevant) {
+        const key = s.championship_name || s.championship_id || 'Outro'
+        if (!grouped[key]) grouped[key] = []
+        grouped[key].push(s)
+      }
+      setAvailableStages(grouped)
+    } catch {
+      setAvailableStages({})
+    } finally {
+      setLoadingStages(false)
+    }
+  }
+
+  const toggleSourceId = (id) => {
+    setSelectedSourceIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const selectAllGroup = (stages) => {
+    setSelectedSourceIds(prev => {
+      const next = new Set(prev)
+      stages.forEach(s => next.add(s.id))
+      return next
+    })
+  }
 
   // Sugerir chaves
   const handleSuggest = async () => {
     if (!champId) return
+    if (selectedSourceIds.size === 0) {
+      setMsg('!Selecione ao menos uma stage de referência abaixo.')
+      return
+    }
     setSuggesting(true); setMsg(''); setSuggested([])
     try {
-      const params = sourceIds.trim()
-        ? `&source_stage_ids=${encodeURIComponent(sourceIds.trim())}`
-        : ''
-      const data = await call('GET', `/admin/faceoffs/suggest?championship_id=${champId}${params}`)
+      const ids = [...selectedSourceIds].join(',')
+      const data = await call('GET', `/admin/faceoffs/suggest?championship_id=${champId}&source_stage_ids=${ids}`)
       setSuggested(Array.isArray(data) ? data : [])
     } catch (e) { setMsg('!' + e.message) }
     finally { setSuggesting(false) }
@@ -91,7 +156,7 @@ export default function AdminFaceoffs({ token }) {
         })),
       })
       setSuggested([])
-      setMsg('8 faceoffs criados em draft.')
+      setMsg(`${suggested.length} faceoffs criados em draft.`)
       await loadFaceoffs()
     } catch (e) { setMsg('!' + e.message) }
     finally { setSaving(false) }
@@ -141,20 +206,23 @@ export default function AdminFaceoffs({ token }) {
     finally { setSaving(false) }
   }
 
-  const champName = (id) => championships.find(c => c.id === parseInt(id))?.short_name || id
+  const groupKeys = Object.keys(availableStages)
 
   return (
     <div>
       <SectionHeader title="Team Faceoff" />
 
       {/* Seletor de campeonato */}
-      <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
+      <div style={{ marginBottom: 20 }}>
+        <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--color-xama-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          Campeonato das Finals (alvo)
+        </label>
         <select
-          style={{ ...selectStyle, minWidth: 260 }}
+          style={{ ...selectStyle, minWidth: 320 }}
           value={champId}
-          onChange={e => setChampId(e.target.value)}
+          onChange={e => { setChampId(e.target.value); setMsg('') }}
         >
-          <option value="">Selecione um campeonato...</option>
+          <option value="">Selecione o campeonato das Finals...</option>
           {championships.map(c => (
             <option key={c.id} value={c.id}>{c.name}</option>
           ))}
@@ -180,30 +248,95 @@ export default function AdminFaceoffs({ token }) {
           border: '1px solid rgba(99,102,241,0.2)',
           borderRadius: 12,
         }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-xama-text)', marginBottom: 12 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-xama-text)', marginBottom: 4 }}>
             Sugerir Chaves por Performance
           </div>
-
-          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: 14 }}>
-            <div style={{ flex: 1, minWidth: 240 }}>
-              <label style={{ display: 'block', fontSize: 11, color: 'var(--color-xama-muted)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-                Stages de origem para medir performance (IDs separados por vírgula)
-              </label>
-              <input
-                style={{ ...inputStyle, width: '100%' }}
-                placeholder="ex: 30,31,32 (playoffs anteriores) — vazio = usa stages do próprio campeonato"
-                value={sourceIds}
-                onChange={e => setSourceIds(e.target.value)}
-              />
-            </div>
-            <ActBtn onClick={handleSuggest} disabled={suggesting}>
-              {suggesting ? 'Calculando...' : '⚡ Sugerir Chaves'}
-            </ActBtn>
+          <div style={{ fontSize: 12, color: 'var(--color-xama-muted)', marginBottom: 16, lineHeight: 1.5 }}>
+            Selecione as stages anteriores (playoffs, regular season) que serão usadas como base de performance.
+            O sistema ranqueia os times por pontos XAMA/partida e cria os pares <strong style={{ color: 'var(--color-xama-text)' }}>#1 vs #2, #3 vs #4...</strong>
           </div>
 
-          {/* Sugestões */}
+          {/* Checklist de stages */}
+          {loadingStages ? (
+            <div style={{ fontSize: 12, color: 'var(--color-xama-muted)', marginBottom: 14 }}>Carregando stages disponíveis...</div>
+          ) : groupKeys.length === 0 ? (
+            <div style={{ fontSize: 12, color: '#f87171', marginBottom: 14 }}>
+              Nenhuma stage com partidas importadas encontrada para o shard <strong>{selectedChamp?.shard}</strong>.
+            </div>
+          ) : (
+            <div style={{ marginBottom: 16 }}>
+              {groupKeys.map(groupName => {
+                const stages = availableStages[groupName]
+                const allSelected = stages.every(s => selectedSourceIds.has(s.id))
+                return (
+                  <div key={groupName} style={{ marginBottom: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-xama-orange)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                        {groupName}
+                      </span>
+                      {!allSelected && (
+                        <button
+                          onClick={() => selectAllGroup(stages)}
+                          style={{ fontSize: 10, color: 'var(--color-xama-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
+                        >
+                          selecionar todos
+                        </button>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      {stages.map(s => {
+                        const checked = selectedSourceIds.has(s.id)
+                        return (
+                          <label
+                            key={s.id}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: 6,
+                              padding: '5px 10px', borderRadius: 6, cursor: 'pointer',
+                              border: `1px solid ${checked ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.08)'}`,
+                              background: checked ? 'rgba(99,102,241,0.1)' : 'rgba(255,255,255,0.02)',
+                              fontSize: 12, transition: 'all 0.12s',
+                              userSelect: 'none',
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => toggleSourceId(s.id)}
+                              style={{ accentColor: '#6366f1', width: 13, height: 13 }}
+                            />
+                            <span style={{ color: checked ? '#a5b4fc' : 'var(--color-xama-text)' }}>
+                              {s.name}
+                            </span>
+                            <span style={{ fontSize: 10, color: 'var(--color-xama-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
+                              #{s.id}
+                            </span>
+                          </label>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <ActBtn onClick={handleSuggest} disabled={suggesting || selectedSourceIds.size === 0}>
+              {suggesting ? 'Calculando...' : `⚡ Sugerir Chaves${selectedSourceIds.size > 0 ? ` (${selectedSourceIds.size} stages)` : ''}`}
+            </ActBtn>
+            {selectedSourceIds.size > 0 && (
+              <span style={{ fontSize: 11, color: 'var(--color-xama-muted)' }}>
+                Stages: {[...selectedSourceIds].sort((a, b) => a - b).join(', ')}
+              </span>
+            )}
+          </div>
+
+          {/* Sugestões geradas */}
           {suggested.length > 0 && (
-            <>
+            <div style={{ marginTop: 16 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-xama-muted)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                Pares sugeridos — revise e ajuste se necessário
+              </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 8, marginBottom: 14 }}>
                 {suggested.map((p, i) => (
                   <div key={i} style={{
@@ -231,7 +364,7 @@ export default function AdminFaceoffs({ token }) {
               <ActBtn onClick={handleBulkCreate} disabled={saving}>
                 {saving ? 'Criando...' : `Criar ${suggested.length} Faceoffs (Draft)`}
               </ActBtn>
-            </>
+            </div>
           )}
         </div>
       )}
@@ -285,23 +418,17 @@ export default function AdminFaceoffs({ token }) {
                     </td>
                     <td style={{ ...tdStyle, textAlign: 'right' }}>
                       <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                        {/* Avançar status */}
                         {NEXT_STATUS[f.status] && (
                           <ActBtn small onClick={() => handleAdvanceStatus(f)}>
                             → {STATUS_LABEL[NEXT_STATUS[f.status]]}
                           </ActBtn>
                         )}
-                        {/* Resolver */}
                         {(f.status === 'closed' || f.status === 'open') && (
-                          <ActBtn small onClick={() => handleResolve(f)}>
-                            Resolver
-                          </ActBtn>
+                          <ActBtn small onClick={() => handleResolve(f)}>Resolver</ActBtn>
                         )}
-                        {/* Editar (só draft) */}
                         {f.status === 'draft' && (
                           <ActBtn small onClick={() => openEdit(f)}>Editar</ActBtn>
                         )}
-                        {/* Deletar (só draft) */}
                         {f.status === 'draft' && (
                           <ActBtn small onClick={() => handleDelete(f)} style={{ color: '#f87171', borderColor: 'rgba(239,68,68,0.35)' }}>
                             ✕

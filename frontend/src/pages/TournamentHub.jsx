@@ -74,7 +74,7 @@ export default function TournamentHub() {
     ...(showLineupTab ? [{ id: TAB_LINEUP, label: isLocked ? 'Meus Resultados' : (isPreview && !canEdit) ? 'Ver Lobby' : 'Montar Lineup', icon: isLocked ? '📊' : (isPreview && !canEdit) ? '👁️' : '⚔️' }] : []),
     { id: TAB_LEADERBOARD, label: 'Leaderboard', icon: '🏆' },
     { id: TAB_STATS,       label: 'Stats',        icon: '📊' },
-    ...(stage?.championship_id ? [{ id: TAB_FACEOFF, label: 'Faceoff', icon: '⚔️' }] : []),
+    ...(['upcoming', 'preview'].includes(stage?.stage_phase) && stage?.championship_id ? [{ id: TAB_FACEOFF, label: 'Faceoff', icon: '⚔️' }] : []),
     ...(isAdmin ? [{ id: TAB_ADMIN, label: 'Admin', icon: '⚙️' }] : []),
   ]
 
