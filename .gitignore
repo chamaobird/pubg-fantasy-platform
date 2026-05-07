@@ -32,3 +32,5 @@ Thumbs.db
 # Claude Code local settings (can contain sensitive data like DB credentials)
 .claude/settings.local.json
 .claude/scheduled_tasks.lock
+
+docs/temporario/
