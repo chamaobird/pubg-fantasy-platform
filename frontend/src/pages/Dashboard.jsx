@@ -1169,33 +1169,30 @@ export default function Dashboard() {
           const total   = openFaceoffs.length
           return (
             <div
+              className="dash-faceoff"
               onClick={() => navigate(href)}
-              style={{
-                marginBottom: 32, padding: '18px 22px',
-                background: 'linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(249,115,22,0.06) 100%)',
-                border: '1px solid rgba(99,102,241,0.3)',
-                borderRadius: 14, cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: 16,
-                transition: 'border-color 0.15s, background 0.15s',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'; e.currentTarget.style.background = 'linear-gradient(135deg, rgba(99,102,241,0.14) 0%, rgba(249,115,22,0.08) 100%)' }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.3)'; e.currentTarget.style.background = 'linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(249,115,22,0.06) 100%)' }}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate(href) }}
             >
-              <div style={{ fontSize: 32, flexShrink: 0 }}>⚔️</div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--color-xama-text)', letterSpacing: '0.02em' }}>
-                  Team Faceoff está aberto!
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--color-xama-muted)', marginTop: 3 }}>
-                  {myVoted}/{total} confrontos votados · Clique para participar
+              <div className="dash-faceoff-icon">
+                <DashIcon name="swords" size={22} strokeWidth={1.6}/>
+              </div>
+              <div className="dash-faceoff-body">
+                <div className="dash-faceoff-title">Team Faceoff está aberto!</div>
+                <div className="dash-faceoff-sub">
+                  <b>{myVoted}/{total}</b> confrontos votados · Clique para participar
                 </div>
               </div>
-              <div style={{
-                fontSize: 11, fontWeight: 700, padding: '5px 14px', borderRadius: 20,
-                background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.35)',
-                color: '#a5b4fc', whiteSpace: 'nowrap',
-              }}>
-                {myVoted === total ? '✓ Votado' : 'Votar agora'}
+              <div className="dash-faceoff-cta">
+                {myVoted === total ? (
+                  '✓ Votado'
+                ) : (
+                  <>
+                    Votar agora
+                    <DashIcon name="arrow-right" size={14}/>
+                  </>
+                )}
               </div>
             </div>
           )
