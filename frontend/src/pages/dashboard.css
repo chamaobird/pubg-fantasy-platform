@@ -86,6 +86,7 @@
   position: relative;
   padding: 56px 0 18px;
   isolation: isolate;
+  min-height: 360px;
 }
 .dash-hero-hud {
   position: absolute;
@@ -93,6 +94,8 @@
   pointer-events: none;
   overflow: hidden;
   z-index: 0;
+  /* Garantir altura mínima para o SVG do radar não ser cortado */
+  min-height: 360px;
 }
 .dash-hero-content { position: relative; z-index: 1; }
 .dash-hero-eyebrow {
