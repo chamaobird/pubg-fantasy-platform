@@ -2,129 +2,90 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../App'
 import { STATUS_COLOR, STATUS_LABEL } from '../utils/statusColors'
+import '../styles/xm-navbar.css'
 
 function getIsAdmin(token) {
   try { return JSON.parse(atob(token.split('.')[1])).is_admin === true } catch { return false }
 }
 
 export default function Navbar({ tournament = null }) {
-  const navigate = useNavigate()
-  const location = useLocation()
+  const navigate  = useNavigate()
+  const location  = useLocation()
   const { token, logout } = useAuth()
-  const isAdmin = getIsAdmin(token)
+  const isAdmin   = getIsAdmin(token)
 
-  const isActive = (path) => location.pathname === path
+  const items = [
+    { id: 'dashboard',     label: 'Dashboard',   path: '/dashboard'     },
+    { id: 'championships', label: 'Campeonato',  path: '/championships' },
+    { id: 'leagues',       label: 'Ligas',        path: '/leagues'       },
+    { id: 'profile',       label: 'Perfil',       path: '/profile'       },
+    ...(isAdmin ? [{ id: 'admin', label: 'Admin', path: '/admin' }] : []),
+  ]
+
+  const isActive = (path) =>
+    location.pathname === path ||
+    (path !== '/dashboard' && location.pathname.startsWith(path))
 
   return (
-    <header style={{
-      background: 'var(--color-xama-surface)',
-      borderBottom: '1px solid var(--color-xama-border)',
-      position: 'relative',
-      flexShrink: 0,
-      zIndex: 10,
-    }}>
-      <div style={{ height: '2px', background: 'linear-gradient(90deg, var(--color-xama-orange), transparent 50%)' }} />
+    <header className="xm-nav">
+      <div className="xm-nav-inner">
 
-      <div className="xnav-inner" style={{
-        maxWidth: '1200px', margin: '0 auto', padding: '0 24px',
-        display: 'flex', alignItems: 'center', gap: '12px', height: '70px',
-      }}>
-
-        {/* Logo */}
-        <div
-          style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', flexShrink: 0 }}
-          onClick={() => navigate('/dashboard')}
-        >
-          <div style={{
-            width: '40px', height: '40px', fontSize: '20px',
-            background: 'linear-gradient(135deg, rgba(249,115,22,0.25), rgba(249,115,22,0.05))',
-            border: '1px solid rgba(249,115,22,0.3)', borderRadius: '10px',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>🔥</div>
-          <div>
-            <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--color-xama-text)', letterSpacing: '0.06em', lineHeight: 1 }}>XAMA</div>
-            <div style={{ fontSize: '11px', color: 'var(--color-xama-orange)', letterSpacing: '0.16em', textTransform: 'uppercase', lineHeight: 1 }}>Fantasy</div>
+        {/* Brand + tournament context */}
+        <div className="xm-nav-brand" onClick={() => navigate('/dashboard')} style={{ cursor: 'pointer' }}>
+          <span className="xm-nav-brandmark">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+                 stroke="#f97316" strokeWidth="2"
+                 strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+            </svg>
+          </span>
+          <div className="xm-nav-brand-text">
+            <div className="xm-nav-brand-title">XAMA</div>
+            <div className="xm-nav-brand-sub">FANTASY LEAGUE</div>
           </div>
-        </div>
 
-        {/* Contexto do torneio */}
-        {tournament && (
-          <div className="xnav-tournament" style={{ display: 'contents' }}>
-            <div style={{ width: '1px', height: '32px', background: 'var(--color-xama-border)', flexShrink: 0 }} />
-            <div style={{ flexShrink: 1, minWidth: 0 }}>
-              <div style={{
-                fontSize: '19px', fontWeight: 700, color: 'var(--color-xama-text)',
-                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '320px',
-              }}>
-                {tournament.name}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
-                <span style={{
-                  width: '7px', height: '7px', borderRadius: '50%',
-                  background: STATUS_COLOR[tournament.status] || 'var(--color-xama-muted)', flexShrink: 0,
-                }} />
-                <span style={{
-                  fontSize: '12px', fontWeight: 700, letterSpacing: '0.12em',
-                  color: STATUS_COLOR[tournament.status] || 'var(--color-xama-muted)', textTransform: 'uppercase',
-                }}>
+          {tournament && (
+            <div className="xm-nav-tournament">
+              <div>
+                <div className="xm-nav-tournament-name">{tournament.name}</div>
+                <div className="xm-nav-tournament-status"
+                     style={{ color: STATUS_COLOR[tournament.status] || 'var(--xm-muted)' }}>
+                  <span className="xm-nav-tournament-statusdot"
+                        style={{ background: STATUS_COLOR[tournament.status] || 'var(--xm-muted)' }} />
                   {STATUS_LABEL[tournament.status] || tournament.status}
-                </span>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
-        <div style={{ flex: 1 }} />
-
-        {/* Nav links */}
-        <nav className="xnav-links" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          {[
-            { label: 'Dashboard',    path: '/dashboard'     },
-            { label: 'Campeonato', path: '/championships' },
-            { label: 'Ligas',      path: '/leagues'       },
-            { label: '👤 Perfil',   path: '/profile'       },
-            ...(isAdmin ? [{ label: '⚙ Admin', path: '/admin' }] : []),
-          ].map(({ label, path }) => {
-            const active = isActive(path)
-            return (
-              <button
-                key={path}
-                onClick={() => navigate(path)}
-                style={{
-                  background: active ? 'rgba(249,115,22,0.1)' : 'none',
-                  border: 'none',
-                  borderBottom: active ? '2px solid var(--color-xama-orange)' : '2px solid transparent',
-                  borderRadius: '0',
-                  padding: '8px 16px',
-                  fontSize: '17px', fontWeight: active ? 700 : 600,
-                  letterSpacing: '0.04em',
-                  color: active ? 'var(--color-xama-orange)' : 'var(--color-xama-muted)',
-                  cursor: 'pointer', fontFamily: "'Rajdhani', sans-serif",
-                  transition: 'color 0.15s, border-color 0.15s',
-                  whiteSpace: 'nowrap',
-                }}
-                onMouseEnter={e => { if (!active) e.currentTarget.style.color = 'var(--color-xama-text)' }}
-                onMouseLeave={e => { if (!active) e.currentTarget.style.color = 'var(--color-xama-muted)' }}
-              >
-                {label}
-              </button>
-            )
-          })}
-          <button
-            onClick={logout}
-            style={{
-              background: 'none', border: '1px solid var(--color-xama-border)',
-              borderRadius: '6px', padding: '8px 18px', marginLeft: '4px',
-              fontSize: '16px', fontWeight: 600, letterSpacing: '0.06em',
-              color: 'var(--color-xama-muted)', cursor: 'pointer',
-              fontFamily: "'Rajdhani', sans-serif",
-            }}
-          >
+        {/* Tabs + Sair */}
+        <nav className="xm-nav-tabs">
+          {items.map(it => (
+            <button
+              key={it.id}
+              className={`xm-nav-tab${isActive(it.path) ? ' is-active' : ''}`}
+              onClick={() => navigate(it.path)}
+            >
+              {it.label}
+            </button>
+          ))}
+          <button className="xm-nav-logout" onClick={logout}>
             Sair
           </button>
         </nav>
 
+        {/* Status: pill LIVE (hardcoded — ver BACKLOG para dinamização) */}
+        <div className="xm-nav-status">
+          <span className="xm-nav-live">
+            <span className="xm-nav-livedot" />
+            LIVE
+          </span>
+          <span className="xm-nav-tags">PAS 2026 · PEC 2026</span>
+        </div>
+
       </div>
+      <div className="xm-nav-rule" />
     </header>
   )
 }

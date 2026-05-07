@@ -1,0 +1,150 @@
+/* ════════════════════════════════════════════════════════════════════════
+   XAMA Fantasy — Navbar styles (.xm-nav-*)
+   Copiado de docs/design-reference/dashboard.css linhas 3-82.
+   Adições: .xm-nav-tournament-*, .xm-nav-logout, responsive 880px.
+═══════════════════════════════════════════════════════════════════════ */
+
+.xm-nav {
+  position: relative;
+  z-index: 5;
+  width: 100%;
+  background: rgba(8,9,13,0.6);
+  backdrop-filter: blur(8px);
+}
+.xm-nav-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 18px 32px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 24px;
+}
+.xm-nav-brand { display: flex; align-items: center; gap: 10px; }
+.xm-nav-brandmark {
+  width: 34px; height: 34px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(249,115,22,0.08);
+  border: 1px solid rgba(249,115,22,0.25);
+  border-radius: 8px;
+}
+.xm-nav-brand-text { line-height: 1; }
+.xm-nav-brand-title {
+  font-family: var(--xm-font-display);
+  font-weight: 700; font-size: 19px;
+  color: var(--xm-text-bright);
+  letter-spacing: 0.06em;
+}
+.xm-nav-brand-sub {
+  font-family: var(--xm-font-mono);
+  font-size: 8px; color: var(--xm-muted);
+  letter-spacing: 0.22em; text-transform: uppercase;
+  margin-top: 3px;
+}
+.xm-nav-tabs {
+  display: flex; gap: 4px;
+  justify-self: center;
+}
+.xm-nav-tab {
+  background: none; border: none; cursor: pointer;
+  font-family: var(--xm-font-display);
+  font-weight: 600; font-size: 14px;
+  letter-spacing: 0.04em;
+  color: var(--xm-muted);
+  padding: 8px 14px; border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+}
+.xm-nav-tab:hover { color: var(--xm-text-bright); }
+.xm-nav-tab.is-active {
+  color: var(--xm-orange);
+  background: rgba(249,115,22,0.06);
+  text-shadow: 0 0 18px rgba(249,115,22,0.45);
+}
+.xm-nav-status { display: flex; align-items: center; gap: 14px; justify-self: end; }
+.xm-nav-live {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--xm-font-mono);
+  font-size: 10px; font-weight: 700;
+  color: var(--xm-green);
+  letter-spacing: 0.18em;
+}
+.xm-nav-livedot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--xm-green);
+  box-shadow: 0 0 10px rgba(74,222,128,0.6);
+  animation: xama-pulse 1.6s ease-in-out infinite;
+}
+.xm-nav-tags {
+  font-family: var(--xm-font-mono);
+  font-size: 10px; font-weight: 700;
+  color: var(--xm-muted);
+  letter-spacing: 0.16em;
+}
+.xm-nav-rule {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(249,115,22,0.35) 18%, rgba(249,115,22,0.18) 50%, transparent 90%);
+}
+
+/* ── Tournament context (preservado do projeto atual) ──────────── */
+
+.xm-nav-tournament {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-left: 16px;
+  border-left: 1px solid var(--xm-border);
+  flex-shrink: 1;
+  min-width: 0;
+}
+.xm-nav-tournament-name {
+  font-family: var(--xm-font-display);
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--xm-text-bright);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 280px;
+  line-height: 1.1;
+}
+.xm-nav-tournament-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--xm-font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  margin-top: 3px;
+}
+.xm-nav-tournament-statusdot {
+  width: 6px; height: 6px; border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── Botão Sair (consistente com .xm-nav-tab) ──────────────────── */
+
+.xm-nav-logout {
+  background: none; border: none; cursor: pointer;
+  font-family: var(--xm-font-display);
+  font-weight: 600; font-size: 14px;
+  letter-spacing: 0.04em;
+  color: var(--xm-muted);
+  padding: 8px 14px; border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+  margin-left: 4px;
+}
+.xm-nav-logout:hover {
+  color: var(--xm-text-bright);
+}
+
+/* ── Responsivo ────────────────────────────────────────────────── */
+
+@media (max-width: 880px) {
+  .xm-nav-tabs { display: none; }
+  .xm-nav-tournament { display: none; }
+  .xm-nav-logout { display: none; }
+  .xm-nav-inner { grid-template-columns: 1fr auto; }
+}
