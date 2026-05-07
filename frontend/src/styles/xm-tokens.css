@@ -1,0 +1,238 @@
+/* ════════════════════════════════════════════════════════════════════════
+   XAMA Fantasy — Design Tokens (--xm-*)
+   Cores, tipografia, espaçamento, raios, sombras e atmosfera.
+   Idioma: PT-BR. Estética: dark gamer/esports, laranja primário, dourado
+   acento. Profundidade via camadas e blur — não via cores saturadas.
+
+   ADAPTAÇÕES em relação a colors_and_type.css:
+   - @font-face TTF removidos — fontes carregadas via @fontsource em main.jsx
+   - @import Barlow Condensed removido — adicionado via @fontsource se necessário
+   - html, body: background/color comentados — gerenciados por index.css
+═══════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── PALETA — Fundos / Superfícies ────────────────────────────── */
+  --xm-bg:           #08090d;   /* Fundo principal — quase preto */
+  --xm-surface-1:    #12151c;   /* Cards / painéis */
+  --xm-surface-2:    #0f1219;   /* Header de tabela, sub-painel */
+  --xm-surface-3:    #1a1f2e;   /* Inputs / chips */
+  --xm-surface-4:    #2a3046;   /* Borda forte / texto dim */
+  --xm-border:       #1e2330;   /* Borda padrão */
+  --xm-border-strong:#3d4d6e;   /* Borda hover/focus */
+
+  /* ── PALETA — Marca ──────────────────────────────────────────── */
+  --xm-orange:       #f97316;   /* Laranja primário (INEGOCIÁVEL) */
+  --xm-orange-hover: #fb923c;
+  --xm-orange-soft:  rgba(249,115,22,0.12);
+  --xm-orange-glow:  rgba(249,115,22,0.35);
+  --xm-gold:         #f0c040;   /* Dourado acento (números, capitão, 1º lugar) */
+  --xm-gold-hover:   #f5d060;
+
+  /* ── PALETA — Texto ──────────────────────────────────────────── */
+  --xm-text:         #dce1ea;   /* Texto principal */
+  --xm-text-bright:  #f1f5f9;   /* Títulos */
+  --xm-text-white:   #ffffff;   /* Maior ênfase */
+  --xm-muted:        #6b7280;   /* Texto secundário */
+  --xm-muted-soft:   #4b5563;   /* Labels, micro-texto */
+  --xm-muted-deep:   #374151;   /* Placeholders, valor zero */
+
+  /* ── PALETA — Estados semânticos ─────────────────────────────── */
+  --xm-red:    #f87171;   /* Erro, perigo, lineup encerrada */
+  --xm-green:  #4ade80;   /* Sucesso, "ao vivo" */
+  --xm-blue:   #3b82f6;   /* Reserva, "em breve" */
+  --xm-blue-soft: #60a5fa;
+  --xm-teal:   #14b8a6;   /* "Você" no leaderboard */
+  --xm-teal-bright: #2dd4bf;
+
+  /* ── TIPOGRAFIA — Stacks ─────────────────────────────────────── */
+  --xm-font-display: 'Rajdhani', 'Barlow Condensed', 'Segoe UI', sans-serif;
+  --xm-font-condensed: 'Barlow Condensed', 'Rajdhani', sans-serif;
+  --xm-font-body:    'Inter', 'Segoe UI', system-ui, sans-serif;
+  --xm-font-mono:    'JetBrains Mono', 'Share Tech Mono', monospace;
+
+  /* ── TIPOGRAFIA — Escala (em px, fixa) ───────────────────────── */
+  --xm-fs-hero:       52px;   /* Headline da landing */
+  --xm-fs-display:    32px;   /* Section header */
+  --xm-fs-page-title: 28px;   /* Título de página */
+  --xm-fs-h2:         22px;
+  --xm-fs-logo:       19px;   /* "XAMA" no nav */
+  --xm-fs-section:    18px;   /* Título de seção */
+  --xm-fs-card-title: 16px;
+  --xm-fs-body:       14px;
+  --xm-fs-table:      14px;
+  --xm-fs-small:      12px;
+  --xm-fs-label:      11px;   /* Label uppercase */
+  --xm-fs-micro:      10px;   /* Eyebrow uppercase */
+
+  /* ── TIPOGRAFIA — Pesos ──────────────────────────────────────── */
+  --xm-fw-light:    300;
+  --xm-fw-regular:  400;
+  --xm-fw-medium:   500;
+  --xm-fw-semibold: 600;
+  --xm-fw-bold:     700;
+  --xm-fw-black:    800;
+
+  /* ── TIPOGRAFIA — Letter spacing ─────────────────────────────── */
+  --xm-tracking-tight:  -0.01em; /* Hero, títulos grandes */
+  --xm-tracking-normal:  0;
+  --xm-tracking-logo:    0.06em;
+  --xm-tracking-label:   0.08em;
+  --xm-tracking-eyebrow: 0.12em;
+  --xm-tracking-mono:    0.22em; /* Eyebrow JetBrains Mono */
+
+  /* ── ESPAÇAMENTO ─────────────────────────────────────────────── */
+  --xm-space-1:   4px;
+  --xm-space-2:   8px;
+  --xm-space-3:  12px;
+  --xm-space-4:  16px;   /* Gap padrão */
+  --xm-space-5:  20px;   /* Padding card */
+  --xm-space-6:  24px;
+  --xm-space-7:  32px;   /* Entre seções */
+  --xm-space-8:  48px;
+  --xm-space-9:  64px;
+
+  /* ── RAIOS ───────────────────────────────────────────────────── */
+  --xm-radius-tag:    5px;
+  --xm-radius-input:  6px;
+  --xm-radius-button: 7px;
+  --xm-radius-inner:  8px;
+  --xm-radius-card:  12px;
+
+  /* ── BORDAS ──────────────────────────────────────────────────── */
+  --xm-border-card: 1px solid var(--xm-border);
+  --xm-border-glass: 1px solid rgba(249,115,22,0.20);
+
+  /* ── SOMBRAS / ELEVATION ─────────────────────────────────────── */
+  --xm-shadow-card:   0 4px 20px rgba(0,0,0,0.35);
+  --xm-shadow-pop:    0 6px 28px rgba(0,0,0,0.55);
+  --xm-shadow-glow-orange: 0 0 24px rgba(249,115,22,0.07);
+  --xm-shadow-glow-gold:   0 0 24px rgba(240,192,64,0.08);
+  --xm-shadow-glass: 0 0 40px rgba(249,115,22,0.06), inset 0 1px 0 rgba(255,255,255,0.04);
+
+  /* ── ATMOSFERA — assinatura visual ───────────────────────────── */
+  --xm-glass-bg: rgba(10,12,18,0.88);
+  --xm-glass-blur: 12px;
+  --xm-hex-opacity: 0.045;
+  --xm-scan-color: rgba(249,115,22,0.35);
+
+  /* ── TIMING ──────────────────────────────────────────────────── */
+  --xm-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --xm-dur-fast: 0.12s;
+  --xm-dur:      0.15s;
+  --xm-dur-slow: 0.30s;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   ELEMENTOS SEMÂNTICOS
+═══════════════════════════════════════════════════════════════════════ */
+
+html, body {
+  /* background: var(--xm-bg); */            /* gerenciado por index.css */
+  /* color: var(--xm-text); */               /* gerenciado por index.css */
+  font-family: var(--xm-font-body);
+  font-size: var(--xm-fs-body);
+  -webkit-font-smoothing: antialiased;
+  color-scheme: dark;
+  margin: 0;
+}
+
+h1, .xm-h1 {
+  font-family: var(--xm-font-display);
+  font-size: var(--xm-fs-hero);
+  font-weight: var(--xm-fw-bold);
+  letter-spacing: var(--xm-tracking-tight);
+  line-height: 1.05;
+  color: var(--xm-text-bright);
+  margin: 0;
+}
+
+h2, .xm-h2 {
+  font-family: var(--xm-font-display);
+  font-size: var(--xm-fs-page-title);
+  font-weight: var(--xm-fw-black);
+  letter-spacing: var(--xm-tracking-tight);
+  line-height: 1.1;
+  color: var(--xm-text-white);
+  margin: 0;
+}
+
+h3, .xm-h3 {
+  font-family: var(--xm-font-display);
+  font-size: var(--xm-fs-section);
+  font-weight: var(--xm-fw-bold);
+  color: var(--xm-text-white);
+  margin: 0;
+}
+
+p, .xm-body {
+  font-family: var(--xm-font-body);
+  font-size: var(--xm-fs-body);
+  color: var(--xm-text);
+  line-height: 1.65;
+  margin: 0;
+}
+
+.xm-eyebrow {
+  font-family: var(--xm-font-mono);
+  font-size: var(--xm-fs-micro);
+  font-weight: var(--xm-fw-bold);
+  letter-spacing: var(--xm-tracking-mono);
+  text-transform: uppercase;
+  color: var(--xm-orange);
+}
+
+.xm-label {
+  font-family: var(--xm-font-mono);
+  font-size: var(--xm-fs-label);
+  font-weight: var(--xm-fw-bold);
+  letter-spacing: var(--xm-tracking-label);
+  text-transform: uppercase;
+  color: var(--xm-muted);
+}
+
+.xm-stat {
+  font-family: var(--xm-font-mono);
+  font-weight: var(--xm-fw-bold);
+  font-variant-numeric: tabular-nums;
+  color: var(--xm-text);
+}
+
+.xm-mono { font-family: var(--xm-font-mono); }
+
+/* ── ATMOSFERA — backgrounds ───────────────────────────────────── */
+
+.xm-bg-base { background: var(--xm-bg); position: relative; }
+
+.xm-bg-hex {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  opacity: var(--xm-hex-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='52'%3E%3Cpolygon points='30,2 58,17 58,35 30,50 2,35 2,17' fill='none' stroke='%23f97316' stroke-width='1'/%3E%3C/svg%3E");
+  background-size: 60px 52px;
+}
+
+.xm-bg-radial {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 65% 80% at 18% 55%, rgba(249,115,22,0.13) 0%, transparent 65%),
+    radial-gradient(ellipse 35% 50% at 82% 45%, rgba(249,115,22,0.05) 0%, transparent 65%);
+}
+
+@keyframes xm-scan {
+  0%   { top: -2px; opacity: 0; }
+  5%   { opacity: 1; }
+  95%  { opacity: 1; }
+  100% { top: 100vh; opacity: 0; }
+}
+.xm-scan-line {
+  position: fixed; left: 0; right: 0; height: 1px; z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, var(--xm-scan-color), transparent);
+  animation: xm-scan 8s linear infinite;
+}
+
+/* ── SCROLLBAR customizada ─────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--xm-surface-1); }
+::-webkit-scrollbar-thumb { background: rgba(249,115,22,0.35); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(249,115,22,0.6); }
+* { scrollbar-width: thin; scrollbar-color: rgba(249,115,22,0.35) var(--xm-surface-1); }

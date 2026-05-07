@@ -1,0 +1,684 @@
+/* dashboard.css — XAMA Dashboard Design System (scoped .dash-*)
+ * Fase 2: estilos tokenizados, sem modificação no Dashboard.jsx
+ * Tokens: todas as referências --xm-* foram traduzidas para vars XAMA existentes
+ * Hover laranja: #fb923c (consistente com .xbtn-primary:hover)
+ */
+
+/* ── Keyframes (migrados do document.createElement('style') em Dashboard.jsx) ── */
+
+@keyframes xamaPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.35; }
+}
+
+@keyframes xamaFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes xamaPreviewPulse {
+  0%, 100% { border-color: rgba(249, 115, 22, 0.3); }
+  50%       { border-color: rgba(249, 115, 22, 0.6); }
+}
+
+@keyframes dashGlow {
+  0%, 100% { text-shadow: 0 0 12px rgba(249, 115, 22, 0.4); }
+  50%       { text-shadow: 0 0 24px rgba(249, 115, 22, 0.7); }
+}
+
+@keyframes dashSlideIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ── Classes de animação legadas (preservadas para compatibilidade) ──────────── */
+
+.xama-pulse         { animation: xamaPulse 1.8s ease-in-out infinite; }
+.xama-preview-card  { animation: xamaPreviewPulse 2.5s ease-in-out infinite; }
+.xama-section-fade  { animation: xamaFadeIn 0.25s ease both; }
+
+.xama-open-card {
+  transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+}
+.xama-open-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px rgba(249, 115, 22, 0.15);
+}
+
+.xama-collapse-btn {
+  background: none; border: none; cursor: pointer;
+  display: flex; align-items: center; gap: 8px; padding: 0;
+  color: var(--color-xama-muted);
+  font-size: 21px; font-weight: 600; letter-spacing: 0.04em;
+  transition: color 0.15s;
+}
+.xama-collapse-btn:hover { color: var(--color-xama-text); }
+
+.xama-collapse-chevron { transition: transform 0.2s ease; display: inline-block; }
+
+.xama-row-item {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 20px;
+  border-radius: var(--radius-inner);
+  background: var(--surface-1);
+  border: 1px solid var(--color-xama-border);
+  transition: border-color 0.15s, background 0.15s;
+  cursor: default;
+}
+.xama-row-item:hover {
+  border-color: rgba(249, 115, 22, 0.25);
+  background: rgba(249, 115, 22, 0.03);
+}
+.xama-row-item-clickable                { cursor: pointer; }
+.xama-row-item-clickable:hover {
+  border-color: rgba(249, 115, 22, 0.35);
+  background: rgba(249, 115, 22, 0.05);
+}
+
+/* ── Layout raiz do dashboard ────────────────────────────────────────────────── */
+
+.dash-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+
+/* ── Fase 3 — Hero / saudação ────────────────────────────────────────────────── */
+
+.dash-hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 28px 28px 24px;
+  border-radius: var(--radius-card);
+  background: linear-gradient(135deg, var(--surface-1) 60%, rgba(249, 115, 22, 0.06));
+  border: 1px solid var(--color-xama-border);
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.dash-hero-content { position: relative; z-index: 1; flex: 1; min-width: 0; }
+
+.dash-hero-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-xama-muted);
+  margin-bottom: 4px;
+}
+
+.dash-hero-name {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: clamp(26px, 5vw, 38px);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--color-xama-text);
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dash-hero-name--glow { animation: dashGlow 3s ease-in-out infinite; }
+
+.dash-hero-hud {
+  position: absolute;
+  right: 24px;        /* Ajuste A: margem direita p/ não cortar em viewports médias */
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0.07;
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+/* Stat chips (Fase 3) */
+
+.dash-stat-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.dash-stat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: var(--radius-tag);
+  background: var(--surface-3);
+  border: 1px solid var(--color-xama-border);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-xama-text);
+  white-space: nowrap;
+}
+.dash-stat-chip--orange { border-color: rgba(249, 115, 22, 0.4); color: var(--color-xama-orange); }
+.dash-stat-chip--gold   { border-color: rgba(240, 192, 64, 0.4); color: var(--color-xama-gold); }
+.dash-stat-chip--teal   { border-color: rgba(20, 184, 166, 0.35); color: var(--color-xama-teal); }
+.dash-stat-chip--muted  { color: var(--color-xama-muted); }
+
+/* Mobile (≤640px): stat chips em grid 2 colunas — Ajuste A do design */
+@media (max-width: 640px) {
+  .dash-stat-chips {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  /* Terceiro chip ocupa linha inteira */
+  .dash-stat-chip:nth-child(3) { grid-column: 1 / -1; }
+
+  .dash-hero-hud { display: none; }
+  .dash-hero-name { font-size: 24px; }
+}
+
+/* ── Fase 4 — Faceoff banner ─────────────────────────────────────────────────── */
+
+.dash-faceoff-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  border-radius: var(--radius-card);
+  background: linear-gradient(90deg, rgba(20, 184, 166, 0.12), rgba(20, 184, 166, 0.04));
+  border: 1px solid rgba(20, 184, 166, 0.3);
+  margin-bottom: 20px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.dash-faceoff-banner:hover {
+  border-color: rgba(20, 184, 166, 0.5);
+  background: linear-gradient(90deg, rgba(20, 184, 166, 0.18), rgba(20, 184, 166, 0.07));
+}
+.dash-faceoff-banner-icon {
+  color: var(--color-xama-teal);
+  flex-shrink: 0;
+}
+.dash-faceoff-banner-text { flex: 1; min-width: 0; }
+.dash-faceoff-banner-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-xama-teal);
+}
+.dash-faceoff-banner-sub {
+  font-size: 12px;
+  color: var(--color-xama-muted);
+  margin-top: 1px;
+}
+.dash-faceoff-banner-cta {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-xama-teal);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ── Fase 5a — OpenCard ──────────────────────────────────────────────────────── */
+
+.dash-card {
+  position: relative;
+  border-radius: var(--radius-card);
+  background: var(--surface-1);
+  border: 1px solid var(--color-xama-border);
+  overflow: hidden;
+  transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+}
+
+/* Accent bar lateral */
+.dash-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  border-radius: 3px 0 0 3px;
+  background: transparent;
+  transition: background 0.15s;
+}
+
+.dash-card--open {
+  border-color: rgba(249, 115, 22, 0.3);
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.04) 0%, var(--surface-1) 60%);
+}
+.dash-card--open::before { background: var(--color-xama-orange); }
+.dash-card--open:hover {
+  transform: translateY(-2px);
+  border-color: rgba(249, 115, 22, 0.5);
+  box-shadow: 0 8px 24px rgba(249, 115, 22, 0.12);
+}
+
+.dash-card--locked {
+  border-color: var(--color-xama-border);
+}
+.dash-card--locked::before { background: var(--color-xama-muted); }
+
+.dash-card--preview {
+  border-color: rgba(249, 115, 22, 0.2);
+  animation: xamaPreviewPulse 2.5s ease-in-out infinite;
+}
+.dash-card--preview::before { background: rgba(249, 115, 22, 0.5); }
+
+.dash-card--closed {
+  opacity: 0.75;
+}
+.dash-card--closed::before { background: var(--surface-4); }
+
+.dash-card--gold::before   { background: var(--color-xama-gold); }
+.dash-card--teal::before   { background: var(--color-xama-teal); }
+
+.dash-card-body {
+  padding: 18px 20px 18px 24px;
+}
+
+/* ── Fase 5 — cabeçalho de card ──────────────────────────────────────────────── */
+
+.dash-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.dash-card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.dash-card-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-xama-muted);
+}
+
+.dash-card-title {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--color-xama-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dash-card-logo {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+}
+
+/* ── Fase 5 — badges / pills ─────────────────────────────────────────────────── */
+
+.dash-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 99px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+}
+.dash-badge--orange {
+  color: var(--color-xama-orange);
+  background: rgba(249, 115, 22, 0.12);
+  border-color: rgba(249, 115, 22, 0.3);
+}
+.dash-badge--gold {
+  color: var(--color-xama-gold);
+  background: rgba(240, 192, 64, 0.12);
+  border-color: rgba(240, 192, 64, 0.3);
+}
+.dash-badge--teal {
+  color: var(--color-xama-teal);
+  background: rgba(20, 184, 166, 0.12);
+  border-color: rgba(20, 184, 166, 0.3);
+}
+.dash-badge--muted {
+  color: var(--color-xama-muted);
+  background: var(--surface-3);
+  border-color: var(--color-xama-border);
+}
+.dash-badge--green {
+  color: var(--color-xama-green);
+  background: rgba(74, 222, 128, 0.1);
+  border-color: rgba(74, 222, 128, 0.25);
+}
+.dash-badge--red {
+  color: var(--color-xama-red);
+  background: rgba(248, 113, 113, 0.1);
+  border-color: rgba(248, 113, 113, 0.25);
+}
+
+/* ── Fase 5 — CTA button do card ─────────────────────────────────────────────── */
+
+.dash-card-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 11px 16px;
+  border-radius: var(--radius-inner);
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+  margin-top: 14px;
+}
+.dash-card-cta--primary {
+  background: var(--color-xama-orange);
+  color: #fff;
+}
+.dash-card-cta--primary:hover {
+  background: #fb923c;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(249, 115, 22, 0.3);
+}
+.dash-card-cta--secondary {
+  background: var(--surface-3);
+  color: var(--color-xama-text);
+  border: 1px solid var(--color-xama-border);
+}
+.dash-card-cta--secondary:hover {
+  border-color: rgba(249, 115, 22, 0.3);
+  background: rgba(249, 115, 22, 0.05);
+}
+.dash-card-cta--ghost {
+  background: transparent;
+  color: var(--color-xama-muted);
+}
+.dash-card-cta--ghost:hover { color: var(--color-xama-text); }
+
+/* ── Fase 5 — Lineup summary strip ──────────────────────────────────────────── */
+
+.dash-lineup-strip {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.dash-lineup-player {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: var(--radius-tag);
+  background: var(--surface-3);
+  border: 1px solid var(--color-xama-border);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-xama-text);
+}
+.dash-lineup-player--captain { border-color: rgba(240, 192, 64, 0.4); }
+.dash-lineup-player-tag {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-xama-muted);
+  text-transform: uppercase;
+}
+
+/* ── Fase 6 — Seções colapsáveis ─────────────────────────────────────────────── */
+
+.dash-section { margin-top: 28px; }
+
+.dash-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.dash-section-icon { color: var(--color-xama-orange); flex-shrink: 0; }
+.dash-section-title {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-xama-muted);
+}
+.dash-section-count {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-xama-muted);
+  background: var(--surface-3);
+  padding: 2px 7px;
+  border-radius: 99px;
+}
+.dash-section-divider {
+  flex: 1;
+  height: 1px;
+  background: var(--color-xama-border);
+  margin-left: 4px;
+}
+
+.dash-collapse-btn {
+  background: none; border: none; cursor: pointer;
+  display: flex; align-items: center; gap: 8px; padding: 0;
+  color: var(--color-xama-muted);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 13px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: color 0.15s;
+  width: 100%;
+}
+.dash-collapse-btn:hover { color: var(--color-xama-text); }
+
+.dash-collapse-chevron { transition: transform 0.2s ease; display: inline-block; }
+.dash-collapse-chevron--open { transform: rotate(180deg); }
+
+.dash-section-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.dash-section-grid--2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+@media (max-width: 640px) {
+  .dash-section-grid--2col { grid-template-columns: 1fr; }
+}
+
+/* ── Fase 6 — StageRow ───────────────────────────────────────────────────────── */
+
+.dash-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 18px;
+  border-radius: var(--radius-inner);
+  background: var(--surface-1);
+  border: 1px solid var(--color-xama-border);
+  transition: border-color 0.15s, background 0.15s;
+  cursor: default;
+  animation: xamaFadeIn 0.25s ease both;
+}
+.dash-row--clickable { cursor: pointer; }
+.dash-row--clickable:hover {
+  border-color: rgba(249, 115, 22, 0.3);
+  background: rgba(249, 115, 22, 0.04);
+}
+.dash-row-icon { color: var(--color-xama-muted); flex-shrink: 0; }
+.dash-row-main { flex: 1; min-width: 0; }
+.dash-row-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-xama-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dash-row-sub {
+  font-size: 11px;
+  color: var(--color-xama-muted);
+  margin-top: 1px;
+}
+.dash-row-aside { flex-shrink: 0; text-align: right; }
+.dash-row-pts {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-xama-gold);
+}
+.dash-row-rank {
+  font-size: 11px;
+  color: var(--color-xama-muted);
+  margin-top: 1px;
+}
+
+/* ── Fase 7 — Offseason ──────────────────────────────────────────────────────── */
+
+.dash-offseason { display: flex; flex-direction: column; gap: 16px; }
+
+/* AchievementHero */
+.dash-achievement-hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 28px 28px 24px;
+  border-radius: var(--radius-card);
+  background: linear-gradient(135deg, rgba(240, 192, 64, 0.08) 0%, var(--surface-1) 60%);
+  border: 1px solid rgba(240, 192, 64, 0.25);
+  overflow: hidden;
+}
+.dash-achievement-hero::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--color-xama-gold);
+}
+.dash-achievement-icon {
+  font-size: 40px;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 12px rgba(240, 192, 64, 0.5));
+}
+.dash-achievement-content { flex: 1; min-width: 0; }
+.dash-achievement-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-xama-muted);
+  margin-bottom: 4px;
+}
+.dash-achievement-score {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--color-xama-gold);
+  line-height: 1;
+}
+.dash-achievement-detail {
+  font-size: 13px;
+  color: var(--color-xama-muted);
+  margin-top: 4px;
+}
+
+/* AnticipationCard */
+.dash-anticipation-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 24px;
+  border-radius: var(--radius-card);
+  background: var(--surface-1);
+  border: 1px solid var(--color-xama-border);
+}
+.dash-anticipation-icon { color: var(--color-xama-orange); flex-shrink: 0; }
+.dash-anticipation-content { flex: 1; min-width: 0; }
+.dash-anticipation-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-xama-muted);
+  margin-bottom: 4px;
+}
+.dash-anticipation-title {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-xama-text);
+}
+.dash-anticipation-date {
+  font-size: 12px;
+  color: var(--color-xama-muted);
+  margin-top: 2px;
+}
+
+/* ReplayCard — margin-top para separar do AnticipationCard (Ajuste B do design) */
+.dash-replay-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 24px;
+  border-radius: var(--radius-card);
+  background: var(--surface-1);
+  border: 1px solid var(--color-xama-border);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  margin-top: 16px;   /* Ajuste B: separação visual do AnticipationCard */
+}
+.dash-replay-card:hover {
+  border-color: rgba(249, 115, 22, 0.25);
+  background: rgba(249, 115, 22, 0.03);
+}
+.dash-replay-icon { color: var(--color-xama-muted); flex-shrink: 0; }
+.dash-replay-content { flex: 1; min-width: 0; }
+.dash-replay-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-xama-muted);
+  margin-bottom: 3px;
+}
+.dash-replay-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-xama-text);
+}
+.dash-replay-pts {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-xama-gold);
+  flex-shrink: 0;
+}
+
+/* ── Utilitários gerais dash-* ───────────────────────────────────────────────── */
+
+.dash-divider {
+  height: 1px;
+  background: var(--color-xama-border);
+  margin: 16px 0;
+}
+
+.dash-empty {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--color-xama-muted);
+  font-size: 13px;
+}
+
+.dash-spacer { margin-top: 20px; }
