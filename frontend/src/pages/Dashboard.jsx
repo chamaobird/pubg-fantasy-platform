@@ -7,6 +7,8 @@ import { track } from '../lib/analytics'
 import Navbar from '../components/Navbar'
 import { Card, CardTitle } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
+import { DashIcon } from '../components/DashIcon'
+import './dashboard.css'
 
 if (!document.getElementById('xama-fonts')) {
   const link = document.createElement('link')
@@ -799,6 +801,72 @@ function OffseasonGroupCard({ group, userEntry, navigate }) {
   )
 }
 
+// Hero HUD — radar concêntrico ambiente do hero (design fiel ao
+// docs/design-reference/dashboard-parts.jsx)
+function HeroHud() {
+  return (
+    <svg
+      className="dash-hero-hud-svg"
+      width="100%"
+      height="100%"
+      viewBox="0 0 800 360"
+      preserveAspectRatio="xMaxYMid slice"
+      aria-hidden="true"
+    >
+      <defs>
+        <radialGradient id="hud-grad" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="rgba(249,115,22,0.18)"/>
+          <stop offset="60%" stopColor="rgba(249,115,22,0.05)"/>
+          <stop offset="100%" stopColor="rgba(249,115,22,0)"/>
+        </radialGradient>
+        <linearGradient id="hud-line" x1="0" x2="1">
+          <stop offset="0" stopColor="rgba(249,115,22,0)"/>
+          <stop offset="0.4" stopColor="rgba(249,115,22,0.55)"/>
+          <stop offset="1" stopColor="rgba(249,115,22,0)"/>
+        </linearGradient>
+      </defs>
+
+      <g transform="translate(640, 180)" opacity="0.85">
+        {/* radar circles */}
+        <circle r="160" fill="none" stroke="rgba(249,115,22,0.12)" strokeWidth="1"/>
+        <circle r="120" fill="none" stroke="rgba(249,115,22,0.16)" strokeWidth="1" strokeDasharray="2 4"/>
+        <circle r="80"  fill="none" stroke="rgba(249,115,22,0.22)" strokeWidth="1"/>
+        <circle r="40"  fill="none" stroke="rgba(249,115,22,0.3)"  strokeWidth="1" strokeDasharray="2 3"/>
+        <circle r="160" fill="url(#hud-grad)" />
+        {/* ticks */}
+        {Array.from({length: 36}).map((_, i) => {
+          const a = (i * 10) * Math.PI / 180
+          const r1 = 160, r2 = i % 3 === 0 ? 152 : 156
+          const x1 = Math.cos(a) * r1, y1 = Math.sin(a) * r1
+          const x2 = Math.cos(a) * r2, y2 = Math.sin(a) * r2
+          return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="rgba(249,115,22,0.4)" strokeWidth="1"/>
+        })}
+        {/* sweep line */}
+        <line x1="0" y1="0" x2="160" y2="0" stroke="url(#hud-line)" strokeWidth="1.5">
+          <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="9s" repeatCount="indefinite"/>
+        </line>
+        {/* center dot */}
+        <circle r="3" fill="#f97316"/>
+        <circle r="6" fill="none" stroke="rgba(249,115,22,0.4)" strokeWidth="1"/>
+        {/* coordinate readout */}
+        <text x="-176" y="-176" fill="rgba(249,115,22,0.55)" fontFamily="JetBrains Mono, monospace" fontSize="9" letterSpacing="2">P.01.X / 26.05</text>
+        <text x="-176" y="184"  fill="rgba(249,115,22,0.4)"  fontFamily="JetBrains Mono, monospace" fontSize="9" letterSpacing="2">SECTOR 04</text>
+        <text x="100"  y="184"  fill="rgba(249,115,22,0.4)"  fontFamily="JetBrains Mono, monospace" fontSize="9" letterSpacing="2">N: 82°</text>
+      </g>
+
+      {/* progress bars decorativos */}
+      <g transform="translate(560, 60)" opacity="0.55">
+        <text x="0" y="0" fill="rgba(249,115,22,0.55)" fontFamily="JetBrains Mono, monospace" fontSize="8" letterSpacing="2">XP_TRACK</text>
+        <rect x="0" y="6" width="120" height="2" fill="rgba(249,115,22,0.12)"/>
+        <rect x="0" y="6" width="78"  height="2" fill="rgba(249,115,22,0.7)"/>
+        <text x="0" y="22" fill="rgba(249,115,22,0.4)" fontFamily="JetBrains Mono, monospace" fontSize="7" letterSpacing="2">RANK_DELTA</text>
+        <rect x="0" y="28" width="120" height="2" fill="rgba(249,115,22,0.08)"/>
+        <rect x="0" y="28" width="42"  height="2" fill="rgba(249,115,22,0.5)"/>
+      </g>
+    </svg>
+  )
+}
+
 // ── Main ─────────────────────────────────────────────────────────────────────
 
 export default function Dashboard() {
@@ -1042,49 +1110,49 @@ export default function Dashboard() {
       <Navbar />
       <div className="xama-container" style={{ flex: 1, paddingTop: '36px', paddingBottom: '64px' }}>
 
-        {/* Saudação */}
-        <div style={{ marginBottom: '44px' }}>
-          <h1 style={{
-            fontSize: '42px', fontWeight: 800, color: 'var(--color-xama-text)',
-            margin: '0 0 10px', letterSpacing: '-0.02em',
-            lineHeight: 1.1,
-          }}>
-            Olá, {displayName.toUpperCase()} 👋
-          </h1>
-          <p style={{ fontSize: '22px', color: 'var(--color-xama-muted)', margin: 0 }}>
-            Bem-vindo ao XAMA Fantasy — aqui está o resumo do seu fantasy.
-          </p>
+        {/* Hero — saudação fiel ao design (Fase E1) */}
+        <div className="dash-hero">
+          <div className="dash-hero-hud"><HeroHud /></div>
+          <div className="dash-hero-content">
+            <div className="dash-hero-eyebrow">XAMA · Painel do jogador</div>
+            <h1 className="dash-hello">
+              Olá, <span className="dash-hello-name">{displayName.toUpperCase()}</span>
+              <span className="dash-hello-wave" role="img" aria-label="aceno">👋</span>
+            </h1>
+            <p className="dash-hero-sub">
+              Bem-vindo ao XAMA Fantasy — aqui está o resumo do seu fantasy.
+            </p>
 
-          {/* Ideia 3 — Stat chips do perfil */}
-          {profileStats && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '16px' }}>
-              {profileStats.bestRank && (
-                <span style={{
-                  fontSize: '12px', fontWeight: 700, padding: '4px 12px', borderRadius: 20,
-                  background: 'rgba(240,192,64,0.1)', border: '1px solid rgba(240,192,64,0.25)',
-                  color: '#f0c040', fontFamily: 'JetBrains Mono, monospace',
-                }}>
-                  🏆 Melhor posição: #{profileStats.bestRank}
+            {profileStats && (
+              <div className="dash-stat-chips">
+                {profileStats.bestRank && (
+                  <span className="dash-chip dash-chip-gold">
+                    <span className="dash-chip-icon"><DashIcon name="trophy" size={14}/></span>
+                    <span className="dash-chip-text">
+                      <span className="l">Melhor</span>
+                      <span className="v">#{profileStats.bestRank}</span>
+                    </span>
+                  </span>
+                )}
+                <span className="dash-chip dash-chip-muted">
+                  <span className="dash-chip-icon"><DashIcon name="calendar" size={14}/></span>
+                  <span className="dash-chip-text">
+                    <span className="v">{profileStats.totalStages}</span>
+                    <span className="l">Stages</span>
+                  </span>
                 </span>
-              )}
-              <span style={{
-                fontSize: '12px', fontWeight: 700, padding: '4px 12px', borderRadius: 20,
-                background: 'rgba(148,163,184,0.08)', border: '1px solid rgba(148,163,184,0.15)',
-                color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace',
-              }}>
-                📅 {profileStats.totalStages} stage{profileStats.totalStages !== 1 ? 's' : ''} jogadas
-              </span>
-              {profileStats.lastPts != null && (
-                <span style={{
-                  fontSize: '12px', fontWeight: 700, padding: '4px 12px', borderRadius: 20,
-                  background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.2)',
-                  color: 'var(--color-xama-orange)', fontFamily: 'JetBrains Mono, monospace',
-                }}>
-                  🎯 Última: {profileStats.lastPts.toFixed(2)} pts{profileStats.lastRank ? ` · #${profileStats.lastRank}` : ''}
-                </span>
-              )}
-            </div>
-          )}
+                {profileStats.lastPts != null && (
+                  <span className="dash-chip dash-chip-orange">
+                    <span className="dash-chip-icon"><DashIcon name="target" size={14}/></span>
+                    <span className="dash-chip-text">
+                      <span className="v">{profileStats.lastPts.toFixed(2)}</span>
+                      <span className="l">pts{profileStats.lastRank ? ` · #${profileStats.lastRank}` : ''}</span>
+                    </span>
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* ── BANNER FACEOFF ── */}
