@@ -16,6 +16,21 @@ Better than Twire — transparent player pricing, regional focus, full API.
 
 ---
 
+## Ambientes — .env
+
+| Arquivo | Propósito | Seguro commitar? |
+|---------|-----------|-----------------|
+| `.env` | **LOCAL** — aponta para PostgreSQL local (porta 5433, banco `pubg_fantasy_local`) | ❌ no .gitignore |
+| `.env.production` | **PRODUÇÃO** — credenciais do Render (DB, OAuth, Resend). **Nunca usar localmente.** | ❌ no .gitignore |
+
+> **Deploy no Render:** as variáveis de produção estão configuradas diretamente no dashboard do Render (Environment tab). O arquivo `.env.production` é apenas backup local — o Render não lê arquivos `.env` do repositório.
+
+> **Backend local:** usa `pydantic_settings` com `env_file = ".env"` (`app/core/config.py`). Basta ter o `.env` na raiz e rodar `python -m uvicorn app.main:app --reload`.
+
+> **PostgreSQL local:** versão 18, porta **5433** (não 5432), banco `pubg_fantasy_local`, usuário `postgres`.
+
+---
+
 ## Local Setup (Docker — recommended)
 
 ### Prerequisites
