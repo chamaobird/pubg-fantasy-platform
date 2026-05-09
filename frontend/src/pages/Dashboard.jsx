@@ -869,7 +869,7 @@ export default function Dashboard() {
   return (
     <div className="xama-page">
       <Navbar />
-      <div className="xama-container" style={{ flex: 1, paddingTop: '36px', paddingBottom: '64px' }}>
+      <div className="xama-container" style={{ flex: 1, paddingBottom: '64px' }}>
 
         {/* Hero — saudação fiel ao design (Fase E1) */}
         <div className="dash-hero">

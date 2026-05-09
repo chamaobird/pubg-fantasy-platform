@@ -201,7 +201,10 @@ p, .xm-body {
 
 /* ── ATMOSFERA — backgrounds ───────────────────────────────────── */
 
-.xm-bg-base { background: var(--xm-bg); position: relative; }
+.xm-bg-base {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background: var(--xm-bg);
+}
 
 .xm-bg-hex {
   position: fixed; inset: 0; z-index: 0; pointer-events: none;
