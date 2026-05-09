@@ -5,38 +5,11 @@ import { useAuth } from '../App'
 import { API_BASE_URL } from '../config'
 import { track } from '../lib/analytics'
 import Navbar from '../components/Navbar'
+import Footer from '../components/Footer'
 import { Card, CardTitle } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
-
-if (!document.getElementById('xama-fonts')) {
-  const link = document.createElement('link')
-  link.id = 'xama-fonts'; link.rel = 'stylesheet'
-  link.href = 'https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@400;600&display=swap'
-  document.head.appendChild(link)
-}
-
-if (!document.getElementById('xama-dash-anim')) {
-  const s = document.createElement('style')
-  s.id = 'xama-dash-anim'
-  s.textContent = `
-    @keyframes xamaPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
-    @keyframes xamaFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes xamaPreviewPulse { 0%, 100% { border-color: rgba(249,115,22,0.3); } 50% { border-color: rgba(249,115,22,0.6); } }
-    .xama-pulse { animation: xamaPulse 1.8s ease-in-out infinite; }
-    .xama-preview-card { animation: xamaPreviewPulse 2.5s ease-in-out infinite; }
-    .xama-open-card { transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s; }
-    .xama-open-card:hover { transform: translateY(-3px); box-shadow: 0 12px 32px rgba(249,115,22,0.15); }
-    .xama-collapse-btn { background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 0; color: var(--color-xama-muted); font-size: 21px; font-weight: 600; letter-spacing: 0.04em; transition: color 0.15s; }
-    .xama-collapse-btn:hover { color: var(--color-xama-text); }
-    .xama-collapse-chevron { transition: transform 0.2s ease; display: inline-block; }
-    .xama-row-item { display: flex; align-items: center; gap: 14px; padding: 14px 20px; border-radius: var(--radius-inner); background: var(--surface-1); border: 1px solid var(--color-xama-border); transition: border-color 0.15s, background 0.15s; cursor: default; }
-    .xama-row-item:hover { border-color: rgba(249,115,22,0.25); background: rgba(249,115,22,0.03); }
-    .xama-row-item-clickable { cursor: pointer; }
-    .xama-row-item-clickable:hover { border-color: rgba(249,115,22,0.35); background: rgba(249,115,22,0.05); }
-    .xama-section-fade { animation: xamaFadeIn 0.25s ease both; }
-  `
-  document.head.appendChild(s)
-}
+import { DashIcon } from '../components/DashIcon'
+import './dashboard.css'
 
 const fmt1 = (v) => v != null ? Number(v).toFixed(1) : '—'
 
@@ -63,30 +36,36 @@ function useCountdown(targetIso) {
   return remaining
 }
 
-function CountdownBadge({ targetIso, mode = 'close' }) {
+function CountdownBadge({ targetIso, mode = 'close', bare = false }) {
   // mode='close' → "Fecha em" (prazo de edição do lineup)
   // mode='open'  → "Abre em"  (seção preview — conta até o lineup abrir)
+  // bare=true    → renderiza só o texto, sem wrapper visual (para uso dentro de .dash-open-countdown)
   const r = useCountdown(targetIso)
   if (!r) return null
 
   const verb = mode === 'open' ? 'Abre em' : 'Fecha em'
-  let label, color, bg, border
+  let label, color, bg, border, tone
   if (r.diff > 24 * 3_600_000) {
     label = `${verb} ${r.days}d ${r.hours}h`
     color = 'var(--color-xama-muted)'
     bg    = 'rgba(148,163,184,0.06)'
     border = 'rgba(148,163,184,0.15)'
+    tone  = 'muted'
   } else if (r.diff > 3_600_000) {
     label = `${verb} ${r.hours}h ${r.mins}min`
     color = 'var(--color-xama-orange)'
     bg    = 'rgba(249,115,22,0.08)'
     border = 'rgba(249,115,22,0.25)'
+    tone  = 'normal'
   } else {
     label = `⚠ ${verb} ${r.hours > 0 ? `${r.hours}h ` : ''}${r.mins}min`
     color = mode === 'open' ? 'var(--color-xama-orange)' : '#f87171'
     bg    = mode === 'open' ? 'rgba(249,115,22,0.08)' : 'rgba(248,113,113,0.08)'
     border = mode === 'open' ? 'rgba(249,115,22,0.25)' : 'rgba(248,113,113,0.25)'
+    tone  = 'urgent'
   }
+
+  if (bare) return <>{label}</>
 
   return (
     <span style={{
@@ -203,33 +182,48 @@ function StageChampLogo({ champName = '', size = 28 }) {
   )
 }
 
+// ── SectionHead — header de seção fiel ao design ─────────────────────────────
+
+function SectionHead({ label, icon, tone = 'orange', count = null, expanded, onToggle }) {
+  const iconMod  = tone === 'muted' ? ' is-muted' : tone === 'gold' ? ' is-gold' : ''
+  const labelMod = tone === 'orange' ? ' is-orange' : tone === 'muted' ? ' is-muted' : ' is-gold'
+  const cntMod   = tone === 'muted' ? ' is-muted' : ''
+  return (
+    <div className="dash-section-head">
+      <div className={`dash-section-icon${iconMod}`}>
+        <DashIcon name={icon} size={16}/>
+      </div>
+      <div className={`dash-section-label${labelMod}`}>{label}</div>
+      {count != null && (
+        <div className={`dash-section-counter${cntMod}`}>
+          {String(count).padStart(2, '0')}
+        </div>
+      )}
+      <div className="dash-section-spacer"/>
+      {onToggle != null && (
+        <button className="dash-section-toggle" onClick={onToggle}>
+          {expanded ? 'Recolher' : 'Expandir'}
+          <DashIcon name={expanded ? 'chevron-up' : 'chevron-down'} size={12}/>
+        </button>
+      )}
+    </div>
+  )
+}
+
 // ── CollapseSection ──────────────────────────────────────────────────────────
 
-function CollapseSection({ title, icon, count, defaultOpen = false, children }) {
+function CollapseSection({ title, icon, tone = 'gold', count, defaultOpen = false, children }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <div style={{ marginBottom: '36px' }}>
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        marginBottom: open ? '16px' : '0',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ fontSize: '20px' }}>{icon}</span>
-          <span style={{
-            fontSize: '19px', fontWeight: 700, letterSpacing: '0.07em',
-            color: 'var(--color-xama-muted)', textTransform: 'uppercase',
-          }}>{title}</span>
-          <span style={{
-            fontSize: '16px', fontWeight: 700, padding: '2px 10px',
-            borderRadius: '20px', background: 'var(--surface-3)',
-            color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace',
-          }}>{count}</span>
-        </div>
-        <button className="xama-collapse-btn" onClick={() => setOpen(o => !o)}>
-          {open ? 'Recolher' : 'Expandir'}
-          <span className="xama-collapse-chevron" style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)', fontSize: '14px' }}>▼</span>
-        </button>
-      </div>
+    <div className="dash-section">
+      <SectionHead
+        label={title}
+        icon={icon}
+        tone={tone}
+        count={count}
+        expanded={open}
+        onToggle={() => setOpen(o => !o)}
+      />
       {open && <div className="xama-section-fade">{children}</div>}
     </div>
   )
@@ -239,69 +233,30 @@ function CollapseSection({ title, icon, count, defaultOpen = false, children }) 
 
 function StageRow({ stage, onClick, champName, userScore, userRank }) {
   const dateLabel = buildDateLabel(stage)
-  const isResult = !!onClick
 
   return (
-    <div
-      className={onClick ? 'xama-row-item xama-row-item-clickable' : 'xama-row-item'}
-      onClick={onClick}
-      style={{ gap: '14px' }}
-    >
-      {/* Logo */}
-      <div style={{ flexShrink: 0, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div className="dash-stage-row" onClick={onClick}>
+      <div className="dash-stage-logo">
         <StageChampLogo champName={champName} size={32} />
       </div>
-
-      {/* Texto */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{
-          fontSize: '16px', fontWeight: 600, color: 'var(--color-xama-text)',
-          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-        }}>{stage.name}</div>
-        <div style={{ fontSize: '12px', color: 'var(--color-xama-muted)', marginTop: '2px', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-          {champName && (
-            <span style={{ color: 'rgba(249,115,22,0.7)', fontWeight: 500 }}>{champName}</span>
-          )}
-          {dateLabel && (
-            <span style={{ fontFamily: 'JetBrains Mono, monospace' }}>{dateLabel}</span>
-          )}
+      <div className="dash-stage-body">
+        <div className="dash-stage-name">{stage.name}</div>
+        <div className="dash-stage-meta">
+          {champName && <span className="champ">{champName}</span>}
+          {dateLabel && <span>{dateLabel}</span>}
           {!dateLabel && <span>Em breve</span>}
         </div>
       </div>
-
-      {/* Lado direito */}
-      {isResult ? (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px', flexShrink: 0 }}>
-          {userScore != null ? (
-            <>
-              <span style={{
-                fontSize: '16px', fontWeight: 700, color: 'var(--color-xama-orange)',
-                fontFamily: 'JetBrains Mono, monospace',
-              }}>{fmt1(userScore)} pts</span>
-              {userRank && (
-                <span style={{ fontSize: '11px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace' }}>
-                  #{userRank}
-                </span>
-              )}
-            </>
-          ) : (
-            <span style={{
-              fontSize: '12px', fontWeight: 600, letterSpacing: '0.06em',
-              padding: '3px 9px', borderRadius: 4,
-              background: 'rgba(107,114,128,0.12)', border: '1px solid rgba(107,114,128,0.2)',
-              color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace',
-            }}>SEM LINEUP</span>
-          )}
-          <span style={{ color: 'var(--color-xama-muted)', fontSize: '18px' }}>›</span>
-        </div>
-      ) : (
-        <span style={{
-          fontSize: '12px', fontWeight: 700, letterSpacing: '0.08em',
-          padding: '3px 10px', borderRadius: 4, flexShrink: 0,
-          background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.2)',
-          color: 'var(--color-xama-orange)', fontFamily: 'JetBrains Mono, monospace',
-        }}>⏳ EM BREVE</span>
-      )}
+      <div className="dash-stage-result">
+        {userScore != null ? (
+          <>
+            <span className="dash-stage-pts">{fmt1(userScore)} pts</span>
+            {userRank && <span className="dash-stage-rank">#{userRank}</span>}
+          </>
+        ) : (
+          <span className="dash-stage-empty">Sem lineup</span>
+        )}
+      </div>
     </div>
   )
 }
@@ -312,66 +267,22 @@ function PreviewCard({ s, champMap, navigate }) {
   const dateLabel = buildDateLabel(s)
 
   return (
-    <div style={{
-      background: 'var(--surface-1)',
-      border: '1px solid rgba(249,115,22,0.18)',
-      borderLeft: '2px solid rgba(249,115,22,0.35)',
-      borderRadius: 'var(--radius-card)',
-      padding: '11px 14px 11px 16px',
-      display: 'flex',
-      gap: '12px',
-      alignItems: 'center',
-    }}>
-      {/* Logo pequena */}
-      <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, opacity: 0.7 }}>
-        <StageChampLogo champName={champ?.name} size={28} />
+    <div className="dash-preview-card" onClick={() => navigate(`/tournament/${s.id}`)} style={{ cursor: 'pointer' }}>
+      <div className="dash-preview-logo">
+        <StageChampLogo champName={champ?.name} size={32} />
       </div>
-
-      {/* Info central */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px', flexWrap: 'wrap' }}>
-          <span style={{
-            fontSize: '10px', fontWeight: 700, letterSpacing: '0.07em',
-            padding: '1px 6px', borderRadius: 3,
-            background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.18)',
-            color: 'rgba(249,115,22,0.65)', fontFamily: 'JetBrains Mono, monospace',
-          }}>EM BREVE</span>
+      <div className="dash-preview-body">
+        <div className="dash-preview-meta">
           {champ && (
-            <span style={{ fontSize: '10px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace' }}>
-              {champ.name}
-            </span>
+            <span style={{ color: 'rgba(249,115,22,0.65)', fontWeight: 700, marginRight: 6 }}>{champ.name}</span>
           )}
+          {dateLabel && <span className="dash-preview-date">{dateLabel}</span>}
         </div>
-
-        <div style={{
-          fontSize: '15px', fontWeight: 600, color: 'var(--color-xama-text)',
-          opacity: 0.75, lineHeight: 1.2,
-          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-        }}>{s.name}</div>
-
-        {dateLabel && (
-          <div style={{ fontSize: '11px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace', marginTop: '2px' }}>
-            {dateLabel}
-          </div>
-        )}
-      </div>
-
-      {/* Botão discreto */}
-      <div style={{ flexShrink: 0 }}>
-        <button
-          onClick={() => navigate(`/tournament/${s.id}`)}
-          style={{
-            background: 'none', border: '1px solid rgba(249,115,22,0.2)',
-            borderRadius: 6, padding: '4px 10px',
-            fontSize: '11px', fontWeight: 700, letterSpacing: '0.06em',
-            color: 'rgba(249,115,22,0.55)', cursor: 'pointer',
-            fontFamily: 'JetBrains Mono, monospace', transition: 'border-color 0.15s, color 0.15s',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(249,115,22,0.45)'; e.currentTarget.style.color = 'var(--color-xama-orange)' }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(249,115,22,0.2)'; e.currentTarget.style.color = 'rgba(249,115,22,0.55)' }}
-        >
-          VER LOBBY
-        </button>
+        <span className="dash-preview-name">{s.name}</span>
+        <span className="dash-preview-countdown">
+          <DashIcon name="unlock" size={10}/>
+          <CountdownBadge targetIso={s.lineup_open_at || s.start_date} mode="open" bare={true}/>
+        </span>
       </div>
     </div>
   )
@@ -384,80 +295,33 @@ function OpenCard({ s, lineup, champMap, navigate, previewCount = 0, expanded = 
   const champ     = champMap[s.id]
   const dateLabel = buildDateLabel(s)
 
-  const borderColor = hasLineup ? 'rgba(74,222,128,0.25)' : 'rgba(249,115,22,0.35)'
-  const glowBg      = hasLineup
-    ? 'radial-gradient(circle at 80% 50%, rgba(74,222,128,0.07) 0%, transparent 65%)'
-    : 'radial-gradient(circle at 80% 50%, rgba(249,115,22,0.09) 0%, transparent 65%)'
-
-  const subtitle = [champ?.name, dateLabel].filter(Boolean).join(' · ')
-
   return (
-    <div className="xama-open-card" style={{
-      background: 'var(--surface-1)',
-      border: `1px solid ${borderColor}`,
-      borderRadius: 'var(--radius-card)',
-      padding: '18px 22px',
-      position: 'relative', overflow: 'hidden',
-      display: 'flex', alignItems: 'center', gap: '22px',
-      flexWrap: 'wrap',
-    }}>
-      <div style={{ position: 'absolute', inset: 0, background: glowBg, pointerEvents: 'none' }} />
-
+    <div className="dash-open-card">
       {/* Coluna 1 — Logo âncora */}
-      <div className="dash-open-logo" style={{
-        flexShrink: 0,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        width: '108px', height: '108px',
-      }}>
-        <StageChampLogo champName={champ?.name} size={100} />
+      <div className="dash-open-logo">
+        <StageChampLogo champName={champ?.name} size={96} />
       </div>
 
-      {/* Coluna 2 — Título + subtítulo */}
-      <div style={{ flex: 1, minWidth: '160px' }}>
-        <div style={{
-          fontSize: '26px', fontWeight: 700,
-          color: 'var(--color-xama-text)',
-          lineHeight: 1.15, letterSpacing: '-0.02em',
-          marginBottom: '6px',
-        }}>
-          {s.name}
+      {/* Coluna 2 — Título + meta + countdown */}
+      <div className="dash-open-body">
+        <h3 className="dash-open-title">{s.name}</h3>
+        <div className="dash-open-meta">
+          {champ && <span className="champ">{champ.name}</span>}
+          {champ && dateLabel && <span className="sep">·</span>}
+          {dateLabel && <span>{dateLabel}</span>}
         </div>
-        {subtitle && (
-          <div style={{
-            fontSize: '12px', color: 'var(--color-xama-muted)',
-            fontFamily: 'JetBrains Mono, monospace', lineHeight: 1.5,
-          }}>
-            {champ && (
-              <span style={{ color: 'rgba(249,115,22,0.7)', fontWeight: 600 }}>{champ.name}</span>
-            )}
-            {champ && dateLabel && <span style={{ margin: '0 5px', opacity: 0.4 }}>·</span>}
-            {dateLabel && <span>{dateLabel}</span>}
-          </div>
-        )}
-        <div style={{ marginTop: '8px' }}>
-          <CountdownBadge targetIso={s.start_date || s.lineup_open_at} />
-        </div>
+        <span className="dash-open-countdown">
+          <DashIcon name="clock" size={11}/>
+          <CountdownBadge targetIso={s.start_date || s.lineup_open_at} bare={true} />
+        </span>
       </div>
 
-      {/* Coluna 3 — Status + CTA */}
-      <div className="dash-open-col3" style={{
-        flexShrink: 0,
-        display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px',
-      }}>
-        {/* Badge ABERTA — discreto */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-          <span className="xama-pulse" style={{
-            width: '6px', height: '6px', borderRadius: '50%',
-            background: 'var(--color-xama-orange)', display: 'inline-block',
-          }} />
-          <span style={{
-            fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em',
-            color: 'var(--color-xama-orange)', textTransform: 'uppercase',
-            fontFamily: 'JetBrains Mono, monospace',
-          }}>ABERTA</span>
-        </div>
-
-        {/* Chip "Montada" ou pts */}
+      {/* Coluna 3 — Badge + CTA */}
+      <div className="dash-open-actions">
+        <span className="dash-badge-open">
+          <span className="dash-badge-dot"/>
+          Aberta
+        </span>
         {hasLineup && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
             <span style={{
@@ -475,34 +339,20 @@ function OpenCard({ s, lineup, champMap, navigate, previewCount = 0, expanded = 
             )}
           </div>
         )}
-
-        {/* Botão */}
-        <Button variant="primary" size="sm" onClick={() => navigate(`/tournament/${s.id}`)}>
-          {hasLineup ? 'VER TORNEIO' : 'MONTAR LINEUP'}
-        </Button>
+        <button className="dash-cta-primary" onClick={() => navigate(`/tournament/${s.id}`)}>
+          {hasLineup ? 'Ver torneio' : 'Montar lineup'}
+          <span className="arrow">→</span>
+        </button>
       </div>
 
       {/* Linha expand/collapse — só aparece se houver etapas em preview */}
       {previewCount > 0 && (
-        <div style={{
-          flexBasis: '100%', width: '100%',
-          borderTop: '1px solid rgba(249,115,22,0.12)',
-          paddingTop: '10px', marginTop: '2px',
-        }}>
+        <div className="dash-open-expand">
           <button
+            className="dash-open-expand-btn"
             onClick={e => { e.stopPropagation(); onToggle && onToggle() }}
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: '7px',
-              color: 'var(--color-xama-muted)', fontSize: '12px',
-              fontWeight: 600, letterSpacing: '0.05em',
-              fontFamily: 'JetBrains Mono, monospace',
-              padding: '0', transition: 'color 0.15s',
-            }}
-            onMouseEnter={e => e.currentTarget.style.color = 'var(--color-xama-orange)'}
-            onMouseLeave={e => e.currentTarget.style.color = 'var(--color-xama-muted)'}
           >
-            <span style={{ transition: 'transform 0.2s ease', display: 'inline-block', transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+            <DashIcon name={expanded ? 'chevron-up' : 'chevron-down'} size={11}/>
             {expanded
               ? 'Ocultar etapas seguintes'
               : `Ver ${previewCount} etapa${previewCount > 1 ? 's' : ''} seguinte${previewCount > 1 ? 's' : ''}`}
@@ -513,7 +363,7 @@ function OpenCard({ s, lineup, champMap, navigate, previewCount = 0, expanded = 
   )
 }
 
-// ── LockedActiveCard — card grande para stage locked com dias em preview ──────
+// ── LockedActiveCard — card grande para stage locked/live com dias em preview ──
 
 function LockedActiveCard({ s, lineup, champMap, navigate, previewCount = 0, expanded = true, onToggle }) {
   const champ     = champMap[s.id]
@@ -521,62 +371,29 @@ function LockedActiveCard({ s, lineup, champMap, navigate, previewCount = 0, exp
   const hasLineup = !!lineup
 
   return (
-    <div className="xama-open-card" style={{
-      background: 'var(--surface-1)',
-      border: '1px solid rgba(249,115,22,0.30)',
-      borderRadius: 'var(--radius-card)',
-      padding: '18px 22px',
-      position: 'relative', overflow: 'hidden',
-      display: 'flex', alignItems: 'center', gap: '22px',
-      flexWrap: 'wrap',
-    }}>
-      <div style={{
-        position: 'absolute', inset: 0,
-        background: 'radial-gradient(circle at 80% 50%, rgba(249,115,22,0.07) 0%, transparent 65%)',
-        pointerEvents: 'none',
-      }} />
-
+    <div className="dash-open-card">
       {/* Coluna 1 — Logo */}
-      <div className="dash-open-logo" style={{
-        flexShrink: 0,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        width: '108px', height: '108px',
-      }}>
-        <StageChampLogo champName={champ?.name} size={100} />
+      <div className="dash-open-logo">
+        <StageChampLogo champName={champ?.name} size={96} />
       </div>
 
-      {/* Coluna 2 — Título + subtítulo */}
-      <div style={{ flex: 1, minWidth: '160px' }}>
-        <div style={{
-          fontSize: '26px', fontWeight: 700,
-          color: 'var(--color-xama-text)',
-          lineHeight: 1.15, letterSpacing: '-0.02em',
-          marginBottom: '6px',
-        }}>
-          {s.name}
-        </div>
-        <div style={{ fontSize: '12px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace', lineHeight: 1.5 }}>
-          {champ && <span style={{ color: 'rgba(249,115,22,0.7)', fontWeight: 600 }}>{champ.name}</span>}
-          {champ && dateLabel && <span style={{ margin: '0 5px', opacity: 0.4 }}>·</span>}
+      {/* Coluna 2 — Título + meta + countdown */}
+      <div className="dash-open-body">
+        <h3 className="dash-open-title">{s.name}</h3>
+        <div className="dash-open-meta">
+          {champ && <span className="champ">{champ.name}</span>}
+          {champ && dateLabel && <span className="sep">·</span>}
           {dateLabel && <span>{dateLabel}</span>}
         </div>
+        <span className="dash-open-countdown">
+          <DashIcon name="clock" size={11}/>
+          <CountdownBadge targetIso={s.start_date || s.lineup_open_at} bare={true} />
+        </span>
       </div>
 
-      {/* Coluna 3 — Status + CTA */}
-      <div className="dash-open-col3" style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px' }}>
-        {/* Badge EM JOGO */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-          <span className="xama-pulse" style={{
-            width: '6px', height: '6px', borderRadius: '50%',
-            background: 'var(--color-xama-orange)', display: 'inline-block',
-          }} />
-          <span style={{
-            fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em',
-            color: 'var(--color-xama-orange)', textTransform: 'uppercase',
-            fontFamily: 'JetBrains Mono, monospace',
-          }}>EM JOGO</span>
-        </div>
-
+      {/* Coluna 3 — Badge + pts/sem-lineup + CTA */}
+      <div className="dash-open-actions">
+        <span className="dash-badge-locked">EM JOGO</span>
         {hasLineup && lineup.total_points != null && (
           <span style={{
             fontSize: '20px', fontWeight: 700,
@@ -592,33 +409,20 @@ function LockedActiveCard({ s, lineup, champMap, navigate, previewCount = 0, exp
             color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace',
           }}>SEM LINEUP</span>
         )}
-
-        <Button variant="primary" size="sm" onClick={() => navigate(`/tournament/${s.id}?tab=leaderboard`)}>
-          VER RESULTADO
-        </Button>
+        <button className="dash-cta-primary" onClick={() => navigate(`/tournament/${s.id}?tab=leaderboard`)}>
+          Ver torneio
+          <span className="arrow">→</span>
+        </button>
       </div>
 
       {/* Linha expand/collapse — só aparece se houver etapas em preview */}
       {previewCount > 0 && (
-        <div style={{
-          flexBasis: '100%', width: '100%',
-          borderTop: '1px solid rgba(249,115,22,0.12)',
-          paddingTop: '10px', marginTop: '2px',
-        }}>
+        <div className="dash-open-expand">
           <button
+            className="dash-open-expand-btn"
             onClick={e => { e.stopPropagation(); onToggle && onToggle() }}
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: '7px',
-              color: 'var(--color-xama-muted)', fontSize: '12px',
-              fontWeight: 600, letterSpacing: '0.05em',
-              fontFamily: 'JetBrains Mono, monospace',
-              padding: '0', transition: 'color 0.15s',
-            }}
-            onMouseEnter={e => e.currentTarget.style.color = 'var(--color-xama-orange)'}
-            onMouseLeave={e => e.currentTarget.style.color = 'var(--color-xama-muted)'}
           >
-            <span style={{ transition: 'transform 0.2s ease', display: 'inline-block', transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+            <DashIcon name={expanded ? 'chevron-up' : 'chevron-down'} size={11}/>
             {expanded
               ? 'Ocultar etapas seguintes'
               : `Ver ${previewCount} etapa${previewCount > 1 ? 's' : ''} seguinte${previewCount > 1 ? 's' : ''}`}
@@ -631,94 +435,56 @@ function LockedActiveCard({ s, lineup, champMap, navigate, previewCount = 0, exp
 
 // ── ClosedPrimaryCard — card destaque para o 1º dia de uma championship em breve ─
 
+// ClosedPrimaryCard: card compacto para o 1º dia de um championship em breve.
+// Usa layout .dash-preview-card com flex-wrap para suportar expand/collapse inline.
 function ClosedPrimaryCard({ s, champMap, navigate, nextCount = 0, expanded = true, onToggle }) {
   const champ     = champMap[s.id]
   const dateLabel = buildDateLabel(s)
 
   return (
-    <div style={{
-      background: 'var(--surface-1)',
-      border: '1px solid rgba(148,163,184,0.14)',
-      borderRadius: 'var(--radius-card)',
-      padding: '18px 22px',
-      position: 'relative', overflow: 'hidden',
-      display: 'flex', alignItems: 'center', gap: '22px',
-      flexWrap: 'wrap',
-    }}>
-      {/* Logo */}
-      <div style={{
-        flexShrink: 0,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        width: '80px', height: '80px', opacity: 0.55,
-      }}>
-        <StageChampLogo champName={champ?.name} size={72} />
+    <div className="dash-preview-card" style={{ flexWrap: 'wrap' }}>
+      <div className="dash-preview-logo">
+        <StageChampLogo champName={champ?.name} size={32} />
+      </div>
+      <div className="dash-preview-body">
+        <div className="dash-preview-meta">
+          {champ && (
+            <span style={{ color: 'rgba(249,115,22,0.65)', fontWeight: 700, marginRight: 6 }}>{champ.name}</span>
+          )}
+          {dateLabel && <span className="dash-preview-date">{dateLabel}</span>}
+        </div>
+        <span className="dash-preview-name">{s.name}</span>
+        <span className="dash-preview-countdown">
+          <DashIcon name="unlock" size={10}/>
+          <CountdownBadge targetIso={s.lineup_open_at || s.start_date} mode="open" bare={true}/>
+        </span>
       </div>
 
-      {/* Info */}
-      <div style={{ flex: 1, minWidth: '160px' }}>
-        <div style={{
-          fontSize: '22px', fontWeight: 700,
-          color: 'var(--color-xama-text)', opacity: 0.75,
-          lineHeight: 1.15, letterSpacing: '-0.02em',
-          marginBottom: '4px',
-        }}>
-          {s.name}
-        </div>
-        <div style={{ fontSize: '12px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace' }}>
-          {champ && <span style={{ color: 'rgba(249,115,22,0.5)', fontWeight: 600 }}>{champ.name}</span>}
-          {champ && dateLabel && <span style={{ margin: '0 5px', opacity: 0.4 }}>·</span>}
-          {dateLabel && <span>{dateLabel}</span>}
-        </div>
-        <div style={{ marginTop: '6px' }}>
-          <CountdownBadge targetIso={s.start_date || s.lineup_open_at} />
-        </div>
-      </div>
-
-      {/* Badge + botão */}
-      <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
-        <span style={{
-          fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em',
-          padding: '3px 10px', borderRadius: 4,
-          background: 'rgba(148,163,184,0.06)', border: '1px solid rgba(148,163,184,0.15)',
-          color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace',
-        }}>EM BREVE</span>
-        <button
-          onClick={() => navigate(`/tournament/${s.id}`)}
-          style={{
-            background: 'none', border: '1px solid rgba(148,163,184,0.2)',
-            borderRadius: 6, padding: '5px 12px',
-            fontSize: '11px', fontWeight: 700, letterSpacing: '0.06em',
-            color: 'var(--color-xama-muted)', cursor: 'pointer',
-            fontFamily: 'JetBrains Mono, monospace', transition: 'border-color 0.15s, color 0.15s',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(249,115,22,0.35)'; e.currentTarget.style.color = 'var(--color-xama-orange)' }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(148,163,184,0.2)'; e.currentTarget.style.color = 'var(--color-xama-muted)' }}
-        >
-          VER LOBBY
-        </button>
-      </div>
+      {/* Botão Ver Lobby */}
+      <button
+        onClick={() => navigate(`/tournament/${s.id}`)}
+        style={{
+          flexShrink: 0, background: 'none',
+          border: '1px solid rgba(148,163,184,0.2)',
+          borderRadius: 6, padding: '5px 12px',
+          fontSize: '11px', fontWeight: 700, letterSpacing: '0.06em',
+          color: 'var(--color-xama-muted)', cursor: 'pointer',
+          fontFamily: 'JetBrains Mono, monospace', transition: 'border-color 0.15s, color 0.15s',
+        }}
+        onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(249,115,22,0.35)'; e.currentTarget.style.color = 'var(--color-xama-orange)' }}
+        onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(148,163,184,0.2)'; e.currentTarget.style.color = 'var(--color-xama-muted)' }}
+      >
+        VER LOBBY
+      </button>
 
       {/* Expand/collapse próximos dias */}
       {nextCount > 0 && (
-        <div style={{
-          flexBasis: '100%', width: '100%',
-          borderTop: '1px solid rgba(148,163,184,0.08)',
-          paddingTop: '10px', marginTop: '2px',
-        }}>
+        <div className="dash-open-expand">
           <button
+            className="dash-open-expand-btn"
             onClick={e => { e.stopPropagation(); onToggle?.() }}
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: '7px',
-              color: 'var(--color-xama-muted)', fontSize: '12px',
-              fontWeight: 600, letterSpacing: '0.05em',
-              fontFamily: 'JetBrains Mono, monospace',
-              padding: '0', transition: 'color 0.15s',
-            }}
-            onMouseEnter={e => e.currentTarget.style.color = 'var(--color-xama-orange)'}
-            onMouseLeave={e => e.currentTarget.style.color = 'var(--color-xama-muted)'}
           >
-            <span style={{ transition: 'transform 0.2s ease', display: 'inline-block', transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+            <DashIcon name={expanded ? 'chevron-up' : 'chevron-down'} size={11}/>
             {expanded
               ? 'Ocultar próximas etapas'
               : `Ver ${nextCount} próxima${nextCount > 1 ? 's' : ''} etapa${nextCount > 1 ? 's' : ''}`}
@@ -729,73 +495,136 @@ function ClosedPrimaryCard({ s, champMap, navigate, nextCount = 0, expanded = tr
   )
 }
 
-// ── OffseasonGroupCard ───────────────────────────────────────────────────────
+// ── AchievementHero — conquista da última temporada (offseason) ───────────────
 
-function OffseasonGroupCard({ group, userEntry, navigate }) {
-  const rankColors = ['#f0c040', '#b4bcc8', '#cd7f50']
-  const isTop3 = userEntry?.rank != null && userEntry.rank <= 3
+function AchievementHero({ rank, points, champName, champId, stagesCount, navigate }) {
+  const isFade = rank > 3
+  return (
+    <div className="dash-achievement">
+      <div className="dash-achievement-rank">
+        <div className={`dash-achievement-rank-num${isFade ? ' is-fade' : ''}`}>
+          #{rank}
+        </div>
+      </div>
+      <div className="dash-achievement-body">
+        <div className="dash-achievement-eyebrow">Conquista · Última temporada</div>
+        <h2 className="dash-achievement-title">
+          Você terminou em <em>{rank}º</em> no <em>{champName}</em>
+        </h2>
+        <div className="dash-achievement-stats">
+          <span><b>{Number(points).toFixed(1)}</b> pontos</span>
+          {stagesCount != null && (
+            <>
+              <span className="sep">·</span>
+              <span><b>{stagesCount}</b> fase{stagesCount !== 1 ? 's' : ''}</span>
+            </>
+          )}
+        </div>
+      </div>
+      <button className="dash-achievement-cta" onClick={() => navigate(`/group/${champId}`)}>
+        Ver retrospectiva
+        <DashIcon name="chevron-right" size={12}/>
+      </button>
+    </div>
+  )
+}
+
+// ── ReplayCard — última stage jogada (offseason) ──────────────────────────────
+
+function ReplayCard({ entry, navigate }) {
+  const short = entry.championship_short_name || entry.championship_name
+  const displayName = short
+    ? `${entry.stage_name} · ${short}`
+    : entry.stage_name
+
+  // stage_date vem do backend como ISO string; formata como "Dom, 18 mai · 19:00"
+  const dateLabel = entry.stage_date ? buildDateLabel({ start_date: entry.stage_date }) : entry.championship_name
 
   return (
-    <div style={{
-      background: 'var(--surface-1)',
-      border: '1px solid rgba(255,255,255,0.08)',
-      borderRadius: 'var(--radius-card)',
-      padding: '18px 22px',
-      position: 'relative', overflow: 'hidden',
-      display: 'flex', alignItems: 'center', gap: '22px', flexWrap: 'wrap',
-    }}>
-      <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 80% 50%, rgba(240,192,64,0.05) 0%, transparent 60%)', pointerEvents: 'none' }} />
-
-      <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '80px', height: '80px', opacity: 0.75 }}>
-        <StageChampLogo champName={group.short_name || group.name} size={72} />
+    <div className="dash-replay" onClick={() => navigate(`/tournament/${entry.stage_id}?tab=leaderboard`)}>
+      <div className="dash-replay-logo">
+        <StageChampLogo champName={entry.championship_name} size={36} />
       </div>
-
-      <div style={{ flex: 1, minWidth: '160px' }}>
-        <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace', marginBottom: '5px' }}>
-          Resultado final
-        </div>
-        <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--color-xama-text)', lineHeight: 1.15, letterSpacing: '-0.02em', marginBottom: '4px' }}>
-          {group.name}
-        </div>
-        <div style={{ fontSize: '11px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace' }}>
-          {group.championship_ids?.length ?? '?'} fase{(group.championship_ids?.length ?? 0) !== 1 ? 's' : ''} · encerrado
-        </div>
+      <div className="dash-replay-body">
+        <div className="dash-replay-eyebrow">Última stage jogada</div>
+        <div className="dash-replay-name">{displayName}</div>
+        <div className="dash-replay-date">{dateLabel}</div>
       </div>
-
-      <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
-        <span style={{
-          fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em',
-          padding: '3px 10px', borderRadius: 4,
-          background: 'rgba(107,114,128,0.1)', border: '1px solid rgba(107,114,128,0.2)',
-          color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace',
-        }}>ENCERRADO</span>
-
-        {userEntry ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
-            {userEntry.rank && (
-              <span style={{
-                fontSize: '28px', fontWeight: 800, lineHeight: 1,
-                fontFamily: 'JetBrains Mono, monospace',
-                color: isTop3 ? rankColors[userEntry.rank - 1] : 'var(--color-xama-text)',
-              }}>
-                #{userEntry.rank}
-              </span>
-            )}
-            <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-xama-orange)', fontFamily: 'JetBrains Mono, monospace' }}>
-              {Number(userEntry.total_points).toFixed(2)} pts
-            </span>
-          </div>
-        ) : (
-          <span style={{ fontSize: '12px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace' }}>
-            Sem participação
-          </span>
+      <div className="dash-replay-result">
+        {entry.total_points != null && (
+          <span className="dash-replay-pts">{Number(entry.total_points).toFixed(1)} pts</span>
         )}
-
-        <Button variant="secondary" size="sm" onClick={() => navigate(`/group/${group.id}`)}>
-          VER RANKING
-        </Button>
+        {entry.rank != null && (
+          <span className="dash-replay-rank">#{entry.rank}</span>
+        )}
       </div>
     </div>
+  )
+}
+
+// Hero HUD — radar concêntrico ambiente do hero (design fiel ao
+// docs/design-reference/dashboard-parts.jsx)
+function HeroHud() {
+  return (
+    <svg
+      className="dash-hero-hud-svg"
+      width="100%"
+      height="100%"
+      viewBox="0 0 800 360"
+      preserveAspectRatio="xMaxYMid slice"
+      aria-hidden="true"
+    >
+      <defs>
+        <radialGradient id="hud-grad" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="rgba(249,115,22,0.18)"/>
+          <stop offset="60%" stopColor="rgba(249,115,22,0.05)"/>
+          <stop offset="100%" stopColor="rgba(249,115,22,0)"/>
+        </radialGradient>
+        <linearGradient id="hud-line" x1="0" x2="1">
+          <stop offset="0" stopColor="rgba(249,115,22,0)"/>
+          <stop offset="0.4" stopColor="rgba(249,115,22,0.55)"/>
+          <stop offset="1" stopColor="rgba(249,115,22,0)"/>
+        </linearGradient>
+      </defs>
+
+      <g transform="translate(640, 180)" opacity="0.85">
+        {/* radar circles */}
+        <circle r="160" fill="none" stroke="rgba(249,115,22,0.12)" strokeWidth="1"/>
+        <circle r="120" fill="none" stroke="rgba(249,115,22,0.16)" strokeWidth="1" strokeDasharray="2 4"/>
+        <circle r="80"  fill="none" stroke="rgba(249,115,22,0.22)" strokeWidth="1"/>
+        <circle r="40"  fill="none" stroke="rgba(249,115,22,0.3)"  strokeWidth="1" strokeDasharray="2 3"/>
+        <circle r="160" fill="url(#hud-grad)" />
+        {/* ticks */}
+        {Array.from({length: 36}).map((_, i) => {
+          const a = (i * 10) * Math.PI / 180
+          const r1 = 160, r2 = i % 3 === 0 ? 152 : 156
+          const x1 = Math.cos(a) * r1, y1 = Math.sin(a) * r1
+          const x2 = Math.cos(a) * r2, y2 = Math.sin(a) * r2
+          return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="rgba(249,115,22,0.4)" strokeWidth="1"/>
+        })}
+        {/* sweep line */}
+        <line x1="0" y1="0" x2="160" y2="0" stroke="url(#hud-line)" strokeWidth="1.5">
+          <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="9s" repeatCount="indefinite"/>
+        </line>
+        {/* center dot */}
+        <circle r="3" fill="#f97316"/>
+        <circle r="6" fill="none" stroke="rgba(249,115,22,0.4)" strokeWidth="1"/>
+        {/* coordinate readout */}
+        <text x="-176" y="-176" fill="rgba(249,115,22,0.55)" fontFamily="JetBrains Mono, monospace" fontSize="9" letterSpacing="2">P.01.X / 26.05</text>
+        <text x="-176" y="184"  fill="rgba(249,115,22,0.4)"  fontFamily="JetBrains Mono, monospace" fontSize="9" letterSpacing="2">SECTOR 04</text>
+        <text x="100"  y="184"  fill="rgba(249,115,22,0.4)"  fontFamily="JetBrains Mono, monospace" fontSize="9" letterSpacing="2">N: 82°</text>
+      </g>
+
+      {/* progress bars decorativos */}
+      <g transform="translate(560, 60)" opacity="0.55">
+        <text x="0" y="0" fill="rgba(249,115,22,0.55)" fontFamily="JetBrains Mono, monospace" fontSize="8" letterSpacing="2">XP_TRACK</text>
+        <rect x="0" y="6" width="120" height="2" fill="rgba(249,115,22,0.12)"/>
+        <rect x="0" y="6" width="78"  height="2" fill="rgba(249,115,22,0.7)"/>
+        <text x="0" y="22" fill="rgba(249,115,22,0.4)" fontFamily="JetBrains Mono, monospace" fontSize="7" letterSpacing="2">RANK_DELTA</text>
+        <rect x="0" y="28" width="120" height="2" fill="rgba(249,115,22,0.08)"/>
+        <rect x="0" y="28" width="42"  height="2" fill="rgba(249,115,22,0.5)"/>
+      </g>
+    </svg>
   )
 }
 
@@ -1042,49 +871,49 @@ export default function Dashboard() {
       <Navbar />
       <div className="xama-container" style={{ flex: 1, paddingTop: '36px', paddingBottom: '64px' }}>
 
-        {/* Saudação */}
-        <div style={{ marginBottom: '44px' }}>
-          <h1 style={{
-            fontSize: '42px', fontWeight: 800, color: 'var(--color-xama-text)',
-            margin: '0 0 10px', letterSpacing: '-0.02em',
-            lineHeight: 1.1,
-          }}>
-            Olá, {displayName.toUpperCase()} 👋
-          </h1>
-          <p style={{ fontSize: '22px', color: 'var(--color-xama-muted)', margin: 0 }}>
-            Bem-vindo ao XAMA Fantasy — aqui está o resumo do seu fantasy.
-          </p>
+        {/* Hero — saudação fiel ao design (Fase E1) */}
+        <div className="dash-hero">
+          <div className="dash-hero-hud"><HeroHud /></div>
+          <div className="dash-hero-content">
+            <div className="dash-hero-eyebrow">XAMA · Painel do jogador</div>
+            <h1 className="dash-hello">
+              Olá, <span className="dash-hello-name">{displayName.toUpperCase()}</span>
+              <span className="dash-hello-wave" role="img" aria-label="aceno">👋</span>
+            </h1>
+            <p className="dash-hero-sub">
+              Bem-vindo ao XAMA Fantasy — aqui está o resumo do seu fantasy.
+            </p>
 
-          {/* Ideia 3 — Stat chips do perfil */}
-          {profileStats && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '16px' }}>
-              {profileStats.bestRank && (
-                <span style={{
-                  fontSize: '12px', fontWeight: 700, padding: '4px 12px', borderRadius: 20,
-                  background: 'rgba(240,192,64,0.1)', border: '1px solid rgba(240,192,64,0.25)',
-                  color: '#f0c040', fontFamily: 'JetBrains Mono, monospace',
-                }}>
-                  🏆 Melhor posição: #{profileStats.bestRank}
+            {profileStats && (
+              <div className="dash-stat-chips">
+                {profileStats.bestRank && (
+                  <span className="dash-chip dash-chip-gold">
+                    <span className="dash-chip-icon"><DashIcon name="trophy" size={14}/></span>
+                    <span className="dash-chip-text">
+                      <span className="l">Melhor</span>
+                      <span className="v">#{profileStats.bestRank}</span>
+                    </span>
+                  </span>
+                )}
+                <span className="dash-chip dash-chip-muted">
+                  <span className="dash-chip-icon"><DashIcon name="calendar" size={14}/></span>
+                  <span className="dash-chip-text">
+                    <span className="v">{profileStats.totalStages}</span>
+                    <span className="l">Stages</span>
+                  </span>
                 </span>
-              )}
-              <span style={{
-                fontSize: '12px', fontWeight: 700, padding: '4px 12px', borderRadius: 20,
-                background: 'rgba(148,163,184,0.08)', border: '1px solid rgba(148,163,184,0.15)',
-                color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace',
-              }}>
-                📅 {profileStats.totalStages} stage{profileStats.totalStages !== 1 ? 's' : ''} jogadas
-              </span>
-              {profileStats.lastPts != null && (
-                <span style={{
-                  fontSize: '12px', fontWeight: 700, padding: '4px 12px', borderRadius: 20,
-                  background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.2)',
-                  color: 'var(--color-xama-orange)', fontFamily: 'JetBrains Mono, monospace',
-                }}>
-                  🎯 Última: {profileStats.lastPts.toFixed(2)} pts{profileStats.lastRank ? ` · #${profileStats.lastRank}` : ''}
-                </span>
-              )}
-            </div>
-          )}
+                {profileStats.lastPts != null && (
+                  <span className="dash-chip dash-chip-orange">
+                    <span className="dash-chip-icon"><DashIcon name="target" size={14}/></span>
+                    <span className="dash-chip-text">
+                      <span className="v">{profileStats.lastPts.toFixed(2)}</span>
+                      <span className="l">pts{profileStats.lastRank ? ` · #${profileStats.lastRank}` : ''}</span>
+                    </span>
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* ── BANNER FACEOFF ── */}
@@ -1101,33 +930,30 @@ export default function Dashboard() {
           const total   = openFaceoffs.length
           return (
             <div
+              className="dash-faceoff"
               onClick={() => navigate(href)}
-              style={{
-                marginBottom: 32, padding: '18px 22px',
-                background: 'linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(249,115,22,0.06) 100%)',
-                border: '1px solid rgba(99,102,241,0.3)',
-                borderRadius: 14, cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: 16,
-                transition: 'border-color 0.15s, background 0.15s',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'; e.currentTarget.style.background = 'linear-gradient(135deg, rgba(99,102,241,0.14) 0%, rgba(249,115,22,0.08) 100%)' }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.3)'; e.currentTarget.style.background = 'linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(249,115,22,0.06) 100%)' }}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate(href) }}
             >
-              <div style={{ fontSize: 32, flexShrink: 0 }}>⚔️</div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--color-xama-text)', letterSpacing: '0.02em' }}>
-                  Team Faceoff está aberto!
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--color-xama-muted)', marginTop: 3 }}>
-                  {myVoted}/{total} confrontos votados · Clique para participar
+              <div className="dash-faceoff-icon">
+                <DashIcon name="swords" size={22} strokeWidth={1.6}/>
+              </div>
+              <div className="dash-faceoff-body">
+                <div className="dash-faceoff-title">Team Faceoff está aberto!</div>
+                <div className="dash-faceoff-sub">
+                  <b>{myVoted}/{total}</b> confrontos votados · Clique para participar
                 </div>
               </div>
-              <div style={{
-                fontSize: 11, fontWeight: 700, padding: '5px 14px', borderRadius: 20,
-                background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.35)',
-                color: '#a5b4fc', whiteSpace: 'nowrap',
-              }}>
-                {myVoted === total ? '✓ Votado' : 'Votar agora'}
+              <div className="dash-faceoff-cta">
+                {myVoted === total ? (
+                  '✓ Votado'
+                ) : (
+                  <>
+                    Votar agora
+                    <DashIcon name="arrow-right" size={14}/>
+                  </>
+                )}
               </div>
             </div>
           )
@@ -1135,18 +961,8 @@ export default function Dashboard() {
 
         {/* ── SEÇÃO 1 — CAMPEONATOS ATIVOS ── */}
         {hasActive && (
-          <div style={{ marginBottom: '48px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px' }}>
-              <span style={{ fontSize: '20px' }}>⚡</span>
-              <span style={{ fontSize: '19px', fontWeight: 700, letterSpacing: '0.08em', color: 'var(--color-xama-orange)', textTransform: 'uppercase' }}>
-                Lineup Aberta
-              </span>
-              <span style={{
-                fontSize: '16px', fontWeight: 700, padding: '2px 10px',
-                borderRadius: '20px', background: 'rgba(249,115,22,0.15)',
-                color: 'var(--color-xama-orange)', fontFamily: 'JetBrains Mono, monospace',
-              }}>{activeChampGroups.length}</span>
-            </div>
+          <div className="dash-section">
+            <SectionHead label="Lineup Aberta" icon="flame" tone="orange" count={activeChampGroups.length}/>
 
             {/* Um bloco por campeonato ativo */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -1207,152 +1023,36 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* ── SEÇÃO OFFSEASON — ENTRE TEMPORADAS (Ideia 1) ── */}
+        {/* ── SEÇÃO OFFSEASON — ENTRE TEMPORADAS ── */}
         {isOffseason && (
-          <div style={{ marginBottom: '48px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px' }}>
-              <span style={{ fontSize: '20px' }}>☕</span>
-              <span style={{ fontSize: '19px', fontWeight: 700, letterSpacing: '0.08em', color: 'var(--color-xama-muted)', textTransform: 'uppercase' }}>
-                Entre Temporadas
-              </span>
-            </div>
+          <div className="dash-offseason-stack">
+            {/* AchievementHero — conquista da última temporada */}
+            {groupLeaderEntry && offseasonGroup && groupLeaderEntry.rank != null && (
+              <AchievementHero
+                rank={groupLeaderEntry.rank}
+                points={groupLeaderEntry.total_points}
+                champName={offseasonGroup.name}
+                champId={offseasonGroup.id}
+                stagesCount={offseasonGroup.championship_ids?.length}
+                navigate={navigate}
+              />
+            )}
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {/* Card do último championship group */}
-              {offseasonGroup && (
-                <OffseasonGroupCard
-                  group={offseasonGroup}
-                  userEntry={groupLeaderEntry}
-                  navigate={navigate}
-                />
-              )}
-
-              {/* Card da última stage jogada */}
-              {pureLockedStages[0] && (() => {
-                const lastStage  = pureLockedStages[0]
-                const lastLineup = myLineups[lastStage.id]
-                const champ      = champMap[lastStage.id]
-                return (
-                  <div
-                    onClick={() => navigate(`/tournament/${lastStage.id}?tab=leaderboard`)}
-                    style={{
-                      background: 'var(--surface-1)',
-                      border: '1px solid rgba(255,255,255,0.06)',
-                      borderRadius: 'var(--radius-card)',
-                      padding: '14px 18px',
-                      display: 'flex', alignItems: 'center', gap: '16px',
-                      cursor: 'pointer', transition: 'border-color 0.15s, background 0.15s',
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(249,115,22,0.3)'; e.currentTarget.style.background = 'rgba(249,115,22,0.03)' }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; e.currentTarget.style.background = 'var(--surface-1)' }}
-                  >
-                    <div style={{ flexShrink: 0, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.6 }}>
-                      <StageChampLogo champName={champ?.name} size={32} />
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-xama-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {lastStage.name}
-                      </div>
-                      <div style={{ fontSize: '11px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace', marginTop: '2px' }}>
-                        {champ?.name ? <span style={{ color: 'rgba(249,115,22,0.6)' }}>{champ.name}</span> : null}
-                        {champ?.name && ' · '}Último resultado
-                      </div>
-                    </div>
-                    <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
-                      {lastLineup?.total_points != null ? (
-                        <>
-                          <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-xama-orange)', fontFamily: 'JetBrains Mono, monospace' }}>
-                            {fmt1(lastLineup.total_points)} pts
-                          </span>
-                          {lastLineup.rank && (
-                            <span style={{ fontSize: '11px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace' }}>
-                              #{lastLineup.rank}
-                            </span>
-                          )}
-                        </>
-                      ) : (
-                        <span style={{ fontSize: '11px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace' }}>
-                          Ver resultados
-                        </span>
-                      )}
-                      <span style={{ color: 'var(--color-xama-muted)', fontSize: '16px' }}>›</span>
-                    </div>
-                  </div>
-                )
-              })()}
-            </div>
+            {/* ReplayCard — última stage jogada */}
+            {profileHistory[0] && (
+              <ReplayCard entry={profileHistory[0]} navigate={navigate} />
+            )}
           </div>
         )}
 
         {/* ── SEÇÃO 2 — ABRINDO EM BREVE (preview) ── */}
         {previewStages.length > 0 && (
-          <div style={{ marginBottom: '48px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px' }}>
-              <span style={{ fontSize: '20px' }}>🔓</span>
-              <span style={{ fontSize: '19px', fontWeight: 700, letterSpacing: '0.08em', color: 'var(--color-xama-orange)', textTransform: 'uppercase' }}>
-                Abrindo em Breve
-              </span>
-              <span style={{
-                fontSize: '16px', fontWeight: 700, padding: '2px 10px',
-                borderRadius: '20px', background: 'rgba(249,115,22,0.15)',
-                color: 'var(--color-xama-orange)', fontFamily: 'JetBrains Mono, monospace',
-              }}>{previewStages.length}</span>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {previewStages.map(s => {
-                const champ = champMap[s.id]
-                const dateLabel = buildDateLabel(s)
-                return (
-                  <div key={s.id} style={{
-                    background: 'var(--surface-1)',
-                    border: '1px solid rgba(249,115,22,0.3)',
-                    borderTop: '2px solid rgba(249,115,22,0.55)',
-                    borderRadius: 'var(--radius-card)',
-                    padding: '18px 22px',
-                    display: 'flex', alignItems: 'center', gap: '22px',
-                    flexWrap: 'wrap',
-                  }}>
-                    <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '80px', height: '80px', opacity: 0.8 }}>
-                      <StageChampLogo champName={champ?.name} size={72} />
-                    </div>
-                    <div style={{ flex: 1, minWidth: '160px' }}>
-                      <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--color-xama-text)', lineHeight: 1.15, letterSpacing: '-0.02em', marginBottom: '4px' }}>
-                        {s.name}
-                      </div>
-                      <div style={{ fontSize: '12px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace' }}>
-                        {champ && <span style={{ color: 'rgba(249,115,22,0.7)', fontWeight: 600 }}>{champ.name}</span>}
-                        {champ && dateLabel && <span style={{ margin: '0 5px', opacity: 0.4 }}>·</span>}
-                        {dateLabel && <span>{dateLabel}</span>}
-                      </div>
-                      <div style={{ marginTop: '6px' }}>
-                        <CountdownBadge targetIso={s.lineup_open_at} mode="open" />
-                      </div>
-                    </div>
-                    <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
-                      <span style={{
-                        fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em',
-                        padding: '3px 10px', borderRadius: 4,
-                        background: 'rgba(249,115,22,0.12)', border: '1px solid rgba(249,115,22,0.35)',
-                        color: 'var(--color-xama-orange)', fontFamily: 'JetBrains Mono, monospace',
-                      }}>LOBBY ABERTO</span>
-                      <button
-                        onClick={() => navigate(`/tournament/${s.id}`)}
-                        style={{
-                          background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.35)',
-                          borderRadius: 6, padding: '6px 14px',
-                          fontSize: '12px', fontWeight: 700, letterSpacing: '0.06em',
-                          color: 'var(--color-xama-orange)', cursor: 'pointer',
-                          fontFamily: 'JetBrains Mono, monospace', transition: 'background 0.15s, border-color 0.15s',
-                        }}
-                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(249,115,22,0.16)'; e.currentTarget.style.borderColor = 'rgba(249,115,22,0.6)' }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(249,115,22,0.08)'; e.currentTarget.style.borderColor = 'rgba(249,115,22,0.35)' }}
-                      >
-                        VER LOBBY
-                      </button>
-                    </div>
-                  </div>
-                )
-              })}
+          <div className="dash-section">
+            <SectionHead label="Abrindo em Breve" icon="clock" tone="muted" count={previewStages.length}/>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {previewStages.map(s => (
+                <PreviewCard key={s.id} s={s} champMap={champMap} navigate={navigate} />
+              ))}
             </div>
           </div>
         )}
@@ -1361,7 +1061,8 @@ export default function Dashboard() {
         {(closedChampGroupsList.length > 0 || closedStages.length > 0) && (
           <CollapseSection
             title="Aguardando Abertura"
-            icon="📅"
+            icon="calendar"
+            tone="muted"
             count={closedChampGroupsList.length + closedStages.length}
             defaultOpen={true}
           >
@@ -1411,7 +1112,7 @@ export default function Dashboard() {
 
         {/* ── SEÇÃO 5 — RESULTADOS ── */}
         {pureLockedStages.length > 0 && (
-          <CollapseSection title="Resultados" icon="📊" count={pureLockedStages.length} defaultOpen={isOffseason}>
+          <CollapseSection title="Resultados" icon="bar-chart" tone="gold" count={pureLockedStages.length} defaultOpen={isOffseason}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {pureLockedStages.map(s => {
                 const lineup = myLineups[s.id]
@@ -1441,6 +1142,7 @@ export default function Dashboard() {
         )}
 
       </div>
+      <Footer />
     </div>
   )
 }

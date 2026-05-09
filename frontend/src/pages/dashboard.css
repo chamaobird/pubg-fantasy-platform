@@ -1,5 +1,12 @@
 /* Dashboard-specific styles */
 
+@keyframes xamaFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.xama-section-fade { animation: xamaFadeIn 0.25s ease both; }
+
+
 .xm-nav {
   position: relative;
   z-index: 5;
@@ -86,6 +93,7 @@
   position: relative;
   padding: 56px 0 18px;
   isolation: isolate;
+  min-height: 360px;
 }
 .dash-hero-hud {
   position: absolute;
@@ -93,6 +101,8 @@
   pointer-events: none;
   overflow: hidden;
   z-index: 0;
+  /* Garantir altura mínima para o SVG do radar não ser cortado */
+  min-height: 360px;
 }
 .dash-hero-content { position: relative; z-index: 1; }
 .dash-hero-eyebrow {
@@ -425,6 +435,17 @@
   background: currentColor;
   animation: xama-pulse 1.5s ease-in-out infinite;
 }
+.dash-badge-locked {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px;
+  border-radius: 5px;
+  background: rgba(249,115,22,0.08);
+  border: 1px solid rgba(249,115,22,0.25);
+  color: rgba(249,115,22,0.75);
+  font-family: var(--xm-font-mono);
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase;
+}
 .dash-cta-primary {
   display: inline-flex; align-items: center; gap: 10px;
   padding: 12px 22px;
@@ -473,7 +494,6 @@
 
 /* ════════ PREVIEW CARD ════════ */
 .dash-preview-card {
-  margin-left: 22px;
   position: relative;
   background: rgba(15,18,25,0.7);
   border: 1px solid rgba(249,115,22,0.12);

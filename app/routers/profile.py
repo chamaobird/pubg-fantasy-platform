@@ -35,6 +35,7 @@ class StageHistoryEntry(BaseModel):
     championship_id: int
     championship_name: str
     championship_short_name: Optional[str]
+    stage_date: Optional[str]  # ISO date string de start_date da stage
     total_points: float
     rank: Optional[int]
     days_played: int
@@ -106,6 +107,7 @@ def get_user_history(
             championship_id=stage.championship_id,
             championship_name=champ.name,
             championship_short_name=getattr(champ, "short_name", None),
+            stage_date=stage.start_date.isoformat() if stage.start_date else None,
             total_points=float(stat.total_points or 0),
             rank=stat.rank,
             days_played=int(stat.days_played or 0),
