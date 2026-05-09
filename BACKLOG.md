@@ -20,6 +20,5 @@ Lista de melhorias e tech debt identificados durante o desenvolvimento.
       futuro pra renderizar. Pulado na Fase E6; retomar quando houver endpoint ou
       lógica de "próximo championship agendado".
 
-- [ ] ReplayCard — Adicionar `stage_date` em `StageHistoryEntry` (app/routers/profile.py)
-      pra ReplayCard mostrar data correta. Por ora, exibe `championship_short_name`
-      como sufixo do nome da stage.
+- [x] ReplayCard — `stage_date` adicionado em `StageHistoryEntry` (app/routers/profile.py)
+      na Fase F (09/05/2026). ReplayCard exibe data da stage com `buildDateLabel`.

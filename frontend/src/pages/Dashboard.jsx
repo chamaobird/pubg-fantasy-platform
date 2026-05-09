@@ -530,14 +530,15 @@ function AchievementHero({ rank, points, champName, champId, stagesCount, naviga
 }
 
 // ── ReplayCard — última stage jogada (offseason) ──────────────────────────────
-// BACKLOG: Adicionar stage_date em StageHistoryEntry pra ReplayCard mostrar data correta.
-// Por ora, championship_short_name é usado como sufixo do nome no lugar da data.
 
 function ReplayCard({ entry, navigate }) {
   const short = entry.championship_short_name || entry.championship_name
   const displayName = short
     ? `${entry.stage_name} · ${short}`
     : entry.stage_name
+
+  // stage_date vem do backend como ISO string; formata como "Dom, 18 mai · 19:00"
+  const dateLabel = entry.stage_date ? buildDateLabel({ start_date: entry.stage_date }) : entry.championship_name
 
   return (
     <div className="dash-replay" onClick={() => navigate(`/tournament/${entry.stage_id}?tab=leaderboard`)}>
@@ -547,7 +548,7 @@ function ReplayCard({ entry, navigate }) {
       <div className="dash-replay-body">
         <div className="dash-replay-eyebrow">Última stage jogada</div>
         <div className="dash-replay-name">{displayName}</div>
-        <div className="dash-replay-date">{entry.championship_name}</div>
+        <div className="dash-replay-date">{dateLabel}</div>
       </div>
       <div className="dash-replay-result">
         {entry.total_points != null && (
@@ -1022,29 +1023,25 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* ── SEÇÃO OFFSEASON — ENTRE TEMPORADAS (Ideia 1) ── */}
+        {/* ── SEÇÃO OFFSEASON — ENTRE TEMPORADAS ── */}
         {isOffseason && (
-          <div className="dash-section">
-            <SectionHead label="Entre Temporadas" icon="sparkles" tone="muted"/>
+          <div className="dash-offseason-stack">
+            {/* AchievementHero — conquista da última temporada */}
+            {groupLeaderEntry && offseasonGroup && groupLeaderEntry.rank != null && (
+              <AchievementHero
+                rank={groupLeaderEntry.rank}
+                points={groupLeaderEntry.total_points}
+                champName={offseasonGroup.name}
+                champId={offseasonGroup.id}
+                stagesCount={offseasonGroup.championship_ids?.length}
+                navigate={navigate}
+              />
+            )}
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {/* AchievementHero — conquista da última temporada */}
-              {groupLeaderEntry && offseasonGroup && groupLeaderEntry.rank != null && (
-                <AchievementHero
-                  rank={groupLeaderEntry.rank}
-                  points={groupLeaderEntry.total_points}
-                  champName={offseasonGroup.name}
-                  champId={offseasonGroup.id}
-                  stagesCount={offseasonGroup.championship_ids?.length}
-                  navigate={navigate}
-                />
-              )}
-
-              {/* ReplayCard — última stage jogada */}
-              {profileHistory[0] && (
-                <ReplayCard entry={profileHistory[0]} navigate={navigate} />
-              )}
-            </div>
+            {/* ReplayCard — última stage jogada */}
+            {profileHistory[0] && (
+              <ReplayCard entry={profileHistory[0]} navigate={navigate} />
+            )}
           </div>
         )}
 
@@ -1052,61 +1049,10 @@ export default function Dashboard() {
         {previewStages.length > 0 && (
           <div className="dash-section">
             <SectionHead label="Abrindo em Breve" icon="clock" tone="muted" count={previewStages.length}/>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {previewStages.map(s => {
-                const champ = champMap[s.id]
-                const dateLabel = buildDateLabel(s)
-                return (
-                  <div key={s.id} style={{
-                    background: 'var(--surface-1)',
-                    border: '1px solid rgba(249,115,22,0.3)',
-                    borderTop: '2px solid rgba(249,115,22,0.55)',
-                    borderRadius: 'var(--radius-card)',
-                    padding: '18px 22px',
-                    display: 'flex', alignItems: 'center', gap: '22px',
-                    flexWrap: 'wrap',
-                  }}>
-                    <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '80px', height: '80px', opacity: 0.8 }}>
-                      <StageChampLogo champName={champ?.name} size={72} />
-                    </div>
-                    <div style={{ flex: 1, minWidth: '160px' }}>
-                      <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--color-xama-text)', lineHeight: 1.15, letterSpacing: '-0.02em', marginBottom: '4px' }}>
-                        {s.name}
-                      </div>
-                      <div style={{ fontSize: '12px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace' }}>
-                        {champ && <span style={{ color: 'rgba(249,115,22,0.7)', fontWeight: 600 }}>{champ.name}</span>}
-                        {champ && dateLabel && <span style={{ margin: '0 5px', opacity: 0.4 }}>·</span>}
-                        {dateLabel && <span>{dateLabel}</span>}
-                      </div>
-                      <div style={{ marginTop: '6px' }}>
-                        <CountdownBadge targetIso={s.lineup_open_at} mode="open" />
-                      </div>
-                    </div>
-                    <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
-                      <span style={{
-                        fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em',
-                        padding: '3px 10px', borderRadius: 4,
-                        background: 'rgba(249,115,22,0.12)', border: '1px solid rgba(249,115,22,0.35)',
-                        color: 'var(--color-xama-orange)', fontFamily: 'JetBrains Mono, monospace',
-                      }}>LOBBY ABERTO</span>
-                      <button
-                        onClick={() => navigate(`/tournament/${s.id}`)}
-                        style={{
-                          background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.35)',
-                          borderRadius: 6, padding: '6px 14px',
-                          fontSize: '12px', fontWeight: 700, letterSpacing: '0.06em',
-                          color: 'var(--color-xama-orange)', cursor: 'pointer',
-                          fontFamily: 'JetBrains Mono, monospace', transition: 'background 0.15s, border-color 0.15s',
-                        }}
-                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(249,115,22,0.16)'; e.currentTarget.style.borderColor = 'rgba(249,115,22,0.6)' }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(249,115,22,0.08)'; e.currentTarget.style.borderColor = 'rgba(249,115,22,0.35)' }}
-                      >
-                        VER LOBBY
-                      </button>
-                    </div>
-                  </div>
-                )
-              })}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {previewStages.map(s => (
+                <PreviewCard key={s.id} s={s} champMap={champMap} navigate={navigate} />
+              ))}
             </div>
           </div>
         )}

@@ -3,9 +3,60 @@
 
 ---
 
-## Estado Atual — 29/04/2026 — Landing v5 deployada em main
+## Estado Atual — 09/05/2026 — Dashboard Refresh Fase F concluída (branch feature/dashboard-refresh-final)
+
+### Branch atual
+`feature/dashboard-refresh-final` — **pronta para merge na main**
 
 ### Próximos passos
+1. Merge na main + push + deploy no Render
+
+### Ambiente local
+- Backend: `python -m uvicorn app.main:app --reload` (usa `.env` → `pubg_fantasy_local` porta 5433)
+- Frontend: `cd frontend ; npm run dev`
+- Usuário de teste offseason: `test@xama.gg / testpass123` (seed em `scripts/seed_offseason_test.py`)
+
+---
+
+## Dashboard Refresh — 09/05/2026 — Fase F: Polish + validação cruzada
+
+### Correções desta fase
+- **Seção "Abrindo em Breve"**: substituídos inline styles pesados por `<PreviewCard>` com classes `.dash-preview-*`
+- **Wrapper offseason**: removido `dash-section + SectionHead "Entre Temporadas"`, substituído por `dash-offseason-stack` (fiel ao design state-2)
+- **ReplayCard date**: `stage_date` adicionado em `StageHistoryEntry` (`app/routers/profile.py`) — ReplayCard agora exibe data real via `buildDateLabel` em vez de `championship_name`
+- **CSS**: removido `margin-left: 22px` de `.dash-preview-card` — indent dos sub-cards vem do wrapper JSX (correto)
+- **BACKLOG**: item `ReplayCard stage_date` marcado como resolvido
+
+### Desvios identificados vs design mas mantidos intencionalmente
+- `AnticipationCard`: sem fonte de dados de championship futuro — permanece no BACKLOG
+- `stagesCount` no AchievementHero: usa `offseasonGroup.championship_ids?.length` (número de championships, não stages individuais) — aceitável enquanto não há campo específico
+
+---
+
+## Dashboard Refresh — 09/05/2026 — Fases E1 a E7 (feature/dashboard-refresh-final)
+
+### Commits desta sessão
+- `feat(dashboard E3)`: OpenCard + LockedActiveCard com classes `.dash-open-*`, `.dash-badge-locked`
+- `feat(dashboard E4)`: PreviewCard, StageRow, ClosedPrimaryCard com classes `.dash-preview-*`, `.dash-stage-*`
+- `feat(dashboard E5)`: SectionHead component + CollapseSection refatorado, tones orange/muted/gold
+- `feat(dashboard E6)`: AchievementHero + ReplayCard no estado offseason (AnticipationCard → BACKLOG)
+- `chore`: separação local/produção — `.env` aponta para `pubg_fantasy_local`, `.env.production` criado (gitignored)
+- `feat(dashboard E7)`: Footer importado + bloco `xama-fonts` + `xama-dash-anim` removidos; `xamaFadeIn` migrado para `dashboard.css`
+
+### Notas técnicas
+- `CountdownBadge`: prop `bare={true}` evita double-box (aplicado em OpenCard e LockedActiveCard)
+- `dashboard.css`: classe `.dash-badge-locked` adicionada (badge laranja para stage trancada)
+- `AchievementHero` depende de `groupLeaderEntry` (fetch `/championship-groups/{id}/leaderboard`)
+- `ChampionshipGroup` do seed deve ter `is_active=True` para aparecer no endpoint
+- `stage_date` adicionado em `StageHistoryEntry` (Fase F) — ReplayCard usa `buildDateLabel({ start_date: entry.stage_date })`
+- PostgreSQL local: porta 5433, banco `pubg_fantasy_local`, usuário `postgres`, senha `minhasenha`
+- `pg_hba.conf` revertido para `scram-sha-256` (confirmado pelo usuário)
+
+---
+
+## Estado Atual — 29/04/2026 — Landing v5 deployada em main
+
+### Próximos passos (arquivado)
 1. Aguardar deploy do Render concluir e validar visualmente em produção
 2. Importar roster dos times para stages 31, 32, 34, 35 (PAS Playoffs 2)
 3. Fix: `LeagueDetail.jsx:152` — duplicate `style` attribute (ver BACKLOG)
