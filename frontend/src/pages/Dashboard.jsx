@@ -65,30 +65,36 @@ function useCountdown(targetIso) {
   return remaining
 }
 
-function CountdownBadge({ targetIso, mode = 'close' }) {
+function CountdownBadge({ targetIso, mode = 'close', bare = false }) {
   // mode='close' → "Fecha em" (prazo de edição do lineup)
   // mode='open'  → "Abre em"  (seção preview — conta até o lineup abrir)
+  // bare=true    → renderiza só o texto, sem wrapper visual (para uso dentro de .dash-open-countdown)
   const r = useCountdown(targetIso)
   if (!r) return null
 
   const verb = mode === 'open' ? 'Abre em' : 'Fecha em'
-  let label, color, bg, border
+  let label, color, bg, border, tone
   if (r.diff > 24 * 3_600_000) {
     label = `${verb} ${r.days}d ${r.hours}h`
     color = 'var(--color-xama-muted)'
     bg    = 'rgba(148,163,184,0.06)'
     border = 'rgba(148,163,184,0.15)'
+    tone  = 'muted'
   } else if (r.diff > 3_600_000) {
     label = `${verb} ${r.hours}h ${r.mins}min`
     color = 'var(--color-xama-orange)'
     bg    = 'rgba(249,115,22,0.08)'
     border = 'rgba(249,115,22,0.25)'
+    tone  = 'normal'
   } else {
     label = `⚠ ${verb} ${r.hours > 0 ? `${r.hours}h ` : ''}${r.mins}min`
     color = mode === 'open' ? 'var(--color-xama-orange)' : '#f87171'
     bg    = mode === 'open' ? 'rgba(249,115,22,0.08)' : 'rgba(248,113,113,0.08)'
     border = mode === 'open' ? 'rgba(249,115,22,0.25)' : 'rgba(248,113,113,0.25)'
+    tone  = 'urgent'
   }
+
+  if (bare) return <>{label}</>
 
   return (
     <span style={{
@@ -386,80 +392,33 @@ function OpenCard({ s, lineup, champMap, navigate, previewCount = 0, expanded = 
   const champ     = champMap[s.id]
   const dateLabel = buildDateLabel(s)
 
-  const borderColor = hasLineup ? 'rgba(74,222,128,0.25)' : 'rgba(249,115,22,0.35)'
-  const glowBg      = hasLineup
-    ? 'radial-gradient(circle at 80% 50%, rgba(74,222,128,0.07) 0%, transparent 65%)'
-    : 'radial-gradient(circle at 80% 50%, rgba(249,115,22,0.09) 0%, transparent 65%)'
-
-  const subtitle = [champ?.name, dateLabel].filter(Boolean).join(' · ')
-
   return (
-    <div className="xama-open-card" style={{
-      background: 'var(--surface-1)',
-      border: `1px solid ${borderColor}`,
-      borderRadius: 'var(--radius-card)',
-      padding: '18px 22px',
-      position: 'relative', overflow: 'hidden',
-      display: 'flex', alignItems: 'center', gap: '22px',
-      flexWrap: 'wrap',
-    }}>
-      <div style={{ position: 'absolute', inset: 0, background: glowBg, pointerEvents: 'none' }} />
-
+    <div className="dash-open-card">
       {/* Coluna 1 — Logo âncora */}
-      <div className="dash-open-logo" style={{
-        flexShrink: 0,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        width: '108px', height: '108px',
-      }}>
-        <StageChampLogo champName={champ?.name} size={100} />
+      <div className="dash-open-logo">
+        <StageChampLogo champName={champ?.name} size={96} />
       </div>
 
-      {/* Coluna 2 — Título + subtítulo */}
-      <div style={{ flex: 1, minWidth: '160px' }}>
-        <div style={{
-          fontSize: '26px', fontWeight: 700,
-          color: 'var(--color-xama-text)',
-          lineHeight: 1.15, letterSpacing: '-0.02em',
-          marginBottom: '6px',
-        }}>
-          {s.name}
+      {/* Coluna 2 — Título + meta + countdown */}
+      <div className="dash-open-body">
+        <h3 className="dash-open-title">{s.name}</h3>
+        <div className="dash-open-meta">
+          {champ && <span className="champ">{champ.name}</span>}
+          {champ && dateLabel && <span className="sep">·</span>}
+          {dateLabel && <span>{dateLabel}</span>}
         </div>
-        {subtitle && (
-          <div style={{
-            fontSize: '12px', color: 'var(--color-xama-muted)',
-            fontFamily: 'JetBrains Mono, monospace', lineHeight: 1.5,
-          }}>
-            {champ && (
-              <span style={{ color: 'rgba(249,115,22,0.7)', fontWeight: 600 }}>{champ.name}</span>
-            )}
-            {champ && dateLabel && <span style={{ margin: '0 5px', opacity: 0.4 }}>·</span>}
-            {dateLabel && <span>{dateLabel}</span>}
-          </div>
-        )}
-        <div style={{ marginTop: '8px' }}>
-          <CountdownBadge targetIso={s.start_date || s.lineup_open_at} />
-        </div>
+        <span className="dash-open-countdown">
+          <DashIcon name="clock" size={11}/>
+          <CountdownBadge targetIso={s.start_date || s.lineup_open_at} bare={true} />
+        </span>
       </div>
 
-      {/* Coluna 3 — Status + CTA */}
-      <div className="dash-open-col3" style={{
-        flexShrink: 0,
-        display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px',
-      }}>
-        {/* Badge ABERTA — discreto */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-          <span className="xama-pulse" style={{
-            width: '6px', height: '6px', borderRadius: '50%',
-            background: 'var(--color-xama-orange)', display: 'inline-block',
-          }} />
-          <span style={{
-            fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em',
-            color: 'var(--color-xama-orange)', textTransform: 'uppercase',
-            fontFamily: 'JetBrains Mono, monospace',
-          }}>ABERTA</span>
-        </div>
-
-        {/* Chip "Montada" ou pts */}
+      {/* Coluna 3 — Badge + CTA */}
+      <div className="dash-open-actions">
+        <span className="dash-badge-open">
+          <span className="dash-badge-dot"/>
+          Aberta
+        </span>
         {hasLineup && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
             <span style={{
@@ -477,34 +436,20 @@ function OpenCard({ s, lineup, champMap, navigate, previewCount = 0, expanded = 
             )}
           </div>
         )}
-
-        {/* Botão */}
-        <Button variant="primary" size="sm" onClick={() => navigate(`/tournament/${s.id}`)}>
-          {hasLineup ? 'VER TORNEIO' : 'MONTAR LINEUP'}
-        </Button>
+        <button className="dash-cta-primary" onClick={() => navigate(`/tournament/${s.id}`)}>
+          {hasLineup ? 'Ver torneio' : 'Montar lineup'}
+          <span className="arrow">→</span>
+        </button>
       </div>
 
       {/* Linha expand/collapse — só aparece se houver etapas em preview */}
       {previewCount > 0 && (
-        <div style={{
-          flexBasis: '100%', width: '100%',
-          borderTop: '1px solid rgba(249,115,22,0.12)',
-          paddingTop: '10px', marginTop: '2px',
-        }}>
+        <div className="dash-open-expand">
           <button
+            className="dash-open-expand-btn"
             onClick={e => { e.stopPropagation(); onToggle && onToggle() }}
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: '7px',
-              color: 'var(--color-xama-muted)', fontSize: '12px',
-              fontWeight: 600, letterSpacing: '0.05em',
-              fontFamily: 'JetBrains Mono, monospace',
-              padding: '0', transition: 'color 0.15s',
-            }}
-            onMouseEnter={e => e.currentTarget.style.color = 'var(--color-xama-orange)'}
-            onMouseLeave={e => e.currentTarget.style.color = 'var(--color-xama-muted)'}
           >
-            <span style={{ transition: 'transform 0.2s ease', display: 'inline-block', transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+            <DashIcon name={expanded ? 'chevron-up' : 'chevron-down'} size={11}/>
             {expanded
               ? 'Ocultar etapas seguintes'
               : `Ver ${previewCount} etapa${previewCount > 1 ? 's' : ''} seguinte${previewCount > 1 ? 's' : ''}`}
@@ -515,7 +460,7 @@ function OpenCard({ s, lineup, champMap, navigate, previewCount = 0, expanded = 
   )
 }
 
-// ── LockedActiveCard — card grande para stage locked com dias em preview ──────
+// ── LockedActiveCard — card grande para stage locked/live com dias em preview ──
 
 function LockedActiveCard({ s, lineup, champMap, navigate, previewCount = 0, expanded = true, onToggle }) {
   const champ     = champMap[s.id]
@@ -523,62 +468,29 @@ function LockedActiveCard({ s, lineup, champMap, navigate, previewCount = 0, exp
   const hasLineup = !!lineup
 
   return (
-    <div className="xama-open-card" style={{
-      background: 'var(--surface-1)',
-      border: '1px solid rgba(249,115,22,0.30)',
-      borderRadius: 'var(--radius-card)',
-      padding: '18px 22px',
-      position: 'relative', overflow: 'hidden',
-      display: 'flex', alignItems: 'center', gap: '22px',
-      flexWrap: 'wrap',
-    }}>
-      <div style={{
-        position: 'absolute', inset: 0,
-        background: 'radial-gradient(circle at 80% 50%, rgba(249,115,22,0.07) 0%, transparent 65%)',
-        pointerEvents: 'none',
-      }} />
-
+    <div className="dash-open-card">
       {/* Coluna 1 — Logo */}
-      <div className="dash-open-logo" style={{
-        flexShrink: 0,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        width: '108px', height: '108px',
-      }}>
-        <StageChampLogo champName={champ?.name} size={100} />
+      <div className="dash-open-logo">
+        <StageChampLogo champName={champ?.name} size={96} />
       </div>
 
-      {/* Coluna 2 — Título + subtítulo */}
-      <div style={{ flex: 1, minWidth: '160px' }}>
-        <div style={{
-          fontSize: '26px', fontWeight: 700,
-          color: 'var(--color-xama-text)',
-          lineHeight: 1.15, letterSpacing: '-0.02em',
-          marginBottom: '6px',
-        }}>
-          {s.name}
-        </div>
-        <div style={{ fontSize: '12px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace', lineHeight: 1.5 }}>
-          {champ && <span style={{ color: 'rgba(249,115,22,0.7)', fontWeight: 600 }}>{champ.name}</span>}
-          {champ && dateLabel && <span style={{ margin: '0 5px', opacity: 0.4 }}>·</span>}
+      {/* Coluna 2 — Título + meta + countdown */}
+      <div className="dash-open-body">
+        <h3 className="dash-open-title">{s.name}</h3>
+        <div className="dash-open-meta">
+          {champ && <span className="champ">{champ.name}</span>}
+          {champ && dateLabel && <span className="sep">·</span>}
           {dateLabel && <span>{dateLabel}</span>}
         </div>
+        <span className="dash-open-countdown">
+          <DashIcon name="clock" size={11}/>
+          <CountdownBadge targetIso={s.start_date || s.lineup_open_at} bare={true} />
+        </span>
       </div>
 
-      {/* Coluna 3 — Status + CTA */}
-      <div className="dash-open-col3" style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px' }}>
-        {/* Badge EM JOGO */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-          <span className="xama-pulse" style={{
-            width: '6px', height: '6px', borderRadius: '50%',
-            background: 'var(--color-xama-orange)', display: 'inline-block',
-          }} />
-          <span style={{
-            fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em',
-            color: 'var(--color-xama-orange)', textTransform: 'uppercase',
-            fontFamily: 'JetBrains Mono, monospace',
-          }}>EM JOGO</span>
-        </div>
-
+      {/* Coluna 3 — Badge + pts/sem-lineup + CTA */}
+      <div className="dash-open-actions">
+        <span className="dash-badge-locked">EM JOGO</span>
         {hasLineup && lineup.total_points != null && (
           <span style={{
             fontSize: '20px', fontWeight: 700,
@@ -594,33 +506,20 @@ function LockedActiveCard({ s, lineup, champMap, navigate, previewCount = 0, exp
             color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace',
           }}>SEM LINEUP</span>
         )}
-
-        <Button variant="primary" size="sm" onClick={() => navigate(`/tournament/${s.id}?tab=leaderboard`)}>
-          VER RESULTADO
-        </Button>
+        <button className="dash-cta-primary" onClick={() => navigate(`/tournament/${s.id}?tab=leaderboard`)}>
+          Ver torneio
+          <span className="arrow">→</span>
+        </button>
       </div>
 
       {/* Linha expand/collapse — só aparece se houver etapas em preview */}
       {previewCount > 0 && (
-        <div style={{
-          flexBasis: '100%', width: '100%',
-          borderTop: '1px solid rgba(249,115,22,0.12)',
-          paddingTop: '10px', marginTop: '2px',
-        }}>
+        <div className="dash-open-expand">
           <button
+            className="dash-open-expand-btn"
             onClick={e => { e.stopPropagation(); onToggle && onToggle() }}
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: '7px',
-              color: 'var(--color-xama-muted)', fontSize: '12px',
-              fontWeight: 600, letterSpacing: '0.05em',
-              fontFamily: 'JetBrains Mono, monospace',
-              padding: '0', transition: 'color 0.15s',
-            }}
-            onMouseEnter={e => e.currentTarget.style.color = 'var(--color-xama-orange)'}
-            onMouseLeave={e => e.currentTarget.style.color = 'var(--color-xama-muted)'}
           >
-            <span style={{ transition: 'transform 0.2s ease', display: 'inline-block', transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+            <DashIcon name={expanded ? 'chevron-up' : 'chevron-down'} size={11}/>
             {expanded
               ? 'Ocultar etapas seguintes'
               : `Ver ${previewCount} etapa${previewCount > 1 ? 's' : ''} seguinte${previewCount > 1 ? 's' : ''}`}
