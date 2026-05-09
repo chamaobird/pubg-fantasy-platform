@@ -5,40 +5,11 @@ import { useAuth } from '../App'
 import { API_BASE_URL } from '../config'
 import { track } from '../lib/analytics'
 import Navbar from '../components/Navbar'
+import Footer from '../components/Footer'
 import { Card, CardTitle } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { DashIcon } from '../components/DashIcon'
 import './dashboard.css'
-
-if (!document.getElementById('xama-fonts')) {
-  const link = document.createElement('link')
-  link.id = 'xama-fonts'; link.rel = 'stylesheet'
-  link.href = 'https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@400;600&display=swap'
-  document.head.appendChild(link)
-}
-
-if (!document.getElementById('xama-dash-anim')) {
-  const s = document.createElement('style')
-  s.id = 'xama-dash-anim'
-  s.textContent = `
-    @keyframes xamaPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
-    @keyframes xamaFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes xamaPreviewPulse { 0%, 100% { border-color: rgba(249,115,22,0.3); } 50% { border-color: rgba(249,115,22,0.6); } }
-    .xama-pulse { animation: xamaPulse 1.8s ease-in-out infinite; }
-    .xama-preview-card { animation: xamaPreviewPulse 2.5s ease-in-out infinite; }
-    .xama-open-card { transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s; }
-    .xama-open-card:hover { transform: translateY(-3px); box-shadow: 0 12px 32px rgba(249,115,22,0.15); }
-    .xama-collapse-btn { background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 0; color: var(--color-xama-muted); font-size: 21px; font-weight: 600; letter-spacing: 0.04em; transition: color 0.15s; }
-    .xama-collapse-btn:hover { color: var(--color-xama-text); }
-    .xama-collapse-chevron { transition: transform 0.2s ease; display: inline-block; }
-    .xama-row-item { display: flex; align-items: center; gap: 14px; padding: 14px 20px; border-radius: var(--radius-inner); background: var(--surface-1); border: 1px solid var(--color-xama-border); transition: border-color 0.15s, background 0.15s; cursor: default; }
-    .xama-row-item:hover { border-color: rgba(249,115,22,0.25); background: rgba(249,115,22,0.03); }
-    .xama-row-item-clickable { cursor: pointer; }
-    .xama-row-item-clickable:hover { border-color: rgba(249,115,22,0.35); background: rgba(249,115,22,0.05); }
-    .xama-section-fade { animation: xamaFadeIn 0.25s ease both; }
-  `
-  document.head.appendChild(s)
-}
 
 const fmt1 = (v) => v != null ? Number(v).toFixed(1) : '—'
 
@@ -1225,6 +1196,7 @@ export default function Dashboard() {
         )}
 
       </div>
+      <Footer />
     </div>
   )
 }
