@@ -524,71 +524,67 @@ function ClosedPrimaryCard({ s, champMap, navigate, nextCount = 0, expanded = tr
   )
 }
 
-// ── OffseasonGroupCard ───────────────────────────────────────────────────────
+// ── AchievementHero — conquista da última temporada (offseason) ───────────────
 
-function OffseasonGroupCard({ group, userEntry, navigate }) {
-  const rankColors = ['#f0c040', '#b4bcc8', '#cd7f50']
-  const isTop3 = userEntry?.rank != null && userEntry.rank <= 3
+function AchievementHero({ rank, points, champName, champId, stagesCount, navigate }) {
+  const isFade = rank > 3
+  return (
+    <div className="dash-achievement">
+      <div className="dash-achievement-rank">
+        <div className={`dash-achievement-rank-num${isFade ? ' is-fade' : ''}`}>
+          #{rank}
+        </div>
+      </div>
+      <div className="dash-achievement-body">
+        <div className="dash-achievement-eyebrow">Conquista · Última temporada</div>
+        <h2 className="dash-achievement-title">
+          Você terminou em <em>{rank}º</em> no <em>{champName}</em>
+        </h2>
+        <div className="dash-achievement-stats">
+          <span><b>{Number(points).toFixed(1)}</b> pontos</span>
+          {stagesCount != null && (
+            <>
+              <span className="sep">·</span>
+              <span><b>{stagesCount}</b> fase{stagesCount !== 1 ? 's' : ''}</span>
+            </>
+          )}
+        </div>
+      </div>
+      <button className="dash-achievement-cta" onClick={() => navigate(`/group/${champId}`)}>
+        Ver retrospectiva
+        <DashIcon name="chevron-right" size={12}/>
+      </button>
+    </div>
+  )
+}
+
+// ── ReplayCard — última stage jogada (offseason) ──────────────────────────────
+// BACKLOG: Adicionar stage_date em StageHistoryEntry pra ReplayCard mostrar data correta.
+// Por ora, championship_short_name é usado como sufixo do nome no lugar da data.
+
+function ReplayCard({ entry, navigate }) {
+  const short = entry.championship_short_name || entry.championship_name
+  const displayName = short
+    ? `${entry.stage_name} · ${short}`
+    : entry.stage_name
 
   return (
-    <div style={{
-      background: 'var(--surface-1)',
-      border: '1px solid rgba(255,255,255,0.08)',
-      borderRadius: 'var(--radius-card)',
-      padding: '18px 22px',
-      position: 'relative', overflow: 'hidden',
-      display: 'flex', alignItems: 'center', gap: '22px', flexWrap: 'wrap',
-    }}>
-      <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 80% 50%, rgba(240,192,64,0.05) 0%, transparent 60%)', pointerEvents: 'none' }} />
-
-      <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '80px', height: '80px', opacity: 0.75 }}>
-        <StageChampLogo champName={group.short_name || group.name} size={72} />
+    <div className="dash-replay" onClick={() => navigate(`/tournament/${entry.stage_id}?tab=leaderboard`)}>
+      <div className="dash-replay-logo">
+        <StageChampLogo champName={entry.championship_name} size={36} />
       </div>
-
-      <div style={{ flex: 1, minWidth: '160px' }}>
-        <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace', marginBottom: '5px' }}>
-          Resultado final
-        </div>
-        <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--color-xama-text)', lineHeight: 1.15, letterSpacing: '-0.02em', marginBottom: '4px' }}>
-          {group.name}
-        </div>
-        <div style={{ fontSize: '11px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace' }}>
-          {group.championship_ids?.length ?? '?'} fase{(group.championship_ids?.length ?? 0) !== 1 ? 's' : ''} · encerrado
-        </div>
+      <div className="dash-replay-body">
+        <div className="dash-replay-eyebrow">Última stage jogada</div>
+        <div className="dash-replay-name">{displayName}</div>
+        <div className="dash-replay-date">{entry.championship_name}</div>
       </div>
-
-      <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
-        <span style={{
-          fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em',
-          padding: '3px 10px', borderRadius: 4,
-          background: 'rgba(107,114,128,0.1)', border: '1px solid rgba(107,114,128,0.2)',
-          color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace',
-        }}>ENCERRADO</span>
-
-        {userEntry ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
-            {userEntry.rank && (
-              <span style={{
-                fontSize: '28px', fontWeight: 800, lineHeight: 1,
-                fontFamily: 'JetBrains Mono, monospace',
-                color: isTop3 ? rankColors[userEntry.rank - 1] : 'var(--color-xama-text)',
-              }}>
-                #{userEntry.rank}
-              </span>
-            )}
-            <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-xama-orange)', fontFamily: 'JetBrains Mono, monospace' }}>
-              {Number(userEntry.total_points).toFixed(2)} pts
-            </span>
-          </div>
-        ) : (
-          <span style={{ fontSize: '12px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace' }}>
-            Sem participação
-          </span>
+      <div className="dash-replay-result">
+        {entry.total_points != null && (
+          <span className="dash-replay-pts">{Number(entry.total_points).toFixed(1)} pts</span>
         )}
-
-        <Button variant="secondary" size="sm" onClick={() => navigate(`/group/${group.id}`)}>
-          VER RANKING
-        </Button>
+        {entry.rank != null && (
+          <span className="dash-replay-rank">#{entry.rank}</span>
+        )}
       </div>
     </div>
   )
@@ -1061,68 +1057,22 @@ export default function Dashboard() {
             <SectionHead label="Entre Temporadas" icon="sparkles" tone="muted"/>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {/* Card do último championship group */}
-              {offseasonGroup && (
-                <OffseasonGroupCard
-                  group={offseasonGroup}
-                  userEntry={groupLeaderEntry}
+              {/* AchievementHero — conquista da última temporada */}
+              {groupLeaderEntry && offseasonGroup && groupLeaderEntry.rank != null && (
+                <AchievementHero
+                  rank={groupLeaderEntry.rank}
+                  points={groupLeaderEntry.total_points}
+                  champName={offseasonGroup.name}
+                  champId={offseasonGroup.id}
+                  stagesCount={offseasonGroup.championship_ids?.length}
                   navigate={navigate}
                 />
               )}
 
-              {/* Card da última stage jogada */}
-              {pureLockedStages[0] && (() => {
-                const lastStage  = pureLockedStages[0]
-                const lastLineup = myLineups[lastStage.id]
-                const champ      = champMap[lastStage.id]
-                return (
-                  <div
-                    onClick={() => navigate(`/tournament/${lastStage.id}?tab=leaderboard`)}
-                    style={{
-                      background: 'var(--surface-1)',
-                      border: '1px solid rgba(255,255,255,0.06)',
-                      borderRadius: 'var(--radius-card)',
-                      padding: '14px 18px',
-                      display: 'flex', alignItems: 'center', gap: '16px',
-                      cursor: 'pointer', transition: 'border-color 0.15s, background 0.15s',
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(249,115,22,0.3)'; e.currentTarget.style.background = 'rgba(249,115,22,0.03)' }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; e.currentTarget.style.background = 'var(--surface-1)' }}
-                  >
-                    <div style={{ flexShrink: 0, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.6 }}>
-                      <StageChampLogo champName={champ?.name} size={32} />
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-xama-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {lastStage.name}
-                      </div>
-                      <div style={{ fontSize: '11px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace', marginTop: '2px' }}>
-                        {champ?.name ? <span style={{ color: 'rgba(249,115,22,0.6)' }}>{champ.name}</span> : null}
-                        {champ?.name && ' · '}Último resultado
-                      </div>
-                    </div>
-                    <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
-                      {lastLineup?.total_points != null ? (
-                        <>
-                          <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-xama-orange)', fontFamily: 'JetBrains Mono, monospace' }}>
-                            {fmt1(lastLineup.total_points)} pts
-                          </span>
-                          {lastLineup.rank && (
-                            <span style={{ fontSize: '11px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace' }}>
-                              #{lastLineup.rank}
-                            </span>
-                          )}
-                        </>
-                      ) : (
-                        <span style={{ fontSize: '11px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace' }}>
-                          Ver resultados
-                        </span>
-                      )}
-                      <span style={{ color: 'var(--color-xama-muted)', fontSize: '16px' }}>›</span>
-                    </div>
-                  </div>
-                )
-              })()}
+              {/* ReplayCard — última stage jogada */}
+              {profileHistory[0] && (
+                <ReplayCard entry={profileHistory[0]} navigate={navigate} />
+              )}
             </div>
           </div>
         )}
