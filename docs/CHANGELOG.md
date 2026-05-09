@@ -3,13 +3,30 @@
 
 ---
 
-## Estado Atual — 09/05/2026 — Dashboard Refresh Fase F concluída (branch feature/dashboard-refresh-final)
+## Estado Atual — 09/05/2026 — Fase C + fix radar HUD deployados em main
 
 ### Branch atual
-`feature/dashboard-refresh-final` — **pronta para merge na main**
+`main` — limpa, tudo deployado no Render
 
 ### Próximos passos
-1. Merge na main + push + deploy no Render
+- Backlog: features de engajamento (sugestão de capitão, head-to-head, quick fill)
+- Backlog: expor accounts não resolvidos no reprocess (#1)
+- Backlog: validação pré-import no RosterPanel (#2)
+
+---
+
+## 09/05/2026 — Fase C (AppBackground) + fix recuo radar HUD
+
+### Fase C — AppBackground via classes semânticas
+- `.xm-bg-base` atualizado em `xm-tokens.css`: adicionado `position:fixed; inset:0; z-index:0; pointer-events:none`
+- `AppBackground.jsx` substituído de inline styles para classes puras: `xm-bg-base` + `xm-bg-hex` + `xm-bg-radial`
+- Resultado visual idêntico; consistência completa com design system
+
+### Fix recuo superior do radar HUD
+- Removido `paddingTop:'36px'` do `xama-container` no `Dashboard.jsx`
+- Esse padding criava 36px de gap desnecessário entre navbar e hero
+- `.dash-hero` já tem `padding:56px 0 18px` próprio — container não precisa de top padding
+- Círculos do radar agora aparecem bem próximos da navbar, fiel ao design de referência
 
 ### Ambiente local
 - Backend: `python -m uvicorn app.main:app --reload` (usa `.env` → `pubg_fantasy_local` porta 5433)
