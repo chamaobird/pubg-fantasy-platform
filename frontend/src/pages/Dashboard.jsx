@@ -211,33 +211,48 @@ function StageChampLogo({ champName = '', size = 28 }) {
   )
 }
 
+// ── SectionHead — header de seção fiel ao design ─────────────────────────────
+
+function SectionHead({ label, icon, tone = 'orange', count = null, expanded, onToggle }) {
+  const iconMod  = tone === 'muted' ? ' is-muted' : tone === 'gold' ? ' is-gold' : ''
+  const labelMod = tone === 'orange' ? ' is-orange' : tone === 'muted' ? ' is-muted' : ' is-gold'
+  const cntMod   = tone === 'muted' ? ' is-muted' : ''
+  return (
+    <div className="dash-section-head">
+      <div className={`dash-section-icon${iconMod}`}>
+        <DashIcon name={icon} size={16}/>
+      </div>
+      <div className={`dash-section-label${labelMod}`}>{label}</div>
+      {count != null && (
+        <div className={`dash-section-counter${cntMod}`}>
+          {String(count).padStart(2, '0')}
+        </div>
+      )}
+      <div className="dash-section-spacer"/>
+      {onToggle != null && (
+        <button className="dash-section-toggle" onClick={onToggle}>
+          {expanded ? 'Recolher' : 'Expandir'}
+          <DashIcon name={expanded ? 'chevron-up' : 'chevron-down'} size={12}/>
+        </button>
+      )}
+    </div>
+  )
+}
+
 // ── CollapseSection ──────────────────────────────────────────────────────────
 
-function CollapseSection({ title, icon, count, defaultOpen = false, children }) {
+function CollapseSection({ title, icon, tone = 'gold', count, defaultOpen = false, children }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <div style={{ marginBottom: '36px' }}>
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        marginBottom: open ? '16px' : '0',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ fontSize: '20px' }}>{icon}</span>
-          <span style={{
-            fontSize: '19px', fontWeight: 700, letterSpacing: '0.07em',
-            color: 'var(--color-xama-muted)', textTransform: 'uppercase',
-          }}>{title}</span>
-          <span style={{
-            fontSize: '16px', fontWeight: 700, padding: '2px 10px',
-            borderRadius: '20px', background: 'var(--surface-3)',
-            color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace',
-          }}>{count}</span>
-        </div>
-        <button className="xama-collapse-btn" onClick={() => setOpen(o => !o)}>
-          {open ? 'Recolher' : 'Expandir'}
-          <span className="xama-collapse-chevron" style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)', fontSize: '14px' }}>▼</span>
-        </button>
-      </div>
+    <div className="dash-section">
+      <SectionHead
+        label={title}
+        icon={icon}
+        tone={tone}
+        count={count}
+        expanded={open}
+        onToggle={() => setOpen(o => !o)}
+      />
       {open && <div className="xama-section-fade">{children}</div>}
     </div>
   )
@@ -978,18 +993,8 @@ export default function Dashboard() {
 
         {/* ── SEÇÃO 1 — CAMPEONATOS ATIVOS ── */}
         {hasActive && (
-          <div style={{ marginBottom: '48px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px' }}>
-              <span style={{ fontSize: '20px' }}>⚡</span>
-              <span style={{ fontSize: '19px', fontWeight: 700, letterSpacing: '0.08em', color: 'var(--color-xama-orange)', textTransform: 'uppercase' }}>
-                Lineup Aberta
-              </span>
-              <span style={{
-                fontSize: '16px', fontWeight: 700, padding: '2px 10px',
-                borderRadius: '20px', background: 'rgba(249,115,22,0.15)',
-                color: 'var(--color-xama-orange)', fontFamily: 'JetBrains Mono, monospace',
-              }}>{activeChampGroups.length}</span>
-            </div>
+          <div className="dash-section">
+            <SectionHead label="Lineup Aberta" icon="flame" tone="orange" count={activeChampGroups.length}/>
 
             {/* Um bloco por campeonato ativo */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -1052,13 +1057,8 @@ export default function Dashboard() {
 
         {/* ── SEÇÃO OFFSEASON — ENTRE TEMPORADAS (Ideia 1) ── */}
         {isOffseason && (
-          <div style={{ marginBottom: '48px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px' }}>
-              <span style={{ fontSize: '20px' }}>☕</span>
-              <span style={{ fontSize: '19px', fontWeight: 700, letterSpacing: '0.08em', color: 'var(--color-xama-muted)', textTransform: 'uppercase' }}>
-                Entre Temporadas
-              </span>
-            </div>
+          <div className="dash-section">
+            <SectionHead label="Entre Temporadas" icon="sparkles" tone="muted"/>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {/* Card do último championship group */}
@@ -1129,18 +1129,8 @@ export default function Dashboard() {
 
         {/* ── SEÇÃO 2 — ABRINDO EM BREVE (preview) ── */}
         {previewStages.length > 0 && (
-          <div style={{ marginBottom: '48px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px' }}>
-              <span style={{ fontSize: '20px' }}>🔓</span>
-              <span style={{ fontSize: '19px', fontWeight: 700, letterSpacing: '0.08em', color: 'var(--color-xama-orange)', textTransform: 'uppercase' }}>
-                Abrindo em Breve
-              </span>
-              <span style={{
-                fontSize: '16px', fontWeight: 700, padding: '2px 10px',
-                borderRadius: '20px', background: 'rgba(249,115,22,0.15)',
-                color: 'var(--color-xama-orange)', fontFamily: 'JetBrains Mono, monospace',
-              }}>{previewStages.length}</span>
-            </div>
+          <div className="dash-section">
+            <SectionHead label="Abrindo em Breve" icon="clock" tone="muted" count={previewStages.length}/>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {previewStages.map(s => {
                 const champ = champMap[s.id]
@@ -1204,7 +1194,8 @@ export default function Dashboard() {
         {(closedChampGroupsList.length > 0 || closedStages.length > 0) && (
           <CollapseSection
             title="Aguardando Abertura"
-            icon="📅"
+            icon="calendar"
+            tone="muted"
             count={closedChampGroupsList.length + closedStages.length}
             defaultOpen={true}
           >
@@ -1254,7 +1245,7 @@ export default function Dashboard() {
 
         {/* ── SEÇÃO 5 — RESULTADOS ── */}
         {pureLockedStages.length > 0 && (
-          <CollapseSection title="Resultados" icon="📊" count={pureLockedStages.length} defaultOpen={isOffseason}>
+          <CollapseSection title="Resultados" icon="bar-chart" tone="gold" count={pureLockedStages.length} defaultOpen={isOffseason}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {pureLockedStages.map(s => {
                 const lineup = myLineups[s.id]
