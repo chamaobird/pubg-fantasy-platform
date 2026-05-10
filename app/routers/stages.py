@@ -191,6 +191,9 @@ class PlayerStatOut(BaseModel):
     pts_by_day: list[dict]  # [{"day": 1, "pts": 42.5}, ...]
     aliases: list[str] = []
 
+    # Composição do preço — preenchida para exibição no modal
+    price_components: Optional[dict] = None
+
     model_config = {"from_attributes": True}
 
 
@@ -635,6 +638,9 @@ def get_player_stats(
     for row in alias_rows:
         alias_map.setdefault(row.person_id, []).append(row.alias)
 
+    # Composição do preço para exibição no modal
+    breakdown_map = get_pricing_breakdown_batch(list(person_ids), db)
+
     is_full_stage = match_id is None and stage_day_id is None
 
     result = []
@@ -671,6 +677,10 @@ def get_player_stats(
             fantasy_cost=cost_map.get(person_id),
             pts_by_day=pts_by_day,
             aliases=alias_map.get(person_id, []),
+            price_components=(
+                {**breakdown_map[person_id], "final_price": cost_map.get(person_id)}
+                if person_id in breakdown_map else None
+            ),
         ))
 
     result.sort(key=lambda x: x.total_xama_points, reverse=True)

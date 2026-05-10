@@ -223,12 +223,25 @@ export default function TournamentLeaderboard({
 
   // ── Highlights do dia ───────────────────────────────────────────────────
   useEffect(() => {
-    // Só busca quando exactamente um stage está selecionado (não __champ__)
-    if (selectedKeys.has('__champ__') || selectedKeys.size !== 1) { setHighlights(null); return }
-    const sid = Number([...selectedKeys][0].replace('stage_', ''))
-    const stage = siblingStages.find(s => s.id === sid)
-    if (!stage || !stage.stage_days?.length) { setHighlights(null); return }
-    const sdid = stage.stage_days[0].id
+    let sid, sdid
+
+    if (selectedKeys.size === 1 && !selectedKeys.has('__champ__')) {
+      // Dia único selecionado
+      sid = Number([...selectedKeys][0].replace('stage_', ''))
+      const stage = siblingStages.find(s => s.id === sid)
+      if (!stage?.stage_days?.length) { setHighlights(null); return }
+      sdid = stage.stage_days[0].id
+    } else if (selectedKeys.has('__champ__') && siblingStages.length > 0) {
+      // Total: usa o último stage com stage_days (mais recente)
+      const stagesWithDays = siblingStages.filter(s => s.stage_days?.length > 0)
+      if (!stagesWithDays.length) { setHighlights(null); return }
+      const last = stagesWithDays[stagesWithDays.length - 1]
+      sid = last.id
+      sdid = last.stage_days[0].id
+    } else {
+      setHighlights(null); return
+    }
+
     fetch(`${API_BASE_URL}/stages/${sid}/days/${sdid}/highlights`)
       .then(r => r.ok ? r.json() : null)
       .then(d => setHighlights(d?.top_user || d?.most_captain || d?.best_player ? d : null))
@@ -535,8 +548,22 @@ export default function TournamentLeaderboard({
               borderBottom: '1px solid var(--color-xama-border)',
               fontFamily: "'JetBrains Mono', monospace",
               background: 'rgba(240,192,64,0.04)',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             }}>
-              Destaques do dia
+              <span>Destaques do dia</span>
+              {(() => {
+                const sdid = highlights.stage_day_id
+                for (const s of siblingStages) {
+                  for (const d of (s.stage_days || [])) {
+                    if (d.id === sdid) return (
+                      <span style={{ fontWeight: 400, color: 'var(--color-xama-muted)', textTransform: 'none', letterSpacing: 0 }}>
+                        {s.name}
+                      </span>
+                    )
+                  }
+                }
+                return null
+              })()}
             </div>
             <div style={{
               display: 'grid',

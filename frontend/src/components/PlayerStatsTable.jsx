@@ -330,6 +330,8 @@ export default function PlayerStatsTable({
                             person_id: p.person_id,
                             person_name: playerName,
                             team_name: teamTag,
+                            price_components: p.price_components ?? null,
+                            fantasy_cost: p.fantasy_cost ?? null,
                           })}
                           style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-xama-text)', cursor: 'pointer', borderBottom: '1px dashed rgba(249,115,22,0.4)', paddingBottom: '1px' }}
                           title="Ver histórico de partidas"
@@ -385,6 +387,7 @@ export default function PlayerStatsTable({
       {/* Modal de histórico */}
       {historyPlayer && (
         <PlayerHistoryModal
+          player={historyPlayer}
           personId={historyPlayer.person_id}
           personName={historyPlayer.person_name}
           teamName={historyPlayer.team_name}
