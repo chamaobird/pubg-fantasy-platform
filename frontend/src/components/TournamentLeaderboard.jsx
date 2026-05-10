@@ -225,19 +225,24 @@ export default function TournamentLeaderboard({
   useEffect(() => {
     let sid, sdid
 
+    const getLastDayId = (stage) => {
+      if (!stage?.stage_days?.length) return null
+      // stage_days ordenados por day_number ASC — o último é o mais recente
+      return stage.stage_days[stage.stage_days.length - 1].id
+    }
+
     if (selectedKeys.size === 1 && !selectedKeys.has('__champ__')) {
       // Dia único selecionado
       sid = Number([...selectedKeys][0].replace('stage_', ''))
       const stage = siblingStages.find(s => s.id === sid)
-      if (!stage?.stage_days?.length) { setHighlights(null); return }
-      sdid = stage.stage_days[0].id
-    } else if (selectedKeys.has('__champ__') && siblingStages.length > 0) {
-      // Total: usa o último stage com stage_days (mais recente)
-      const stagesWithDays = siblingStages.filter(s => s.stage_days?.length > 0)
-      if (!stagesWithDays.length) { setHighlights(null); return }
-      const last = stagesWithDays[stagesWithDays.length - 1]
-      sid = last.id
-      sdid = last.stage_days[0].id
+      sdid = getLastDayId(stage)
+      if (!sdid) { setHighlights(null); return }
+    } else if (selectedKeys.has('__champ__') && stageId) {
+      // Total: usa o stage atual (o que o usuário está visualizando)
+      sid = Number(stageId)
+      const stage = siblingStages.find(s => s.id === sid)
+      sdid = getLastDayId(stage)
+      if (!sdid) { setHighlights(null); return }
     } else {
       setHighlights(null); return
     }
