@@ -933,6 +933,7 @@ export default function LineupBuilder({
                               person_name: formatPlayerName(p.person_name, p.team_name),
                               team_name: playerTag,
                               before_date: stageDays.find(d => d.id === activeStageDayId)?.lineup_close_at || null,
+                              price_components: p.price_components,
                             })}
                             style={{ cursor: 'pointer', borderBottom: '1px dashed rgba(249,115,22,0.4)', paddingBottom: '1px' }}
                             title="Ver histórico de partidas"
