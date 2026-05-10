@@ -80,10 +80,12 @@ export default function PriceBreakdown({ player, className = '' }) {
   const [expanded, setExpanded] = useState(false)
   const bd = calcBreakdown(player)
 
-  const avgKills    = parseFloat(player.kills_avg    || player.avg_kills    || 0)
-  const avgDamage   = parseFloat(player.damage_avg   || player.avg_damage   || 0)
-  const avgPlace    = parseFloat(player.placement_avg || player.avg_placement || TOTAL_TEAMS)
-  const avgSurvival = parseFloat(player.survival_time_avg || player.avg_survival_minutes || 0)
+  // Médias para os rótulos de fórmula — prioriza as vindas do backend (avg_* em price_components)
+  const _pc = player.price_components || player.components
+  const avgKills    = parseFloat(_pc?.avg_kills    || player.kills_avg    || player.avg_kills    || 0)
+  const avgDamage   = parseFloat(_pc?.avg_damage   || player.damage_avg   || player.avg_damage   || 0)
+  const avgPlace    = parseFloat(_pc?.avg_placement || player.placement_avg || player.avg_placement || TOTAL_TEAMS)
+  const avgSurvival = parseFloat(_pc?.avg_survival_mins || player.survival_time_avg || player.avg_survival_minutes || 0)
 
   const rows = [
     {

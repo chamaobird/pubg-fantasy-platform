@@ -1017,6 +1017,7 @@ export default function LineupBuilder({
 
       {historyPlayer && (
         <PlayerHistoryModal
+          player={historyPlayer}
           personId={historyPlayer.person_id}
           personName={historyPlayer.person_name}
           teamName={historyPlayer.team_name}

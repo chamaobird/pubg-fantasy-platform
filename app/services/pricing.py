@@ -25,10 +25,10 @@ from __future__ import annotations
 
 import logging
 import math
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from sqlalchemy import func
+from sqlalchemy import case as sa_case, func
 from sqlalchemy.orm import Session
 
 from app.models.championship import Championship
@@ -266,6 +266,109 @@ def calculate_stage_pricing(
         stage_id, updated, skipped, newcomers,
     )
     return {"updated": updated, "skipped": skipped, "newcomers": newcomers}
+
+
+# ── Constantes de exibição (espelham PriceBreakdown.jsx) ─────────────────────
+_DISP_KILL_WEIGHT      = 2.5
+_DISP_DAMAGE_WEIGHT    = 1.8   # sobre (damage / 100)
+_DISP_SURVIVAL_WEIGHT  = 1.2   # por minuto
+_DISP_PLACEMENT_WEIGHT = 3.0   # sobre placement_score 0–10
+_DISP_BASE_PRICE       = 5.0
+_DISP_SCORE_MULTIPLIER = 0.5
+_DISP_TOTAL_TEAMS      = 16
+_DISP_RECENT_DAYS      = 45    # "fase recente" = partida nos últimos N dias
+
+
+def _disp_placement_score(avg_placement: float, total_teams: int = _DISP_TOTAL_TEAMS) -> float:
+    if total_teams <= 1:
+        return 10.0
+    return max(0.0, ((total_teams - avg_placement) / (total_teams - 1)) * 10.0)
+
+
+def get_pricing_breakdown_batch(
+    person_ids: list[int],
+    db: Session,
+    now: Optional[datetime] = None,
+) -> dict[int, dict]:
+    """
+    Retorna price_components por person_id para exibição no modal de jogador.
+
+    Consulta as partidas dentro da janela de pricing (MAX_DAYS) e calcula:
+    - Médias de kills/damage/placement/survival (para exibição da fórmula)
+    - games_considered: partidas usadas no pricing
+    - had_recent_phase: houve partida nos últimos _DISP_RECENT_DAYS dias
+    - had_other_phases: partidas de mais de um championship
+
+    O campo final_price é deixado como None; o chamador deve preencher
+    com roster.effective_cost.
+    """
+    if not person_ids:
+        return {}
+
+    if now is None:
+        now = datetime.now(timezone.utc)
+
+    cutoff       = now - timedelta(days=MAX_DAYS)
+    recent_cutoff = now - timedelta(days=_DISP_RECENT_DAYS)
+
+    rows = (
+        db.query(
+            MatchStat.person_id,
+            func.count(MatchStat.id).label("valid_count"),
+            func.avg(MatchStat.kills).label("avg_kills"),
+            func.avg(MatchStat.damage).label("avg_damage"),
+            func.avg(MatchStat.placement).label("avg_placement"),
+            func.avg(MatchStat.survival_time / 60.0).label("avg_survival_mins"),
+            func.max(
+                sa_case((Match.played_at >= recent_cutoff, 1), else_=0)
+            ).label("had_recent"),
+            func.count(func.distinct(Stage.championship_id)).label("champ_count"),
+        )
+        .join(Match, MatchStat.match_id == Match.id)
+        .join(StageDay, Match.stage_day_id == StageDay.id)
+        .join(Stage, StageDay.stage_id == Stage.id)
+        .filter(
+            MatchStat.person_id.in_(person_ids),
+            MatchStat.xama_points.isnot(None),
+            Match.played_at >= cutoff,
+        )
+        .group_by(MatchStat.person_id)
+        .all()
+    )
+
+    result: dict[int, dict] = {}
+    for row in rows:
+        avg_kills         = float(row.avg_kills or 0)
+        avg_damage        = float(row.avg_damage or 0)
+        avg_placement     = float(row.avg_placement or _DISP_TOTAL_TEAMS)
+        avg_survival_mins = float(row.avg_survival_mins or 0)
+
+        kill_c     = round(avg_kills * _DISP_KILL_WEIGHT, 2)
+        damage_c   = round((avg_damage / 100) * _DISP_DAMAGE_WEIGHT, 2)
+        survival_c = round(avg_survival_mins * _DISP_SURVIVAL_WEIGHT, 2)
+        placement_c = round(_disp_placement_score(avg_placement) * _DISP_PLACEMENT_WEIGHT, 2)
+        base_score  = round(kill_c + damage_c + survival_c + placement_c, 2)
+        raw_price   = round(_DISP_BASE_PRICE + base_score * _DISP_SCORE_MULTIPLIER, 2)
+
+        result[row.person_id] = {
+            "kill_component":      kill_c,
+            "damage_component":    damage_c,
+            "survival_component":  survival_c,
+            "placement_component": placement_c,
+            "base_score":          base_score,
+            "raw_price":           raw_price,
+            "final_price":         None,   # preenchido pelo chamador
+            "games_considered":    int(row.valid_count),
+            "had_recent_phase":    bool(row.had_recent),
+            "had_other_phases":    int(row.champ_count) > 1,
+            # médias reais — usadas para exibir as strings de fórmula no frontend
+            "avg_kills":         round(avg_kills, 1),
+            "avg_damage":        round(avg_damage, 1),
+            "avg_placement":     round(avg_placement, 1),
+            "avg_survival_mins": round(avg_survival_mins, 1),
+        }
+
+    return result
 
 
 def apply_cost_override(

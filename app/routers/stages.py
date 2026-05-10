@@ -34,6 +34,7 @@ from app.models.stage import Stage
 from app.models.stage_day import StageDay
 from app.models.user import User
 from app.models.user_stat import UserDayStat, UserStageStat
+from app.services.pricing import get_pricing_breakdown_batch
 
 router = APIRouter(prefix="/stages", tags=["Stages"])
 
@@ -127,6 +128,7 @@ class RosterPlayerOut(BaseModel):
     is_available: bool
     aliases: list[str] = []
     trend: Optional[str] = None   # "up" | "down" | "neutral" | None (dados insuficientes)
+    price_components: Optional[dict] = None  # composição do preço para exibição no frontend
 
     model_config = {"from_attributes": True}
 
@@ -414,6 +416,13 @@ def list_stage_roster(stage_id: int, db: Session = Depends(get_db)) -> list[Rost
         alias_map.setdefault(row.person_id, []).append(row.alias)
 
     trend_map = _compute_trend_map(db, person_ids)
+    breakdown_map = get_pricing_breakdown_batch(person_ids, db)
+
+    def _build_components(roster: Roster) -> Optional[dict]:
+        pc = breakdown_map.get(roster.person_id)
+        if pc is None:
+            return None
+        return {**pc, "final_price": roster.effective_cost}
 
     return [
         RosterPlayerOut(
@@ -428,6 +437,7 @@ def list_stage_roster(stage_id: int, db: Session = Depends(get_db)) -> list[Rost
             is_available=r.is_available,
             aliases=alias_map.get(r.person_id, []),
             trend=trend_map.get(r.person_id),
+            price_components=_build_components(r),
         )
         for r in rosters
     ]

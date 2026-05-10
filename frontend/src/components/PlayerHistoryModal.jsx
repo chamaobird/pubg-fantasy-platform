@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { API_BASE_URL } from '../config'
 import TeamLogo from './TeamLogo'
+import PriceBreakdown from './PriceBreakdown'
 
 const MAP_DISPLAY = {
   Baltic_Main:  { icon: '🌿', name: 'Erangel' },
@@ -155,6 +156,7 @@ function BarChart({ data }) {
 }
 
 export default function PlayerHistoryModal({
+  player,         // objeto roster completo (com price_components)
   personId,
   personName,
   teamName,
@@ -285,6 +287,17 @@ export default function PlayerHistoryModal({
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Composição do preço */}
+        {player && (
+          <div style={{
+            padding: '8px 24px 10px',
+            borderBottom: '1px solid var(--color-xama-border)',
+            background: 'var(--surface-2)',
+          }}>
+            <PriceBreakdown player={player} />
           </div>
         )}
 
