@@ -13,6 +13,7 @@ const ST = {
   fontSize: '12px', fontWeight: 700, letterSpacing: '0.12em',
   textTransform: 'uppercase', color: 'var(--color-xama-muted)', marginBottom: '16px',
 }
+const ST0 = { ...ST, marginBottom: 0 }
 
 function copyToClipboard(text) {
   if (navigator.clipboard) {
@@ -149,7 +150,7 @@ export default function LeagueDetail() {
           {/* Leaderboard */}
           <div style={CS}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-              <div style={{ ...ST, marginBottom: 0 }}>Leaderboard</div>
+              <div style={ST0}>Leaderboard</div>
               {stages.length > 0 && (
                 <select
                   value={selectedStage}

@@ -12,6 +12,8 @@ Endpoints de usuário (sem autenticação obrigatória):
   GET /stages/{stage_id}/player-stats                       → Stats dos jogadores (#074)
   GET /stages/{stage_id}/leaderboard                        → Ranking geral (#073)
   GET /stages/{stage_id}/days/{stage_day_id}/leaderboard    → Ranking do dia (#073)
+  GET /stages/{stage_id}/days/{stage_day_id}/highlights     → Destaques do dia
+  GET /stages/persons/{person_id}/price-history             → Evolução de preço
 """
 from __future__ import annotations
 
@@ -144,6 +146,15 @@ class PriceHistoryOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class PersonPriceHistoryOut(BaseModel):
+    stage_id: int
+    stage_name: str
+    roster_id: int
+    cost: float
+    source: str
+    recorded_at: datetime
+
+
 class PlayerStatOut(BaseModel):
     """
     Stats agregados de um jogador no escopo solicitado
@@ -264,6 +275,52 @@ def _resolve_team(person) -> Optional[str]:
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
+
+@router.get(
+    "/persons/{person_id}/price-history",
+    response_model=list[PersonPriceHistoryOut],
+    summary="Evolução de preço de um jogador entre stages",
+)
+def get_person_price_history(
+    person_id: int,
+    limit: int = Query(50, ge=1, le=200),
+    db: Session = Depends(get_db),
+) -> list[PersonPriceHistoryOut]:
+    """
+    Retorna o histórico de preço de um jogador (person_id) em todas as stages,
+    ordenado cronologicamente. Usado para renderizar o gráfico de evolução de preço.
+    """
+    from sqlalchemy import text as sql_text
+
+    rows = db.execute(sql_text("""
+        SELECT
+            s.id        AS stage_id,
+            s.name      AS stage_name,
+            r.id        AS roster_id,
+            rph.cost,
+            rph.source,
+            rph.recorded_at
+        FROM roster_price_history rph
+        JOIN roster r ON r.id = rph.roster_id
+        JOIN stage s ON s.id = r.stage_id
+        WHERE r.person_id = :person_id
+          AND s.is_active = true
+        ORDER BY rph.recorded_at ASC
+        LIMIT :limit
+    """), {"person_id": person_id, "limit": limit}).fetchall()
+
+    return [
+        PersonPriceHistoryOut(
+            stage_id=row.stage_id,
+            stage_name=row.stage_name,
+            roster_id=row.roster_id,
+            cost=float(row.cost),
+            source=row.source,
+            recorded_at=row.recorded_at,
+        )
+        for row in rows
+    ]
+
 
 @router.get("/", response_model=list[StageOut], summary="Listar stages ativas")
 def list_stages(
@@ -843,6 +900,131 @@ def get_day_submissions(
         )
         for idx, (lineup, user) in enumerate(rows)
     ]
+
+
+# ── Destaques do dia ──────────────────────────────────────────────────────────
+
+@router.get(
+    "/{stage_id}/days/{stage_day_id}/highlights",
+    summary="Destaques do dia: melhor manager, capitão mais escolhido, melhor jogador",
+)
+def get_day_highlights(
+    stage_id: int,
+    stage_day_id: int,
+    db: Session = Depends(get_db),
+):
+    """
+    Retorna 3 destaques para o card pós-dia:
+    - top_user:    manager com maior pontuação no dia
+    - most_captain: jogador escolhido como capitão com mais frequência
+    - best_player:  jogador com maior soma de xama_points nas partidas do dia
+    """
+    from sqlalchemy import text as sql_text
+
+    _get_stage_or_404(db, stage_id)
+    stage_day = (
+        db.query(StageDay)
+        .filter(StageDay.id == stage_day_id, StageDay.stage_id == stage_id)
+        .first()
+    )
+    if not stage_day:
+        raise HTTPException(status_code=404, detail=f"StageDay {stage_day_id} não encontrado.")
+
+    # ── 1. Top user ──────────────────────────────────────────────────────────
+    top_stat = (
+        db.query(UserDayStat)
+        .filter(UserDayStat.stage_day_id == stage_day_id)
+        .order_by(UserDayStat.points.desc())
+        .first()
+    )
+    top_user = None
+    if top_stat and top_stat.points > 0:
+        user = db.query(User).filter(User.id == top_stat.user_id).first()
+        # busca lineup do dia para listar os jogadores
+        lineup = (
+            db.query(Lineup)
+            .filter(Lineup.user_id == top_stat.user_id, Lineup.stage_day_id == stage_day_id)
+            .first()
+        )
+        players = []
+        if lineup:
+            from app.models.lineup import LineupPlayer
+            lps = (
+                db.query(LineupPlayer, Roster)
+                .join(Roster, LineupPlayer.roster_id == Roster.id)
+                .filter(LineupPlayer.lineup_id == lineup.id, LineupPlayer.slot_type == "titular")
+                .all()
+            )
+            for lp, roster in lps:
+                players.append({
+                    "person_name": roster.person_name,
+                    "team_name":   roster.team_name,
+                    "is_captain":  lp.is_captain,
+                    "points_earned": float(lp.points_earned) if lp.points_earned is not None else None,
+                })
+        top_user = {
+            "user_id":  top_stat.user_id,
+            "username": user.username if user else None,
+            "points":   float(top_stat.points),
+            "players":  players,
+        }
+
+    # ── 2. Capitão mais escolhido ─────────────────────────────────────────────
+    cap_row = db.execute(sql_text("""
+        SELECT r.id AS roster_id, r.person_name, r.team_name, COUNT(*) AS cnt
+        FROM lineup_player lp
+        JOIN lineup l  ON l.id  = lp.lineup_id
+        JOIN roster r  ON r.id  = lp.roster_id
+        WHERE l.stage_day_id = :sdid
+          AND lp.is_captain  = true
+          AND lp.slot_type   = 'titular'
+        GROUP BY r.id, r.person_name, r.team_name
+        ORDER BY cnt DESC
+        LIMIT 1
+    """), {"sdid": stage_day_id}).fetchone()
+
+    total_lineups = db.query(func.count(Lineup.id)).filter(
+        Lineup.stage_day_id == stage_day_id, Lineup.is_valid == True  # noqa: E712
+    ).scalar() or 0
+
+    most_captain = None
+    if cap_row:
+        pct = round(cap_row.cnt / total_lineups * 100) if total_lineups else 0
+        most_captain = {
+            "person_name":   cap_row.person_name,
+            "team_name":     cap_row.team_name,
+            "captain_count": cap_row.cnt,
+            "total_lineups": total_lineups,
+            "pct":           pct,
+        }
+
+    # ── 3. Melhor jogador (por pontos em partida) ─────────────────────────────
+    best_row = db.execute(sql_text("""
+        SELECT r.person_name, r.team_name, SUM(ms.xama_points) AS total_pts
+        FROM match_stat ms
+        JOIN match m ON m.id = ms.match_id
+        JOIN roster r ON r.person_id = ms.person_id AND r.stage_id = :stage_id
+        WHERE m.stage_day_id = :sdid
+          AND ms.xama_points IS NOT NULL
+        GROUP BY r.person_name, r.team_name
+        ORDER BY total_pts DESC
+        LIMIT 1
+    """), {"sdid": stage_day_id, "stage_id": stage_id}).fetchone()
+
+    best_player = None
+    if best_row:
+        best_player = {
+            "person_name": best_row.person_name,
+            "team_name":   best_row.team_name,
+            "xama_points": float(best_row.total_pts),
+        }
+
+    return {
+        "stage_day_id":  stage_day_id,
+        "top_user":      top_user,
+        "most_captain":  most_captain,
+        "best_player":   best_player,
+    }
 
 
 # ── Histórico de partidas por jogador ─────────────────────────────────────────

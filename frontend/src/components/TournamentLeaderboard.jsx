@@ -116,6 +116,8 @@ export default function TournamentLeaderboard({
   const [submissions,        setSubmissions]  = useState([])
   const [submissionsLoading, setSubLoading]   = useState(false)
 
+  const [highlights,        setHighlights]   = useState(null)
+
   useEffect(() => {
     if (stageId) track('leaderboard_viewed', { stage_id: stageId })
   }, [stageId])
@@ -218,6 +220,20 @@ export default function TournamentLeaderboard({
       .catch(() => setSubmissions([]))
       .finally(() => setSubLoading(false))
   }, [isOpen, stageId]) // eslint-disable-line
+
+  // ── Highlights do dia ───────────────────────────────────────────────────
+  useEffect(() => {
+    // Só busca quando exactamente um stage está selecionado (não __champ__)
+    if (selectedKeys.has('__champ__') || selectedKeys.size !== 1) { setHighlights(null); return }
+    const sid = Number([...selectedKeys][0].replace('stage_', ''))
+    const stage = siblingStages.find(s => s.id === sid)
+    if (!stage || !stage.stage_days?.length) { setHighlights(null); return }
+    const sdid = stage.stage_days[0].id
+    fetch(`${API_BASE_URL}/stages/${sid}/days/${sdid}/highlights`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => setHighlights(d?.top_user || d?.most_captain || d?.best_player ? d : null))
+      .catch(() => setHighlights(null))
+  }, [selectedKeys, siblingStages]) // eslint-disable-line
 
   // ── Fechar modal com Esc ────────────────────────────────────────────────
   useEffect(() => {
@@ -496,6 +512,69 @@ export default function TournamentLeaderboard({
             <div className="px-5 py-3 flex items-center justify-between" style={{ borderTop: '1px solid var(--color-xama-border)', background: '#0a0c11' }}>
               <span className="text-[11px] font-bold tracking-[0.1em] uppercase" style={{ color: 'var(--color-xama-orange)' }}>⚡ XAMA Fantasy</span>
               <span className="text-[11px]" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-muted)' }}>pontos disponíveis após o encerramento</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Destaques do dia ─────────────────────────────────────────────────── */}
+      {!showSubmissions && highlights && (
+        <div className="max-w-3xl mx-auto px-4 pt-4 pb-0">
+          <div style={{
+            borderRadius: 12, border: '1px solid var(--color-xama-border)',
+            background: 'var(--color-xama-surface)', overflow: 'hidden',
+          }}>
+            <div style={{
+              height: 2,
+              background: 'linear-gradient(90deg, var(--color-xama-gold) 0%, var(--color-xama-orange) 60%, transparent 100%)',
+            }} />
+            <div style={{
+              padding: '8px 16px',
+              fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
+              color: 'var(--color-xama-gold)',
+              borderBottom: '1px solid var(--color-xama-border)',
+              fontFamily: "'JetBrains Mono', monospace",
+              background: 'rgba(240,192,64,0.04)',
+            }}>
+              Destaques do dia
+            </div>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: `repeat(${[highlights.top_user, highlights.most_captain, highlights.best_player].filter(Boolean).length}, 1fr)`,
+              gap: 0,
+            }}>
+              {highlights.top_user && (
+                <HighlightCell
+                  icon="🏆"
+                  label="Melhor manager"
+                  title={highlights.top_user.username || highlights.top_user.user_id.slice(0, 8)}
+                  subtitle={`${highlights.top_user.points.toFixed(2)} pts`}
+                  subtitleColor="var(--color-xama-gold)"
+                  detail={highlights.top_user.players?.map(p => p.person_name?.split('_').pop() || p.person_name).join(' · ')}
+                />
+              )}
+              {highlights.most_captain && (
+                <HighlightCell
+                  icon="⭐"
+                  label="Capitão mais escolhido"
+                  title={highlights.most_captain.person_name?.split('_').pop() || highlights.most_captain.person_name}
+                  subtitle={`${highlights.most_captain.pct}% dos times`}
+                  subtitleColor="var(--color-xama-orange)"
+                  detail={highlights.most_captain.team_name}
+                  separator
+                />
+              )}
+              {highlights.best_player && (
+                <HighlightCell
+                  icon="🔥"
+                  label="Melhor jogador"
+                  title={highlights.best_player.person_name?.split('_').pop() || highlights.best_player.person_name}
+                  subtitle={`${highlights.best_player.xama_points.toFixed(1)} pts`}
+                  subtitleColor="var(--color-xama-orange)"
+                  detail={highlights.best_player.team_name}
+                  separator
+                />
+              )}
             </div>
           </div>
         </div>
@@ -902,6 +981,43 @@ function ModalLineupCard({ lineup, dayMap, multiStage }) {
           <div style={{ padding: '4px 0 6px' }}>
             <ModalPlayerRow lp={reserva} isReserve />
           </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function HighlightCell({ icon, label, title, subtitle, subtitleColor, detail, separator = false }) {
+  return (
+    <div style={{
+      padding: '12px 16px',
+      borderLeft: separator ? '1px solid var(--color-xama-border)' : 'none',
+    }}>
+      <div style={{
+        fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
+        color: 'var(--color-xama-muted)', marginBottom: 6,
+        fontFamily: "'JetBrains Mono', monospace",
+      }}>
+        {icon} {label}
+      </div>
+      <div style={{
+        fontSize: 15, fontWeight: 700, color: 'var(--color-xama-text)',
+        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+      }}>
+        {title}
+      </div>
+      <div style={{
+        fontSize: 13, fontWeight: 700, color: subtitleColor,
+        fontFamily: "'JetBrains Mono', monospace", marginTop: 2,
+      }}>
+        {subtitle}
+      </div>
+      {detail && (
+        <div style={{
+          fontSize: 10, color: 'var(--color-xama-muted)', marginTop: 3,
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+        }}>
+          {detail}
         </div>
       )}
     </div>

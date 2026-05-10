@@ -206,6 +206,19 @@ export default function AdminFaceoffs({ token }) {
     } catch (e) { setMsg('!' + e.message) }
   }
 
+  const handleBulkResolve = async () => {
+    const closedCount = faceoffs.filter(f => f.status === 'closed').length
+    if (!confirm(`Resolver automaticamente ${closedCount} faceoff(s) fechado(s) pelo standing do campeonato?`)) return
+    setSaving(true); setMsg('')
+    try {
+      const res = await call('POST', `/admin/faceoffs/bulk-resolve?championship_id=${champId}`)
+      const skippedMsg = res.skipped?.length > 0 ? ` · ${res.skipped.length} não resolvidos` : ''
+      setMsg(`${res.resolved?.length} faceoffs resolvidos${skippedMsg}`)
+      await loadFaceoffs()
+    } catch (e) { setMsg('!' + e.message) }
+    finally { setSaving(false) }
+  }
+
   const handleDelete = async (f) => {
     if (!confirm(`Deletar "${f.team_a_name} vs ${f.team_b_name}"?`)) return
     try {
@@ -416,11 +429,24 @@ export default function AdminFaceoffs({ token }) {
       {/* Lista de faceoffs do campeonato selecionado */}
       {champId && (
         <div style={{ background: 'rgba(18,21,28,0.9)', border: '1px solid var(--color-xama-border)', borderRadius: 12, overflow: 'hidden' }}>
-          <div style={{ padding: '10px 20px', borderBottom: '1px solid var(--color-xama-border)', display: 'flex', gap: 16, fontSize: 11, color: 'var(--color-xama-muted)', flexWrap: 'wrap' }}>
+          <div style={{ padding: '10px 20px', borderBottom: '1px solid var(--color-xama-border)', display: 'flex', alignItems: 'center', gap: 16, fontSize: 11, color: 'var(--color-xama-muted)', flexWrap: 'wrap' }}>
             <span><strong style={{ color: 'var(--color-xama-text)' }}>→</strong> Avança status</span>
             <span><strong style={{ color: '#a5b4fc' }}>←</strong> Reverte status</span>
             <span><strong style={{ color: 'var(--color-xama-green)' }}>⚡</strong> Resolve pelo standing</span>
             <span><strong>✏</strong> Edita nomes/seeds/winner</span>
+            {faceoffs.some(f => f.status === 'closed') && (
+              <button
+                onClick={handleBulkResolve}
+                disabled={saving}
+                style={{
+                  marginLeft: 'auto', fontSize: 11, padding: '4px 12px', borderRadius: 6, cursor: 'pointer',
+                  background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.35)',
+                  color: 'var(--color-xama-green)', fontWeight: 700,
+                }}
+              >
+                ⚡ Auto-resolver todos ({faceoffs.filter(f => f.status === 'closed').length})
+              </button>
+            )}
           </div>
           {loading ? (
             <div style={{ padding: 40, textAlign: 'center', color: 'var(--color-xama-muted)' }}>Carregando...</div>

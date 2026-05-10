@@ -159,6 +159,17 @@ export default function LineupBuilder({
   const reserveEligible = reservePlayer == null || reserveCost <= minStarterCost
   const isOverBudget    = totalCost > BUDGET_CAP
 
+  // ── Derived — sugestão de capitão ──────────────────────────────────────
+  const suggestedCaptainId = useMemo(() => {
+    if (selectedPlayers.length === 0 || isLocked) return null
+    let bestId = null, bestPpm = -1
+    for (const p of selectedPlayers) {
+      const ppm = priorStats[p.person_id]?.pts_per_match ?? -1
+      if (ppm > bestPpm) { bestPpm = ppm; bestId = p.id }
+    }
+    return bestId
+  }, [selectedPlayers, priorStats, isLocked])
+
   // ── Derived — conflict detection ────────────────────────────────────────
   const conflictedTeams = useMemo(() => {
     const teams = new Set()
@@ -428,6 +439,54 @@ export default function LineupBuilder({
 
   const isReserveError = saveError && saveError.toLowerCase().includes('reserva')
 
+  function handleQuickFill() {
+    if (isLocked) return
+    const available = players.filter(p => Number(p.effective_cost) > 0)
+    // Sort by pts_per_match / cost efficiency (desc), fallback to pts_per_match
+    const ranked = [...available].sort((a, b) => {
+      const ea = (priorStats[a.person_id]?.pts_per_match ?? 0) / (Number(a.effective_cost) || 1)
+      const eb = (priorStats[b.person_id]?.pts_per_match ?? 0) / (Number(b.effective_cost) || 1)
+      return eb - ea
+    })
+
+    // Greedy fill: pick best 4 titulares within budget
+    const titulares = []
+    let spent = 0
+    for (const p of ranked) {
+      if (titulares.length >= 4) break
+      const cost = Number(p.effective_cost)
+      if (spent + cost <= BUDGET_CAP) {
+        titulares.push(p)
+        spent += cost
+      }
+    }
+    if (titulares.length < 4) return  // not enough players within budget
+
+    const minCost = Math.min(...titulares.map(p => Number(p.effective_cost)))
+    const titularIds = new Set(titulares.map(p => p.id))
+
+    // Pick cheapest reserve (must be cheaper than cheapest titular, not already selected)
+    const reserveCandidates = ranked.filter(p =>
+      !titularIds.has(p.id) && Number(p.effective_cost) <= minCost
+    )
+    const reserve = reserveCandidates[reserveCandidates.length - 1] // least efficient but cheapest
+      ?? available.filter(p => !titularIds.has(p.id) && Number(p.effective_cost) <= minCost)
+          .sort((a, b) => Number(a.effective_cost) - Number(b.effective_cost))[0]
+
+    // Pick captain = highest pts_per_match among titulares
+    const captain = titulares.reduce((best, p) => {
+      const ppm = priorStats[p.person_id]?.pts_per_match ?? -1
+      const bpm = priorStats[best.person_id]?.pts_per_match ?? -1
+      return ppm > bpm ? p : best
+    })
+
+    setSaveError('')
+    setSaveSuccess(null)
+    setSelectedPlayers(titulares)
+    if (reserve) setReservePlayer(reserve)
+    setCaptainId(captain.id)
+  }
+
   const budgetUsedPct  = Math.min((totalCost / BUDGET_CAP) * 100, 100)
   const budgetBarColor = isOverBudget ? '#f87171' : totalCost / BUDGET_CAP > 0.85
     ? 'var(--color-xama-gold)' : 'var(--color-xama-orange)'
@@ -643,6 +702,26 @@ export default function LineupBuilder({
             </div>
           </div>
 
+          {/* Quick Fill */}
+          {!isLocked && selectedPlayers.length < 4 && players.length > 0 && (
+            <div style={{ padding: '4px 16px 0', textAlign: 'right' }}>
+              <button
+                onClick={handleQuickFill}
+                title="Preenche automaticamente o melhor lineup dentro do budget"
+                style={{
+                  background: 'none', border: 'none', padding: '2px 0',
+                  fontSize: 12, fontWeight: 600,
+                  color: 'var(--color-xama-muted)', cursor: 'pointer',
+                  textDecoration: 'underline', textUnderlineOffset: '3px',
+                }}
+                onMouseEnter={e => e.currentTarget.style.color = 'var(--color-xama-orange)'}
+                onMouseLeave={e => e.currentTarget.style.color = 'var(--color-xama-muted)'}
+              >
+                ⚡ preencher automaticamente
+              </button>
+            </div>
+          )}
+
           {/* Mensagens de erro / sucesso */}
           {(saveError || saveSuccess) && (
             <div style={{ padding: '6px 16px 0' }}>
@@ -656,6 +735,7 @@ export default function LineupBuilder({
             {Array.from({ length: 4 }).map((_, i) => {
               const p = selectedPlayers[i]
               const isCap = p && p.id === captainId
+              const isRecCap = p && !isCap && p.id === suggestedCaptainId
               const isCheapest = p && isReserveError && p.id === cheapestStarterId
               const tag = p ? formatTeamTag(p.person_name, p.team_name) : null
               return p ? (
@@ -690,8 +770,11 @@ export default function LineupBuilder({
                       <button
                         className="xlb-captain-btn"
                         onClick={() => toggleCaptain(p.id)}
-                        title={isCap ? 'Remover capitão' : 'Definir como capitão'}>
-                        <span style={{ color: isCap ? 'var(--color-xama-gold)' : 'var(--color-xama-muted)', lineHeight: 1, fontSize: 16 }}>{isCap ? '⭐' : '☆'}</span>
+                        title={isCap ? 'Remover capitão' : isRecCap ? 'Recomendado ★ — melhor pts/g do lineup' : 'Definir como capitão'}>
+                        {isRecCap && (
+                          <span style={{ fontSize: 8, color: 'rgba(250,204,21,0.85)', fontWeight: 800, letterSpacing: '0.05em', marginRight: 2 }}>REC</span>
+                        )}
+                        <span style={{ color: isCap ? 'var(--color-xama-gold)' : isRecCap ? 'rgba(250,204,21,0.65)' : 'var(--color-xama-muted)', lineHeight: 1, fontSize: 16 }}>{isCap ? '⭐' : '☆'}</span>
                       </button>
                     </div>
                   </div>
@@ -910,6 +993,7 @@ export default function LineupBuilder({
                     const isSelected     = selectedPlayers.some(sp => sp.id === p.id) || reservePlayer?.id === p.id
                     const isConflicted   = !isSelected && conflictedTeams.has(playerTag) && conflictedTeams.size > 0
                     const isCap          = p.id === captainId
+                    const isRecCaptain   = !isCap && p.id === suggestedCaptainId
                     // Em preview: todos os botões de ação ficam desabilitados
                     const titularDisabled     = isLocked || isConflicted || (selectedPlayers.length >= 4 && !isSelected)
                     const btnDisabled         = isLocked || isConflicted
@@ -942,6 +1026,9 @@ export default function LineupBuilder({
                           </span>
                           {isCap && (
                             <span style={{ marginLeft: 4, fontSize: 9, color: 'var(--color-xama-gold)', fontWeight: 700 }}>⭐CAP</span>
+                          )}
+                          {isRecCaptain && (
+                            <span title="Recomendado como capitão — melhor pts/g do lineup" style={{ marginLeft: 4, fontSize: 9, color: 'rgba(250,204,21,0.75)', fontWeight: 700 }}>★REC</span>
                           )}
                           {p.newcomer_to_tier && (
                             <span style={{ marginLeft: 4, fontSize: 9, color: '#60a5fa', fontWeight: 700 }}>NEW</span>

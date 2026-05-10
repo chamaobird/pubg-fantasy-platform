@@ -249,6 +249,67 @@ def resolve_faceoff(
     return result
 
 
+@router.post("/bulk-resolve")
+def bulk_resolve_faceoffs(
+    championship_id: int = Query(..., description="ID do campeonato"),
+    db: Session = Depends(get_db),
+    _admin: User = Depends(require_admin),
+):
+    """
+    Resolve automaticamente todos os faceoffs com status 'closed' de um campeonato,
+    usando o standing oficial (pts sobrevivência + kills) acumulado nas stages do campeonato.
+    """
+    faceoffs = (
+        db.query(Faceoff)
+        .filter(Faceoff.championship_id == championship_id, Faceoff.status == "closed")
+        .all()
+    )
+    if not faceoffs:
+        raise HTTPException(status_code=404, detail="Nenhum faceoff com status 'closed' encontrado para este campeonato")
+
+    standings = calculate_team_tournament_standings(championship_id, db)
+    if not standings:
+        raise HTTPException(status_code=422, detail="Nenhum dado de partida encontrado no campeonato para calcular standings")
+
+    rank_map = {s["team_name"]: s["rank"] for s in standings}
+
+    resolved = []
+    skipped = []
+    for f in faceoffs:
+        rank_a = rank_map.get(f.team_a_name)
+        rank_b = rank_map.get(f.team_b_name)
+
+        if rank_a is None and rank_b is None:
+            skipped.append({"id": f.id, "reason": f"Nenhum dos times encontrado nos standings ({f.team_a_name}, {f.team_b_name})"})
+            continue
+
+        if rank_a is None:
+            winner = f.team_b_name
+        elif rank_b is None:
+            winner = f.team_a_name
+        elif rank_a < rank_b:
+            winner = f.team_a_name
+        elif rank_b < rank_a:
+            winner = f.team_b_name
+        else:
+            winner = None  # empate
+
+        f.winner_team_name = winner
+        f.status = "resolved"
+        resolved.append({"id": f.id, "winner": winner or "empate"})
+
+    db.commit()
+
+    return {
+        "resolved": resolved,
+        "skipped": skipped,
+        "standings": [
+            {"rank": s["rank"], "team_name": s["team_name"], "total_pts": s["total_pts"]}
+            for s in standings
+        ],
+    }
+
+
 @router.delete("/{faceoff_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_faceoff(
     faceoff_id: int,

@@ -155,6 +155,110 @@ function BarChart({ data }) {
   )
 }
 
+function PriceLineChart({ data }) {
+  const [hovered, setHovered] = useState(null)
+  if (!data || data.length === 0) return null
+
+  const CHART_W  = 600
+  const CHART_H  = 100
+  const PAD_L    = 36
+  const PAD_R    = 16
+  const PAD_T    = 14
+  const PAD_B    = 36
+  const W        = CHART_W - PAD_L - PAD_R
+  const H        = CHART_H - PAD_T - PAD_B
+
+  const prices   = data.map(d => d.cost)
+  const minP     = Math.min(...prices)
+  const maxP     = Math.max(...prices)
+  const range    = maxP - minP || 1
+
+  const xOf = i  => PAD_L + (i / Math.max(data.length - 1, 1)) * W
+  const yOf = v  => PAD_T + H - ((v - minP) / range) * H
+
+  const pts = data.map((d, i) => `${xOf(i).toFixed(1)},${yOf(d.cost).toFixed(1)}`).join(' ')
+
+  const sourceColor = s => s === 'manual' ? '#a78bfa' : s === 'new_player' ? '#4ade80' : '#f97316'
+
+  return (
+    <div style={{ overflowX: 'auto' }}>
+      <svg width={CHART_W} height={CHART_H} style={{ display: 'block' }}>
+        {/* Grid lines */}
+        {[0, 0.5, 1].map(t => {
+          const y = PAD_T + H - t * H
+          const val = minP + t * range
+          return (
+            <g key={t}>
+              <line x1={PAD_L} y1={y} x2={PAD_L + W} y2={y} stroke="#1e2330" strokeWidth={1} />
+              <text x={PAD_L - 4} y={y + 4} textAnchor="end" fontSize={9}
+                fill="#4b5563" fontFamily="JetBrains Mono, monospace">
+                {val.toFixed(0)}
+              </text>
+            </g>
+          )
+        })}
+
+        {/* Line */}
+        <polyline points={pts} fill="none" stroke="#f97316" strokeWidth={2} strokeLinejoin="round" />
+
+        {/* Dots + labels */}
+        {data.map((d, i) => {
+          const cx   = xOf(i)
+          const cy   = yOf(d.cost)
+          const isHov = hovered === i
+          const sc   = sourceColor(d.source)
+          const stageName = d.stage_name?.replace(/playoffs?/i, 'PO').replace(/qualif\w+/i, 'Q') ?? ''
+          const shortLabel = stageName.length > 8 ? stageName.slice(0, 7) + '…' : stageName
+
+          // tooltip position
+          const tipW = 130
+          const tipH = 52
+          const tipX = cx + tipW + 4 > CHART_W ? cx - tipW - 4 : cx + 4
+          const tipY = cy - tipH - 4 < 0 ? cy + 8 : cy - tipH - 4
+
+          return (
+            <g key={d.stage_id ?? i}
+              onMouseEnter={() => setHovered(i)}
+              onMouseLeave={() => setHovered(null)}
+              style={{ cursor: 'default' }}
+            >
+              {/* hover hit area */}
+              <rect x={cx - 14} y={0} width={28} height={CHART_H} fill="transparent" />
+
+              <circle cx={cx} cy={cy} r={isHov ? 5 : 3.5} fill={sc} stroke="#0a0c11" strokeWidth={1.5} />
+
+              {/* X-axis label */}
+              <text x={cx} y={CHART_H - 4} textAnchor="middle" fontSize={8}
+                fill={isHov ? '#dce1ea' : '#6b7280'} fontFamily="JetBrains Mono, monospace">
+                {shortLabel}
+              </text>
+
+              {isHov && (
+                <g>
+                  <rect x={tipX} y={tipY} width={tipW} height={tipH}
+                    rx={5} fill="#0f1219" stroke="#1e2330" strokeWidth={1} />
+                  <text x={tipX + 8} y={tipY + 15} fontSize={10} fill="#dce1ea"
+                    fontFamily="JetBrains Mono, monospace" fontWeight={700}>
+                    {d.cost} pts
+                  </text>
+                  <text x={tipX + 8} y={tipY + 28} fontSize={9} fill={sc}
+                    fontFamily="JetBrains Mono, monospace">
+                    {d.source ?? '—'}
+                  </text>
+                  <text x={tipX + 8} y={tipY + 41} fontSize={8} fill="#6b7280"
+                    fontFamily="JetBrains Mono, monospace">
+                    {d.stage_name}
+                  </text>
+                </g>
+              )}
+            </g>
+          )
+        })}
+      </svg>
+    </div>
+  )
+}
+
 export default function PlayerHistoryModal({
   player,         // objeto roster completo (com price_components)
   personId,
@@ -164,10 +268,11 @@ export default function PlayerHistoryModal({
   beforeDate,     // ISO string — mostrar histórico até esta data
   onClose,
 }) {
-  const [data, setData]       = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError]     = useState(null)
-  const overlayRef            = useRef(null)
+  const [data, setData]             = useState([])
+  const [loading, setLoading]       = useState(true)
+  const [error, setError]           = useState(null)
+  const [priceHistory, setPriceHistory] = useState([])
+  const overlayRef                  = useRef(null)
 
   useEffect(() => {
     if (!personId) return
@@ -180,6 +285,14 @@ export default function PlayerHistoryModal({
       .then(d => { setData([...d].reverse()); setLoading(false) })
       .catch(e => { setError(e.message); setLoading(false) })
   }, [personId, beforeDate])
+
+  useEffect(() => {
+    if (!personId) return
+    fetch(`${API_BASE_URL}/stages/persons/${personId}/price-history?limit=20`)
+      .then(r => r.ok ? r.json() : [])
+      .then(d => setPriceHistory(Array.isArray(d) ? d : []))
+      .catch(() => setPriceHistory([]))
+  }, [personId])
 
   useEffect(() => {
     const h = (e) => { if (e.key === 'Escape') onClose() }
@@ -319,6 +432,19 @@ export default function PlayerHistoryModal({
             </div>
           )}
           {!loading && !error && data.length > 0 && <BarChart data={data} />}
+
+          {priceHistory.length > 0 && (
+            <div style={{ marginTop: '24px' }}>
+              <div style={{
+                fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em',
+                textTransform: 'uppercase', color: 'var(--color-xama-muted)',
+                marginBottom: '10px',
+              }}>
+                Evolução de Preço
+              </div>
+              <PriceLineChart data={priceHistory} />
+            </div>
+          )}
         </div>
       </div>
     </div>
