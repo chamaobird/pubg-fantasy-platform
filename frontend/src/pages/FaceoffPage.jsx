@@ -196,12 +196,12 @@ export default function FaceoffPage({ token, championshipId: championshipIdProp 
         </div>
       )}
 
-      {/* Grid de cards */}
+      {/* Grid de cards — 2 colunas para dar destaque aos times */}
       {!loading && faceoffs.length > 0 && (
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-          gap: 16,
+          gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: 20,
         }}>
           {faceoffs.map(f => (
             <FaceoffCard

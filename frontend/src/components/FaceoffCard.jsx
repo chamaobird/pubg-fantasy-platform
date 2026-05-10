@@ -123,7 +123,7 @@ export default function FaceoffCard({ faceoff, token, onVoted }) {
       </div>
 
       {/* Confronto */}
-      <div style={{ display: 'flex', gap: 10, padding: '14px 14px 12px', alignItems: 'stretch' }}>
+      <div style={{ display: 'flex', gap: 10, padding: '20px 16px 16px', alignItems: 'stretch' }}>
         {/* Time A */}
         <div
           style={sideStyle(isWinnerA, isLoserA, votedA, '#f97316')}
@@ -146,24 +146,25 @@ export default function FaceoffCard({ faceoff, token, onVoted }) {
           {isWinnerA && (
             <span style={{ position: 'absolute', top: 8, right: 10, fontSize: 18 }}>🏆</span>
           )}
-          <TeamLogo teamName={tagA} size={68} />
+          <TeamLogo teamName={tagA} size={96} />
           <div style={{ textAlign: 'center' }}>
             <div style={{
-              fontSize: 17, fontWeight: 800, color: 'var(--color-xama-text)',
-              lineHeight: 1.2, letterSpacing: '0.02em',
+              fontSize: 22, fontWeight: 900, color: 'var(--color-xama-text)',
+              lineHeight: 1.2, letterSpacing: '0.01em',
             }}>
               {tagA}
             </div>
-            <div style={{ fontSize: 10, color: 'var(--color-xama-muted)', marginTop: 3, lineHeight: 1.3 }}>
+            <div style={{ fontSize: 12, color: 'var(--color-xama-muted)', marginTop: 4, lineHeight: 1.3 }}>
               {team_a_name}
             </div>
           </div>
-          {canVote && !votedA && (
+          {canVote && !my_vote && (
             <div style={{
-              fontSize: 11, fontWeight: 700, color: '#f97316',
-              padding: '4px 12px', borderRadius: 20,
+              fontSize: 12, fontWeight: 700, color: '#f97316',
+              padding: '6px 16px', borderRadius: 20,
               background: 'rgba(249,115,22,0.1)',
               border: '1px solid rgba(249,115,22,0.25)',
+              cursor: 'pointer',
             }}>
               {voting ? '...' : 'Votar'}
             </div>
@@ -205,24 +206,25 @@ export default function FaceoffCard({ faceoff, token, onVoted }) {
           {isWinnerB && (
             <span style={{ position: 'absolute', top: 8, left: 10, fontSize: 18 }}>🏆</span>
           )}
-          <TeamLogo teamName={tagB} size={68} />
+          <TeamLogo teamName={tagB} size={96} />
           <div style={{ textAlign: 'center' }}>
             <div style={{
-              fontSize: 17, fontWeight: 800, color: 'var(--color-xama-text)',
-              lineHeight: 1.2, letterSpacing: '0.02em',
+              fontSize: 22, fontWeight: 900, color: 'var(--color-xama-text)',
+              lineHeight: 1.2, letterSpacing: '0.01em',
             }}>
               {tagB}
             </div>
-            <div style={{ fontSize: 10, color: 'var(--color-xama-muted)', marginTop: 3, lineHeight: 1.3 }}>
+            <div style={{ fontSize: 12, color: 'var(--color-xama-muted)', marginTop: 4, lineHeight: 1.3 }}>
               {team_b_name}
             </div>
           </div>
-          {canVote && !votedB && (
+          {canVote && !my_vote && (
             <div style={{
-              fontSize: 11, fontWeight: 700, color: '#818cf8',
-              padding: '4px 12px', borderRadius: 20,
+              fontSize: 12, fontWeight: 700, color: '#818cf8',
+              padding: '6px 16px', borderRadius: 20,
               background: 'rgba(99,102,241,0.1)',
               border: '1px solid rgba(99,102,241,0.25)',
+              cursor: 'pointer',
             }}>
               {voting ? '...' : 'Votar'}
             </div>
