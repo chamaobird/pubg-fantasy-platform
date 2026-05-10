@@ -138,7 +138,7 @@ export default function FaceoffCard({ faceoff, token, onVoted }) {
               background: 'linear-gradient(90deg, #4ade80, #22c55e)',
             }} />
           )}
-          {votedA && status === 'open' && (
+          {votedA && (
             <span style={{ position: 'absolute', top: 8, left: 10, fontSize: 9, color: '#f97316', fontWeight: 800, letterSpacing: '0.1em' }}>
               ✓ SEU VOTO
             </span>
@@ -197,7 +197,7 @@ export default function FaceoffCard({ faceoff, token, onVoted }) {
               background: 'linear-gradient(90deg, #4ade80, #22c55e)',
             }} />
           )}
-          {votedB && status === 'open' && (
+          {votedB && (
             <span style={{ position: 'absolute', top: 8, right: 10, fontSize: 9, color: '#818cf8', fontWeight: 800, letterSpacing: '0.1em' }}>
               SEU VOTO ✓
             </span>

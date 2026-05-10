@@ -50,9 +50,12 @@ def _build_out(f: Faceoff, user_id: Optional[str], reveal_pct: bool) -> dict:
     votes_b = sum(1 for v in f.votes if v.voted_for == "b")
     total = votes_a + votes_b
 
-    if reveal_pct and total > 0:
-        pct_a = round(votes_a / total * 100, 1)
-        pct_b = round(votes_b / total * 100, 1)
+    if reveal_pct:
+        if total > 0:
+            pct_a = round(votes_a / total * 100, 1)
+            pct_b = round(votes_b / total * 100, 1)
+        else:
+            pct_a = pct_b = 0.0   # encerrado sem votos — exibe 0%/0%
     else:
         pct_a = pct_b = None
 

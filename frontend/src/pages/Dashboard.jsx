@@ -695,13 +695,14 @@ export default function Dashboard() {
       .catch(() => {})
   }, [])
 
-  // Busca faceoffs abertos para o banner
+  // Busca faceoffs abertos para o banner (com auth para popular my_vote)
   useEffect(() => {
-    fetch(`${API_BASE_URL}/faceoffs?status=open`)
+    const headers = token ? { Authorization: `Bearer ${token}` } : {}
+    fetch(`${API_BASE_URL}/faceoffs?status=open`, { headers })
       .then(r => r.ok ? r.json() : [])
       .then(data => setOpenFaceoffs(Array.isArray(data) ? data : []))
       .catch(() => {})
-  }, [])
+  }, [token])
 
   // Busca histórico do usuário (para stat chips)
   useEffect(() => {
@@ -916,47 +917,63 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* ── BANNER FACEOFF ── */}
+        {/* ── BANNER FACEOFF — um banner por campeonato ── */}
         {openFaceoffs.length > 0 && (() => {
-          // Agrupa por championship_id para construir link para o stage correto
-          const champIds = [...new Set(openFaceoffs.map(f => f.championship_id))]
-          // Tenta achar um stage upcoming/preview do campeonato com faceoffs abertos
-          const targetStage = stages.find(s =>
-            champIds.includes(champMap[s.id]?.id) &&
-            (s.stage_phase === 'upcoming' || s.stage_phase === 'preview')
-          )
-          const href = targetStage ? `/tournament/${targetStage.id}?tab=faceoff` : '/championships'
-          const myVoted = openFaceoffs.filter(f => f.my_vote).length
-          const total   = openFaceoffs.length
-          return (
-            <div
-              className="dash-faceoff"
-              onClick={() => navigate(href)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate(href) }}
-            >
-              <div className="dash-faceoff-icon">
-                <DashIcon name="swords" size={22} strokeWidth={1.6}/>
-              </div>
-              <div className="dash-faceoff-body">
-                <div className="dash-faceoff-title">Team Faceoff está aberto!</div>
-                <div className="dash-faceoff-sub">
-                  <b>{myVoted}/{total}</b> confrontos votados · Clique para participar
+          // Agrupa faceoffs por championship_id
+          const byChamp = openFaceoffs.reduce((acc, f) => {
+            ;(acc[f.championship_id] = acc[f.championship_id] || []).push(f)
+            return acc
+          }, {})
+
+          // Mapa championship_id → nome
+          const champNameById = {}
+          Object.values(champMap).forEach(c => {
+            if (c?.id && c?.name) champNameById[c.id] = c.name
+          })
+
+          return Object.entries(byChamp).map(([champId, faceoffs]) => {
+            const cid      = parseInt(champId)
+            const myVoted  = faceoffs.filter(f => f.my_vote).length
+            const total    = faceoffs.length
+            const allVoted = myVoted === total
+            const champStage = stages.find(s =>
+              champMap[s.id]?.id === cid &&
+              (s.stage_phase === 'upcoming' || s.stage_phase === 'preview')
+            )
+            const href      = champStage ? `/tournament/${champStage.id}?tab=faceoff` : '/championships'
+            const champName = champNameById[cid] || `Campeonato ${cid}`
+
+            return (
+              <div
+                key={cid}
+                className="dash-faceoff"
+                onClick={() => navigate(href)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate(href) }}
+              >
+                <div className="dash-faceoff-icon">
+                  <DashIcon name="swords" size={22} strokeWidth={1.6}/>
+                </div>
+                <div className="dash-faceoff-body">
+                  <div className="dash-faceoff-title">Team Faceoff — {champName}</div>
+                  <div className="dash-faceoff-sub">
+                    <b>{myVoted}/{total}</b> confrontos votados · Clique para participar
+                  </div>
+                </div>
+                <div className="dash-faceoff-cta">
+                  {allVoted ? (
+                    '✓ Votado'
+                  ) : (
+                    <>
+                      Votar agora
+                      <DashIcon name="arrow-right" size={14}/>
+                    </>
+                  )}
                 </div>
               </div>
-              <div className="dash-faceoff-cta">
-                {myVoted === total ? (
-                  '✓ Votado'
-                ) : (
-                  <>
-                    Votar agora
-                    <DashIcon name="arrow-right" size={14}/>
-                  </>
-                )}
-              </div>
-            </div>
-          )
+            )
+          })
         })()}
 
         {/* ── SEÇÃO 1 — CAMPEONATOS ATIVOS ── */}
