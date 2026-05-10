@@ -139,13 +139,14 @@ export default function FaceoffCard({ faceoff, token, onVoted }) {
             }} />
           )}
           {votedA && (
-            <span style={{
-              position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)',
-              fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', whiteSpace: 'nowrap',
-              color: '#f97316', background: 'rgba(249,115,22,0.18)',
-              border: '1px solid rgba(249,115,22,0.5)',
-              borderRadius: 20, padding: '3px 10px',
-            }}>
+            <div style={{
+              position: 'absolute', top: -1, left: -1, right: -1,
+              height: 3, borderRadius: '12px 12px 0 0',
+              background: 'linear-gradient(90deg, #f97316, #fb923c)',
+            }} />
+          )}
+          {votedA && (
+            <span style={{ position: 'absolute', top: 8, left: 10, fontSize: 9, color: '#f97316', fontWeight: 800, letterSpacing: '0.1em' }}>
               ✓ SEU VOTO
             </span>
           )}
@@ -205,14 +206,15 @@ export default function FaceoffCard({ faceoff, token, onVoted }) {
             }} />
           )}
           {votedB && (
-            <span style={{
-              position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)',
-              fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', whiteSpace: 'nowrap',
-              color: '#818cf8', background: 'rgba(99,102,241,0.18)',
-              border: '1px solid rgba(99,102,241,0.5)',
-              borderRadius: 20, padding: '3px 10px',
-            }}>
-              ✓ SEU VOTO
+            <div style={{
+              position: 'absolute', top: -1, left: -1, right: -1,
+              height: 3, borderRadius: '12px 12px 0 0',
+              background: 'linear-gradient(90deg, #6366f1, #818cf8)',
+            }} />
+          )}
+          {votedB && (
+            <span style={{ position: 'absolute', top: 8, right: 10, fontSize: 9, color: '#818cf8', fontWeight: 800, letterSpacing: '0.1em' }}>
+              SEU VOTO ✓
             </span>
           )}
           {isWinnerB && (
