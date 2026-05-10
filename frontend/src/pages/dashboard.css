@@ -91,7 +91,7 @@
 /* ════════ HERO ════════ */
 .dash-hero {
   position: relative;
-  padding: 48px 0 12px;
+  padding: 48px 0 36px;
   isolation: isolate;
   min-height: 270px;
 }

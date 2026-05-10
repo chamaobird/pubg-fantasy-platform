@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.dependencies import require_admin
 from app.models.championship import Championship
+from app.models.faceoff import Faceoff
 from app.models.stage import Stage
 from app.models.stage_day import StageDay
 from app.models.user import User
@@ -259,8 +260,22 @@ def update_stage(
                 detail=f"Cannot transition lineup_status from '{current}' to '{new_status}'",
             )
 
+    prev_lineup_status = stage.lineup_status
+
     for field, value in updates.items():
         setattr(stage, field, value)
+
+    # Auto-fecha faceoffs abertos quando lineup_status → locked
+    if (
+        "lineup_status" in updates
+        and updates["lineup_status"] == "locked"
+        and prev_lineup_status != "locked"
+        and stage.championship_id
+    ):
+        db.query(Faceoff).filter(
+            Faceoff.championship_id == stage.championship_id,
+            Faceoff.status == "open",
+        ).update({"status": "closed"}, synchronize_session=False)
 
     # Sincroniza o StageDay do dia 1 quando start_date ou lineup_close_at mudam.
     # Premissa: cada stage tem um único dia (day_number=1).

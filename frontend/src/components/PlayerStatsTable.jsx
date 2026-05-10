@@ -165,7 +165,7 @@ export default function PlayerStatsTable({
 }) {
   const [search, setSearch]         = useState('')
   const [teamFilter, setTeamFilter] = useState('')
-  const [sortKey, setSortKey]       = useState('fantasy_cost')
+  const [sortKey, setSortKey]       = useState('pts_per_match')
   const [sortDir, setSortDir]       = useState('desc')
   const [historyPlayer, setHistoryPlayer] = useState(null)
 
