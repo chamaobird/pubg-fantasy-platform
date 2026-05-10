@@ -2,6 +2,7 @@
 // XAMA Fantasy — Leaderboard com filtro hierárquico por campeonato/fase/dia
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { API_BASE_URL } from '../config'
 import { track } from '../lib/analytics'
 import TeamLogo from './TeamLogo'
@@ -730,6 +731,8 @@ export default function TournamentLeaderboard({
         username={viewUser.username}
         userId={viewUser.userId}
         isMe={viewUser.userId === myUserId}
+        myUserId={myUserId}
+        primaryStageId={stageId}
         stageIds={selectedStageIds}
         token={token}
         siblingStages={siblingStages}
@@ -833,7 +836,8 @@ function buildDayMap(siblingStages) {
   return map
 }
 
-function ManagerLineupModal({ username, userId, isMe = false, stageIds = [], token, siblingStages = [], onClose }) {
+function ManagerLineupModal({ username, userId, isMe = false, myUserId = null, primaryStageId = null, stageIds = [], token, siblingStages = [], onClose }) {
+  const navigate = useNavigate()
   const [stageLineups, setStageLineups] = useState([]) // [{stageId, stageName, lineups}]
   const [loading, setLoading] = useState(true)
 
@@ -907,16 +911,32 @@ function ManagerLineupModal({ username, userId, isMe = false, stageIds = [], tok
               )}
             </div>
           </div>
-          <button
-            onClick={onClose}
-            style={{
-              background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: 8, width: 32, height: 32,
-              color: 'var(--color-xama-muted)', fontSize: 16, cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-            ×
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {!isMe && myUserId && primaryStageId && (
+              <button
+                onClick={() => {
+                  onClose()
+                  navigate(`/compare/${primaryStageId}/${myUserId}/${userId}`)
+                }}
+                style={{
+                  background: 'rgba(250,204,21,0.1)', border: '1px solid rgba(250,204,21,0.3)',
+                  borderRadius: 8, padding: '0 12px', height: 32, fontSize: 12, fontWeight: 600,
+                  color: 'var(--color-xama-gold)', cursor: 'pointer', whiteSpace: 'nowrap',
+                }}>
+                vs mim
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              style={{
+                background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: 8, width: 32, height: 32,
+                color: 'var(--color-xama-muted)', fontSize: 16, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+              ×
+            </button>
+          </div>
         </div>
 
         {/* Conteúdo */}

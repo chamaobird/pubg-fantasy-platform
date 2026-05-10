@@ -13,6 +13,7 @@ Endpoints de usuário (sem autenticação obrigatória):
   GET /stages/{stage_id}/leaderboard                        → Ranking geral (#073)
   GET /stages/{stage_id}/days/{stage_day_id}/leaderboard    → Ranking do dia (#073)
   GET /stages/{stage_id}/days/{stage_day_id}/highlights     → Destaques do dia
+  GET /stages/{stage_id}/compare/{user1_id}/{user2_id}      → Head-to-head entre dois managers
   GET /stages/persons/{person_id}/price-history             → Evolução de preço
 """
 from __future__ import annotations
@@ -1036,6 +1037,86 @@ def get_day_highlights(
         "top_user":      top_user,
         "most_captain":  most_captain,
         "best_player":   best_player,
+    }
+
+
+# ── Head-to-head: comparação entre dois managers ─────────────────────────────
+
+@router.get(
+    "/{stage_id}/compare/{user1_id}/{user2_id}",
+    summary="Comparação head-to-head entre dois managers na mesma stage",
+)
+def get_head_to_head(
+    stage_id: int,
+    user1_id: str,
+    user2_id: str,
+    db: Session = Depends(get_db),
+):
+    from sqlalchemy import text as sql_text
+
+    _get_stage_or_404(db, stage_id)
+
+    def _user_data(user_id: str) -> dict:
+        user = db.query(User).filter(User.id == user_id).first()
+        stat = (
+            db.query(UserStageStat)
+            .filter(UserStageStat.stage_id == stage_id, UserStageStat.user_id == user_id)
+            .first()
+        )
+        rank = None
+        if stat:
+            rank = (
+                db.query(func.count(UserStageStat.user_id))
+                .filter(
+                    UserStageStat.stage_id == stage_id,
+                    UserStageStat.total_points > (stat.total_points or 0),
+                )
+                .scalar() or 0
+            ) + 1
+
+        # aggregate player picks across all days in this stage
+        rows = db.execute(sql_text("""
+            SELECT
+                p.display_name  AS person_name,
+                r.team_name,
+                SUM(lp.points_earned)   AS total_pts,
+                BOOL_OR(lp.is_captain)  AS was_captain,
+                COUNT(*)                AS days_selected
+            FROM lineup_player lp
+            JOIN lineup l    ON l.id = lp.lineup_id
+            JOIN stage_day sd ON sd.id = l.stage_day_id
+            JOIN roster r    ON r.id = lp.roster_id
+            JOIN person p    ON p.id = r.person_id
+            WHERE sd.stage_id = :stage_id
+              AND l.user_id   = :user_id
+              AND lp.slot_type = 'titular'
+            GROUP BY p.display_name, r.team_name
+            ORDER BY total_pts DESC NULLS LAST
+        """), {"stage_id": stage_id, "user_id": user_id}).fetchall()
+
+        players = [
+            {
+                "person_name":    row.person_name,
+                "team_name":      row.team_name,
+                "total_pts":      float(row.total_pts) if row.total_pts is not None else None,
+                "was_captain":    row.was_captain,
+                "days_selected":  row.days_selected,
+            }
+            for row in rows
+        ]
+
+        return {
+            "user_id":      user_id,
+            "username":     user.username if user else user_id,
+            "total_points": float(stat.total_points) if stat and stat.total_points else 0.0,
+            "rank":         rank,
+            "players":      players,
+        }
+
+    return {
+        "stage_id": stage_id,
+        "user1": _user_data(user1_id),
+        "user2": _user_data(user2_id),
     }
 
 

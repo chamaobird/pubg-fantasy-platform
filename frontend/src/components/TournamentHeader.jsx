@@ -176,12 +176,12 @@ export default function TournamentHeader({ tournament, championship, championshi
         {myRank && (
           <div className="xt-stats">
             <div className="xt-stat">
-              <p className="xt-stat-label" style={{ fontSize: '16px' }}>Meus Pontos</p>
-              <p className="xt-stat-value" style={{ fontSize: '30px' }}>{Number(myRank.total_points).toFixed(1)}</p>
+              <p className="xt-stat-label">Meus Pontos</p>
+              <p className="xt-stat-value">{Number(myRank.total_points).toFixed(1)}</p>
             </div>
             <div className="xt-stat">
-              <p className="xt-stat-label" style={{ fontSize: '16px' }}>Posição</p>
-              <p className="xt-stat-value muted" style={{ fontSize: '30px' }}>#{myRank.position}</p>
+              <p className="xt-stat-label">Posição</p>
+              <p className="xt-stat-value muted">#{myRank.position}</p>
             </div>
           </div>
         )}

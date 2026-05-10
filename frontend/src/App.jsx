@@ -19,6 +19,7 @@ import Leagues from './pages/Leagues'
 import LeagueDetail from './pages/LeagueDetail'
 import ChampionshipGroupDetail from './pages/ChampionshipGroupDetail'
 import FaceoffPage from './pages/FaceoffPage'
+import HeadToHeadPage from './pages/HeadToHeadPage'
 
 export const AuthContext = createContext(null)
 export const useAuth = () => useContext(AuthContext)
@@ -165,6 +166,11 @@ export default function App() {
 
           <Route path="/auth/reset-password" element={
             <ResetPasswordPage />
+          } />
+
+          {/* Head-to-head */}
+          <Route path="/compare/:stageId/:user1Id/:user2Id" element={
+            <RequireAuth><HeadToHeadPage /></RequireAuth>
           } />
 
           {/* Faceoff */}
