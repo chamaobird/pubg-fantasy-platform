@@ -967,7 +967,7 @@ def get_day_highlights(
             )
             for lp, roster in lps:
                 players.append({
-                    "person_name": roster.person_name,
+                    "person_name": roster.person.display_name if roster.person else None,
                     "team_name":   roster.team_name,
                     "is_captain":  lp.is_captain,
                     "points_earned": float(lp.points_earned) if lp.points_earned is not None else None,
@@ -981,14 +981,15 @@ def get_day_highlights(
 
     # ── 2. Capitão mais escolhido ─────────────────────────────────────────────
     cap_row = db.execute(sql_text("""
-        SELECT r.id AS roster_id, r.person_name, r.team_name, COUNT(*) AS cnt
+        SELECT r.id AS roster_id, p.display_name AS person_name, r.team_name, COUNT(*) AS cnt
         FROM lineup_player lp
         JOIN lineup l  ON l.id  = lp.lineup_id
         JOIN roster r  ON r.id  = lp.roster_id
+        JOIN person p  ON p.id  = r.person_id
         WHERE l.stage_day_id = :sdid
           AND lp.is_captain  = true
           AND lp.slot_type   = 'titular'
-        GROUP BY r.id, r.person_name, r.team_name
+        GROUP BY r.id, p.display_name, r.team_name
         ORDER BY cnt DESC
         LIMIT 1
     """), {"sdid": stage_day_id}).fetchone()
@@ -1010,13 +1011,14 @@ def get_day_highlights(
 
     # ── 3. Melhor jogador (por pontos em partida) ─────────────────────────────
     best_row = db.execute(sql_text("""
-        SELECT r.person_name, r.team_name, SUM(ms.xama_points) AS total_pts
+        SELECT p.display_name AS person_name, r.team_name, SUM(ms.xama_points) AS total_pts
         FROM match_stat ms
         JOIN match m ON m.id = ms.match_id
         JOIN roster r ON r.person_id = ms.person_id AND r.stage_id = :stage_id
+        JOIN person p ON p.id = r.person_id
         WHERE m.stage_day_id = :sdid
           AND ms.xama_points IS NOT NULL
-        GROUP BY r.person_name, r.team_name
+        GROUP BY p.display_name, r.team_name
         ORDER BY total_pts DESC
         LIMIT 1
     """), {"sdid": stage_day_id, "stage_id": stage_id}).fetchone()
