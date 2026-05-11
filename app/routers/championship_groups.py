@@ -9,9 +9,14 @@ GET /championship-groups/
 GET /championship-groups/{id}
     Detalhe de um grupo.
 
+GET /championship-groups/{id}/summary
+    Meta-dados do grupo: total de managers, lista de championships/fases,
+    líder atual. Usado para mini-cards no header do ChampionshipGroupDetail.
+
 GET /championship-groups/{id}/leaderboard
     Leaderboard combinado — soma UserStageStat de todos os stages de
     todos os championships do grupo.
+    ?breakdown=true  adiciona phase_scores por championship a cada entrada.
 
 GET /championship-groups/{id}/player-stats
     Stats combinadas de jogadores — agrega MatchStat de todos os
@@ -55,6 +60,31 @@ class ChampionshipGroupPublic(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class ChampionshipMeta(BaseModel):
+    id: int
+    name: str
+    short_name: str
+
+
+class LeaderEntry(BaseModel):
+    username: Optional[str]
+    total_points: float
+
+
+class GroupSummary(BaseModel):
+    total_managers: int
+    championships: list[ChampionshipMeta]
+    leader: Optional[LeaderEntry]
+
+
+class PhaseScore(BaseModel):
+    championship_id: int
+    championship_name: str
+    championship_short_name: str
+    stages_played: int
+    points: float
+
+
 class GroupLeaderboardEntry(BaseModel):
     rank: int
     user_id: str
@@ -63,6 +93,7 @@ class GroupLeaderboardEntry(BaseModel):
     stages_played: int
     survival_secs: int
     captain_pts: float
+    phase_scores: Optional[list[PhaseScore]] = None
 
     model_config = {"from_attributes": True}
 
@@ -159,6 +190,66 @@ def get_group(group_id: int, db: Session = Depends(get_db)) -> ChampionshipGroup
 
 
 @router.get(
+    "/{group_id}/summary",
+    response_model=GroupSummary,
+    summary="Meta-dados do grupo para header/mini-cards",
+)
+def get_group_summary(
+    group_id: int,
+    db: Session = Depends(get_db),
+) -> GroupSummary:
+    """
+    Retorna total de managers participantes, lista de championships/fases
+    e o líder atual. Usado pelos mini-cards no header do ChampionshipGroupDetail.
+    """
+    group = _get_group_or_404(group_id, db)
+
+    championship_ids = [m.championship_id for m in group.members]
+    championships = (
+        db.query(Championship)
+        .filter(Championship.id.in_(championship_ids))
+        .order_by(Championship.id)
+        .all()
+    ) if championship_ids else []
+
+    stage_ids = _get_stage_ids_for_group(group_id, db)
+
+    if not stage_ids:
+        return GroupSummary(
+            total_managers=0,
+            championships=[ChampionshipMeta(id=c.id, name=c.name, short_name=c.short_name) for c in championships],
+            leader=None,
+        )
+
+    agg = (
+        db.query(
+            UserStageStat.user_id.label("user_id"),
+            func.sum(UserStageStat.total_points).label("total_points"),
+        )
+        .filter(UserStageStat.stage_id.in_(stage_ids))
+        .group_by(UserStageStat.user_id)
+        .order_by(func.sum(UserStageStat.total_points).desc())
+        .all()
+    )
+
+    total_managers = len(agg)
+    leader: Optional[LeaderEntry] = None
+    if agg:
+        top = agg[0]
+        user = db.query(User).filter(User.id == top.user_id).first()
+        leader = LeaderEntry(
+            username=user.username if user else top.user_id,
+            total_points=float(top.total_points or 0),
+        )
+
+    return GroupSummary(
+        total_managers=total_managers,
+        championships=[ChampionshipMeta(id=c.id, name=c.name, short_name=c.short_name) for c in championships],
+        leader=leader,
+    )
+
+
+@router.get(
     "/{group_id}/leaderboard",
     response_model=list[GroupLeaderboardEntry],
     summary="Leaderboard combinado do grupo",
@@ -166,11 +257,13 @@ def get_group(group_id: int, db: Session = Depends(get_db)) -> ChampionshipGroup
 def get_group_leaderboard(
     group_id: int,
     limit: int = Query(100, ge=1, le=500),
+    breakdown: bool = Query(False, description="Se True, inclui phase_scores por championship em cada entrada"),
     db: Session = Depends(get_db),
 ) -> list[GroupLeaderboardEntry]:
     """
     Soma UserStageStat de todos os stages de todos os championships do grupo.
     Desempate: survival_secs DESC → captain_pts DESC.
+    Com breakdown=true, adiciona phase_scores: pontos por championship/fase.
     """
     _get_group_or_404(group_id, db)
 
@@ -203,6 +296,55 @@ def get_group_leaderboard(
         for u in db.query(User).filter(User.id.in_(user_ids)).all()
     }
 
+    # breakdown: pontos por championship por usuário
+    phase_scores_map: dict[str, list[PhaseScore]] = {}
+    if breakdown and user_ids:
+        # stage_id → championship_id
+        stage_champ = {
+            row.id: row.championship_id
+            for row in db.query(Stage).filter(Stage.id.in_(stage_ids)).all()
+        }
+        # championship_id → Championship
+        champ_ids = list(set(stage_champ.values()))
+        champ_map = {
+            c.id: c
+            for c in db.query(Championship).filter(Championship.id.in_(champ_ids)).all()
+        }
+        # UserStageStat rows for all users in result
+        uss_rows = (
+            db.query(UserStageStat)
+            .filter(
+                UserStageStat.stage_id.in_(stage_ids),
+                UserStageStat.user_id.in_(user_ids),
+            )
+            .all()
+        )
+        # aggregate per (user_id, championship_id)
+        from collections import defaultdict
+        _agg: dict[tuple, dict] = defaultdict(lambda: {"points": 0.0, "stages": 0})
+        for uss in uss_rows:
+            cid = stage_champ.get(uss.stage_id)
+            if cid is None:
+                continue
+            key = (uss.user_id, cid)
+            _agg[key]["points"] += float(uss.total_points or 0)
+            _agg[key]["stages"] += 1
+
+        for uid in user_ids:
+            scores: list[PhaseScore] = []
+            for cid in sorted(champ_ids):
+                key = (uid, cid)
+                if key in _agg:
+                    champ = champ_map[cid]
+                    scores.append(PhaseScore(
+                        championship_id=cid,
+                        championship_name=champ.name,
+                        championship_short_name=champ.short_name,
+                        stages_played=_agg[key]["stages"],
+                        points=round(_agg[key]["points"], 2),
+                    ))
+            phase_scores_map[uid] = scores
+
     return [
         GroupLeaderboardEntry(
             rank=idx + 1,
@@ -212,6 +354,7 @@ def get_group_leaderboard(
             stages_played=int(r.stages_played or 0),
             survival_secs=int(r.survival_secs or 0),
             captain_pts=float(r.captain_pts or 0),
+            phase_scores=phase_scores_map.get(r.user_id) if breakdown else None,
         )
         for idx, r in enumerate(rows)
     ]
