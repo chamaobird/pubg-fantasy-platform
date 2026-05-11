@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_current_user, get_current_user_optional
+from app.models.championship import Championship
 from app.models.faceoff import Faceoff, FaceoffVote
 from app.models.user import User
 
@@ -98,8 +99,17 @@ def list_faceoffs(
     - status closed/resolved: percentagens reveladas
     """
     q = db.query(Faceoff).filter(Faceoff.status != "draft")
+
     if championship_id is not None:
+        # Filtro por campeonato específico — mostra todos (inclusive de championships encerrados)
         q = q.filter(Faceoff.championship_id == championship_id)
+    else:
+        # Feed geral (ex: dashboard) — exclui championships encerrados para não poluir o feed
+        q = (
+            q.join(Championship, Faceoff.championship_id == Championship.id)
+            .filter(Championship.finished_at.is_(None))
+        )
+
     if status_filter:
         q = q.filter(Faceoff.status == status_filter)
     faceoffs = q.order_by(Faceoff.id).all()

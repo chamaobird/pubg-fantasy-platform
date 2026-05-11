@@ -20,7 +20,7 @@ const api = (token) => async (method, path, body) => {
   return res.status === 204 ? null : res.json()
 }
 
-const BLANK = { name: '', short_name: '', shard: 'steam', tier_weight: 1.0, is_active: true }
+const BLANK = { name: '', short_name: '', shard: 'steam', tier_weight: 1.0, is_active: true, has_faceoff: false }
 
 export default function AdminChampionships({ token }) {
   const call = useCallback(api(token), [token])
@@ -45,7 +45,7 @@ export default function AdminChampionships({ token }) {
 
   const openCreate = () => { setForm(BLANK); setMsg(''); setModal({ mode: 'create' }) }
   const openEdit = (c) => {
-    setForm({ name: c.name, short_name: c.short_name, shard: c.shard, tier_weight: c.tier_weight, is_active: c.is_active })
+    setForm({ name: c.name, short_name: c.short_name, shard: c.shard, tier_weight: c.tier_weight, is_active: c.is_active, has_faceoff: c.has_faceoff ?? false })
     setMsg('')
     setModal({ mode: 'edit', data: c })
   }
@@ -74,6 +74,14 @@ export default function AdminChampionships({ token }) {
     } catch (e) { alert(e.message) }
   }
 
+  const markFinished = async (c) => {
+    if (!window.confirm(`Marcar "${c.name}" como encerrado? Isso vai remover o faceoff do dashboard e habilitar a seção de resultados.`)) return
+    try {
+      await call('PATCH', `/admin/championships/${c.id}`, { finished_at: new Date().toISOString() })
+      await load()
+    } catch (e) { alert(e.message) }
+  }
+
   const { sort, toggle, apply } = useSorting('id', 'desc')
 
   const f = (k) => (e) => setForm(prev => ({ ...prev, [k]: e.target.value }))
@@ -97,6 +105,7 @@ export default function AdminChampionships({ token }) {
                 <SortableHeader label="Tag" col="short_name" sort={sort} onSort={toggle} />
                 <th style={thStyle}>Shard</th>
                 <SortableHeader label="Peso" col="tier_weight" sort={sort} onSort={toggle} />
+                <th style={thStyle}>Faceoff</th>
                 <SortableHeader label="Status" col="status" sort={sort} onSort={toggle} />
                 <th style={thStyle}></th>
               </tr>
@@ -116,6 +125,15 @@ export default function AdminChampionships({ token }) {
                   <td style={{ ...tdStyle, color: 'var(--color-xama-muted)', fontSize: 12 }}>{c.shard}</td>
                   <td style={{ ...tdStyle, color: 'var(--color-xama-muted)' }}>{c.tier_weight}</td>
                   <td style={tdStyle}>
+                    {c.has_faceoff ? (
+                      <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 4, fontFamily: 'JetBrains Mono, monospace', background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)', color: '#f59e0b' }}>
+                        ATIVO
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: 10, color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace' }}>—</span>
+                    )}
+                  </td>
+                  <td style={tdStyle}>
                     <span style={{
                       fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 4,
                       fontFamily: 'JetBrains Mono, monospace',
@@ -127,8 +145,18 @@ export default function AdminChampionships({ token }) {
                     </span>
                   </td>
                   <td style={{ ...tdStyle, textAlign: 'right' }}>
-                    <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                    <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                       <ActBtn small onClick={() => openEdit(c)}>Editar</ActBtn>
+                      {c.has_faceoff && !c.finished_at && (
+                        <ActBtn small onClick={() => markFinished(c)} style={{ background: 'rgba(240,192,64,0.1)', borderColor: 'rgba(240,192,64,0.3)', color: '#f59e0b' }}>
+                          Encerrar Faceoff
+                        </ActBtn>
+                      )}
+                      {c.has_faceoff && c.finished_at && (
+                        <span style={{ fontSize: 10, padding: '4px 8px', borderRadius: 4, fontFamily: 'JetBrains Mono, monospace', background: 'rgba(240,192,64,0.08)', color: '#f59e0b', border: '1px solid rgba(240,192,64,0.2)' }}>
+                          ENCERRADO
+                        </span>
+                      )}
                       <ActBtn small danger onClick={() => toggleActive(c)}>
                         {c.is_active ? 'Desativar' : 'Ativar'}
                       </ActBtn>
@@ -163,6 +191,12 @@ export default function AdminChampionships({ token }) {
               <option value="steam">steam</option>
               <option value="pc-tournament">pc-tournament</option>
             </select>
+          </Field>
+          <Field label="Team Faceoff">
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: 'var(--color-xama-text)' }}>
+              <input type="checkbox" checked={!!form.has_faceoff} onChange={e => setForm(prev => ({ ...prev, has_faceoff: e.target.checked }))} />
+              Habilitar Team Faceoff neste campeonato
+            </label>
           </Field>
           {modal.mode === 'edit' && (
             <Field label="Status">

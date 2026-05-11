@@ -19,10 +19,11 @@ const RANK_BG     = {
 
 // ── Tab bar ───────────────────────────────────────────────────────────────────
 
-function TabBar({ active, onChange }) {
+function TabBar({ active, onChange, showFaceoff }) {
   const tabs = [
     { key: 'managers', label: 'Managers' },
     { key: 'players',  label: 'Jogadores' },
+    ...(showFaceoff ? [{ key: 'faceoff', label: 'Team Faceoff' }] : []),
   ]
   return (
     <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid var(--color-xama-border)', marginBottom: 24 }}>
@@ -184,6 +185,151 @@ function PlayerStats({ groupId, shortName }) {
   )
 }
 
+// ── Faceoff Results ───────────────────────────────────────────────────────────
+
+function FaceoffResults({ championshipIds }) {
+  const [faceoffs, setFaceoffs] = useState([])
+  const [loading, setLoading]   = useState(true)
+
+  useEffect(() => {
+    if (!championshipIds?.length) { setLoading(false); return }
+    const token = localStorage.getItem('token')
+    const headers = token ? { Authorization: `Bearer ${token}` } : {}
+    Promise.all(
+      championshipIds.map(cid =>
+        fetch(`${API_BASE_URL}/faceoffs?championship_id=${cid}`, { headers })
+          .then(r => r.ok ? r.json() : [])
+      )
+    ).then(results => {
+      setFaceoffs(results.flat().filter(f => f.status !== 'draft'))
+      setLoading(false)
+    }).catch(() => setLoading(false))
+  }, [championshipIds])
+
+  if (loading) return <LoadingBlock />
+  if (!faceoffs.length) return <EmptyBlock msg="Nenhum faceoff registrado para este campeonato." />
+
+  const resolved = faceoffs.filter(f => f.status === 'resolved')
+  const myCorrect = resolved.filter(f => {
+    if (!f.my_vote || !f.winner_team_name) return false
+    const votedTeam = f.my_vote === 'a' ? f.team_a_name : f.team_b_name
+    return votedTeam === f.winner_team_name
+  }).length
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {resolved.length > 0 && (
+        <div style={{
+          padding: '12px 18px', borderRadius: 10, marginBottom: 8,
+          background: 'rgba(240,192,64,0.06)', border: '1px solid rgba(240,192,64,0.2)',
+          fontSize: 13, color: 'var(--color-xama-gold)', fontFamily: "'JetBrains Mono', monospace",
+          fontWeight: 700,
+        }}>
+          Você acertou {myCorrect}/{resolved.length} confrontos
+        </div>
+      )}
+      {faceoffs.map(f => {
+        const isResolved = f.status === 'resolved'
+        const showPct    = f.status === 'closed' || isResolved
+        const pctA = showPct ? (f.pct_a ?? 0) : null
+        const pctB = showPct ? (f.pct_b ?? 0) : null
+        const winnerA = isResolved && f.winner_team_name === f.team_a_name
+        const winnerB = isResolved && f.winner_team_name === f.team_b_name
+        const myVoteA = f.my_vote === 'a'
+        const myVoteB = f.my_vote === 'b'
+        const correct  = isResolved && f.my_vote && (myVoteA ? winnerA : winnerB)
+        const wrong    = isResolved && f.my_vote && !correct
+
+        const seedLabel = (s) => s != null ? `#${s}` : ''
+
+        return (
+          <div key={f.id} style={{
+            padding: '16px 18px', borderRadius: 12,
+            background: 'var(--color-xama-surface)', border: '1px solid var(--color-xama-border)',
+          }}>
+            {/* Pair header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+              {/* Team A */}
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {myVoteA && (
+                    <span style={{ fontSize: 10, fontFamily: "'JetBrains Mono', monospace", color: correct ? '#4ade80' : wrong ? '#f87171' : 'var(--color-xama-muted)', fontWeight: 700 }}>
+                      {correct ? '✓' : wrong ? '✗' : 'SEU VOTO'}
+                    </span>
+                  )}
+                  <span style={{ fontSize: 14, fontWeight: winnerA ? 800 : 600, color: winnerA ? 'var(--color-xama-gold)' : 'var(--color-xama-text)' }}>
+                    {f.team_a_name}
+                  </span>
+                  {f.seed_a != null && <span style={{ fontSize: 10, color: 'var(--color-xama-muted)', fontFamily: "'JetBrains Mono', monospace" }}>{seedLabel(f.seed_a)}</span>}
+                </div>
+                {showPct && (
+                  <div style={{ fontSize: 11, color: 'var(--color-xama-muted)', fontFamily: "'JetBrains Mono', monospace" }}>{pctA}%</div>
+                )}
+              </div>
+
+              {/* VS + status */}
+              <div style={{ textAlign: 'center', minWidth: 40 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-xama-muted)', fontFamily: "'JetBrains Mono', monospace" }}>VS</div>
+                {isResolved && (
+                  <div style={{ fontSize: 9, marginTop: 2, fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-gold)', fontWeight: 700 }}>ENCERRADO</div>
+                )}
+              </div>
+
+              {/* Team B */}
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 3 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {f.seed_b != null && <span style={{ fontSize: 10, color: 'var(--color-xama-muted)', fontFamily: "'JetBrains Mono', monospace" }}>{seedLabel(f.seed_b)}</span>}
+                  <span style={{ fontSize: 14, fontWeight: winnerB ? 800 : 600, color: winnerB ? 'var(--color-xama-gold)' : 'var(--color-xama-text)' }}>
+                    {f.team_b_name}
+                  </span>
+                  {myVoteB && (
+                    <span style={{ fontSize: 10, fontFamily: "'JetBrains Mono', monospace", color: correct ? '#4ade80' : wrong ? '#f87171' : 'var(--color-xama-muted)', fontWeight: 700 }}>
+                      {correct ? '✓' : wrong ? '✗' : 'SEU VOTO'}
+                    </span>
+                  )}
+                </div>
+                {showPct && (
+                  <div style={{ fontSize: 11, color: 'var(--color-xama-muted)', fontFamily: "'JetBrains Mono', monospace" }}>{pctB}%</div>
+                )}
+              </div>
+            </div>
+
+            {/* Progress bar */}
+            {showPct && (
+              <div style={{ height: 4, borderRadius: 2, background: 'var(--color-xama-border)', overflow: 'hidden' }}>
+                <div style={{
+                  height: '100%', width: `${pctA}%`,
+                  background: winnerA ? 'var(--color-xama-gold)' : 'var(--color-xama-teal)',
+                  borderRadius: 2, transition: 'width 0.5s ease',
+                }}/>
+              </div>
+            )}
+
+            {/* Winner badge */}
+            {isResolved && f.winner_team_name && (
+              <div style={{ marginTop: 10, textAlign: 'center' }}>
+                <span style={{
+                  fontSize: 11, fontWeight: 700, padding: '3px 12px', borderRadius: 999,
+                  background: 'rgba(240,192,64,0.12)', border: '1px solid rgba(240,192,64,0.3)',
+                  color: 'var(--color-xama-gold)', fontFamily: "'JetBrains Mono', monospace",
+                  letterSpacing: '0.08em',
+                }}>
+                  VENCEDOR: {f.winner_team_name}
+                </span>
+              </div>
+            )}
+
+            {/* Total votes */}
+            <div style={{ marginTop: 8, textAlign: 'center', fontSize: 10, color: 'var(--color-xama-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
+              {f.total_votes} votos
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 // ── Micro-components ──────────────────────────────────────────────────────────
 
 function LoadingBlock() {
@@ -204,6 +350,7 @@ export default function ChampionshipGroupDetail() {
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState('')
   const [tab, setTab]         = useState('managers')
+  const [champDetails, setChampDetails] = useState([]) // championship details (has_faceoff)
 
   const [currentUserId, setCurrentUserId] = useState(null)
   useEffect(() => {
@@ -224,14 +371,28 @@ export default function ChampionshipGroupDetail() {
         if (!r.ok) throw new Error(`HTTP ${r.status}`)
         return r.json()
       })
-      .then(d => { setGroup(d); setLoading(false) })
+      .then(d => {
+        setGroup(d)
+        setLoading(false)
+        // Busca detalhes de cada championship para saber se tem faceoff
+        if (d.championship_ids?.length) {
+          Promise.all(
+            d.championship_ids.map(cid =>
+              fetch(`${API_BASE_URL}/championships/${cid}`).then(r => r.ok ? r.json() : null)
+            )
+          ).then(details => setChampDetails(details.filter(Boolean)))
+        }
+      })
       .catch(e => {
         setError(e.message === '404' ? 'Grupo não encontrado.' : 'Erro ao carregar grupo.')
         setLoading(false)
       })
   }, [id])
 
-  // Largura máxima: 1600px na aba de jogadores (igual PlayerStatsPage), 900px em managers
+  const hasFaceoff = champDetails.some(c => c.has_faceoff)
+  const faceoffChampIds = champDetails.filter(c => c.has_faceoff).map(c => c.id)
+
+  // Largura máxima: 1600px na aba de jogadores (igual PlayerStatsPage), 900px em managers/faceoff
   const contentMaxWidth = tab === 'players' ? 1600 : 900
 
   return (
@@ -272,7 +433,7 @@ export default function ChampionshipGroupDetail() {
               </div>
             </div>
 
-            <TabBar active={tab} onChange={setTab} />
+            <TabBar active={tab} onChange={setTab} showFaceoff={hasFaceoff} />
 
             {tab === 'managers' && (
               <>
@@ -289,6 +450,15 @@ export default function ChampionshipGroupDetail() {
                   Stats XAMA combinadas de todas as fases · PREÇO do último roster
                 </div>
                 <PlayerStats groupId={id} shortName={group.short_name} />
+              </>
+            )}
+
+            {tab === 'faceoff' && hasFaceoff && (
+              <>
+                <div style={{ fontSize: 11, color: 'var(--color-xama-muted)', marginBottom: 16, fontFamily: "'JetBrains Mono', monospace" }}>
+                  Resultado dos confrontos · Vencedor definido pela performance no campeonato
+                </div>
+                <FaceoffResults championshipIds={faceoffChampIds} />
               </>
             )}
           </>

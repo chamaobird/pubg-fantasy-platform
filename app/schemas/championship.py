@@ -18,6 +18,7 @@ class ChampionshipCreate(BaseModel):
         le=2.0,
         description="Pricing weight: PGS/PGC=1.00, regional (PAS)=0.70, etc.",
     )
+    has_faceoff: bool = False
 
     @field_validator("shard")
     @classmethod
@@ -43,6 +44,8 @@ class ChampionshipUpdate(BaseModel):
     short_name: Optional[str] = None
     shard: Optional[str] = None
     is_active: Optional[bool] = None
+    has_faceoff: Optional[bool] = None
+    finished_at: Optional[datetime] = None  # admin pode setar manualmente para championships já encerrados
     tier_weight: Optional[float] = Field(
         default=None,
         ge=0.1,
@@ -69,7 +72,9 @@ class ChampionshipResponse(BaseModel):
     short_name: str
     shard: str
     is_active: bool
+    has_faceoff: bool
     tier_weight: float
+    finished_at: Optional[datetime] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

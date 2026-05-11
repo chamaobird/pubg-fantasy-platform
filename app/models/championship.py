@@ -2,6 +2,8 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, List
 
+from typing import Optional
+
 from sqlalchemy import Boolean, DateTime, Integer, Numeric, String, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -29,6 +31,14 @@ class Championship(Base):
         nullable=False,
         server_default="1.00",
         comment="Pricing weight: PGS/PGC=1.00, regional (PAS)=0.70, etc.",
+    )
+    has_faceoff: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("false"),
+        comment="Se True, championship tem Team Faceoff habilitado",
+    )
+    finished_at: Mapped[Optional[DateTime]] = mapped_column(
+        DateTime(timezone=True), nullable=True,
+        comment="Setado automaticamente quando todos os stages vão para finished",
     )
     created_at: Mapped[DateTime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=text("now()")

@@ -261,11 +261,37 @@ def update_stage(
             )
 
     prev_lineup_status = stage.lineup_status
+    prev_stage_phase   = stage.stage_phase
 
     for field, value in updates.items():
         setattr(stage, field, value)
 
-    # Auto-fecha faceoffs abertos quando lineup_status → locked
+    # ── Lifecycle automático de faceoffs ──────────────────────────────────────
+
+    # 1. Auto-ABRE faceoffs draft quando primeira stage abre lineup
+    if (
+        "lineup_status" in updates
+        and updates["lineup_status"] == "open"
+        and prev_lineup_status != "open"
+        and stage.championship_id
+    ):
+        championship = db.query(Championship).filter(
+            Championship.id == stage.championship_id
+        ).first()
+        if championship and championship.has_faceoff:
+            # Só abre se nenhuma outra stage do campeonato já está open/locked
+            other_active = db.query(Stage).filter(
+                Stage.championship_id == stage.championship_id,
+                Stage.id != stage.id,
+                Stage.lineup_status.in_(["open", "locked"]),
+            ).first()
+            if not other_active:
+                db.query(Faceoff).filter(
+                    Faceoff.championship_id == stage.championship_id,
+                    Faceoff.status == "draft",
+                ).update({"status": "open"}, synchronize_session=False)
+
+    # 2. Auto-FECHA faceoffs abertos quando lineup_status → locked
     if (
         "lineup_status" in updates
         and updates["lineup_status"] == "locked"
@@ -276,6 +302,63 @@ def update_stage(
             Faceoff.championship_id == stage.championship_id,
             Faceoff.status == "open",
         ).update({"status": "closed"}, synchronize_session=False)
+
+    # 3. Auto-RESOLVE + set finished_at quando todos os stages vão pra finished
+    if (
+        "stage_phase" in updates
+        and updates["stage_phase"] == "finished"
+        and prev_stage_phase != "finished"
+        and stage.championship_id
+    ):
+        # Verifica se todas as OUTRAS stages ativas do campeonato já estão finished
+        # (a atual já foi atualizada via setattr, mas antes do flush)
+        other_unfinished = db.query(Stage).filter(
+            Stage.championship_id == stage.championship_id,
+            Stage.id != stage.id,
+            Stage.stage_phase != "finished",
+            Stage.is_active == True,  # noqa: E712
+        ).first()
+
+        if not other_unfinished:
+            from datetime import datetime, timezone
+            from app.services.team_standings import calculate_team_tournament_standings
+
+            championship = db.query(Championship).filter(
+                Championship.id == stage.championship_id
+            ).first()
+            if championship and championship.has_faceoff and not championship.finished_at:
+                championship.finished_at = datetime.now(timezone.utc)
+
+                # Tenta auto-resolver faceoffs fechados
+                closed_faceoffs = db.query(Faceoff).filter(
+                    Faceoff.championship_id == stage.championship_id,
+                    Faceoff.status == "closed",
+                ).all()
+
+                if closed_faceoffs:
+                    try:
+                        standings = calculate_team_tournament_standings(stage.championship_id, db)
+                        if standings:
+                            rank_map = {s["team_name"]: s["rank"] for s in standings}
+                            for f in closed_faceoffs:
+                                rank_a = rank_map.get(f.team_a_name)
+                                rank_b = rank_map.get(f.team_b_name)
+                                if rank_a is None and rank_b is None:
+                                    continue
+                                if rank_a is None:
+                                    winner = f.team_b_name
+                                elif rank_b is None:
+                                    winner = f.team_a_name
+                                elif rank_a < rank_b:
+                                    winner = f.team_a_name
+                                elif rank_b < rank_a:
+                                    winner = f.team_b_name
+                                else:
+                                    winner = None  # empate
+                                f.winner_team_name = winner
+                                f.status = "resolved"
+                    except Exception:
+                        pass  # auto-resolve falhou — admin usa bulk-resolve manualmente
 
     # Sincroniza o StageDay do dia 1 quando start_date ou lineup_close_at mudam.
     # Premissa: cada stage tem um único dia (day_number=1).

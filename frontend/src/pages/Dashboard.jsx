@@ -644,7 +644,8 @@ export default function Dashboard() {
   const [apiGroups,      setApiGroups]      = useState([])
   const [profileHistory, setProfileHistory] = useState([])
   const [groupLeaderEntry, setGroupLeaderEntry] = useState(null)
-  const [openFaceoffs,   setOpenFaceoffs]   = useState([])
+  const [openFaceoffs,       setOpenFaceoffs]       = useState([])
+  const [recentChampionships, setRecentChampionships] = useState([])
 
   const toggleChamp = (champId) =>
     setExpandedChamps(prev => {
@@ -695,12 +696,26 @@ export default function Dashboard() {
       .catch(() => {})
   }, [])
 
-  // Busca faceoffs abertos para o banner (com auth para popular my_vote)
+  // Busca faceoffs ativos (open + closed) para banners — exclui championships encerrados
   useEffect(() => {
     const headers = token ? { Authorization: `Bearer ${token}` } : {}
-    fetch(`${API_BASE_URL}/faceoffs?status=open`, { headers })
+    // Busca open E closed separadamente e combina
+    const fetchOpen   = fetch(`${API_BASE_URL}/faceoffs?status=open`,   { headers }).then(r => r.ok ? r.json() : [])
+    const fetchClosed = fetch(`${API_BASE_URL}/faceoffs?status=closed`, { headers }).then(r => r.ok ? r.json() : [])
+    Promise.all([fetchOpen, fetchClosed])
+      .then(([open, closed]) => {
+        const all = [...(Array.isArray(open) ? open : []), ...(Array.isArray(closed) ? closed : [])]
+        setOpenFaceoffs(all)
+      })
+      .catch(() => {})
+  }, [token])
+
+  // Busca championships encerrados recentemente (últimos 3 dias)
+  useEffect(() => {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {}
+    fetch(`${API_BASE_URL}/championships/recently-finished?days=3`, { headers })
       .then(r => r.ok ? r.json() : [])
-      .then(data => setOpenFaceoffs(Array.isArray(data) ? data : []))
+      .then(data => setRecentChampionships(Array.isArray(data) ? data : []))
       .catch(() => {})
   }, [token])
 
@@ -932,13 +947,17 @@ export default function Dashboard() {
           })
 
           return Object.entries(byChamp).map(([champId, faceoffs]) => {
-            const cid      = parseInt(champId)
-            const myVoted  = faceoffs.filter(f => f.my_vote).length
-            const total    = faceoffs.length
-            const allVoted = myVoted === total
+            const cid       = parseInt(champId)
+            const openOnes  = faceoffs.filter(f => f.status === 'open')
+            const closedOnes = faceoffs.filter(f => f.status === 'closed')
+            const isLocked  = openOnes.length === 0 && closedOnes.length > 0
+            const myVoted   = openOnes.filter(f => f.my_vote).length
+            const total     = openOnes.length
+            const allVoted  = total > 0 && myVoted === total
+
             const champStage = stages.find(s =>
               champMap[s.id]?.id === cid &&
-              (s.stage_phase === 'upcoming' || s.stage_phase === 'preview')
+              (s.stage_phase === 'upcoming' || s.stage_phase === 'preview' || s.stage_phase === 'live')
             )
             const href      = champStage ? `/tournament/${champStage.id}?tab=faceoff` : '/championships'
             const champName = champNameById[cid] || `Campeonato ${cid}`
@@ -946,23 +965,28 @@ export default function Dashboard() {
             return (
               <div
                 key={cid}
-                className="dash-faceoff"
+                className={`dash-faceoff${isLocked ? ' dash-faceoff--locked' : ''}`}
                 onClick={() => navigate(href)}
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate(href) }}
               >
                 <div className="dash-faceoff-icon">
-                  <DashIcon name="swords" size={22} strokeWidth={1.6}/>
+                  <DashIcon name={isLocked ? 'lock' : 'swords'} size={22} strokeWidth={1.6}/>
                 </div>
                 <div className="dash-faceoff-body">
                   <div className="dash-faceoff-title">Team Faceoff — {champName}</div>
                   <div className="dash-faceoff-sub">
-                    <b>{myVoted}/{total}</b> confrontos votados · Clique para participar
+                    {isLocked
+                      ? 'Votação encerrada · Aguardando resultado'
+                      : <><b>{myVoted}/{total}</b> confrontos votados · Clique para participar</>
+                    }
                   </div>
                 </div>
                 <div className="dash-faceoff-cta">
-                  {allVoted ? (
+                  {isLocked ? (
+                    'Aguardar'
+                  ) : allVoted ? (
                     '✓ Votado'
                   ) : (
                     <>
@@ -975,6 +999,45 @@ export default function Dashboard() {
             )
           })
         })()}
+
+        {/* ── RESULTADO DE CAMPEONATOS RECENTES (últimos 3 dias) ── */}
+        {recentChampionships.length > 0 && (
+          <div className="dash-section">
+            <SectionHead label="Últimos Campeonatos" icon="trophy" tone="gold" count={recentChampionships.length}/>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {recentChampionships.map(champ => {
+                const hasResolved = champ.total_resolved > 0
+                return (
+                  <div
+                    key={champ.id}
+                    className="dash-faceoff dash-faceoff--finished"
+                    onClick={() => navigate('/championships')}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate('/championships') }}
+                  >
+                    <div className="dash-faceoff-icon">
+                      <DashIcon name="trophy" size={22} strokeWidth={1.6}/>
+                    </div>
+                    <div className="dash-faceoff-body">
+                      <div className="dash-faceoff-title">{champ.name}</div>
+                      <div className="dash-faceoff-sub">
+                        {hasResolved
+                          ? <>Faceoff encerrado · Você acertou <b>{champ.my_correct}/{champ.total_resolved}</b> confrontos</>
+                          : 'Campeonato encerrado · Ver resultados'
+                        }
+                      </div>
+                    </div>
+                    <div className="dash-faceoff-cta" style={{ color: 'var(--color-xama-muted)', fontSize: 12 }}>
+                      Ver resultado
+                      <DashIcon name="arrow-right" size={14}/>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {/* ── SEÇÃO 1 — CAMPEONATOS ATIVOS ── */}
         {hasActive && (
