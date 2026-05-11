@@ -9,202 +9,413 @@ import {
 
 // ── Coverage Audit Panel ───────────────────────────────────────────────────────
 
+// ── helpers ──────────────────────────────────────────────────────────────────
+
+const badge = (color, bg, border, text) => (
+  <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4,
+    fontFamily: 'JetBrains Mono, monospace', background: bg, border: `1px solid ${border}`, color }}>
+    {text}
+  </span>
+)
+const coverageBadge = (pct) => pct === 0
+  ? badge('#ef4444', 'rgba(239,68,68,0.12)', 'rgba(239,68,68,0.4)', '0%')
+  : badge('#f59e0b', 'rgba(251,191,36,0.12)', 'rgba(251,191,36,0.4)', `${pct}%`)
+
+const confBadge = (conf) => conf >= 75
+  ? badge('#4ade80', 'rgba(74,222,128,0.1)', 'rgba(74,222,128,0.3)', `AUTO ${conf}%`)
+  : conf >= 60
+  ? badge('#f59e0b', 'rgba(251,191,36,0.1)', 'rgba(251,191,36,0.3)', `PARCIAL ${conf}%`)
+  : badge('#6b7280', 'rgba(107,114,128,0.1)', 'rgba(107,114,128,0.2)', 'SEM MATCH')
+
+// ── Coverage Audit Panel (3-step workflow) ────────────────────────────────────
+
 function CoverageAuditPanel({ token, championships }) {
   const [selectedId, setSelectedId] = useState('')
+  const [step, setStep] = useState(1)  // 1=audit, 2=scan+map, 3=reprocess
+
+  // Step 1 — audit
   const [audit, setAudit] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [scanResult, setScanResult] = useState(null)
-  const [scanStageId, setScanStageId] = useState(null)
+  const [auditing, setAuditing] = useState(false)
+
+  // Step 2 — full scan + mapping
+  const [scanData, setScanData] = useState(null)
   const [scanning, setScanning] = useState(false)
+  // confirmed mappings: {account_id → {person_id, alias, shard}}
+  const [mappings, setMappings] = useState({})
+
+  // Step 3 — reprocess
+  const [reprocessResult, setReprocessResult] = useState(null)
+  const [reprocessing, setReprocessing] = useState(false)
+
   const [err, setErr] = useState('')
 
+  const authHeader = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+
+  const reset = (newId) => {
+    setSelectedId(newId); setStep(1); setAudit(null); setScanData(null)
+    setMappings({}); setReprocessResult(null); setErr('')
+  }
+
+  // ── Step 1: run audit ──
   const runAudit = async () => {
     if (!selectedId) return
-    setLoading(true); setAudit(null); setErr(''); setScanResult(null)
+    setAuditing(true); setAudit(null); setErr('')
     try {
-      const res = await fetch(`${API_BASE_URL}/admin/championships/${selectedId}/coverage-audit`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      const res = await fetch(`${API_BASE_URL}/admin/championships/${selectedId}/coverage-audit`, { headers: authHeader })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       setAudit(await res.json())
     } catch (e) { setErr(e.message) }
-    finally { setLoading(false) }
+    finally { setAuditing(false) }
   }
 
-  const runScan = async (stageId) => {
-    setScanStageId(stageId); setScanning(true); setScanResult(null); setErr('')
+  // ── Step 2: full scan ──
+  const runFullScan = async () => {
+    setScanning(true); setScanData(null); setErr('')
     try {
-      const res = await fetch(`${API_BASE_URL}/admin/stages/${stageId}/scan-unresolved`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      })
+      const res = await fetch(
+        `${API_BASE_URL}/admin/championships/${selectedId}/full-coverage-scan?matches_per_stage=2`,
+        { method: 'POST', headers: authHeader }
+      )
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      setScanResult(await res.json())
+      const data = await res.json()
+      setScanData(data)
+      // Pre-fill mappings from high-confidence suggestions
+      const auto = {}
+      for (const u of data.all_unresolved || []) {
+        if (u.confidence >= 75 && u.suggested_person_id) {
+          auto[u.account_id] = {
+            person_id: u.suggested_person_id,
+            alias: u.alias,
+            shard: 'pc-tournament',
+            confirmed: true,
+          }
+        }
+      }
+      setMappings(auto)
     } catch (e) { setErr(e.message) }
     finally { setScanning(false) }
   }
 
-  // Group players by stage for display
+  const updateMapping = (account_id, field, value) => {
+    setMappings(prev => ({
+      ...prev,
+      [account_id]: { ...(prev[account_id] || {}), [field]: value }
+    }))
+  }
+
+  const applyMappings = async () => {
+    const toAdd = Object.entries(mappings)
+      .filter(([, m]) => m.confirmed && m.person_id)
+      .map(([account_id, m]) => ({
+        person_id: parseInt(m.person_id),
+        account_id,
+        alias: m.alias || null,
+        shard: m.shard || 'pc-tournament',
+      }))
+    if (!toAdd.length) { setErr('Nenhum mapeamento confirmado para aplicar.'); return }
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/persons/bulk-add-accounts`, {
+        method: 'POST', headers: authHeader, body: JSON.stringify(toAdd)
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const results = await res.json()
+      const added = results.filter(r => r.status === 'added').length
+      const skipped = results.filter(r => r.status === 'skipped_duplicate').length
+      const errors = results.filter(r => r.status === 'error').length
+      alert(`Contas aplicadas: ${added} adicionadas · ${skipped} já existiam · ${errors} erros`)
+      setStep(3)
+    } catch (e) { setErr(e.message) }
+  }
+
+  // ── Step 3: reprocess ──
+  const runReprocess = async () => {
+    if (!window.confirm(`Reprocessar TODAS as partidas de "${championships.find(c => c.id == selectedId)?.name}"?\n\nIsso atualiza match_stat e pontuações de usuários. Operação pode levar 1-2 minutos.`)) return
+    setReprocessing(true); setReprocessResult(null); setErr('')
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/championships/${selectedId}/reprocess-all`, {
+        method: 'POST', headers: authHeader
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      setReprocessResult(await res.json())
+    } catch (e) { setErr(e.message) }
+    finally { setReprocessing(false) }
+  }
+
   const byStage = audit ? audit.players.reduce((acc, p) => {
-    const key = p.stage_id
-    if (!acc[key]) acc[key] = []
-    acc[key].push(p)
-    return acc
+    const k = p.stage_id; if (!acc[k]) acc[k] = []; acc[k].push(p); return acc
   }, {}) : {}
 
-  const coverageBadge = (pct) => {
-    const bg = pct === 0 ? 'rgba(239,68,68,0.12)' : 'rgba(251,191,36,0.12)'
-    const border = pct === 0 ? 'rgba(239,68,68,0.4)' : 'rgba(251,191,36,0.4)'
-    const color = pct === 0 ? '#ef4444' : '#f59e0b'
-    return (
-      <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4,
-        fontFamily: 'JetBrains Mono, monospace', background: bg, border: `1px solid ${border}`, color }}>
-        {pct}%
-      </span>
-    )
-  }
+  const stepStyle = (n) => ({
+    display: 'flex', alignItems: 'center', gap: 8,
+    padding: '6px 14px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+    fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.08em',
+    cursor: step >= n ? 'pointer' : 'default',
+    background: step === n ? 'rgba(240,192,64,0.12)' : step > n ? 'rgba(74,222,128,0.08)' : 'rgba(255,255,255,0.03)',
+    border: step === n ? '1px solid rgba(240,192,64,0.4)' : step > n ? '1px solid rgba(74,222,128,0.3)' : '1px solid rgba(255,255,255,0.07)',
+    color: step === n ? '#f0c040' : step > n ? '#4ade80' : 'var(--color-xama-muted)',
+  })
 
   return (
     <div style={{ marginTop: 32 }}>
-      <SectionHeader title="Auditoria de Cobertura de Dados" />
+      <SectionHeader title="Recuperação de Dados — Aliases & Contas" />
       <div style={{
         background: 'rgba(18,21,28,0.9)', border: '1px solid var(--color-xama-border)',
         borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', gap: 16,
       }}>
         <p style={{ fontSize: 12, color: 'var(--color-xama-muted)', margin: 0 }}>
-          Detecta jogadores do roster com cobertura de partidas incompleta — contas não cadastradas, subs não mapeados, ou ausências.
+          Detecta jogadores sem cobertura completa (conta não cadastrada, rename de IGN, substituição), sugere mapeamentos automaticamente e reprocessa as partidas de forma segura.
         </p>
+
+        {/* Championship selector */}
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-          <select
-            style={{ ...selectStyle, minWidth: 260 }}
-            value={selectedId}
-            onChange={e => { setSelectedId(e.target.value); setAudit(null); setScanResult(null) }}
-          >
+          <select style={{ ...selectStyle, minWidth: 300 }} value={selectedId} onChange={e => reset(e.target.value)}>
             <option value="">— Selecione um championship —</option>
-            {championships.map(c => (
-              <option key={c.id} value={c.id}>{c.short_name} — {c.name}</option>
-            ))}
+            {championships.map(c => <option key={c.id} value={c.id}>{c.short_name} — {c.name}</option>)}
           </select>
-          <ActBtn onClick={runAudit} disabled={!selectedId || loading}>
-            {loading ? 'Auditando...' : 'Auditar Cobertura'}
-          </ActBtn>
         </div>
 
-        {err && <div style={{ color: '#ef4444', fontSize: 12, fontFamily: 'JetBrains Mono, monospace' }}>Erro: {err}</div>}
+        {/* Step indicator */}
+        {selectedId && (
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {[
+              { n: 1, label: '1 · Auditar Gaps' },
+              { n: 2, label: '2 · Scan + Mapear' },
+              { n: 3, label: '3 · Reprocessar' },
+            ].map(({ n, label }) => (
+              <div key={n} style={stepStyle(n)} onClick={() => step > n && setStep(n)}>{label}</div>
+            ))}
+          </div>
+        )}
 
-        {audit && (
+        {err && <div style={{ color: '#ef4444', fontSize: 12, fontFamily: 'JetBrains Mono, monospace' }}>⚠ {err}</div>}
+
+        {/* ── STEP 1: Audit ── */}
+        {selectedId && step === 1 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {/* Summary pills */}
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              {[
-                { label: 'Total com gaps', value: audit.total_gaps, color: audit.total_gaps > 0 ? '#f59e0b' : '#4ade80' },
-                { label: 'Cobertura 0%', value: audit.zero_coverage, color: audit.zero_coverage > 0 ? '#ef4444' : '#4ade80' },
-              ].map(({ label, value, color }) => (
-                <div key={label} style={{ padding: '8px 14px', borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                  <div style={{ fontSize: 10, color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.1em' }}>{label.toUpperCase()}</div>
-                  <div style={{ fontSize: 22, fontWeight: 700, color, fontFamily: 'Rajdhani, sans-serif' }}>{value}</div>
-                </div>
-              ))}
-              {audit.total_gaps === 0 && (
-                <div style={{ fontSize: 13, color: '#4ade80', padding: '8px 14px', fontWeight: 600 }}>
-                  ✓ Cobertura completa — nenhum gap detectado.
-                </div>
-              )}
-            </div>
+            <ActBtn onClick={runAudit} disabled={auditing}>
+              {auditing ? 'Auditando...' : 'Auditar Cobertura'}
+            </ActBtn>
 
-            {/* Per-stage breakdown */}
-            {Object.entries(byStage).map(([stageId, players]) => (
-              <div key={stageId} style={{ border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, overflow: 'hidden' }}>
-                <div style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '10px 14px', background: 'rgba(255,255,255,0.03)',
-                  borderBottom: '1px solid rgba(255,255,255,0.06)',
-                }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, fontFamily: 'JetBrains Mono, monospace', color: 'var(--color-xama-muted)' }}>
-                    STAGE #{stageId} — {players[0]?.stage_shard}
-                  </span>
-                  <ActBtn
-                    small
-                    onClick={() => runScan(parseInt(stageId))}
-                    disabled={scanning && scanStageId === parseInt(stageId)}
-                    style={{ background: 'rgba(139,92,246,0.1)', borderColor: 'rgba(139,92,246,0.3)', color: '#a78bfa' }}
-                  >
-                    {scanning && scanStageId === parseInt(stageId) ? 'Escaneando...' : '🔍 Scan API'}
-                  </ActBtn>
-                </div>
-                <table style={{ ...tableStyle, margin: 0 }}>
-                  <thead>
-                    <tr>
-                      <th style={thStyle}>Jogador</th>
-                      <th style={thStyle}>Time</th>
-                      <th style={thStyle}>Aparições</th>
-                      <th style={thStyle}>Cobertura</th>
-                      <th style={thStyle}>Contas cadastradas</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {players.map(p => (
-                      <tr key={`${p.stage_id}-${p.person_id}`}>
-                        <td style={{ ...tdStyle, fontWeight: 600 }}>{p.display_name}</td>
-                        <td style={{ ...tdStyle, fontSize: 12, color: 'var(--color-xama-muted)' }}>{p.team_name}</td>
-                        <td style={{ ...tdStyle, fontFamily: 'JetBrains Mono, monospace', fontSize: 12 }}>
-                          {p.matches_appeared} / {p.total_matches}
-                        </td>
-                        <td style={tdStyle}>{coverageBadge(p.coverage_pct)}</td>
-                        <td style={{ ...tdStyle, fontSize: 11, color: p.registered_accounts.length ? 'var(--color-xama-muted)' : '#ef4444', fontFamily: 'JetBrains Mono, monospace' }}>
-                          {p.registered_accounts.length ? p.registered_accounts.join(', ') : '⚠ nenhuma conta cadastrada'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-
-                {/* Scan result for this stage */}
-                {scanResult && scanStageId === parseInt(stageId) && (
-                  <div style={{ padding: 14, background: 'rgba(139,92,246,0.04)', borderTop: '1px solid rgba(139,92,246,0.15)' }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, fontFamily: 'JetBrains Mono, monospace', color: '#a78bfa', marginBottom: 8 }}>
-                      SCAN — {scanResult.matches_scanned} partida(s) analisada(s) · {scanResult.unique_unresolved_players} aliases não resolvidos
+            {audit && (
+              <>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  {[
+                    { label: 'Com gaps', value: audit.total_gaps, color: audit.total_gaps > 0 ? '#f59e0b' : '#4ade80' },
+                    { label: 'Cobertura 0%', value: audit.zero_coverage, color: audit.zero_coverage > 0 ? '#ef4444' : '#4ade80' },
+                  ].map(({ label, value, color }) => (
+                    <div key={label} style={{ padding: '8px 14px', borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                      <div style={{ fontSize: 10, color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.1em' }}>{label.toUpperCase()}</div>
+                      <div style={{ fontSize: 22, fontWeight: 700, color, fontFamily: 'Rajdhani, sans-serif' }}>{value}</div>
                     </div>
-                    {scanResult.unresolved.length === 0 ? (
-                      <div style={{ fontSize: 12, color: '#4ade80' }}>✓ Nenhum alias não resolvido — todos os jogadores da API foram mapeados.</div>
-                    ) : (
-                      <table style={{ ...tableStyle, margin: 0 }}>
-                        <thead>
-                          <tr>
-                            <th style={thStyle}>Alias (API)</th>
-                            <th style={thStyle}>Account ID</th>
-                            <th style={thStyle}>Primeira partida</th>
-                            <th style={{ ...thStyle, fontSize: 10 }}>Ação</th>
-                          </tr>
-                        </thead>
+                  ))}
+                </div>
+
+                {audit.total_gaps === 0
+                  ? <div style={{ color: '#4ade80', fontSize: 13, fontWeight: 600 }}>✓ Cobertura completa.</div>
+                  : (
+                    <>
+                      {Object.entries(byStage).map(([sid, players]) => (
+                        <div key={sid} style={{ border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, overflow: 'hidden' }}>
+                          <div style={{ padding: '8px 14px', background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.06)', fontSize: 11, fontWeight: 700, fontFamily: 'JetBrains Mono, monospace', color: 'var(--color-xama-muted)' }}>
+                            STAGE #{sid}
+                          </div>
+                          <table style={{ ...tableStyle, margin: 0 }}>
+                            <thead><tr>
+                              <th style={thStyle}>Jogador</th><th style={thStyle}>Time</th>
+                              <th style={thStyle}>Aparições</th><th style={thStyle}>Cobertura</th>
+                              <th style={thStyle}>Contas</th>
+                            </tr></thead>
+                            <tbody>
+                              {players.map(p => (
+                                <tr key={`${p.stage_id}-${p.person_id}`}>
+                                  <td style={{ ...tdStyle, fontWeight: 600 }}>{p.display_name}</td>
+                                  <td style={{ ...tdStyle, fontSize: 12, color: 'var(--color-xama-muted)' }}>{p.team_name}</td>
+                                  <td style={{ ...tdStyle, fontFamily: 'JetBrains Mono, monospace', fontSize: 12 }}>{p.matches_appeared}/{p.total_matches}</td>
+                                  <td style={tdStyle}>{coverageBadge(p.coverage_pct)}</td>
+                                  <td style={{ ...tdStyle, fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: p.registered_accounts.length ? 'var(--color-xama-muted)' : '#ef4444' }}>
+                                    {p.registered_accounts.length ? p.registered_accounts.join(' | ') : '⚠ nenhuma'}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ))}
+                      <ActBtn onClick={() => setStep(2)} style={{ alignSelf: 'flex-start', background: 'rgba(240,192,64,0.1)', borderColor: 'rgba(240,192,64,0.4)', color: '#f0c040' }}>
+                        Próximo: Scan & Mapeamento →
+                      </ActBtn>
+                    </>
+                  )}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ── STEP 2: Full scan + mapping ── */}
+        {selectedId && step === 2 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <p style={{ margin: 0, fontSize: 12, color: 'var(--color-xama-muted)' }}>
+              Busca 2 partidas por stage na PUBG API. Aliases não resolvidos recebem sugestão automática de person pelo nome/time. Confirme ou ajuste cada mapeamento antes de aplicar.
+            </p>
+            <ActBtn onClick={runFullScan} disabled={scanning} style={{ alignSelf: 'flex-start' }}>
+              {scanning ? '⏳ Escaneando API...' : '🔍 Iniciar Scan Completo'}
+            </ActBtn>
+
+            {scanData && (
+              <>
+                {/* Summary */}
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  {[
+                    { label: 'Não resolvidos', value: scanData.total_unresolved, color: scanData.total_unresolved > 0 ? '#f59e0b' : '#4ade80' },
+                    { label: 'Auto-mapeados', value: scanData.high_confidence_matches, color: '#4ade80' },
+                    { label: 'Para revisar', value: scanData.needs_review + scanData.no_match_found, color: scanData.needs_review + scanData.no_match_found > 0 ? '#f59e0b' : '#4ade80' },
+                  ].map(({ label, value, color }) => (
+                    <div key={label} style={{ padding: '8px 14px', borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                      <div style={{ fontSize: 10, color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.1em' }}>{label.toUpperCase()}</div>
+                      <div style={{ fontSize: 22, fontWeight: 700, color, fontFamily: 'Rajdhani, sans-serif' }}>{value}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {scanData.total_unresolved === 0
+                  ? <div style={{ color: '#4ade80', fontSize: 13, fontWeight: 600 }}>✓ Nenhum alias não resolvido — dados completos.</div>
+                  : (
+                    <>
+                      <table style={{ ...tableStyle }}>
+                        <thead><tr>
+                          <th style={thStyle}>Alias (API)</th>
+                          <th style={thStyle}>Stage</th>
+                          <th style={thStyle}>Confiança</th>
+                          <th style={thStyle}>Sugestão</th>
+                          <th style={thStyle}>Person ID</th>
+                          <th style={thStyle}>Shard</th>
+                          <th style={thStyle}>Confirmar</th>
+                        </tr></thead>
                         <tbody>
-                          {scanResult.unresolved.map((u, i) => (
+                          {scanData.all_unresolved.map((u) => {
+                            const m = mappings[u.account_id] || {}
+                            return (
+                              <tr key={u.account_id}>
+                                <td style={{ ...tdStyle, fontWeight: 700 }}>
+                                  {u.alias}
+                                  <div style={{ fontSize: 9, color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace', marginTop: 2 }}>{u.account_id.slice(0, 20)}...</div>
+                                </td>
+                                <td style={{ ...tdStyle, fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'var(--color-xama-muted)' }}>#{u.stage_id}</td>
+                                <td style={tdStyle}>{confBadge(u.confidence)}</td>
+                                <td style={{ ...tdStyle, fontSize: 12 }}>
+                                  {u.suggested_display_name
+                                    ? <><span style={{ fontWeight: 600 }}>{u.suggested_display_name}</span><br /><span style={{ fontSize: 10, color: 'var(--color-xama-muted)' }}>{u.suggested_team}</span></>
+                                    : <span style={{ color: 'var(--color-xama-muted)', fontSize: 11 }}>—</span>
+                                  }
+                                </td>
+                                <td style={tdStyle}>
+                                  <input
+                                    type="number"
+                                    placeholder={u.suggested_person_id || 'person_id'}
+                                    defaultValue={u.suggested_person_id || ''}
+                                    style={{ ...inputStyle, width: 80, padding: '4px 8px', fontSize: 12 }}
+                                    onChange={e => updateMapping(u.account_id, 'person_id', e.target.value)}
+                                  />
+                                </td>
+                                <td style={tdStyle}>
+                                  <select
+                                    style={{ ...selectStyle, padding: '4px 8px', fontSize: 11 }}
+                                    defaultValue={u.stage_shard || 'pc-tournament'}
+                                    onChange={e => updateMapping(u.account_id, 'shard', e.target.value)}
+                                  >
+                                    <option value="pc-tournament">pc-tournament</option>
+                                    <option value="steam">steam</option>
+                                  </select>
+                                </td>
+                                <td style={tdStyle}>
+                                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                                    <input
+                                      type="checkbox"
+                                      checked={!!m.confirmed}
+                                      onChange={e => updateMapping(u.account_id, 'confirmed', e.target.checked)}
+                                    />
+                                    <span style={{ fontSize: 11, color: m.confirmed ? '#4ade80' : 'var(--color-xama-muted)' }}>
+                                      {m.confirmed ? 'OK' : 'Verificar'}
+                                    </span>
+                                  </label>
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+
+                      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: 12, color: 'var(--color-xama-muted)' }}>
+                          {Object.values(mappings).filter(m => m.confirmed && m.person_id).length} mapeamento(s) confirmado(s)
+                        </span>
+                        <ActBtn
+                          onClick={applyMappings}
+                          disabled={Object.values(mappings).filter(m => m.confirmed && m.person_id).length === 0}
+                          style={{ background: 'rgba(74,222,128,0.1)', borderColor: 'rgba(74,222,128,0.3)', color: '#4ade80' }}
+                        >
+                          Aplicar Mapeamentos
+                        </ActBtn>
+                        <ActBtn onClick={() => setStep(3)} style={{ background: 'rgba(240,192,64,0.1)', borderColor: 'rgba(240,192,64,0.4)', color: '#f0c040' }}>
+                          Pular → Reprocessar
+                        </ActBtn>
+                      </div>
+                    </>
+                  )}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ── STEP 3: Reprocess ── */}
+        {selectedId && step === 3 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <p style={{ margin: 0, fontSize: 12, color: 'var(--color-xama-muted)' }}>
+              Reprocessa todas as partidas do campeonato — re-busca dados da API e recalcula match_stat e pontuações de usuários usando os novos mapeamentos de contas. Operação idempotente e segura.
+            </p>
+            <ActBtn
+              onClick={runReprocess}
+              disabled={reprocessing}
+              style={{ alignSelf: 'flex-start', background: 'rgba(139,92,246,0.1)', borderColor: 'rgba(139,92,246,0.3)', color: '#a78bfa' }}
+            >
+              {reprocessing ? '⏳ Reprocessando (pode demorar)...' : '⚙ Reprocessar Todas as Partidas'}
+            </ActBtn>
+
+            {reprocessResult && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  {[
+                    { label: 'Total', value: reprocessResult.matches_total },
+                    { label: 'OK', value: reprocessResult.matches_ok, color: '#4ade80' },
+                    { label: 'Erros', value: reprocessResult.matches_error, color: reprocessResult.matches_error > 0 ? '#ef4444' : '#4ade80' },
+                  ].map(({ label, value, color }) => (
+                    <div key={label} style={{ padding: '8px 14px', borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                      <div style={{ fontSize: 10, color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.1em' }}>{label.toUpperCase()}</div>
+                      <div style={{ fontSize: 22, fontWeight: 700, color: color || 'var(--color-xama-text)', fontFamily: 'Rajdhani, sans-serif' }}>{value}</div>
+                    </div>
+                  ))}
+                </div>
+                {reprocessResult.matches_error === 0
+                  ? <div style={{ color: '#4ade80', fontWeight: 600, fontSize: 13 }}>✓ Reprocessamento concluído — dados atualizados.</div>
+                  : (
+                    <div style={{ border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, overflow: 'hidden' }}>
+                      <div style={{ padding: '8px 14px', background: 'rgba(239,68,68,0.06)', fontSize: 11, fontWeight: 700, fontFamily: 'JetBrains Mono, monospace', color: '#ef4444' }}>ERROS</div>
+                      <table style={{ ...tableStyle, margin: 0 }}>
+                        <thead><tr><th style={thStyle}>Stage</th><th style={thStyle}>Match ID</th><th style={thStyle}>Erro</th></tr></thead>
+                        <tbody>
+                          {reprocessResult.results.filter(r => r.error).map((r, i) => (
                             <tr key={i}>
-                              <td style={{ ...tdStyle, fontWeight: 700, color: '#f59e0b' }}>{u.alias}</td>
-                              <td style={{ ...tdStyle, fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: 'var(--color-xama-muted)' }}>{u.account_id}</td>
-                              <td style={{ ...tdStyle, fontSize: 11, fontFamily: 'JetBrains Mono, monospace', color: 'var(--color-xama-muted)' }}>{u.first_seen_match?.slice(0, 8)}...</td>
-                              <td style={tdStyle}>
-                                <button
-                                  onClick={() => navigator.clipboard?.writeText(u.account_id)}
-                                  style={{ fontSize: 10, padding: '3px 8px', cursor: 'pointer', borderRadius: 4, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--color-xama-text)' }}
-                                >
-                                  Copiar ID
-                                </button>
-                              </td>
+                              <td style={{ ...tdStyle, fontFamily: 'JetBrains Mono, monospace', fontSize: 11 }}>#{r.stage_id}</td>
+                              <td style={{ ...tdStyle, fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: 'var(--color-xama-muted)' }}>{r.pubg_match_id?.slice(0, 12)}...</td>
+                              <td style={{ ...tdStyle, color: '#ef4444', fontSize: 11 }}>{r.error}</td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
-                    )}
-                    {scanResult.next_steps && scanResult.unresolved.length > 0 && (
-                      <div style={{ marginTop: 10, fontSize: 11, color: 'var(--color-xama-muted)', lineHeight: 1.5 }}>
-                        💡 {scanResult.next_steps}
-                      </div>
-                    )}
-                  </div>
-                )}
+                    </div>
+                  )}
               </div>
-            ))}
+            )}
           </div>
         )}
       </div>

@@ -4,6 +4,7 @@ from typing import Optional
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -266,3 +267,80 @@ def remove_alias(
         )
     db.delete(alias)
     db.commit()
+
+
+# ── Bulk account operations ───────────────────────────────────────────────────
+
+class BulkAccountEntry(BaseModel):
+    person_id: int
+    account_id: str
+    alias: Optional[str] = None
+    shard: str = "pc-tournament"
+
+
+class BulkAccountResult(BaseModel):
+    person_id: int
+    account_id: str
+    alias: Optional[str]
+    status: str   # "added" | "skipped_duplicate" | "error"
+    detail: Optional[str] = None
+
+
+@router.post(
+    "/bulk-add-accounts",
+    response_model=list[BulkAccountResult],
+    summary="Adiciona múltiplas contas de uma vez (bulk)",
+    description=(
+        "Adiciona uma lista de player_account entries. "
+        "Entradas duplicadas (mesmo account_id + shard já ativo) são ignoradas com status 'skipped_duplicate'. "
+        "Seguro: não falha na primeira duplicata, processa toda a lista."
+    ),
+)
+def bulk_add_accounts(
+    body: list[BulkAccountEntry],
+    db: Session = Depends(get_db),
+    _admin: User = Depends(require_admin),
+) -> list[BulkAccountResult]:
+    results = []
+    for entry in body:
+        # Validate person exists
+        person = db.query(Person).filter(Person.id == entry.person_id).first()
+        if not person:
+            results.append(BulkAccountResult(
+                person_id=entry.person_id, account_id=entry.account_id, alias=entry.alias,
+                status="error", detail=f"Person {entry.person_id} not found",
+            ))
+            continue
+
+        # Check for active duplicate
+        conflict = (
+            db.query(PlayerAccount)
+            .filter(
+                PlayerAccount.account_id == entry.account_id,
+                PlayerAccount.shard == entry.shard,
+                PlayerAccount.active_until.is_(None),
+            )
+            .first()
+        )
+        if conflict:
+            results.append(BulkAccountResult(
+                person_id=entry.person_id, account_id=entry.account_id, alias=entry.alias,
+                status="skipped_duplicate",
+                detail=f"Already active for person_id={conflict.person_id}",
+            ))
+            continue
+
+        account = PlayerAccount(
+            person_id=entry.person_id,
+            account_id=entry.account_id,
+            shard=entry.shard,
+            alias=entry.alias,
+        )
+        db.add(account)
+        results.append(BulkAccountResult(
+            person_id=entry.person_id, account_id=entry.account_id, alias=entry.alias,
+            status="added",
+        ))
+
+    db.commit()
+    return results

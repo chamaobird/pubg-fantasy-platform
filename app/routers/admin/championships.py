@@ -299,3 +299,246 @@ def get_coverage_audit(
         zero_coverage=sum(1 for p in players if p.matches_appeared == 0),
         players=players,
     )
+
+
+# ── Full coverage scan ─────────────────────────────────────────────────────────
+
+def _suggest_person(alias: str, roster_candidates: list[dict]) -> Optional[dict]:
+    """
+    Tenta identificar a qual person do roster um alias não-resolvido pertence.
+    Estratégia (por ordem de confiança):
+      1. alias termina com display_name (ex: FATE_fl8nkr → fl8nkr)          → 95
+      2. alias contém display_name (substring)                                → 75
+      3. prefixo do alias bate com trecho do team_name (ex: FATE_ → Team FATE) → 60
+      4. sem match                                                             → None
+    """
+    alias_lower = alias.lower()
+
+    best: Optional[dict] = None
+    best_score = 0
+
+    for cand in roster_candidates:
+        name_lower = cand["display_name"].lower()
+        score = 0
+
+        if alias_lower.endswith(name_lower):
+            score = 95
+        elif name_lower and name_lower in alias_lower:
+            score = 75
+        else:
+            # Team prefix heuristic: "FATE_" prefix → look for "team fate" in team_name
+            parts = alias.split("_")
+            prefix = parts[0].lower() if parts else ""
+            team_lower = (cand["team_name"] or "").lower()
+            if prefix and prefix in team_lower:
+                score = 60
+
+        if score > best_score:
+            best_score = score
+            best = {**cand, "confidence": best_score}
+
+    return best if best_score >= 60 else None
+
+
+@router.post(
+    "/{championship_id}/full-coverage-scan",
+    summary="Scan completo de aliases não resolvidos em todas as stages do campeonato",
+    description=(
+        "Re-busca `matches_per_stage` partidas da PUBG API por stage e identifica aliases "
+        "que não foram mapeados para nenhuma Person. "
+        "Para cada alias não resolvido, tenta sugerir automaticamente a Person do roster "
+        "usando matching de nome e prefixo de time. "
+        "READ-ONLY: nenhuma alteração no banco."
+    ),
+)
+def full_coverage_scan(
+    championship_id: int,
+    matches_per_stage: int = Query(2, ge=1, le=5, description="Matches por stage a escanear (default 2)"),
+    db: Session = Depends(get_db),
+    _admin: User = Depends(require_admin),
+) -> dict:
+    from app.models import Stage, StageDay, Match, Roster
+    from app.pubg.client import PubgClient, PubgApiError
+    from app.services.identity import build_lookup, resolve_from_lookup
+    from app.models.person import Person
+
+    championship = _get_or_404(db, championship_id)
+
+    stages = (
+        db.query(Stage)
+        .filter(Stage.championship_id == championship_id, Stage.is_active == True)  # noqa
+        .order_by(Stage.id)
+        .all()
+    )
+
+    if not stages:
+        return {"championship_id": championship_id, "stages_scanned": 0, "all_unresolved": []}
+
+    # Pre-load per-stage roster candidates (for suggestion engine)
+    stage_roster: dict[int, list[dict]] = {}
+    for stage in stages:
+        roster_rows = (
+            db.query(Roster, Person)
+            .join(Person, Person.id == Roster.person_id)
+            .filter(Roster.stage_id == stage.id, Roster.is_available == True)  # noqa
+            .all()
+        )
+        stage_roster[stage.id] = [
+            {"person_id": r.person_id, "display_name": p.display_name, "team_name": r.team_name}
+            for r, p in roster_rows
+        ]
+
+    results_by_stage = []
+    global_seen: dict[str, dict] = {}  # account_id → first occurrence
+
+    for stage in stages:
+        client = PubgClient(shard=stage.shard)
+        lookup = build_lookup(db, stage.id)
+
+        matches = (
+            db.query(Match)
+            .join(StageDay, Match.stage_day_id == StageDay.id)
+            .filter(StageDay.stage_id == stage.id)
+            .order_by(Match.id)
+            .limit(matches_per_stage)
+            .all()
+        )
+
+        stage_unresolved: list[dict] = []
+        stage_errors = []
+        scanned = 0
+
+        for match in matches:
+            try:
+                raw = client.get_match(match.pubg_match_id)
+            except PubgApiError as exc:
+                stage_errors.append({"pubg_match_id": match.pubg_match_id, "error": str(exc)})
+                continue
+
+            scanned += 1
+            for rps in raw.player_stats:
+                if resolve_from_lookup(lookup, rps.account_id, rps.alias) is None:
+                    if rps.account_id not in global_seen:
+                        suggestion = _suggest_person(rps.alias, stage_roster.get(stage.id, []))
+                        entry = {
+                            "account_id": rps.account_id,
+                            "alias": rps.alias,
+                            "stage_id": stage.id,
+                            "pubg_match_id": match.pubg_match_id,
+                            "suggested_person_id": suggestion["person_id"] if suggestion else None,
+                            "suggested_display_name": suggestion["display_name"] if suggestion else None,
+                            "suggested_team": suggestion["team_name"] if suggestion else None,
+                            "confidence": suggestion["confidence"] if suggestion else 0,
+                        }
+                        global_seen[rps.account_id] = entry
+                        stage_unresolved.append(entry)
+
+        results_by_stage.append({
+            "stage_id": stage.id,
+            "shard": stage.shard,
+            "matches_scanned": scanned,
+            "unresolved_count": len(stage_unresolved),
+            "errors": stage_errors,
+            "unresolved": stage_unresolved,
+        })
+
+    all_unresolved = list(global_seen.values())
+    high_confidence = [u for u in all_unresolved if u["confidence"] >= 75]
+    needs_review = [u for u in all_unresolved if 0 < u["confidence"] < 75]
+    no_match = [u for u in all_unresolved if u["confidence"] == 0]
+
+    return {
+        "championship_id": championship_id,
+        "championship_name": championship.name,
+        "stages_scanned": len(stages),
+        "total_unresolved": len(all_unresolved),
+        "high_confidence_matches": len(high_confidence),
+        "needs_review": len(needs_review),
+        "no_match_found": len(no_match),
+        "by_stage": results_by_stage,
+        "all_unresolved": all_unresolved,
+        "instruction": (
+            "Para cada entry: se suggested_person_id estiver preenchido, "
+            "confirme e use POST /admin/persons/{person_id}/accounts para vincular o account_id. "
+            "Se confidence=0, identifique manualmente ou crie nova Person. "
+            "Após vincular todas as contas: POST /admin/championships/{id}/reprocess-all."
+        ),
+    }
+
+
+# ── Reprocess all ─────────────────────────────────────────────────────────────
+
+@router.post(
+    "/{championship_id}/reprocess-all",
+    summary="Reprocessa todas as partidas do campeonato (idempotente)",
+    description=(
+        "Re-busca e recalcula todos os MATCH_STAT e USER_STAGE_STAT para todas "
+        "as stages do campeonato. Seguro: não apaga dados — usa upsert. "
+        "Ideal após adicionar novos player_accounts para capturar os dados retroativos. "
+        "AVISO: faz uma requisição para a PUBG API por partida — pode ser lento."
+    ),
+)
+def reprocess_all(
+    championship_id: int,
+    db: Session = Depends(get_db),
+    _admin: User = Depends(require_admin),
+) -> dict:
+    from app.models import Stage, StageDay, Match
+    from app.services.import_ import reprocess_match
+
+    championship = _get_or_404(db, championship_id)
+
+    stages = (
+        db.query(Stage)
+        .filter(Stage.championship_id == championship_id, Stage.is_active == True)  # noqa
+        .order_by(Stage.id)
+        .all()
+    )
+
+    if not stages:
+        return {"championship_id": championship_id, "matches_total": 0, "results": []}
+
+    results = []
+    total_ok = 0
+    total_err = 0
+
+    for stage in stages:
+        matches = (
+            db.query(Match)
+            .join(StageDay, Match.stage_day_id == StageDay.id)
+            .filter(StageDay.stage_id == stage.id)
+            .order_by(Match.id)
+            .all()
+        )
+        for match in matches:
+            try:
+                r = reprocess_match(db=db, pubg_match_id=match.pubg_match_id, stage_id=stage.id)
+                results.append({
+                    "stage_id": stage.id,
+                    "pubg_match_id": match.pubg_match_id,
+                    "status": r["status"],
+                    "players_ok": r.get("players_ok", 0),
+                    "players_skipped": r.get("players_skipped", 0),
+                    "error": r.get("error"),
+                })
+                if not r.get("error"):
+                    total_ok += 1
+                else:
+                    total_err += 1
+            except Exception as exc:
+                results.append({
+                    "stage_id": stage.id,
+                    "pubg_match_id": match.pubg_match_id,
+                    "status": "error",
+                    "error": str(exc),
+                })
+                total_err += 1
+
+    return {
+        "championship_id": championship_id,
+        "championship_name": championship.name,
+        "matches_total": len(results),
+        "matches_ok": total_ok,
+        "matches_error": total_err,
+        "results": results,
+    }
