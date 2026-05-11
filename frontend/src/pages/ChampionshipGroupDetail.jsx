@@ -7,6 +7,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { API_BASE_URL } from '../config'
 import Navbar from '../components/Navbar'
 import PlayerStatsTable from '../components/PlayerStatsTable'
+import FaceoffCard from '../components/FaceoffCard'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -190,10 +191,10 @@ function PlayerStats({ groupId, shortName }) {
 function FaceoffResults({ championshipIds }) {
   const [faceoffs, setFaceoffs] = useState([])
   const [loading, setLoading]   = useState(true)
+  const token = localStorage.getItem('token')
 
   useEffect(() => {
     if (!championshipIds?.length) { setLoading(false); return }
-    const token = localStorage.getItem('token')
     const headers = token ? { Authorization: `Bearer ${token}` } : {}
     Promise.all(
       championshipIds.map(cid =>
@@ -217,10 +218,10 @@ function FaceoffResults({ championshipIds }) {
   }).length
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {resolved.length > 0 && (
         <div style={{
-          padding: '12px 18px', borderRadius: 10, marginBottom: 8,
+          padding: '12px 18px', borderRadius: 10,
           background: 'rgba(240,192,64,0.06)', border: '1px solid rgba(240,192,64,0.2)',
           fontSize: 13, color: 'var(--color-xama-gold)', fontFamily: "'JetBrains Mono', monospace",
           fontWeight: 700,
@@ -228,104 +229,9 @@ function FaceoffResults({ championshipIds }) {
           Você acertou {myCorrect}/{resolved.length} confrontos
         </div>
       )}
-      {faceoffs.map(f => {
-        const isResolved = f.status === 'resolved'
-        const showPct    = f.status === 'closed' || isResolved
-        const pctA = showPct ? (f.pct_a ?? 0) : null
-        const pctB = showPct ? (f.pct_b ?? 0) : null
-        const winnerA = isResolved && f.winner_team_name === f.team_a_name
-        const winnerB = isResolved && f.winner_team_name === f.team_b_name
-        const myVoteA = f.my_vote === 'a'
-        const myVoteB = f.my_vote === 'b'
-        const correct  = isResolved && f.my_vote && (myVoteA ? winnerA : winnerB)
-        const wrong    = isResolved && f.my_vote && !correct
-
-        const seedLabel = (s) => s != null ? `#${s}` : ''
-
-        return (
-          <div key={f.id} style={{
-            padding: '16px 18px', borderRadius: 12,
-            background: 'var(--color-xama-surface)', border: '1px solid var(--color-xama-border)',
-          }}>
-            {/* Pair header */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-              {/* Team A */}
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  {myVoteA && (
-                    <span style={{ fontSize: 10, fontFamily: "'JetBrains Mono', monospace", color: correct ? '#4ade80' : wrong ? '#f87171' : 'var(--color-xama-muted)', fontWeight: 700 }}>
-                      {correct ? '✓' : wrong ? '✗' : 'SEU VOTO'}
-                    </span>
-                  )}
-                  <span style={{ fontSize: 14, fontWeight: winnerA ? 800 : 600, color: winnerA ? 'var(--color-xama-gold)' : 'var(--color-xama-text)' }}>
-                    {f.team_a_name}
-                  </span>
-                  {f.seed_a != null && <span style={{ fontSize: 10, color: 'var(--color-xama-muted)', fontFamily: "'JetBrains Mono', monospace" }}>{seedLabel(f.seed_a)}</span>}
-                </div>
-                {showPct && (
-                  <div style={{ fontSize: 11, color: 'var(--color-xama-muted)', fontFamily: "'JetBrains Mono', monospace" }}>{pctA}%</div>
-                )}
-              </div>
-
-              {/* VS + status */}
-              <div style={{ textAlign: 'center', minWidth: 40 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-xama-muted)', fontFamily: "'JetBrains Mono', monospace" }}>VS</div>
-                {isResolved && (
-                  <div style={{ fontSize: 9, marginTop: 2, fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-gold)', fontWeight: 700 }}>ENCERRADO</div>
-                )}
-              </div>
-
-              {/* Team B */}
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 3 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  {f.seed_b != null && <span style={{ fontSize: 10, color: 'var(--color-xama-muted)', fontFamily: "'JetBrains Mono', monospace" }}>{seedLabel(f.seed_b)}</span>}
-                  <span style={{ fontSize: 14, fontWeight: winnerB ? 800 : 600, color: winnerB ? 'var(--color-xama-gold)' : 'var(--color-xama-text)' }}>
-                    {f.team_b_name}
-                  </span>
-                  {myVoteB && (
-                    <span style={{ fontSize: 10, fontFamily: "'JetBrains Mono', monospace", color: correct ? '#4ade80' : wrong ? '#f87171' : 'var(--color-xama-muted)', fontWeight: 700 }}>
-                      {correct ? '✓' : wrong ? '✗' : 'SEU VOTO'}
-                    </span>
-                  )}
-                </div>
-                {showPct && (
-                  <div style={{ fontSize: 11, color: 'var(--color-xama-muted)', fontFamily: "'JetBrains Mono', monospace" }}>{pctB}%</div>
-                )}
-              </div>
-            </div>
-
-            {/* Progress bar */}
-            {showPct && (
-              <div style={{ height: 4, borderRadius: 2, background: 'var(--color-xama-border)', overflow: 'hidden' }}>
-                <div style={{
-                  height: '100%', width: `${pctA}%`,
-                  background: winnerA ? 'var(--color-xama-gold)' : 'var(--color-xama-teal)',
-                  borderRadius: 2, transition: 'width 0.5s ease',
-                }}/>
-              </div>
-            )}
-
-            {/* Winner badge */}
-            {isResolved && f.winner_team_name && (
-              <div style={{ marginTop: 10, textAlign: 'center' }}>
-                <span style={{
-                  fontSize: 11, fontWeight: 700, padding: '3px 12px', borderRadius: 999,
-                  background: 'rgba(240,192,64,0.12)', border: '1px solid rgba(240,192,64,0.3)',
-                  color: 'var(--color-xama-gold)', fontFamily: "'JetBrains Mono', monospace",
-                  letterSpacing: '0.08em',
-                }}>
-                  VENCEDOR: {f.winner_team_name}
-                </span>
-              </div>
-            )}
-
-            {/* Total votes */}
-            <div style={{ marginTop: 8, textAlign: 'center', fontSize: 10, color: 'var(--color-xama-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
-              {f.total_votes} votos
-            </div>
-          </div>
-        )
-      })}
+      {faceoffs.map(f => (
+        <FaceoffCard key={f.id} faceoff={f} token={null} onVoted={null} />
+      ))}
     </div>
   )
 }
