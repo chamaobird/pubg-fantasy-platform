@@ -2,10 +2,12 @@
 from __future__ import annotations
 
 import os
+from typing import Optional
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -34,6 +36,26 @@ class ShardDetectResponse(BaseModel):
     shard: str
     sample_match_id: str
     verified: bool
+
+
+class CoveragePlayerEntry(BaseModel):
+    stage_id: int
+    stage_shard: str
+    person_id: int
+    display_name: str
+    team_name: str
+    matches_appeared: int
+    total_matches: int
+    coverage_pct: float
+    registered_accounts: list[str]  # aliases cadastrados no player_account
+
+
+class CoverageAuditResponse(BaseModel):
+    championship_id: int
+    championship_name: str
+    total_gaps: int
+    zero_coverage: int
+    players: list[CoveragePlayerEntry]
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -179,3 +201,101 @@ def deactivate_championship(
         )
     championship.is_active = False
     db.commit()
+
+
+@router.get(
+    "/{championship_id}/coverage-audit",
+    response_model=CoverageAuditResponse,
+    summary="Auditoria de cobertura de dados do campeonato",
+    description=(
+        "Retorna todos os jogadores do roster que aparecem em menos partidas do que o esperado. "
+        "Útil para detectar contas não cadastradas (player_account faltando) ou subs não mapeados. "
+        "Leitura pura — nenhuma alteração no banco."
+    ),
+)
+def get_coverage_audit(
+    championship_id: int,
+    db: Session = Depends(get_db),
+    _admin: User = Depends(require_admin),
+) -> CoverageAuditResponse:
+    championship = _get_or_404(db, championship_id)
+
+    rows = db.execute(text("""
+        WITH stage_match_counts AS (
+            SELECT sd.stage_id, COUNT(DISTINCT m.id) AS total_matches
+            FROM match m
+            JOIN stage_day sd ON sd.id = m.stage_day_id
+            GROUP BY sd.stage_id
+        ),
+        player_appearances AS (
+            SELECT sd.stage_id, ms.person_id, COUNT(DISTINCT ms.match_id) AS matches_appeared
+            FROM match_stat ms
+            JOIN match m ON m.id = ms.match_id
+            JOIN stage_day sd ON sd.id = m.stage_day_id
+            GROUP BY sd.stage_id, ms.person_id
+        )
+        SELECT
+            r.stage_id,
+            s.shard          AS stage_shard,
+            r.person_id,
+            p.display_name,
+            r.team_name,
+            COALESCE(pa.matches_appeared, 0)  AS matches_appeared,
+            smc.total_matches
+        FROM roster r
+        JOIN person p ON p.id = r.person_id
+        JOIN stage s ON s.id = r.stage_id
+        LEFT JOIN player_appearances pa ON pa.stage_id = r.stage_id AND pa.person_id = r.person_id
+        LEFT JOIN stage_match_counts smc ON smc.stage_id = r.stage_id
+        WHERE s.championship_id = :cid
+          AND r.is_available = true
+          AND smc.total_matches > 0
+          AND COALESCE(pa.matches_appeared, 0) < smc.total_matches
+        ORDER BY COALESCE(pa.matches_appeared, 0) ASC, r.stage_id, r.team_name, p.display_name
+    """), {"cid": championship_id}).fetchall()
+
+    if not rows:
+        return CoverageAuditResponse(
+            championship_id=championship_id,
+            championship_name=championship.name,
+            total_gaps=0,
+            zero_coverage=0,
+            players=[],
+        )
+
+    # Load registered accounts per person (for the persons found in gaps)
+    person_ids = list({r.person_id for r in rows})
+    acc_rows = db.execute(text("""
+        SELECT person_id, alias, account_id FROM player_account
+        WHERE person_id = ANY(:pids)
+        ORDER BY person_id, active_from
+    """), {"pids": person_ids}).fetchall()
+
+    accounts_by_person: dict[int, list[str]] = {}
+    for ar in acc_rows:
+        accounts_by_person.setdefault(ar.person_id, []).append(
+            f"{ar.alias} ({ar.account_id[:12]}...)" if ar.alias else ar.account_id[:16]
+        )
+
+    players = [
+        CoveragePlayerEntry(
+            stage_id=r.stage_id,
+            stage_shard=r.stage_shard,
+            person_id=r.person_id,
+            display_name=r.display_name,
+            team_name=r.team_name,
+            matches_appeared=int(r.matches_appeared),
+            total_matches=int(r.total_matches),
+            coverage_pct=round(100.0 * r.matches_appeared / r.total_matches, 1),
+            registered_accounts=accounts_by_person.get(r.person_id, []),
+        )
+        for r in rows
+    ]
+
+    return CoverageAuditResponse(
+        championship_id=championship_id,
+        championship_name=championship.name,
+        total_gaps=len(players),
+        zero_coverage=sum(1 for p in players if p.matches_appeared == 0),
+        players=players,
+    )

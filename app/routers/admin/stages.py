@@ -402,3 +402,107 @@ def delete_stage(
 
     db.delete(stage)
     db.commit()
+
+
+# ── Scan unresolved ───────────────────────────────────────────────────────────
+
+@router.post(
+    "/{stage_id}/scan-unresolved",
+    summary="Detectar jogadores não resolvidos no import (leitura pura)",
+    description=(
+        "Re-busca até `match_limit` matches da PUBG API para esta stage e identifica "
+        "aliases/account_ids que NÃO foram mapeados para nenhuma Person. "
+        "LEITURA PURA — nenhuma alteração no banco. "
+        "Use para descobrir contas de substitutos ou aliases novos que precisam ser "
+        "cadastrados via POST /admin/persons/{id}/accounts antes de reprocessar."
+    ),
+)
+def scan_unresolved(
+    stage_id: int,
+    match_limit: int = 3,
+    db: Session = Depends(get_db),
+    _admin: User = Depends(require_admin),
+) -> dict:
+    from app.models import Match, StageDay
+    from app.pubg.client import PubgClient, PubgApiError
+    from app.services.identity import build_lookup, resolve_from_lookup
+
+    stage = _get_or_404(db, stage_id)
+
+    # Carrega matches da stage
+    matches = (
+        db.query(Match)
+        .join(StageDay, Match.stage_day_id == StageDay.id)
+        .filter(StageDay.stage_id == stage_id)
+        .order_by(Match.id)
+        .limit(match_limit)
+        .all()
+    )
+
+    if not matches:
+        return {"stage_id": stage_id, "matches_scanned": 0, "unresolved": [], "message": "Nenhum match encontrado para esta stage."}
+
+    lookup = build_lookup(db, stage_id)
+    client = PubgClient(shard=stage.shard)
+
+    all_unresolved: list[dict] = []
+    scanned = 0
+    errors = []
+
+    for match in matches:
+        try:
+            raw = client.get_match(match.pubg_match_id)
+        except PubgApiError as exc:
+            errors.append({"pubg_match_id": match.pubg_match_id, "error": str(exc)})
+            continue
+
+        scanned += 1
+        match_unresolved = []
+        for rps in raw.player_stats:
+            identity = resolve_from_lookup(lookup, rps.account_id, rps.alias)
+            if identity is None:
+                match_unresolved.append({
+                    "alias": rps.alias,
+                    "account_id": rps.account_id,
+                    "kills": rps.kills,
+                    "placement": rps.placement,
+                })
+
+        if match_unresolved:
+            all_unresolved.append({
+                "pubg_match_id": match.pubg_match_id,
+                "match_db_id": match.id,
+                "players_total": len(raw.player_stats),
+                "unresolved_count": len(match_unresolved),
+                "unresolved": match_unresolved,
+            })
+
+    # Dedup: same alias appearing in multiple matches
+    seen_accounts: set[str] = set()
+    deduped_unresolved: list[dict] = []
+    for match_data in all_unresolved:
+        for p in match_data["unresolved"]:
+            if p["account_id"] not in seen_accounts:
+                seen_accounts.add(p["account_id"])
+                deduped_unresolved.append({
+                    "alias": p["alias"],
+                    "account_id": p["account_id"],
+                    "first_seen_match": match_data["pubg_match_id"],
+                })
+
+    return {
+        "stage_id": stage_id,
+        "shard": stage.shard,
+        "matches_scanned": scanned,
+        "matches_with_unresolved": len(all_unresolved),
+        "unique_unresolved_players": len(deduped_unresolved),
+        "unresolved": deduped_unresolved,
+        "per_match": all_unresolved,
+        "errors": errors,
+        "next_steps": (
+            "Para cada alias/account_id acima: "
+            "1) Identifique a Person correspondente no roster; "
+            "2) POST /admin/persons/{person_id}/accounts com o account_id; "
+            "3) POST /admin/stages/{stage_id}/reprocess-all para re-importar."
+        ) if deduped_unresolved else "Nenhum jogador não resolvido — dados completos.",
+    }

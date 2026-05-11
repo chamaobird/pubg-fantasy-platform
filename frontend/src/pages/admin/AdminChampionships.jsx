@@ -7,6 +7,211 @@ import {
   useSorting, SortableHeader,
 } from './Modal'
 
+// ── Coverage Audit Panel ───────────────────────────────────────────────────────
+
+function CoverageAuditPanel({ token, championships }) {
+  const [selectedId, setSelectedId] = useState('')
+  const [audit, setAudit] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [scanResult, setScanResult] = useState(null)
+  const [scanStageId, setScanStageId] = useState(null)
+  const [scanning, setScanning] = useState(false)
+  const [err, setErr] = useState('')
+
+  const runAudit = async () => {
+    if (!selectedId) return
+    setLoading(true); setAudit(null); setErr(''); setScanResult(null)
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/championships/${selectedId}/coverage-audit`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      setAudit(await res.json())
+    } catch (e) { setErr(e.message) }
+    finally { setLoading(false) }
+  }
+
+  const runScan = async (stageId) => {
+    setScanStageId(stageId); setScanning(true); setScanResult(null); setErr('')
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/stages/${stageId}/scan-unresolved`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      setScanResult(await res.json())
+    } catch (e) { setErr(e.message) }
+    finally { setScanning(false) }
+  }
+
+  // Group players by stage for display
+  const byStage = audit ? audit.players.reduce((acc, p) => {
+    const key = p.stage_id
+    if (!acc[key]) acc[key] = []
+    acc[key].push(p)
+    return acc
+  }, {}) : {}
+
+  const coverageBadge = (pct) => {
+    const bg = pct === 0 ? 'rgba(239,68,68,0.12)' : 'rgba(251,191,36,0.12)'
+    const border = pct === 0 ? 'rgba(239,68,68,0.4)' : 'rgba(251,191,36,0.4)'
+    const color = pct === 0 ? '#ef4444' : '#f59e0b'
+    return (
+      <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4,
+        fontFamily: 'JetBrains Mono, monospace', background: bg, border: `1px solid ${border}`, color }}>
+        {pct}%
+      </span>
+    )
+  }
+
+  return (
+    <div style={{ marginTop: 32 }}>
+      <SectionHeader title="Auditoria de Cobertura de Dados" />
+      <div style={{
+        background: 'rgba(18,21,28,0.9)', border: '1px solid var(--color-xama-border)',
+        borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', gap: 16,
+      }}>
+        <p style={{ fontSize: 12, color: 'var(--color-xama-muted)', margin: 0 }}>
+          Detecta jogadores do roster com cobertura de partidas incompleta — contas não cadastradas, subs não mapeados, ou ausências.
+        </p>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <select
+            style={{ ...selectStyle, minWidth: 260 }}
+            value={selectedId}
+            onChange={e => { setSelectedId(e.target.value); setAudit(null); setScanResult(null) }}
+          >
+            <option value="">— Selecione um championship —</option>
+            {championships.map(c => (
+              <option key={c.id} value={c.id}>{c.short_name} — {c.name}</option>
+            ))}
+          </select>
+          <ActBtn onClick={runAudit} disabled={!selectedId || loading}>
+            {loading ? 'Auditando...' : 'Auditar Cobertura'}
+          </ActBtn>
+        </div>
+
+        {err && <div style={{ color: '#ef4444', fontSize: 12, fontFamily: 'JetBrains Mono, monospace' }}>Erro: {err}</div>}
+
+        {audit && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {/* Summary pills */}
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              {[
+                { label: 'Total com gaps', value: audit.total_gaps, color: audit.total_gaps > 0 ? '#f59e0b' : '#4ade80' },
+                { label: 'Cobertura 0%', value: audit.zero_coverage, color: audit.zero_coverage > 0 ? '#ef4444' : '#4ade80' },
+              ].map(({ label, value, color }) => (
+                <div key={label} style={{ padding: '8px 14px', borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                  <div style={{ fontSize: 10, color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.1em' }}>{label.toUpperCase()}</div>
+                  <div style={{ fontSize: 22, fontWeight: 700, color, fontFamily: 'Rajdhani, sans-serif' }}>{value}</div>
+                </div>
+              ))}
+              {audit.total_gaps === 0 && (
+                <div style={{ fontSize: 13, color: '#4ade80', padding: '8px 14px', fontWeight: 600 }}>
+                  ✓ Cobertura completa — nenhum gap detectado.
+                </div>
+              )}
+            </div>
+
+            {/* Per-stage breakdown */}
+            {Object.entries(byStage).map(([stageId, players]) => (
+              <div key={stageId} style={{ border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, overflow: 'hidden' }}>
+                <div style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '10px 14px', background: 'rgba(255,255,255,0.03)',
+                  borderBottom: '1px solid rgba(255,255,255,0.06)',
+                }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, fontFamily: 'JetBrains Mono, monospace', color: 'var(--color-xama-muted)' }}>
+                    STAGE #{stageId} — {players[0]?.stage_shard}
+                  </span>
+                  <ActBtn
+                    small
+                    onClick={() => runScan(parseInt(stageId))}
+                    disabled={scanning && scanStageId === parseInt(stageId)}
+                    style={{ background: 'rgba(139,92,246,0.1)', borderColor: 'rgba(139,92,246,0.3)', color: '#a78bfa' }}
+                  >
+                    {scanning && scanStageId === parseInt(stageId) ? 'Escaneando...' : '🔍 Scan API'}
+                  </ActBtn>
+                </div>
+                <table style={{ ...tableStyle, margin: 0 }}>
+                  <thead>
+                    <tr>
+                      <th style={thStyle}>Jogador</th>
+                      <th style={thStyle}>Time</th>
+                      <th style={thStyle}>Aparições</th>
+                      <th style={thStyle}>Cobertura</th>
+                      <th style={thStyle}>Contas cadastradas</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {players.map(p => (
+                      <tr key={`${p.stage_id}-${p.person_id}`}>
+                        <td style={{ ...tdStyle, fontWeight: 600 }}>{p.display_name}</td>
+                        <td style={{ ...tdStyle, fontSize: 12, color: 'var(--color-xama-muted)' }}>{p.team_name}</td>
+                        <td style={{ ...tdStyle, fontFamily: 'JetBrains Mono, monospace', fontSize: 12 }}>
+                          {p.matches_appeared} / {p.total_matches}
+                        </td>
+                        <td style={tdStyle}>{coverageBadge(p.coverage_pct)}</td>
+                        <td style={{ ...tdStyle, fontSize: 11, color: p.registered_accounts.length ? 'var(--color-xama-muted)' : '#ef4444', fontFamily: 'JetBrains Mono, monospace' }}>
+                          {p.registered_accounts.length ? p.registered_accounts.join(', ') : '⚠ nenhuma conta cadastrada'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                {/* Scan result for this stage */}
+                {scanResult && scanStageId === parseInt(stageId) && (
+                  <div style={{ padding: 14, background: 'rgba(139,92,246,0.04)', borderTop: '1px solid rgba(139,92,246,0.15)' }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, fontFamily: 'JetBrains Mono, monospace', color: '#a78bfa', marginBottom: 8 }}>
+                      SCAN — {scanResult.matches_scanned} partida(s) analisada(s) · {scanResult.unique_unresolved_players} aliases não resolvidos
+                    </div>
+                    {scanResult.unresolved.length === 0 ? (
+                      <div style={{ fontSize: 12, color: '#4ade80' }}>✓ Nenhum alias não resolvido — todos os jogadores da API foram mapeados.</div>
+                    ) : (
+                      <table style={{ ...tableStyle, margin: 0 }}>
+                        <thead>
+                          <tr>
+                            <th style={thStyle}>Alias (API)</th>
+                            <th style={thStyle}>Account ID</th>
+                            <th style={thStyle}>Primeira partida</th>
+                            <th style={{ ...thStyle, fontSize: 10 }}>Ação</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {scanResult.unresolved.map((u, i) => (
+                            <tr key={i}>
+                              <td style={{ ...tdStyle, fontWeight: 700, color: '#f59e0b' }}>{u.alias}</td>
+                              <td style={{ ...tdStyle, fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: 'var(--color-xama-muted)' }}>{u.account_id}</td>
+                              <td style={{ ...tdStyle, fontSize: 11, fontFamily: 'JetBrains Mono, monospace', color: 'var(--color-xama-muted)' }}>{u.first_seen_match?.slice(0, 8)}...</td>
+                              <td style={tdStyle}>
+                                <button
+                                  onClick={() => navigator.clipboard?.writeText(u.account_id)}
+                                  style={{ fontSize: 10, padding: '3px 8px', cursor: 'pointer', borderRadius: 4, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--color-xama-text)' }}
+                                >
+                                  Copiar ID
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                    {scanResult.next_steps && scanResult.unresolved.length > 0 && (
+                      <div style={{ marginTop: 10, fontSize: 11, color: 'var(--color-xama-muted)', lineHeight: 1.5 }}>
+                        💡 {scanResult.next_steps}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 const api = (token) => async (method, path, body) => {
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method,
@@ -195,6 +400,8 @@ export default function AdminChampionships({ token }) {
           </table>
         )}
       </div>
+
+      <CoverageAuditPanel token={token} championships={items} />
 
       {modal && (
         <Modal
