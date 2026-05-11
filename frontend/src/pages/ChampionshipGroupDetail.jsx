@@ -28,7 +28,10 @@ const DashIconSafe = (props) =>
 function SummaryPills({ summary, currentUser, championships }) {
   if (!summary) return null
 
-  const phases = (championships || []).map(c => c.short_name || c.name).filter(Boolean)
+  const phases = (championships || []).map(c => {
+    const parts = (c.name || '').split(' - ')
+    return parts.length > 1 ? parts[parts.length - 1] : (c.short_name || c.name)
+  }).filter(Boolean)
   const phaseLabel = phases.length > 3 ? `${phases.slice(0, 3).join(' · ')} +${phases.length - 3}` : phases.join(' · ')
 
   const baseStyle = {

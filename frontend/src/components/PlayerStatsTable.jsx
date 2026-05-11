@@ -165,7 +165,7 @@ export default function PlayerStatsTable({
 }) {
   const [search, setSearch]         = useState('')
   const [teamFilter, setTeamFilter] = useState('')
-  const [sortKey, setSortKey]       = useState('pts_per_match')
+  const [sortKey, setSortKey]       = useState('total_xama_points')
   const [sortDir, setSortDir]       = useState('desc')
   const [historyPlayer, setHistoryPlayer] = useState(null)
 
