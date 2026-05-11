@@ -565,7 +565,7 @@ function SectionHead({ icon, label, count, tone = 'muted' }) {
 function FaceoffResults({ championshipIds }) {
   const [faceoffs, setFaceoffs] = useState([])
   const [loading, setLoading]   = useState(true)
-  const token = localStorage.getItem('token')
+  const token = localStorage.getItem('wf_token')
 
   useEffect(() => {
     if (!championshipIds?.length) { setLoading(false); return }
@@ -691,7 +691,7 @@ export default function ChampionshipGroupDetail() {
   const [currentUserId, setCurrentUserId] = useState(null)
   useEffect(() => {
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem('wf_token')
       if (token) {
         const payload = JSON.parse(atob(token.split('.')[1]))
         setCurrentUserId(payload.sub || payload.user_id || null)
