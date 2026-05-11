@@ -290,7 +290,7 @@ function PreviewCard({ s, champMap, navigate }) {
 
 // ── OpenCard — card grande para stages com lineup aberta ─────────────────────
 
-function OpenCard({ s, lineup, champMap, navigate, previewCount = 0, expanded = true, onToggle }) {
+function OpenCard({ s, lineup, champMap, navigate, previewCount = 0, expanded = true, onToggle, faceoffBadge }) {
   const hasLineup = !!lineup
   const champ     = champMap[s.id]
   const dateLabel = buildDateLabel(s)
@@ -322,6 +322,23 @@ function OpenCard({ s, lineup, champMap, navigate, previewCount = 0, expanded = 
           <span className="dash-badge-dot"/>
           Aberta
         </span>
+        {faceoffBadge && (
+          <button
+            onClick={e => { e.stopPropagation(); navigate(faceoffBadge.href) }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 4,
+              fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 4,
+              fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.05em',
+              background: faceoffBadge.status === 'locked' ? 'rgba(107,114,128,0.12)' : 'rgba(74,222,128,0.1)',
+              border: faceoffBadge.status === 'locked' ? '1px solid rgba(107,114,128,0.3)' : '1px solid rgba(74,222,128,0.3)',
+              color: faceoffBadge.status === 'locked' ? 'var(--color-xama-muted)' : 'var(--color-xama-green)',
+              cursor: 'pointer',
+            }}
+          >
+            <DashIcon name={faceoffBadge.status === 'locked' ? 'lock' : 'swords'} size={10}/>
+            {faceoffBadge.status === 'locked' ? 'Faceoff: aguardando' : 'Faceoff: votado'}
+          </button>
+        )}
         {hasLineup && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
             <span style={{
@@ -365,7 +382,7 @@ function OpenCard({ s, lineup, champMap, navigate, previewCount = 0, expanded = 
 
 // ── LockedActiveCard — card grande para stage locked/live com dias em preview ──
 
-function LockedActiveCard({ s, lineup, champMap, navigate, previewCount = 0, expanded = true, onToggle }) {
+function LockedActiveCard({ s, lineup, champMap, navigate, previewCount = 0, expanded = true, onToggle, faceoffBadge }) {
   const champ     = champMap[s.id]
   const dateLabel = buildDateLabel(s)
   const hasLineup = !!lineup
@@ -394,6 +411,23 @@ function LockedActiveCard({ s, lineup, champMap, navigate, previewCount = 0, exp
       {/* Coluna 3 — Badge + pts/sem-lineup + CTA */}
       <div className="dash-open-actions">
         <span className="dash-badge-locked">EM JOGO</span>
+        {faceoffBadge && (
+          <button
+            onClick={e => { e.stopPropagation(); navigate(faceoffBadge.href) }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 4,
+              fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 4,
+              fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.05em',
+              background: faceoffBadge.status === 'locked' ? 'rgba(107,114,128,0.12)' : 'rgba(74,222,128,0.1)',
+              border: faceoffBadge.status === 'locked' ? '1px solid rgba(107,114,128,0.3)' : '1px solid rgba(74,222,128,0.3)',
+              color: faceoffBadge.status === 'locked' ? 'var(--color-xama-muted)' : 'var(--color-xama-green)',
+              cursor: 'pointer',
+            }}
+          >
+            <DashIcon name={faceoffBadge.status === 'locked' ? 'lock' : 'swords'} size={10}/>
+            {faceoffBadge.status === 'locked' ? 'Faceoff: aguardando' : 'Faceoff: votado'}
+          </button>
+        )}
         {hasLineup && lineup.total_points != null && (
           <span style={{
             fontSize: '20px', fontWeight: 700,
@@ -932,7 +966,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* ── BANNER FACEOFF — um banner por campeonato ── */}
+        {/* ── BANNER FACEOFF — só aparece quando há faceoffs abertos não votados ── */}
         {openFaceoffs.length > 0 && (() => {
           // Agrupa faceoffs por championship_id
           const byChamp = openFaceoffs.reduce((acc, f) => {
@@ -949,11 +983,13 @@ export default function Dashboard() {
           return Object.entries(byChamp).map(([champId, faceoffs]) => {
             const cid       = parseInt(champId)
             const openOnes  = faceoffs.filter(f => f.status === 'open')
-            const closedOnes = faceoffs.filter(f => f.status === 'closed')
-            const isLocked  = openOnes.length === 0 && closedOnes.length > 0
             const myVoted   = openOnes.filter(f => f.my_vote).length
             const total     = openOnes.length
             const allVoted  = total > 0 && myVoted === total
+            const isLocked  = openOnes.length === 0 && faceoffs.some(f => f.status === 'closed')
+
+            // Voted or locked → badge lives inside the stage card, not here
+            if (allVoted || isLocked) return null
 
             const champStage = stages.find(s =>
               champMap[s.id]?.id === cid &&
@@ -965,35 +1001,24 @@ export default function Dashboard() {
             return (
               <div
                 key={cid}
-                className={`dash-faceoff${isLocked ? ' dash-faceoff--locked' : ''}`}
+                className="dash-faceoff"
                 onClick={() => navigate(href)}
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate(href) }}
               >
                 <div className="dash-faceoff-icon">
-                  <DashIcon name={isLocked ? 'lock' : 'swords'} size={22} strokeWidth={1.6}/>
+                  <DashIcon name="swords" size={22} strokeWidth={1.6}/>
                 </div>
                 <div className="dash-faceoff-body">
                   <div className="dash-faceoff-title">Team Faceoff — {champName}</div>
                   <div className="dash-faceoff-sub">
-                    {isLocked
-                      ? 'Votação encerrada · Aguardando resultado'
-                      : <><b>{myVoted}/{total}</b> confrontos votados · Clique para participar</>
-                    }
+                    <b>{myVoted}/{total}</b> confrontos votados · Clique para participar
                   </div>
                 </div>
                 <div className="dash-faceoff-cta">
-                  {isLocked ? (
-                    'Aguardar'
-                  ) : allVoted ? (
-                    '✓ Votado'
-                  ) : (
-                    <>
-                      Votar agora
-                      <DashIcon name="arrow-right" size={14}/>
-                    </>
-                  )}
+                  Votar agora
+                  <DashIcon name="arrow-right" size={14}/>
                 </div>
               </div>
             )
@@ -1011,10 +1036,10 @@ export default function Dashboard() {
                   <div
                     key={champ.id}
                     className="dash-faceoff dash-faceoff--finished"
-                    onClick={() => navigate('/championships')}
+                    onClick={() => navigate(champ.group_id ? `/group/${champ.group_id}` : '/championships')}
                     role="button"
                     tabIndex={0}
-                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate('/championships') }}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate(champ.group_id ? `/group/${champ.group_id}` : '/championships') }}
                   >
                     <div className="dash-faceoff-icon">
                       <DashIcon name="trophy" size={22} strokeWidth={1.6}/>
@@ -1053,6 +1078,18 @@ export default function Dashboard() {
                   ? expandedChamps[g.champ.id]
                   : defaultExpanded
                 const toggle = () => toggleChamp(g.champ.id)
+
+                // Faceoff badge — mostra no card quando já votou ou está locked
+                const champFaceoffs = openFaceoffs.filter(f => f.championship_id === g.champ.id)
+                const foOpen = champFaceoffs.filter(f => f.status === 'open')
+                const foAllVoted = foOpen.length > 0 && foOpen.every(f => f.my_vote)
+                const foLocked = foOpen.length === 0 && champFaceoffs.some(f => f.status === 'closed')
+                const foStage = g.open || g.live
+                const faceoffBadge = (foAllVoted || foLocked) && foStage ? {
+                  status: foLocked ? 'locked' : 'voted',
+                  href: `/tournament/${foStage.id}?tab=faceoff`,
+                } : null
+
                 return (
                   <div key={g.champ.id}>
                     {/* Card principal — grande */}
@@ -1065,6 +1102,7 @@ export default function Dashboard() {
                         previewCount={g.upcomings.length}
                         expanded={isExpanded}
                         onToggle={toggle}
+                        faceoffBadge={faceoffBadge}
                       />
                     )}
                     {!g.open && g.live && (
@@ -1076,6 +1114,7 @@ export default function Dashboard() {
                         previewCount={g.upcomings.length}
                         expanded={isExpanded}
                         onToggle={toggle}
+                        faceoffBadge={faceoffBadge}
                       />
                     )}
 

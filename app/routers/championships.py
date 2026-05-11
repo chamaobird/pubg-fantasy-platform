@@ -22,6 +22,7 @@ from typing import Optional
 from app.database import get_db
 from app.dependencies import get_current_user_optional
 from app.models.championship import Championship
+from app.models.championship_group import ChampionshipGroupMember
 from app.models.faceoff import Faceoff, FaceoffVote
 from app.models.stage import Stage
 from app.models.stage_day import StageDay
@@ -94,6 +95,7 @@ class RecentChampionshipOut(BaseModel):
     short_name: str
     finished_at: datetime
     has_faceoff: bool
+    group_id: Optional[int]  # ID do championship group (para navegar para /group/:id)
     faceoffs: list[RecentFaceoffOut]
     my_correct: int
     total_resolved: int
@@ -237,12 +239,18 @@ def recently_finished_championships(
                 my_vote=my_vote,
             ))
 
+        member = db.query(ChampionshipGroupMember).filter(
+            ChampionshipGroupMember.championship_id == champ.id
+        ).first()
+        group_id = member.group_id if member else None
+
         result.append(RecentChampionshipOut(
             id=champ.id,
             name=champ.name,
             short_name=champ.short_name,
             finished_at=champ.finished_at,
             has_faceoff=champ.has_faceoff,
+            group_id=group_id,
             faceoffs=faceoffs_out,
             my_correct=my_correct,
             total_resolved=total_resolved,

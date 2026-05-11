@@ -109,7 +109,7 @@ export default function Leagues() {
 
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '32px' }}>
           <div>
-            <div style={{ fontSize: '28px', fontWeight: 700, color: '#fff' }}>Ligas Privadas</div>
+            <div style={{ fontSize: '28px', fontWeight: 700, color: '#fff', fontFamily: 'var(--xm-font-display)' }}>Ligas Privadas</div>
             <div style={{ fontSize: '15px', color: 'var(--color-xama-muted)', marginTop: '4px' }}>Compete com seus amigos no mesmo campeonato</div>
           </div>
           <div style={{ display: 'flex', gap: '10px' }}>

@@ -31,6 +31,7 @@ export default function AdminChampionships({ token }) {
   const [form, setForm] = useState(BLANK)
   const [msg, setMsg] = useState('')
   const [saving, setSaving] = useState(false)
+  const [showOld, setShowOld] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -86,6 +87,64 @@ export default function AdminChampionships({ token }) {
 
   const f = (k) => (e) => setForm(prev => ({ ...prev, [k]: e.target.value }))
 
+  const sortKeys = { id: c => c.id, name: c => c.name, short_name: c => c.short_name, tier_weight: c => c.tier_weight, status: c => c.is_active ? 0 : 1 }
+  const activeItems = apply(items.filter(c => c.is_active), sortKeys)
+  const oldItems = apply(items.filter(c => !c.is_active), sortKeys)
+
+  const renderRow = (c) => (
+    <tr key={c.id} style={{ opacity: c.is_active ? 1 : 0.4 }}>
+      <td style={{ ...tdStyle, fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: 'var(--color-xama-muted)' }}>{c.id}</td>
+      <td style={{ ...tdStyle, fontWeight: 600 }}>{c.name}</td>
+      <td style={{ ...tdStyle, fontFamily: 'JetBrains Mono, monospace', fontSize: 12 }}>{c.short_name}</td>
+      <td style={{ ...tdStyle, color: 'var(--color-xama-muted)', fontSize: 12 }}>{c.shard}</td>
+      <td style={{ ...tdStyle, color: 'var(--color-xama-muted)' }}>{c.tier_weight}</td>
+      <td style={tdStyle}>
+        {c.has_faceoff && !c.finished_at && (
+          <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 4, fontFamily: 'JetBrains Mono, monospace', background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)', color: '#f59e0b' }}>
+            VOTAÇÃO ABERTA
+          </span>
+        )}
+        {c.has_faceoff && c.finished_at && (
+          <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 4, fontFamily: 'JetBrains Mono, monospace', background: 'rgba(107,114,128,0.1)', border: '1px solid rgba(107,114,128,0.3)', color: 'var(--color-xama-muted)' }}>
+            VOTAÇÃO ENCERRADA
+          </span>
+        )}
+        {!c.has_faceoff && (
+          <span style={{ fontSize: 10, color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace' }}>—</span>
+        )}
+      </td>
+      <td style={tdStyle}>
+        <span style={{
+          fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 4,
+          fontFamily: 'JetBrains Mono, monospace',
+          background: c.is_active ? 'rgba(74,222,128,0.1)' : 'rgba(107,114,128,0.1)',
+          border: c.is_active ? '1px solid rgba(74,222,128,0.3)' : '1px solid rgba(107,114,128,0.3)',
+          color: c.is_active ? 'var(--color-xama-green)' : 'var(--color-xama-muted)',
+        }}>
+          {c.is_active ? 'ATIVA' : 'INATIVA'}
+        </span>
+      </td>
+      <td style={{ ...tdStyle, textAlign: 'right' }}>
+        <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+          <ActBtn small onClick={() => openEdit(c)}>Editar</ActBtn>
+          {c.has_faceoff && !c.finished_at && (
+            <ActBtn
+              small
+              onClick={() => markFinished(c)}
+              title="Marca a votação do Faceoff como encerrada e exibe resultados"
+              style={{ background: 'rgba(240,192,64,0.1)', borderColor: 'rgba(240,192,64,0.3)', color: '#f59e0b' }}
+            >
+              Fechar Votação
+            </ActBtn>
+          )}
+          <ActBtn small danger onClick={() => toggleActive(c)}>
+            {c.is_active ? 'Desativar' : 'Ativar'}
+          </ActBtn>
+        </div>
+      </td>
+    </tr>
+  )
+
   return (
     <div>
       <SectionHeader
@@ -111,59 +170,27 @@ export default function AdminChampionships({ token }) {
               </tr>
             </thead>
             <tbody>
-              {apply(items, {
-                id: c => c.id,
-                name: c => c.name,
-                short_name: c => c.short_name,
-                tier_weight: c => c.tier_weight,
-                status: c => c.is_active ? 0 : 1,
-              }).map(c => (
-                <tr key={c.id} style={{ opacity: c.is_active ? 1 : 0.5 }}>
-                  <td style={{ ...tdStyle, fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: 'var(--color-xama-muted)' }}>{c.id}</td>
-                  <td style={{ ...tdStyle, fontWeight: 600 }}>{c.name}</td>
-                  <td style={{ ...tdStyle, fontFamily: 'JetBrains Mono, monospace', fontSize: 12 }}>{c.short_name}</td>
-                  <td style={{ ...tdStyle, color: 'var(--color-xama-muted)', fontSize: 12 }}>{c.shard}</td>
-                  <td style={{ ...tdStyle, color: 'var(--color-xama-muted)' }}>{c.tier_weight}</td>
-                  <td style={tdStyle}>
-                    {c.has_faceoff ? (
-                      <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 4, fontFamily: 'JetBrains Mono, monospace', background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)', color: '#f59e0b' }}>
-                        ATIVO
-                      </span>
-                    ) : (
-                      <span style={{ fontSize: 10, color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace' }}>—</span>
-                    )}
-                  </td>
-                  <td style={tdStyle}>
-                    <span style={{
-                      fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 4,
-                      fontFamily: 'JetBrains Mono, monospace',
-                      background: c.is_active ? 'rgba(74,222,128,0.1)' : 'rgba(107,114,128,0.1)',
-                      border: c.is_active ? '1px solid rgba(74,222,128,0.3)' : '1px solid rgba(107,114,128,0.3)',
-                      color: c.is_active ? 'var(--color-xama-green)' : 'var(--color-xama-muted)',
-                    }}>
-                      {c.is_active ? 'ATIVA' : 'INATIVA'}
-                    </span>
-                  </td>
-                  <td style={{ ...tdStyle, textAlign: 'right' }}>
-                    <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                      <ActBtn small onClick={() => openEdit(c)}>Editar</ActBtn>
-                      {c.has_faceoff && !c.finished_at && (
-                        <ActBtn small onClick={() => markFinished(c)} style={{ background: 'rgba(240,192,64,0.1)', borderColor: 'rgba(240,192,64,0.3)', color: '#f59e0b' }}>
-                          Encerrar Faceoff
-                        </ActBtn>
-                      )}
-                      {c.has_faceoff && c.finished_at && (
-                        <span style={{ fontSize: 10, padding: '4px 8px', borderRadius: 4, fontFamily: 'JetBrains Mono, monospace', background: 'rgba(240,192,64,0.08)', color: '#f59e0b', border: '1px solid rgba(240,192,64,0.2)' }}>
-                          ENCERRADO
-                        </span>
-                      )}
-                      <ActBtn small danger onClick={() => toggleActive(c)}>
-                        {c.is_active ? 'Desativar' : 'Ativar'}
-                      </ActBtn>
-                    </div>
+              {activeItems.map(renderRow)}
+              {oldItems.length > 0 && (
+                <tr>
+                  <td colSpan={8} style={{ padding: 0, border: 'none' }}>
+                    <button
+                      onClick={() => setShowOld(v => !v)}
+                      style={{
+                        width: '100%', padding: '10px 16px', background: 'rgba(255,255,255,0.02)',
+                        border: 'none', borderTop: '1px solid var(--color-xama-border)',
+                        cursor: 'pointer', textAlign: 'center',
+                        fontSize: 11, fontWeight: 700, letterSpacing: '0.14em',
+                        fontFamily: 'JetBrains Mono, monospace',
+                        color: 'var(--color-xama-muted)',
+                      }}
+                    >
+                      {showOld ? '▲' : '▼'} &nbsp;ENCERRADOS ({oldItems.length})
+                    </button>
                   </td>
                 </tr>
-              ))}
+              )}
+              {showOld && oldItems.map(renderRow)}
             </tbody>
           </table>
         )}

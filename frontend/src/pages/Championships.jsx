@@ -593,6 +593,20 @@ export default function Championships() {
   const hasAnythingActive = sortedActiveGroups.length > 0 || sortedActiveUngrouped.length > 0
   const finishedCount = finishedGroups.length + finishedUngrouped.length
 
+  // Separa encerrados recentes (finished_at nos últimos 14 dias) dos antigos
+  const recentCutoff = Date.now() - 14 * 24 * 3600 * 1000
+  const isGroupRecent = entry =>
+    entry.championships.some(c => c.finished_at && new Date(c.finished_at).getTime() > recentCutoff)
+  const isChampRecent = c => c.finished_at && new Date(c.finished_at).getTime() > recentCutoff
+
+  const recentFinishedGroups   = finishedGroups.filter(isGroupRecent)
+  const oldFinishedGroups      = finishedGroups.filter(e => !isGroupRecent(e))
+  const recentFinishedUngrouped = finishedUngrouped.filter(isChampRecent)
+  const oldFinishedUngrouped   = finishedUngrouped.filter(c => !isChampRecent(c))
+
+  const recentFinishedCount = recentFinishedGroups.length + recentFinishedUngrouped.length
+  const oldFinishedCount    = oldFinishedGroups.length + oldFinishedUngrouped.length
+
   // Ideia 2 — auto-expande encerrados quando não há nada ativo
   useEffect(() => {
     if (!loading && !hasAnythingActive && finishedCount > 0 && !autoExpanded) {
@@ -613,7 +627,7 @@ export default function Championships() {
           }}>
             XAMA Fantasy
           </div>
-          <h1 style={{ fontSize: 42, fontWeight: 700, color: 'var(--color-xama-text)', margin: 0, letterSpacing: '-0.01em' }}>
+          <h1 style={{ fontSize: 42, fontWeight: 700, color: 'var(--color-xama-text)', margin: 0, letterSpacing: '-0.01em', fontFamily: 'var(--xm-font-display)' }}>
             Campeonatos
           </h1>
         </div>
@@ -656,8 +670,39 @@ export default function Championships() {
               </div>
             )}
 
-            {/* ── Seção Encerrados ────────────────────────────────────────── */}
-            {finishedCount > 0 && (
+            {/* ── Encerrados Recentemente (últimos 14 dias) ───────────────── */}
+            {recentFinishedCount > 0 && (
+              <div style={{ marginBottom: 24 }}>
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 10, padding: '0 0 16px 0',
+                }}>
+                  <div style={{ flex: 1, height: 1, background: 'var(--color-xama-border)' }} />
+                  <span style={{
+                    fontSize: 12, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase',
+                    color: '#f59e0b', fontFamily: "'JetBrains Mono', monospace", whiteSpace: 'nowrap',
+                  }}>
+                    Encerrados Recentemente ({recentFinishedCount})
+                  </span>
+                  <div style={{ flex: 1, height: 1, background: 'var(--color-xama-border)' }} />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, opacity: 0.85 }}>
+                  {recentFinishedGroups.map(({ group, championships: champs }) => (
+                    <TournamentGroupCard
+                      key={group.key}
+                      group={group}
+                      championships={champs}
+                      navigate={navigate}
+                    />
+                  ))}
+                  {recentFinishedUngrouped.map(c => (
+                    <ChampionshipCard key={c.id} championship={c} navigate={navigate} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── Encerrados (mais antigos) ────────────────────────────────── */}
+            {oldFinishedCount > 0 && (
               <div>
                 <button
                   onClick={() => setShowInactive(v => !v)}
@@ -669,17 +714,17 @@ export default function Championships() {
                 >
                   <div style={{ flex: 1, height: 1, background: 'var(--color-xama-border)' }} />
                   <span style={{
-                    fontSize: 13, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase',
+                    fontSize: 12, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase',
                     color: 'var(--color-xama-muted)', fontFamily: "'JetBrains Mono', monospace", whiteSpace: 'nowrap',
                   }}>
-                    {showInactive ? '▲' : '▼'} &nbsp;Encerrados ({finishedCount})
+                    {showInactive ? '▲' : '▼'} &nbsp;Encerrados ({oldFinishedCount})
                   </span>
                   <div style={{ flex: 1, height: 1, background: 'var(--color-xama-border)' }} />
                 </button>
 
                 {showInactive && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12, opacity: 0.65 }}>
-                    {finishedGroups.map(({ group, championships: champs }) => (
+                    {oldFinishedGroups.map(({ group, championships: champs }) => (
                       <TournamentGroupCard
                         key={group.key}
                         group={group}
@@ -687,7 +732,7 @@ export default function Championships() {
                         navigate={navigate}
                       />
                     ))}
-                    {finishedUngrouped.map(c => (
+                    {oldFinishedUngrouped.map(c => (
                       <ChampionshipCard key={c.id} championship={c} navigate={navigate} />
                     ))}
                   </div>

@@ -132,7 +132,7 @@ export default function Profile() {
       <Navbar />
       <div style={{ maxWidth: '560px', margin: '0 auto', padding: '40px 24px' }}>
 
-        <div style={{ fontSize: '28px', fontWeight: 700, color: '#fff', marginBottom: '6px' }}>Meu Perfil</div>
+        <div style={{ fontSize: '28px', fontWeight: 700, color: '#fff', marginBottom: '6px', fontFamily: 'var(--xm-font-display)' }}>Meu Perfil</div>
         <div style={{ fontSize: '15px', color: 'var(--color-xama-muted)', marginBottom: '36px' }}>Gerencie suas informacoes de conta</div>
 
         <div style={CS}>

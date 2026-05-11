@@ -70,7 +70,7 @@ export function Modal({ title, onClose, children, width = 520 }) {
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 22 }}>
-          <div style={{ fontSize: 17, fontWeight: 700, color: '#fff' }}>{title}</div>
+          <div style={{ fontSize: 17, fontWeight: 700, color: '#fff', fontFamily: 'var(--xm-font-display)' }}>{title}</div>
           <button
             onClick={onClose}
             style={{
@@ -288,7 +288,7 @@ export function SaveBtn({ loading, label = 'Salvar', onClick }) {
 export function SectionHeader({ title, action }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
-      <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--color-xama-text)' }}>{title}</div>
+      <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--color-xama-text)', fontFamily: 'var(--xm-font-display)' }}>{title}</div>
       {action}
     </div>
   )
