@@ -22,17 +22,29 @@ const RANK_BG     = {
 const DashIconSafe = (props) =>
   <DashIcon {...props} />
 
+// Extrai nome legível da fase a partir do championship_name ou short_name
+// Ex: "PUBG Americas Series 1 2026 - Playoffs 1" → "Playoffs 1"
+//     "PAS1-PO1-26" → "PO1" (fallback)
+function readablePhaseName(name, shortName) {
+  if (name) {
+    const parts = name.split(' - ')
+    if (parts.length > 1) return parts[parts.length - 1]
+  }
+  return shortName || name
+}
+
 // ── Summary mini-cards (acima das tabs) ───────────────────────────────────────
 // Row horizontal de stat pills usando /summary
 
 function SummaryPills({ summary, currentUser, championships }) {
   if (!summary) return null
 
+  // Usa segmento central do short_name (PAS1-PO1-26 → PO1) para caber no espaço
   const phases = (championships || []).map(c => {
-    const parts = (c.name || '').split(' - ')
-    return parts.length > 1 ? parts[parts.length - 1] : (c.short_name || c.name)
+    const seg = (c.short_name || '').split('-')
+    return seg.length >= 2 ? seg[1] : (c.short_name || c.name)
   }).filter(Boolean)
-  const phaseLabel = phases.length > 3 ? `${phases.slice(0, 3).join(' · ')} +${phases.length - 3}` : phases.join(' · ')
+  const phaseLabel = phases.join(' · ')
 
   const baseStyle = {
     display: 'inline-flex', alignItems: 'center', gap: 10,
@@ -283,7 +295,7 @@ function PhaseBreakdown({ phaseScores }) {
               color: isBest ? '#f0c040' : 'var(--xm-muted-soft, #4b5563)',
               fontFamily: "'JetBrains Mono', monospace", textTransform: 'uppercase',
             }}>
-              {p.championship_short_name || p.championship_name}
+              {readablePhaseName(p.championship_name, p.championship_short_name)}
               {isBest && ' ★'}
             </span>
             <span style={{
@@ -424,7 +436,7 @@ function ManagerLeaderboard({ groupId, currentUserId, onCurrentUser }) {
                       {best ? (
                         <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
                           <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--xm-muted-soft, #4b5563)', fontFamily: "'JetBrains Mono', monospace" }}>
-                            {best.championship_short_name}
+                            {readablePhaseName(best.championship_name, best.championship_short_name)}
                           </span>
                           <span style={{ fontSize: 12, fontWeight: 700, color: '#f0c040', fontFamily: "'JetBrains Mono', monospace", fontVariantNumeric: 'tabular-nums' }}>
                             {Number(best.points).toFixed(1)}
