@@ -545,6 +545,21 @@ export default function AdminOpsPanel({ stageId, token }) {
             </button>
           </div>
           <StatusBadge result={scoreDayResult} />
+          {scoreDayResult?.ok && (
+            <div style={{ marginTop: 8 }}>
+              <a
+                href="/admin/email"
+                style={{
+                  fontSize: 12, color: '#818cf8',
+                  textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 5,
+                  padding: '4px 10px', borderRadius: 6,
+                  background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.25)',
+                }}
+              >
+                📧 Enviar resultados por e-mail
+              </a>
+            </div>
+          )}
         </div>
       </div>
 

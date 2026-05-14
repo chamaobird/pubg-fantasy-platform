@@ -91,6 +91,7 @@ function RosterPanel({ stage, token }) {
   // preflight
   const [preflighting, setPreflighting] = useState(false)
   const [preflightResult, setPreflightResult] = useState(null)
+  const autoPreflightDone = useRef(false)
 
   const refresh = useCallback(() => {
     setLoading(true)
@@ -113,6 +114,15 @@ function RosterPanel({ stage, token }) {
   }, [call])
 
   useEffect(() => { refresh() }, [refresh])
+
+  // Auto-preflight na carga inicial — mostra banner silencioso se houver issues
+  useEffect(() => {
+    if (loading || autoPreflightDone.current) return
+    autoPreflightDone.current = true
+    call('GET', `/admin/stages/${stage.id}/roster/preflight`)
+      .then(res => { if (!res.ok) setPreflightResult(res) })
+      .catch(() => {})
+  }, [loading, call, stage.id])
 
   // busca persons com debounce
   useEffect(() => {
