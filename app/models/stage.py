@@ -120,6 +120,12 @@ class Stage(Base):
         comment="Default cost for players with newcomer_to_tier=true or no match history",
     )
 
+    pubg_tournament_id: Mapped[Optional[str]] = mapped_column(
+        String(40),
+        nullable=True,
+        comment="ID do torneio na PUBG API (ex: am-pas126). Usado para pc-tournament match discovery.",
+    )
+
     is_active: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default=text("true")
     )

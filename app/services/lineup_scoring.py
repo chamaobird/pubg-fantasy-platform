@@ -21,7 +21,9 @@ Fluxo de execução (chamado pelo APScheduler após cada StageDay):
     └── recalcula UserStageStat para todos os usuários afetados
 
 Notas:
-  - Reservas NÃO contam para o total de pontos (só titulares)
+  - Reserva ativa SE ≥1 titular ausente da API (sem MatchStat no dia)
+    → reserva soma ao total UMA VEZ; titulares ausentes contribuem 0
+    → ausente ≠ pontuação zero: jogador pode pontuar 0 e ter dado na API
   - Idempotente: pode ser re-executado sem duplicar pontos
   - captain_multiplier é lido da Stage (campo configurável por torneio)
   - Se não houver nenhum MatchStat para o dia, points_earned = 0 (não None)
@@ -139,11 +141,37 @@ def _score_lineup(
     """
     Calcula points_earned para cada LineupPlayer e atualiza Lineup.total_points
     e UserDayStat (com survival_secs e captain_pts para desempate).
+
+    Regra de reserva:
+      - Se ≥1 titular não tem nenhum MatchStat no dia (ausente da API),
+        o reserva do lineup ativa e seus pontos somam ao total (uma vez).
+      - Titulares ausentes contribuem 0.
+      - Titulares presentes (mesmo com pts=0) contam normalmente.
     """
     total_points  = Decimal("0.00")
     captain_pts   = Decimal("0.00")
     survival_secs = 0
 
+    # --- Pré-scan: identifica titulares ausentes e reserva ---
+    absent_person_ids: set[int] = set()
+    reserve_lp: Optional[LineupPlayer] = None
+
+    for lp in lineup.players:
+        if lp.slot_type == "reserve":
+            reserve_lp = lp
+        elif lp.slot_type == "titular":
+            if lp.roster.person_id not in match_stats_by_person:
+                absent_person_ids.add(lp.roster.person_id)
+
+    reserve_active = len(absent_person_ids) >= 1 and reserve_lp is not None
+
+    if reserve_active:
+        logger.debug(
+            "[LineupScoring] lineup_id=%s — reserva ativa (%d titular(es) ausente(s) da API)",
+            lineup.id, len(absent_person_ids),
+        )
+
+    # --- Scoring: calcula points_earned e acumula total ---
     for lp in lineup.players:
         person_id = lp.roster.person_id
         pts = match_stats_by_person.get(person_id, Decimal("0"))
@@ -153,12 +181,21 @@ def _score_lineup(
 
         lp.points_earned = pts
 
-        # Apenas titulares somam ao total (#071)
-        if lp.slot_type == "titular":
+        # Titular presente (tem dado na API) → sempre soma
+        if lp.slot_type == "titular" and person_id not in absent_person_ids:
             total_points  += pts
             survival_secs += survival_by_person.get(person_id, 0)
             if lp.is_captain:
-                captain_pts = pts   # só um capitão por lineup
+                captain_pts = pts
+
+        # Reserva → soma apenas se ativado (≥1 titular ausente)
+        elif lp.slot_type == "reserve" and reserve_active:
+            total_points  += pts
+            survival_secs += survival_by_person.get(person_id, 0)
+            if lp.is_captain:
+                captain_pts = pts
+
+        # Titular ausente → points_earned gravado (0), não soma ao total
 
     lineup.total_points = total_points
 

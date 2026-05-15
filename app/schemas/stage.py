@@ -92,6 +92,7 @@ class StageUpdate(BaseModel):
     pricing_newcomer_cost: Optional[int] = None
     captain_multiplier: Optional[float] = None
     is_active: Optional[bool] = None
+    pubg_tournament_id: Optional[str] = None
     # pricing_n_matches removido — não aceita mais atualização via API
 
     @field_validator("shard")
@@ -148,6 +149,7 @@ class StageResponse(BaseModel):
     pricing_distribution: str
     pricing_newcomer_cost: int
     is_active: bool
+    pubg_tournament_id: Optional[str]
     created_at: datetime
     # pricing_n_matches excluído da resposta — campo deprecated
 

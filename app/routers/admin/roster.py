@@ -1,12 +1,17 @@
 # app/routers/admin/roster.py
 from __future__ import annotations
 
+from decimal import Decimal
+from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import and_
 from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
 from app.dependencies import require_admin
 from app.models.person import Person
+from app.models.person_stage_stat import PersonStageStat
 from app.models.roster import Roster
 from app.models.stage import Stage
 from app.models.user import User
@@ -34,6 +39,43 @@ class CopyFromStageResponse(BaseModel):
     added_teams: int
     added_players: int
     skipped_players: int
+
+
+class RosterHistorySuggestRequest(BaseModel):
+    teams: list[str]
+
+
+class SuggestedPlayer(BaseModel):
+    person_id: int
+    display_name: str
+    last_seen_stage_id: int
+    last_fantasy_cost: Optional[float]
+    matches_played: int          # no último stage visto
+    probable_reserve: bool       # menor nº de partidas no time (só flagado se unívoco)
+
+
+class TeamSuggestion(BaseModel):
+    team_name: str
+    found: int
+    players: list[SuggestedPlayer]
+
+
+class RosterApplyPlayerInput(BaseModel):
+    person_id: int
+    team_name: str
+    is_reserve: bool = False
+
+
+class RosterApplySuggestionsRequest(BaseModel):
+    players: list[RosterApplyPlayerInput]
+
+
+class RosterApplySuggestionsResponse(BaseModel):
+    stage_id: int
+    added: int
+    skipped: int
+    skipped_detail: list[dict]
+    pricing_updated: int
 
 router = APIRouter(
     prefix="/admin/stages/{stage_id}/roster",
@@ -387,6 +429,187 @@ def import_team_to_roster(
         stage_id=stage_id,
         added=added,
         skipped=skipped,
+    )
+
+
+@router.post("/suggest-from-history", response_model=list[TeamSuggestion])
+def suggest_roster_from_history(
+    stage_id: int,
+    body: RosterHistorySuggestRequest,
+    db: Session = Depends(get_db),
+    _admin: User = Depends(require_admin),
+) -> list[TeamSuggestion]:
+    """
+    Para cada time em `teams`, busca jogadores com histórico no banco
+    e sugere um roster baseado nas aparições mais recentes.
+
+    - Exclui jogadores já presentes no roster desta stage.
+    - Detecta provável reserva: jogador com MENOR matches_played no último stage
+      onde o time apareceu (só flagado se unívoco — sem empate).
+    - Probable reserve é sinalizado mas não criado automaticamente como is_available=False;
+      o admin confirma via apply-suggestions.
+    """
+    _get_stage_or_404(db, stage_id)
+
+    if not body.teams:
+        return []
+
+    # Persons já no roster desta stage (excluir das sugestões)
+    already_in_stage: set[int] = {
+        r.person_id
+        for r in db.query(Roster.person_id).filter(Roster.stage_id == stage_id).all()
+    }
+
+    # Busca histórico: roster + person + person_stage_stat mais recentes por time
+    rows = (
+        db.query(
+            Roster.person_id,
+            Roster.team_name,
+            Roster.stage_id,
+            Roster.fantasy_cost,
+            Person.display_name,
+            PersonStageStat.matches_played,
+        )
+        .join(Person, Roster.person_id == Person.id)
+        .outerjoin(
+            PersonStageStat,
+            and_(
+                PersonStageStat.person_id == Roster.person_id,
+                PersonStageStat.stage_id == Roster.stage_id,
+            ),
+        )
+        .filter(
+            Roster.team_name.in_(body.teams),
+            Roster.is_available == True,   # noqa: E712
+            Person.is_active == True,       # noqa: E712
+            Roster.stage_id != stage_id,   # exclui o próprio stage alvo
+        )
+        .order_by(Roster.team_name, Roster.person_id, Roster.stage_id.desc())
+        .all()
+    )
+
+    # Deduplica: para cada (team, person) mantém apenas o registro do stage mais recente
+    seen: set[tuple[str, int]] = set()
+    deduped: list[tuple] = []
+    for row in rows:
+        key = (row.team_name, row.person_id)
+        if key not in seen and row.person_id not in already_in_stage:
+            seen.add(key)
+            deduped.append(row)
+
+    # Agrupa por time
+    by_team: dict[str, list[dict]] = {t: [] for t in body.teams}
+    for row in deduped:
+        team = row.team_name
+        if team in by_team:
+            by_team[team].append({
+                "person_id":       row.person_id,
+                "display_name":    row.display_name,
+                "last_seen_stage_id": row.stage_id,
+                "last_fantasy_cost":  float(row.fantasy_cost) if row.fantasy_cost else None,
+                "matches_played":  row.matches_played or 0,
+                "probable_reserve": False,
+            })
+
+    # Detecta provável reserva por time (só se ≥5 jogadores e resultado unívoco)
+    for team_name, players in by_team.items():
+        if len(players) >= 5:
+            min_matches = min(p["matches_played"] for p in players)
+            candidates = [p for p in players if p["matches_played"] == min_matches]
+            if len(candidates) == 1:
+                candidates[0]["probable_reserve"] = True
+
+    return [
+        TeamSuggestion(
+            team_name=t,
+            found=len(by_team[t]),
+            players=sorted(
+                [SuggestedPlayer(**p) for p in by_team[t]],
+                key=lambda x: x.matches_played,
+                reverse=True,
+            ),
+        )
+        for t in body.teams
+    ]
+
+
+@router.post("/apply-suggestions", response_model=RosterApplySuggestionsResponse)
+def apply_roster_suggestions(
+    stage_id: int,
+    body: RosterApplySuggestionsRequest,
+    db: Session = Depends(get_db),
+    _admin: User = Depends(require_admin),
+) -> RosterApplySuggestionsResponse:
+    """
+    Cria entradas de roster em bulk a partir das sugestões confirmadas pelo admin.
+
+    Reservas (is_reserve=True):
+      - is_available = False
+      - fantasy_cost = cost_override = 10 (fixo, nunca recalculado pelo pricing)
+
+    Titulares (is_reserve=False):
+      - is_available = True
+      - fantasy_cost calculado pelo pricing após o bulk insert
+
+    Idempotente: jogadores já no roster são reportados em skipped.
+    """
+    from app.services.pricing import calculate_stage_pricing
+
+    _get_stage_or_404(db, stage_id)
+
+    added_ids: list[int] = []
+    skipped: list[dict] = []
+
+    for player in body.players:
+        person = db.query(Person).filter(Person.id == player.person_id).first()
+        if not person:
+            skipped.append({"person_id": player.person_id, "reason": "person not found"})
+            continue
+        if not person.is_active:
+            skipped.append({"person_id": player.person_id, "reason": "person inactive"})
+            continue
+
+        existing = (
+            db.query(Roster)
+            .filter(Roster.stage_id == stage_id, Roster.person_id == player.person_id)
+            .first()
+        )
+        if existing:
+            skipped.append({
+                "person_id":   player.person_id,
+                "person_name": person.display_name,
+                "reason":      "already in roster",
+            })
+            continue
+
+        entry = Roster(
+            stage_id=stage_id,
+            person_id=player.person_id,
+            team_name=player.team_name or None,
+            is_available=not player.is_reserve,
+        )
+        if player.is_reserve:
+            entry.fantasy_cost  = Decimal("10")
+            entry.cost_override = Decimal("10")
+
+        db.add(entry)
+        added_ids.append(player.person_id)
+
+    db.flush()
+
+    # Recalcula pricing para titulares recém-adicionados
+    pricing_result = {"updated": 0}
+    if any(not p.is_reserve for p in body.players if p.person_id in added_ids):
+        pricing_result = calculate_stage_pricing(stage_id, db)
+
+    db.commit()
+
+    return RosterApplySuggestionsResponse(
+        stage_id=stage_id,
+        added=len(added_ids),
+        skipped=len(skipped),
+        skipped_detail=skipped,
+        pricing_updated=pricing_result.get("updated", 0),
     )
 
 

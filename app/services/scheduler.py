@@ -1,6 +1,6 @@
 # app/services/scheduler.py
 """
-APScheduler — três jobs para o XAMA Fantasy.
+APScheduler — jobs para o XAMA Fantasy.
 
 lineup_control (a cada 1 minuto)
 ─────────────────────────────────
@@ -21,6 +21,11 @@ UserDayStat, UserStageStat) após confirmar que há MatchStats importados (#070-
 pricing (a cada 30 minutos)
 ────────────────────────────
 Recálculo automático de fantasy_cost (Fase 5).
+
+seatlon_monitor (a cada 6 horas)
+──────────────────────────────────
+Detecta novos tournament IDs ativos no seatlon.eu não atribuídos a nenhum Stage.
+Envia email ao ADMIN_EMAIL quando novos IDs relevantes são encontrados.
 """
 from __future__ import annotations
 
@@ -218,6 +223,13 @@ def _match_import_job() -> None:
     run_match_import_job()
 
 
+# ── Job 5: seatlon_monitor ────────────────────────────────────────────────────
+
+def _seatlon_monitor_job() -> None:
+    from app.jobs.seatlon_job import run_seatlon_monitor
+    run_seatlon_monitor()
+
+
 # ── Factory ───────────────────────────────────────────────────────────────────
 
 def create_scheduler() -> BackgroundScheduler:
@@ -261,6 +273,16 @@ def create_scheduler() -> BackgroundScheduler:
         name="Auto match import via stage_day.match_schedule",
         max_instances=1,
         misfire_grace_time=60,
+    )
+
+    scheduler.add_job(
+        _seatlon_monitor_job,
+        trigger="interval",
+        hours=6,
+        id="seatlon_monitor",
+        name="Seatlon tournament ID monitor",
+        max_instances=1,
+        misfire_grace_time=300,
     )
 
     return scheduler

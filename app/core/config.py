@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     # Email — Resend
     RESEND_API_KEY: str = ""
     EMAIL_FROM: str = "onboarding@resend.dev"
+    ADMIN_EMAIL: str = ""  # Destino de notificações internas (seatlon monitor, alertas)
 
     class Config:
         env_file = ".env"
