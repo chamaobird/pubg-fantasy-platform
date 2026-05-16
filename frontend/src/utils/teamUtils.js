@@ -68,7 +68,7 @@ export const TEAM_NAME_TO_TAG = {
   'ACEND Club':           'ACE',
   'Team Vitality':        'VIT',
   'S8UL':                 'S8UL',
-  // PGS S2 teams
+  // PGS S2 — Winners Stage (16 times)
   'eArena':               'eA',
   'T1':                   'T1',
   '17 Gaming':            '17',
@@ -81,6 +81,13 @@ export const TEAM_NAME_TO_TAG = {
   'SOOPers':              'DNS',
   'Theerathon Five':      'T5',
   'Four Angry Men':       '4AM',
+  // PGS S2 — Survival Stage (8 times diretos)
+  'Gen.G Esports':        'GEN',
+  'The Expendables':      'TE',
+  'Finhay Cerberus':      'FCE',
+  'Change the Game':      'CTG',
+  'Full Sense':           'FS',
+  'S2G Esports':          'S2G',
 }
 
 /**
