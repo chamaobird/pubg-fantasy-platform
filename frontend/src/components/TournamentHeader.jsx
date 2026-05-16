@@ -68,13 +68,13 @@ export default function TournamentHeader({ tournament, championship, championshi
                     onClick={() => setDropdownOpen(o => !o)}
                     style={{
                       background: 'none', border: 'none', cursor: 'pointer',
-                      color: 'var(--color-xama-text)', fontFamily: 'inherit',
+                      color: 'var(--xm-text)', fontFamily: 'inherit',
                       fontSize: 'inherit', fontWeight: 'inherit', padding: 0,
                       display: 'flex', alignItems: 'center', gap: '8px',
                     }}
                   >
                     {tournament.name}
-                    <span style={{ fontSize: '14px', color: 'var(--color-xama-muted)', marginTop: '2px' }}>
+                    <span style={{ fontSize: '14px', color: 'var(--xm-muted)', marginTop: '2px' }}>
                       {dropdownOpen ? '▲' : '▼'}
                     </span>
                   </button>
@@ -88,15 +88,15 @@ export default function TournamentHeader({ tournament, championship, championshi
                       />
                       <div style={{
                         position: 'absolute', top: '100%', left: 0, zIndex: 100,
-                        background: 'var(--color-xama-surface)',
-                        border: '1px solid var(--color-xama-border)',
+                        background: 'var(--xm-surface-1)',
+                        border: '1px solid var(--xm-border)',
                         borderRadius: '10px', minWidth: '280px',
                         boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
                         overflow: 'hidden', marginTop: '6px',
                       }}>
                         {/* Campo de busca — aparece quando há muitas stages */}
                         {siblingStages.length > DROPDOWN_SHOW_SEARCH && (
-                          <div style={{ padding: '10px 12px', borderBottom: '1px solid var(--color-xama-border)' }}>
+                          <div style={{ padding: '10px 12px', borderBottom: '1px solid var(--xm-border)' }}>
                             <input
                               autoFocus
                               type="text"
@@ -106,9 +106,9 @@ export default function TournamentHeader({ tournament, championship, championshi
                               onClick={e => e.stopPropagation()}
                               style={{
                                 width: '100%', background: 'var(--surface-3)',
-                                border: '1px solid var(--color-xama-border)',
+                                border: '1px solid var(--xm-border)',
                                 borderRadius: '6px', padding: '6px 10px',
-                                fontSize: '13px', color: 'var(--color-xama-text)',
+                                fontSize: '13px', color: 'var(--xm-text)',
                                 outline: 'none',
                               }}
                             />
@@ -122,7 +122,7 @@ export default function TournamentHeader({ tournament, championship, championshi
                             .filter(s => !stageSearch || s.name.toLowerCase().includes(stageSearch.toLowerCase()))
                             .map(s => {
                               const isCurrent = s.id === currentStageId
-                              const color = STATUS_COLOR[s.lineup_status] || 'var(--color-xama-muted)'
+                              const color = STATUS_COLOR[s.lineup_status] || 'var(--xm-muted)'
                               return (
                                 <div
                                   key={s.id}
@@ -131,7 +131,7 @@ export default function TournamentHeader({ tournament, championship, championshi
                                     padding: '10px 16px',
                                     cursor: isCurrent ? 'default' : 'pointer',
                                     background: isCurrent ? 'rgba(249,115,22,0.08)' : 'transparent',
-                                    borderLeft: isCurrent ? '2px solid var(--color-xama-orange)' : '2px solid transparent',
+                                    borderLeft: isCurrent ? '2px solid var(--xm-orange)' : '2px solid transparent',
                                     display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px',
                                     transition: 'background 0.12s',
                                   }}
@@ -140,7 +140,7 @@ export default function TournamentHeader({ tournament, championship, championshi
                                 >
                                   <span style={{
                                     fontSize: '14px', fontWeight: isCurrent ? 700 : 500,
-                                    color: isCurrent ? 'var(--color-xama-orange)' : 'var(--color-xama-text)',
+                                    color: isCurrent ? 'var(--xm-orange)' : 'var(--xm-text)',
                                   }}>
                                     {s.name}
                                   </span>

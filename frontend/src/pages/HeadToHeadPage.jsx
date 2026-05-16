@@ -25,13 +25,13 @@ export default function HeadToHeadPage() {
   }, [stageId, user1Id, user2Id, token])
 
   if (loading) return (
-    <div style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--color-xama-muted)' }}>
-      Carregando comparação...
+    <div className="xm-empty" style={{ paddingTop: 80, paddingBottom: 80 }}>
+      <p className="xm-empty__body">Carregando comparação…</p>
     </div>
   )
   if (error || !data) return (
-    <div style={{ padding: '48px 24px', textAlign: 'center', color: '#f87171' }}>
-      Erro ao carregar comparação.
+    <div className="xm-empty" style={{ paddingTop: 80, paddingBottom: 80 }}>
+      <p className="xm-msg xm-msg--err">Erro ao carregar comparação.</p>
     </div>
   )
 
@@ -42,20 +42,17 @@ export default function HeadToHeadPage() {
   const u2Names = new Set(user2.players.map(p => p.person_name))
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: '32px 16px' }}>
+    <div className="xm-page__container xm-page__container--xl" style={{ paddingTop: 32 }}>
       {/* back */}
       <button
         onClick={() => navigate(-1)}
-        style={{
-          background: 'none', border: 'none', color: 'var(--color-xama-muted)',
-          cursor: 'pointer', fontSize: 13, padding: '0 0 20px', display: 'flex',
-          alignItems: 'center', gap: 6,
-        }}
+        className="xm-page-header__back"
+        style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 20 }}
       >
         ← Voltar
       </button>
 
-      <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--color-xama-text)', margin: '0 0 24px' }}>
+      <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--xm-text)', margin: '0 0 24px' }}>
         Head-to-Head
       </h2>
 
@@ -64,7 +61,7 @@ export default function HeadToHeadPage() {
         <UserScoreCard user={user1} isLeft />
         <div style={{
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          fontSize: 12, fontWeight: 700, color: 'var(--color-xama-muted)', letterSpacing: '0.06em',
+          fontSize: 12, fontWeight: 700, color: 'var(--xm-muted)', letterSpacing: '0.06em',
           textTransform: 'uppercase', minWidth: 32,
         }}>VS</div>
         <UserScoreCard user={user2} isLeft={false} />
@@ -78,7 +75,7 @@ export default function HeadToHeadPage() {
         <div style={{
           display: 'grid', gridTemplateColumns: '1fr 80px 1fr',
           background: 'var(--surface-3)', padding: '10px 16px',
-          fontSize: 11, fontWeight: 700, color: 'var(--color-xama-muted)',
+          fontSize: 11, fontWeight: 700, color: 'var(--xm-muted)',
           letterSpacing: '0.07em', textTransform: 'uppercase',
         }}>
           <span>{user1.username}</span>
@@ -91,10 +88,10 @@ export default function HeadToHeadPage() {
 
       {/* shared players note */}
       {[...u1Names].filter(n => u2Names.has(n)).length > 0 && (
-        <p style={{ marginTop: 12, fontSize: 12, color: 'var(--color-xama-muted)' }}>
+        <p style={{ marginTop: 12, fontSize: 12, color: 'var(--xm-muted)' }}>
           <span style={{
             display: 'inline-block', width: 8, height: 8, borderRadius: '50%',
-            background: 'var(--color-xama-gold)', marginRight: 6,
+            background: 'var(--xm-gold)', marginRight: 6,
           }} />
           Jogadores escolhidos por ambos
         </p>
@@ -111,18 +108,18 @@ function UserScoreCard({ user, isLeft }) {
       borderRadius: 10, padding: '20px 24px',
       textAlign: isLeft ? 'left' : 'right',
     }}>
-      <p style={{ margin: '0 0 4px', fontSize: 13, color: 'var(--color-xama-muted)', fontWeight: 600 }}>
+      <p style={{ margin: '0 0 4px', fontSize: 13, color: 'var(--xm-muted)', fontWeight: 600 }}>
         {user.username}
       </p>
       <p style={{
         margin: '0 0 2px', fontSize: 30, fontWeight: 800,
-        color: 'var(--color-xama-gold)', fontFamily: "'JetBrains Mono', monospace",
+        color: 'var(--xm-gold)', fontFamily: "'JetBrains Mono', monospace",
         fontVariantNumeric: 'tabular-nums',
       }}>
         {user.total_points.toFixed(1)}
       </p>
       {user.rank && (
-        <p style={{ margin: 0, fontSize: 12, color: 'var(--color-xama-muted)' }}>
+        <p style={{ margin: 0, fontSize: 12, color: 'var(--xm-muted)' }}>
           #{user.rank} no ranking
         </p>
       )}
@@ -158,18 +155,18 @@ function PlayerComparisonRows({ user1, user2, u1Names, u2Names }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               {shared && (
                 <span style={{
-                  width: 6, height: 6, borderRadius: '50%', background: 'var(--color-xama-gold)',
+                  width: 6, height: 6, borderRadius: '50%', background: 'var(--xm-gold)',
                   flexShrink: 0,
                 }} />
               )}
               {p1 ? (
-                <span style={{ fontSize: 13, color: 'var(--color-xama-text)' }}>
+                <span style={{ fontSize: 13, color: 'var(--xm-text)' }}>
                   {p1.person_name}
-                  <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--color-xama-muted)' }}>
+                  <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--xm-muted)' }}>
                     {p1.team_name}
                   </span>
                   {p1.was_captain && (
-                    <span style={{ marginLeft: 6, fontSize: 10, color: 'var(--color-xama-gold)', fontWeight: 700 }}>C</span>
+                    <span style={{ marginLeft: 6, fontSize: 10, color: 'var(--xm-gold)', fontWeight: 700 }}>C</span>
                   )}
                 </span>
               ) : <span style={{ fontSize: 12, color: 'var(--surface-4)' }}>—</span>}
@@ -179,14 +176,14 @@ function PlayerComparisonRows({ user1, user2, u1Names, u2Names }) {
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6 }}>
               <span style={{
                 fontSize: 12, fontFamily: "'JetBrains Mono', monospace", fontVariantNumeric: 'tabular-nums',
-                color: p1 ? 'var(--color-xama-gold)' : 'var(--surface-4)',
+                color: p1 ? 'var(--xm-gold)' : 'var(--surface-4)',
               }}>
                 {p1?.total_pts != null ? p1.total_pts.toFixed(1) : '—'}
               </span>
               <span style={{ fontSize: 10, color: 'var(--surface-4)' }}>|</span>
               <span style={{
                 fontSize: 12, fontFamily: "'JetBrains Mono', monospace", fontVariantNumeric: 'tabular-nums',
-                color: p2 ? 'var(--color-xama-gold)' : 'var(--surface-4)',
+                color: p2 ? 'var(--xm-gold)' : 'var(--surface-4)',
               }}>
                 {p2?.total_pts != null ? p2.total_pts.toFixed(1) : '—'}
               </span>
@@ -195,11 +192,11 @@ function PlayerComparisonRows({ user1, user2, u1Names, u2Names }) {
             {/* right user */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
               {p2 ? (
-                <span style={{ fontSize: 13, color: 'var(--color-xama-text)', textAlign: 'right' }}>
+                <span style={{ fontSize: 13, color: 'var(--xm-text)', textAlign: 'right' }}>
                   {p2.was_captain && (
-                    <span style={{ marginRight: 6, fontSize: 10, color: 'var(--color-xama-gold)', fontWeight: 700 }}>C</span>
+                    <span style={{ marginRight: 6, fontSize: 10, color: 'var(--xm-gold)', fontWeight: 700 }}>C</span>
                   )}
-                  <span style={{ marginRight: 6, fontSize: 11, color: 'var(--color-xama-muted)' }}>
+                  <span style={{ marginRight: 6, fontSize: 11, color: 'var(--xm-muted)' }}>
                     {p2.team_name}
                   </span>
                   {p2.person_name}
@@ -207,7 +204,7 @@ function PlayerComparisonRows({ user1, user2, u1Names, u2Names }) {
               ) : <span style={{ fontSize: 12, color: 'var(--surface-4)' }}>—</span>}
               {shared && (
                 <span style={{
-                  width: 6, height: 6, borderRadius: '50%', background: 'var(--color-xama-gold)',
+                  width: 6, height: 6, borderRadius: '50%', background: 'var(--xm-gold)',
                   flexShrink: 0,
                 }} />
               )}
