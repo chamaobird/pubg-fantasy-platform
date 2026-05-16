@@ -53,6 +53,7 @@ export default function AdminFaceoffs({ token }) {
   // Criação manual de pares
   const [manualPairs, setManualPairs]   = useState([])
   const [manualForm, setManualForm]     = useState({ team_a_name: '', team_b_name: '', seed_a: '', seed_b: '' })
+  const [champTeams, setChampTeams]     = useState([])   // times do championship selecionado
 
   // Carrega tudo de uma vez ao montar
   useEffect(() => {
@@ -113,13 +114,36 @@ export default function AdminFaceoffs({ token }) {
 
   // Ao trocar campeonato: recarrega faceoffs do campeonato selecionado
   useEffect(() => {
-    if (!champId) { setFaceoffs([]); return }
+    if (!champId) { setFaceoffs([]); setChampTeams([]); return }
     setSuggested([])
     setSelectedSourceIds(new Set())
     setManualPairs([])
     setManualForm({ team_a_name: '', team_b_name: '', seed_a: '', seed_b: '' })
     loadFaceoffs()
-  }, [champId])
+
+    // Carrega times únicos do roster de todas as stages do championship
+    const champStages = allStages.filter(s => s.championship_id === parseInt(champId))
+    if (champStages.length === 0) { setChampTeams([]); return }
+    Promise.all(
+      champStages.map(s =>
+        fetch(`${API_BASE_URL}/stages/${s.id}/roster`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }).then(r => r.ok ? r.json() : []).catch(() => [])
+      )
+    ).then(results => {
+      const seen = new Set()
+      const teams = []
+      for (const roster of results) {
+        for (const p of roster) {
+          if (p.team_name && !seen.has(p.team_name)) {
+            seen.add(p.team_name)
+            teams.push(p.team_name)
+          }
+        }
+      }
+      setChampTeams(teams.sort())
+    })
+  }, [champId, allStages])
 
   const loadFaceoffs = useCallback(async () => {
     if (!champId) return
@@ -484,21 +508,43 @@ export default function AdminFaceoffs({ token }) {
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 12 }}>
             <div>
               <div style={{ fontSize: 10, color: 'var(--xm-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Time A</div>
-              <input
-                value={manualForm.team_a_name}
-                onChange={e => setManualForm(f => ({ ...f, team_a_name: e.target.value }))}
-                placeholder="ex: Virtus.pro"
-                style={{ ...inputStyle, width: 180 }}
-              />
+              {champTeams.length > 0 ? (
+                <select
+                  value={manualForm.team_a_name}
+                  onChange={e => setManualForm(f => ({ ...f, team_a_name: e.target.value }))}
+                  style={{ ...selectStyle, width: 200 }}
+                >
+                  <option value="">— selecionar —</option>
+                  {champTeams.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              ) : (
+                <input
+                  value={manualForm.team_a_name}
+                  onChange={e => setManualForm(f => ({ ...f, team_a_name: e.target.value }))}
+                  placeholder="ex: Virtus.pro"
+                  style={{ ...inputStyle, width: 180 }}
+                />
+              )}
             </div>
             <div>
               <div style={{ fontSize: 10, color: 'var(--xm-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Time B</div>
-              <input
-                value={manualForm.team_b_name}
-                onChange={e => setManualForm(f => ({ ...f, team_b_name: e.target.value }))}
-                placeholder="ex: Natus Vincere"
-                style={{ ...inputStyle, width: 180 }}
-              />
+              {champTeams.length > 0 ? (
+                <select
+                  value={manualForm.team_b_name}
+                  onChange={e => setManualForm(f => ({ ...f, team_b_name: e.target.value }))}
+                  style={{ ...selectStyle, width: 200 }}
+                >
+                  <option value="">— selecionar —</option>
+                  {champTeams.filter(t => t !== manualForm.team_a_name).map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              ) : (
+                <input
+                  value={manualForm.team_b_name}
+                  onChange={e => setManualForm(f => ({ ...f, team_b_name: e.target.value }))}
+                  placeholder="ex: Natus Vincere"
+                  style={{ ...inputStyle, width: 180 }}
+                />
+              )}
             </div>
             <div>
               <div style={{ fontSize: 10, color: 'var(--xm-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Seed A</div>
