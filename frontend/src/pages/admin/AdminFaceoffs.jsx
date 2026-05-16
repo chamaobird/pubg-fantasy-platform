@@ -52,7 +52,7 @@ export default function AdminFaceoffs({ token }) {
 
   // Criação manual de pares
   const [manualPairs, setManualPairs]   = useState([])
-  const [manualForm, setManualForm]     = useState({ team_a_name: '', team_b_name: '', seed_a: '', seed_b: '' })
+  const [manualForm, setManualForm]     = useState({ team_a_name: '', team_b_name: '', seed_a: '', seed_b: '', group_label: '' })
   const [champTeams, setChampTeams]     = useState([])   // times do championship selecionado
 
   // Carrega tudo de uma vez ao montar
@@ -118,7 +118,7 @@ export default function AdminFaceoffs({ token }) {
     setSuggested([])
     setSelectedSourceIds(new Set())
     setManualPairs([])
-    setManualForm({ team_a_name: '', team_b_name: '', seed_a: '', seed_b: '' })
+    setManualForm({ team_a_name: '', team_b_name: '', seed_a: '', seed_b: '', group_label: '' })
     loadFaceoffs()
 
     // Carrega times únicos do roster de todas as stages do championship
@@ -216,8 +216,9 @@ export default function AdminFaceoffs({ token }) {
       team_b_name: team_b_name.trim(),
       seed_a: seed_a !== '' ? parseInt(seed_a) : prev.length * 2 + 1,
       seed_b: seed_b !== '' ? parseInt(seed_b) : prev.length * 2 + 2,
+      group_label: manualForm.group_label.trim() || null,
     }])
-    setManualForm({ team_a_name: '', team_b_name: '', seed_a: '', seed_b: '' })
+    setManualForm({ team_a_name: '', team_b_name: '', seed_a: '', seed_b: '', group_label: manualForm.group_label })
     setMsg('')
   }
 
@@ -297,6 +298,7 @@ export default function AdminFaceoffs({ token }) {
       seed_a: f.seed_a ?? '',
       seed_b: f.seed_b ?? '',
       winner_team_name: f.winner_team_name ?? '',
+      group_label: f.group_label ?? '',
     })
     setEditModal(f)
   }
@@ -309,6 +311,7 @@ export default function AdminFaceoffs({ token }) {
         team_b_name: editForm.team_b_name,
         seed_a: editForm.seed_a !== '' ? parseInt(editForm.seed_a) : null,
         seed_b: editForm.seed_b !== '' ? parseInt(editForm.seed_b) : null,
+        group_label: editForm.group_label.trim() || null,
       }
       if (editModal.status === 'resolved') {
         payload.winner_team_name = editForm.winner_team_name || null
@@ -566,6 +569,15 @@ export default function AdminFaceoffs({ token }) {
                 style={{ ...inputStyle, width: 70 }}
               />
             </div>
+            <div>
+              <div style={{ fontSize: 10, color: 'var(--xm-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Grupo (opcional)</div>
+              <input
+                value={manualForm.group_label}
+                onChange={e => setManualForm(f => ({ ...f, group_label: e.target.value }))}
+                placeholder="ex: Winners Stage"
+                style={{ ...inputStyle, width: 160 }}
+              />
+            </div>
             <ActBtn onClick={handleAddManualPair}>+ Adicionar Par</ActBtn>
           </div>
 
@@ -585,6 +597,11 @@ export default function AdminFaceoffs({ token }) {
                     <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: 'var(--xm-muted)', width: 50 }}>
                       #{p.seed_a}/#{p.seed_b}
                     </span>
+                    {p.group_label && (
+                      <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 10, background: 'rgba(99,102,241,0.15)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.3)', whiteSpace: 'nowrap' }}>
+                        {p.group_label}
+                      </span>
+                    )}
                     <span style={{ color: '#f97316', fontWeight: 600, flex: 1 }}>{p.team_a_name}</span>
                     <span style={{ color: 'var(--xm-muted)', fontSize: 11 }}>vs</span>
                     <span style={{ color: '#6366f1', fontWeight: 600, flex: 1 }}>{p.team_b_name}</span>
@@ -636,6 +653,7 @@ export default function AdminFaceoffs({ token }) {
               <thead>
                 <tr>
                   <th style={thStyle}>Seeds</th>
+                  <th style={thStyle}>Grupo</th>
                   <th style={thStyle}>Time A (🟠)</th>
                   <th style={thStyle}>Time B (🟣)</th>
                   <th style={thStyle}>Status</th>
@@ -650,6 +668,13 @@ export default function AdminFaceoffs({ token }) {
                   <tr key={f.id}>
                     <td style={{ ...tdStyle, fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: 'var(--xm-muted)' }}>
                       #{f.seed_a} / #{f.seed_b}
+                    </td>
+                    <td style={tdStyle}>
+                      {f.group_label ? (
+                        <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 10, background: 'rgba(99,102,241,0.12)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.25)', whiteSpace: 'nowrap' }}>
+                          {f.group_label}
+                        </span>
+                      ) : <span style={{ color: 'var(--xm-muted)', fontSize: 11 }}>—</span>}
                     </td>
                     <td style={{ ...tdStyle, color: '#f97316', fontWeight: 600 }}>{f.team_a_name}</td>
                     <td style={{ ...tdStyle, color: '#6366f1', fontWeight: 600 }}>{f.team_b_name}</td>
@@ -746,6 +771,11 @@ export default function AdminFaceoffs({ token }) {
           <Field label="Time B (roxo)">
             <input style={inputStyle} value={editForm.team_b_name}
               onChange={e => setEditForm(f => ({ ...f, team_b_name: e.target.value }))} />
+          </Field>
+          <Field label="Grupo (group_label)">
+            <input style={inputStyle} value={editForm.group_label}
+              placeholder="ex: Winners Stage"
+              onChange={e => setEditForm(f => ({ ...f, group_label: e.target.value }))} />
           </Field>
           {editModal.status === 'resolved' && (
             <Field label="Vencedor (override manual)">

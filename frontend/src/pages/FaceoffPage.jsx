@@ -192,23 +192,56 @@ export default function FaceoffPage({ token, championshipId: championshipIdProp 
         </div>
       )}
 
-      {/* Grid de cards — 2 colunas para dar destaque aos times */}
-      {!loading && faceoffs.length > 0 && (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(2, 1fr)',
-          gap: 20,
-        }}>
-          {faceoffs.map(f => (
-            <FaceoffCard
-              key={f.id}
-              faceoff={f}
-              token={token}
-              onVoted={load}
-            />
-          ))}
-        </div>
-      )}
+      {/* Cards agrupados por group_label */}
+      {!loading && faceoffs.length > 0 && (() => {
+        // Preserva ordem de aparição dos grupos
+        const groupOrder = []
+        const grouped = {}
+        for (const f of faceoffs) {
+          const key = f.group_label || ''
+          if (!grouped[key]) { grouped[key] = []; groupOrder.push(key) }
+          grouped[key].push(f)
+        }
+        const hasGroups = groupOrder.some(k => k !== '')
+        return groupOrder.map(key => (
+          <div key={key} style={{ marginBottom: hasGroups ? 32 : 0 }}>
+            {hasGroups && key && (
+              <div style={{
+                fontSize: 11, fontWeight: 700, letterSpacing: '0.14em',
+                textTransform: 'uppercase', color: '#a5b4fc',
+                marginBottom: 14, paddingBottom: 8,
+                borderBottom: '1px solid rgba(99,102,241,0.2)',
+              }}>
+                {key}
+              </div>
+            )}
+            {hasGroups && !key && (
+              <div style={{
+                fontSize: 11, fontWeight: 700, letterSpacing: '0.14em',
+                textTransform: 'uppercase', color: 'var(--xm-muted)',
+                marginBottom: 14, paddingBottom: 8,
+                borderBottom: '1px solid var(--xm-border)',
+              }}>
+                Outros
+              </div>
+            )}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, 1fr)',
+              gap: 20,
+            }}>
+              {grouped[key].map(f => (
+                <FaceoffCard
+                  key={f.id}
+                  faceoff={f}
+                  token={token}
+                  onVoted={load}
+                />
+              ))}
+            </div>
+          </div>
+        ))
+      })()}
 
       {/* Footer info */}
       {!loading && faceoffs.length > 0 && (

@@ -189,7 +189,6 @@ def suggest_faceoff_pairs(
             "team_b_name": b["team_name"],
             "pts_per_match_b": b["team_pts_per_match"],
         })
-        if len(pairs) == 8:
-            break
+        # sem limite fixo — suporta qualquer número de times
 
     return pairs

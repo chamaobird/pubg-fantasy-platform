@@ -37,6 +37,7 @@ class FaceoffPublicOut(BaseModel):
     seed_b: Optional[int]
     status: str
     winner_team_name: Optional[str]
+    group_label: Optional[str]
     # Percentagens — None enquanto status == "open" (revelado ao fechar)
     pct_a: Optional[float]
     pct_b: Optional[float]
@@ -74,6 +75,7 @@ def _build_out(f: Faceoff, user_id: Optional[str], reveal_pct: bool) -> dict:
         "seed_b": f.seed_b,
         "status": f.status,
         "winner_team_name": f.winner_team_name,
+        "group_label": f.group_label,
         "pct_a": pct_a,
         "pct_b": pct_b,
         "total_votes": total,

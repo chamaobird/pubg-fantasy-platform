@@ -28,6 +28,10 @@ class Faceoff(Base):
     winner_team_name: Mapped[Optional[str]] = mapped_column(String(80), nullable=True)
     seed_a: Mapped[Optional[int]] = mapped_column(SmallInteger, nullable=True)
     seed_b: Mapped[Optional[int]] = mapped_column(SmallInteger, nullable=True)
+    group_label: Mapped[Optional[str]] = mapped_column(
+        String(100), nullable=True,
+        comment="Rótulo editorial do grupo (ex: 'Winners Stage', 'Survival Direta'). Usado para agrupar faceoffs na UI.",
+    )
     created_at: Mapped[DateTime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=text("now()")
     )

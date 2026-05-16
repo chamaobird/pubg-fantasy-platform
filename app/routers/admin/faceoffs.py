@@ -45,6 +45,7 @@ class FaceoffPairIn(BaseModel):
     team_b_name: str
     seed_a: Optional[int] = None
     seed_b: Optional[int] = None
+    group_label: Optional[str] = None
 
 
 class FaceoffBulkIn(BaseModel):
@@ -59,6 +60,7 @@ class FaceoffUpdateIn(BaseModel):
     seed_b: Optional[int] = None
     status: Optional[str] = None
     winner_team_name: Optional[str] = None  # override manual do vencedor
+    group_label: Optional[str] = None
 
 
 class FaceoffOut(BaseModel):
@@ -70,6 +72,7 @@ class FaceoffOut(BaseModel):
     seed_b: Optional[int]
     status: str
     winner_team_name: Optional[str]
+    group_label: Optional[str] = None
     votes_a: int = 0
     votes_b: int = 0
     total_votes: int = 0
@@ -95,6 +98,7 @@ def _to_out(f: Faceoff) -> dict:
         "seed_b": f.seed_b,
         "status": f.status,
         "winner_team_name": f.winner_team_name,
+        "group_label": f.group_label,
         **_vote_counts(f),
     }
 
@@ -135,6 +139,7 @@ def bulk_create(
             team_b_name=pair.team_b_name.strip(),
             seed_a=pair.seed_a,
             seed_b=pair.seed_b,
+            group_label=pair.group_label.strip() if pair.group_label else None,
             status="draft",
         )
         db.add(f)
