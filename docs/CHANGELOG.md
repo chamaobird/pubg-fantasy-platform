@@ -3,15 +3,40 @@
 
 ---
 
-## Estado Atual — 09/05/2026 — Fase C + fix radar HUD deployados em main
+## Estado Atual — 15/05/2026 — Design refactor Profile/Leagues/LeagueDetail deployado
 
 ### Branch atual
 `main` — limpa, tudo deployado no Render
 
 ### Próximos passos
-- Backlog: features de engajamento (sugestão de capitão, head-to-head, quick fill)
+- Continuar design refactor: próximas páginas com inline styles (Championships, TournamentHub, etc.)
+- Backlog championship automation PGC: wizard Liquipedia, roster pre-import via PUBG API
 - Backlog: expor accounts não resolvidos no reprocess (#1)
 - Backlog: validação pré-import no RosterPanel (#2)
+
+---
+
+## 15/05/2026 — Design refactor + Scoring reserva + Seatlon monitor
+
+### Design refactor — Profile / Leagues / LeagueDetail
+- Criado `frontend/src/styles/xama-components.css` — biblioteca de classes reutilizáveis `.xm-*`
+  - `.xm-card / --glass / --clickable / --empty / --compact`
+  - `.xm-btn--primary / --ghost / --danger / --sm / --lg / --full`
+  - `.xm-input / .xm-select / .xm-label / .xm-field / .xm-msg--ok|err`
+  - `.xm-pill--owner / --linked / --soon / --status-open|closed|locked / --rank-gold|silver|bronze`
+  - `.xm-profile-hero / .xm-avatar`, `.xm-invite__code / __copy`, `.xm-lb-row`, `.xm-achievement`
+  - Alias layer `:root { --color-xama-* → --xm-* }` — resto do app não quebra durante migração
+- `Profile.jsx` — removidos const CS/ST/IS/LS/IR/btnOrange/msgS; adicionado hero de perfil com avatar
+- `Leagues.jsx` — refatorado com `.xm-page-header`, `.xm-field`, `.xm-card--clickable`
+- `LeagueDetail.jsx` — invite code com `.xm-invite`, leaderboard com `.xm-lb-row`, sidebar membros
+
+### Scoring reserva (sessão anterior — 15/05)
+- Reserva ativa se ≥1 titular ausente na API (NOT IN match_stats) — não por pts==0
+- Ver `app/services/lineup_scoring.py`
+
+### Seatlon monitor (sessão anterior — 15/05)
+- Job 6h + endpoint POST /admin/seatlon/scan + GET /admin/seatlon/assigned
+- Stage.pubg_tournament_id + migration 0032 + ADMIN_EMAIL config var
 
 ---
 

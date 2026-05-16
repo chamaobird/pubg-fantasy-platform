@@ -4,6 +4,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../App'
 import { API_BASE_URL } from '../config'
 import { track } from '../lib/analytics'
+import { DashIcon } from '../components/DashIcon'
 import TournamentLayout from '../components/TournamentLayout'
 import LineupBuilder from '../components/LineupBuilder'
 import TournamentLeaderboard from '../components/TournamentLeaderboard'
@@ -70,12 +71,13 @@ export default function TournamentHub() {
   // preview: exibe tab mas em modo leitura (lobby visível, montagem bloqueada)
   const showLineupTab = !isFinished && !isClosed
 
+  const I = (name) => <DashIcon name={name} size={13} />
   const ALL_TABS = [
-    ...(showLineupTab ? [{ id: TAB_LINEUP, label: isLocked ? 'Meus Resultados' : (isPreview && !canEdit) ? 'Ver Lobby' : 'Montar Lineup', icon: isLocked ? '📊' : (isPreview && !canEdit) ? '👁️' : '⚔️' }] : []),
-    { id: TAB_LEADERBOARD, label: 'Leaderboard', icon: '🏆' },
-    { id: TAB_STATS,       label: 'Stats',        icon: '📊' },
-    ...(['upcoming', 'preview'].includes(stage?.stage_phase) && stage?.championship_id ? [{ id: TAB_FACEOFF, label: 'Faceoff', icon: '⚔️' }] : []),
-    ...(isAdmin ? [{ id: TAB_ADMIN, label: 'Admin', icon: '⚙️' }] : []),
+    ...(showLineupTab ? [{ id: TAB_LINEUP, label: isLocked ? 'Meus Resultados' : (isPreview && !canEdit) ? 'Ver Lobby' : 'Montar Lineup', icon: isLocked ? I('bar-chart') : (isPreview && !canEdit) ? I('eye') : I('swords') }] : []),
+    { id: TAB_LEADERBOARD, label: 'Leaderboard', icon: I('trophy') },
+    { id: TAB_STATS,       label: 'Stats',        icon: I('bar-chart') },
+    ...(['upcoming', 'preview'].includes(stage?.stage_phase) && stage?.championship_id ? [{ id: TAB_FACEOFF, label: 'Faceoff', icon: I('swords') }] : []),
+    ...(isAdmin ? [{ id: TAB_ADMIN, label: 'Admin', icon: I('target') }] : []),
   ]
 
   const TABS      = ALL_TABS

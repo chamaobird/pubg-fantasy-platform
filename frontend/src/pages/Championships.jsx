@@ -105,26 +105,12 @@ function StageRow({ stage, navigate, isLive = false, compact = false }) {
 
   return (
     <div
+      className="xm-stage-row"
       onClick={() => navigate(`/tournament/${stage.id}`)}
       style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: compact ? '8px 12px' : '11px 14px', gap: 12,
+        padding: compact ? '8px 12px' : '11px 14px',
         background: bgDefault, border: `1px solid ${borderDefault}`,
-        borderRadius: 8, cursor: 'pointer',
-        transition: 'border-color 0.15s, background 0.15s, transform 0.15s, box-shadow 0.15s',
-      }}
-      onMouseEnter={e => {
-        e.currentTarget.style.borderColor = borderHover
-        e.currentTarget.style.background  = bgHover
-        // Micro-elevação + glow laranja sutil no hover
-        e.currentTarget.style.transform   = 'translateY(-1px)'
-        e.currentTarget.style.boxShadow   = '0 4px 18px rgba(249,115,22,0.07)'
-      }}
-      onMouseLeave={e => {
-        e.currentTarget.style.borderColor = borderDefault
-        e.currentTarget.style.background  = bgDefault
-        e.currentTarget.style.transform   = 'none'
-        e.currentTarget.style.boxShadow   = 'none'
+        '--hover-border': borderHover, '--hover-bg': bgHover,
       }}
     >
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -686,9 +672,9 @@ export default function Championships() {
   }, [loading, hasAnythingActive, finishedCount, autoExpanded])
 
   return (
-    <div style={{ minHeight: '100vh', background: 'transparent', position: 'relative' }}>
+    <div className="xm-page">
       <Navbar />
-      <main style={{ position: 'relative', zIndex: 1, maxWidth: 1000, margin: '0 auto', padding: '48px 24px' }}>
+      <main className="xm-page__container xm-page__container--xl">
         {/* Hero da página com eyebrow + H1 + stat chips */}
         <div style={{ marginBottom: 36 }}>
           <div className="xm-eyebrow" style={{
@@ -715,11 +701,11 @@ export default function Championships() {
         </div>
 
         {loading && (
-          <div style={{ textAlign: 'center', padding: 80, color: 'var(--xm-muted)', fontSize: 18 }}>
-            Carregando campeonatos…
+          <div className="xm-empty" style={{ paddingTop: 80, paddingBottom: 80 }}>
+            <p className="xm-empty__body">Carregando campeonatos…</p>
           </div>
         )}
-        {error && <div className="msg-error">{error}</div>}
+        {error && <p className="xm-msg xm-msg--err" style={{ marginBottom: 24 }}>{error}</p>}
 
         {!loading && !error && (
           <>

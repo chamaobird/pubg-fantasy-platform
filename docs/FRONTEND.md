@@ -55,6 +55,34 @@ components/
 
 ## Design system — tokens CSS
 
+Arquivos:
+- `frontend/src/styles/xm-tokens.css` — tokens `--xm-*` (fonte canônica)
+- `frontend/src/styles/xama-components.css` — classes reutilizáveis `.xm-*` (carregado após tokens em `main.jsx`)
+- `frontend/src/index.css` — reset global + Tailwind
+
+### xama-components.css — classes disponíveis
+
+| Classe | Uso |
+|--------|-----|
+| `.xm-card / --glass / --compact / --clickable / --empty` | Card container (glass = legacy blur+laranja border) |
+| `.xm-card__title / --inline`, `.xm-card__title-row` | Título uppercase de seção dentro do card |
+| `.xm-btn--primary / --ghost / --danger` + `--sm / --lg / --full` | Botões — substitui `btnOrange()` e `btnGhost` |
+| `.xm-input / .xm-select / .xm-input--code` | Inputs estilizados — substitui `const IS/IR` |
+| `.xm-label / --sm`, `.xm-field / + hint` | Labels e containers de campo |
+| `.xm-msg--ok / --err` | Mensagens inline de sucesso/erro |
+| `.xm-pill--owner / --linked / --soon / --status-* / --rank-*` | Badges e pills |
+| `.xm-profile-hero / __body / __name / __meta`, `.xm-avatar / --sm / --lg` | Hero de perfil |
+| `.xm-invite__code / __label / __value / __copy / --copied` | Bloco de invite code |
+| `.xm-lb-row / --first / __rank--1|2|3 / __name / __pts / __sub` | Rows de leaderboard |
+| `.xm-achievement / --unlocked / __icon / __name / __date`, `.xm-achievement-grid` | Grid de conquistas |
+| `.xm-stat / --right / --center`, `.xm-stat__label / __value--sm|md|xl|orange|gold|green` | Blocos de stat |
+| `.xm-row / __main / __title / __meta / __right` | List row genérico |
+| `.xm-empty / __icon / __title / __body` | Empty state |
+| `.xm-page`, `.xm-page__container--sm|md|lg` | Page wrapper + container |
+| `.xm-page-header / __title / __subtitle / __back / __actions` | Cabeçalho de página |
+
+> **Alias layer**: `xama-components.css` define `:root { --color-xama-* → --xm-* }` — páginas legacy não migradas continuam funcionando.
+
 Arquivo: `frontend/src/index.css`
 
 ### Cores
