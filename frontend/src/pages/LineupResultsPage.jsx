@@ -139,7 +139,7 @@ export default function LineupResultsPage({ token = '', stageId: stageIdProp, em
 
   return (
     <div style={embedded ? { padding: '24px 0' } : { minHeight: '100vh', background: 'var(--surface-0)', padding: '24px 0' }}>
-      <div className="xama-container" style={{ maxWidth: 720 }}>
+      <div className="xm-page__container xm-page__container--md" style={{ paddingTop: 0, paddingBottom: 0 }}>
 
         {/* Header */}
         <div style={{ marginBottom: 20, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>

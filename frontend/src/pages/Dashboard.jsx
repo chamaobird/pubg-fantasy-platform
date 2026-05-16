@@ -910,16 +910,16 @@ export default function Dashboard() {
     || (user?.email ? user.email.split('@')[0] : 'jogador')
 
   if (loading) return (
-    <div className="xama-page">
+    <div className="xm-page">
       <Navbar />
       <div className="xm-empty" style={{ flex: 1 }}><p className="xm-empty__body">Carregando dashboard...</p></div>
     </div>
   )
 
   return (
-    <div className="xama-page">
+    <div className="xm-page">
       <Navbar />
-      <div className="xama-container" style={{ flex: 1, paddingBottom: '64px' }}>
+      <div className="xm-page__container xm-page__container--2xl" style={{ flex: 1, paddingTop: 0, paddingBottom: '64px' }}>
 
         {/* Hero — saudação fiel ao design (Fase E1) */}
         <div className="dash-hero">

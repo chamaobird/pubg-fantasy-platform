@@ -455,6 +455,7 @@ select { color-scheme: dark; }
 /* overflow-x:hidden no xama-container cria um scroll container que quebra position:sticky.
    overflow-x:clip clipa sem criar scroll container — sticky passa a ser relativo ao body. */
 .xlb-page > .xama-container { overflow-x: clip; }
+.xlb-page > .xm-page__container { overflow-x: clip; }
 /* ─── Sticky lineup header (novo layout horizontal) ─── */
 .xlb-sticky-header {
   position: sticky;

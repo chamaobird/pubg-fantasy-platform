@@ -164,7 +164,7 @@ export default function AdminPricingPanel({ stageId, token }) {
   }
 
   return (
-    <div className="xama-container" style={{ paddingTop: '24px', paddingBottom: '48px' }}>
+    <div className="xm-page__container xm-page__container--2xl" style={{ paddingTop: '24px', paddingBottom: '48px' }}>
 
       {/* Header do painel */}
       <div style={{

@@ -522,7 +522,7 @@ export default function LineupBuilder({
   // ── Render ──────────────────────────────────────────────────────────────
   return (
     <div className="xlb-page">
-      <div className="xama-container">
+      <div className="xm-page__container xm-page__container--2xl" style={{ padding: '0 24px' }}>
 
         {/* ── Cabeçalho sticky com lineup montado ──────────────────────── */}
         <div className="xlb-sticky-header">
@@ -1101,7 +1101,7 @@ export default function LineupBuilder({
           )}
         </div>{/* fim xlb-panel */}
 
-      </div>{/* fim xama-container */}
+      </div>{/* fim xm-page__container */}
 
       {historyPlayer && (
         <PlayerHistoryModal

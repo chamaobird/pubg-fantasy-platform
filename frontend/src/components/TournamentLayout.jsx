@@ -29,7 +29,7 @@ export default function TournamentLayout({
   children,
 }) {
   return (
-    <div className="xama-page">
+    <div className="xm-page">
       <Navbar tournament={tournament} />
 
       <TournamentHeader
