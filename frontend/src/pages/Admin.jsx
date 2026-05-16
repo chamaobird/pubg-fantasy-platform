@@ -12,16 +12,17 @@ import AdminEmail from './admin/AdminEmail'
 import AdminChampionshipGroups from './admin/AdminChampionshipGroups'
 import AdminFeedback from './admin/AdminFeedback'
 import AdminFaceoffs from './admin/AdminFaceoffs'
+import { DashIcon } from '../components/DashIcon'
 
 const SECTIONS = [
-  { key: 'persons',             label: 'Jogadores',    icon: '👤', desc: 'Persons e contas PUBG' },
-  { key: 'teams',               label: 'Times',        icon: '🏆', desc: 'Elencos e membros' },
-  { key: 'championships',       label: 'Championships',icon: '🎯', desc: 'Campeonatos' },
-  { key: 'championship-groups', label: 'Grupos',       icon: '🔗', desc: 'Rankings unificados' },
-  { key: 'stages',              label: 'Stages',       icon: '📅', desc: 'Fases e status' },
-  { key: 'email',               label: 'Email',        icon: '✉️', desc: 'Comunicação com usuários' },
-  { key: 'feedback',            label: 'Feedback',     icon: '💬', desc: 'Feedbacks dos usuários' },
-  { key: 'faceoffs',            label: 'Faceoff',      icon: '⚔️',  desc: 'Team Faceoff — votações' },
+  { key: 'persons',             label: 'Jogadores',    icon: 'gamepad',  desc: 'Persons e contas PUBG' },
+  { key: 'teams',               label: 'Times',        icon: 'trophy',   desc: 'Elencos e membros' },
+  { key: 'championships',       label: 'Championships',icon: 'award',    desc: 'Campeonatos' },
+  { key: 'championship-groups', label: 'Grupos',       icon: 'hexagon',  desc: 'Rankings unificados' },
+  { key: 'stages',              label: 'Stages',       icon: 'calendar', desc: 'Fases e status' },
+  { key: 'email',               label: 'Email',        icon: 'wave',     desc: 'Comunicação com usuários' },
+  { key: 'feedback',            label: 'Feedback',     icon: 'sparkles', desc: 'Feedbacks dos usuários' },
+  { key: 'faceoffs',            label: 'Faceoff',      icon: 'swords',   desc: 'Team Faceoff — votações' },
 ]
 
 function getIsAdmin(token) {
@@ -58,7 +59,7 @@ export default function Admin() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', position: 'relative', colorScheme: 'dark' }}>
+    <div className="xm-page">
       <AppBackground />
       <div style={{ position: 'relative', zIndex: 2 }}>
         <Navbar />
@@ -67,13 +68,13 @@ export default function Admin() {
           {/* Sidebar */}
           <div style={{ width: 210, flexShrink: 0, position: 'sticky', top: 24 }}>
             <div style={{
-              background: 'rgba(18,21,28,0.92)', border: '1px solid var(--color-xama-border)',
+              background: 'rgba(18,21,28,0.92)', border: '1px solid var(--xm-border)',
               borderRadius: 12, overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
             }}>
-              <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--color-xama-border)' }}>
+              <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--xm-border)' }}>
                 <div style={{
                   fontSize: 10, fontWeight: 700, letterSpacing: '0.2em',
-                  color: 'var(--color-xama-orange)', textTransform: 'uppercase',
+                  color: 'var(--xm-orange)', textTransform: 'uppercase',
                   fontFamily: 'JetBrains Mono, monospace',
                 }}>
                   Admin Panel
@@ -87,18 +88,18 @@ export default function Admin() {
                     display: 'flex', alignItems: 'center', gap: 10,
                     width: '100%', padding: '12px 18px',
                     background: section === s.key ? 'rgba(249,115,22,0.1)' : 'transparent',
-                    borderLeft: `2px solid ${section === s.key ? 'var(--color-xama-orange)' : 'transparent'}`,
+                    borderLeft: `2px solid ${section === s.key ? 'var(--xm-orange)' : 'transparent'}`,
                     border: 'none', borderRadius: 0,
-                    color: section === s.key ? 'var(--color-xama-text)' : 'var(--color-xama-muted)',
+                    color: section === s.key ? 'var(--xm-text)' : 'var(--xm-muted)',
                     fontSize: 14, fontWeight: section === s.key ? 600 : 400,
                     cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s',
                     borderBottom: '1px solid rgba(255,255,255,0.03)',
                   }}
                 >
-                  <span style={{ fontSize: 16, flexShrink: 0 }}>{s.icon}</span>
+                  <DashIcon name={s.icon} size={15} style={{ flexShrink: 0, color: 'inherit' }} />
                   <div>
                     <div>{s.label}</div>
-                    <div style={{ fontSize: 10, color: 'var(--color-xama-muted)', marginTop: 1 }}>{s.desc}</div>
+                    <div style={{ fontSize: 10, color: 'var(--xm-muted)', marginTop: 1 }}>{s.desc}</div>
                   </div>
                 </button>
               ))}

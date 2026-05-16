@@ -47,19 +47,19 @@ function CountdownBadge({ targetIso, mode = 'close', bare = false }) {
   let label, color, bg, border, tone
   if (r.diff > 24 * 3_600_000) {
     label = `${verb} ${r.days}d ${r.hours}h`
-    color = 'var(--color-xama-muted)'
+    color = 'var(--xm-muted)'
     bg    = 'rgba(148,163,184,0.06)'
     border = 'rgba(148,163,184,0.15)'
     tone  = 'muted'
   } else if (r.diff > 3_600_000) {
     label = `${verb} ${r.hours}h ${r.mins}min`
-    color = 'var(--color-xama-orange)'
+    color = 'var(--xm-orange)'
     bg    = 'rgba(249,115,22,0.08)'
     border = 'rgba(249,115,22,0.25)'
     tone  = 'normal'
   } else {
     label = `⚠ ${verb} ${r.hours > 0 ? `${r.hours}h ` : ''}${r.mins}min`
-    color = mode === 'open' ? 'var(--color-xama-orange)' : '#f87171'
+    color = mode === 'open' ? 'var(--xm-orange)' : '#f87171'
     bg    = mode === 'open' ? 'rgba(249,115,22,0.08)' : 'rgba(248,113,113,0.08)'
     border = mode === 'open' ? 'rgba(249,115,22,0.25)' : 'rgba(248,113,113,0.25)'
     tone  = 'urgent'
@@ -331,7 +331,7 @@ function OpenCard({ s, lineup, champMap, navigate, previewCount = 0, expanded = 
               fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.05em',
               background: faceoffBadge.status === 'locked' ? 'rgba(107,114,128,0.12)' : 'rgba(74,222,128,0.1)',
               border: faceoffBadge.status === 'locked' ? '1px solid rgba(107,114,128,0.3)' : '1px solid rgba(74,222,128,0.3)',
-              color: faceoffBadge.status === 'locked' ? 'var(--color-xama-muted)' : 'var(--color-xama-green)',
+              color: faceoffBadge.status === 'locked' ? 'var(--xm-muted)' : 'var(--xm-green)',
               cursor: 'pointer',
             }}
           >
@@ -345,12 +345,12 @@ function OpenCard({ s, lineup, champMap, navigate, previewCount = 0, expanded = 
               fontSize: '11px', fontWeight: 700, letterSpacing: '0.06em',
               padding: '3px 10px', borderRadius: '20px',
               background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.3)',
-              color: 'var(--color-xama-green)',
+              color: 'var(--xm-green)',
             }}>✓ Montada</span>
             {lineup.total_points != null && (
               <span style={{
                 fontSize: '20px', fontWeight: 700,
-                color: 'var(--color-xama-orange)',
+                color: 'var(--xm-orange)',
                 fontFamily: 'JetBrains Mono, monospace',
               }}>{fmt1(lineup.total_points)} pts</span>
             )}
@@ -420,7 +420,7 @@ function LockedActiveCard({ s, lineup, champMap, navigate, previewCount = 0, exp
               fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.05em',
               background: faceoffBadge.status === 'locked' ? 'rgba(107,114,128,0.12)' : 'rgba(74,222,128,0.1)',
               border: faceoffBadge.status === 'locked' ? '1px solid rgba(107,114,128,0.3)' : '1px solid rgba(74,222,128,0.3)',
-              color: faceoffBadge.status === 'locked' ? 'var(--color-xama-muted)' : 'var(--color-xama-green)',
+              color: faceoffBadge.status === 'locked' ? 'var(--xm-muted)' : 'var(--xm-green)',
               cursor: 'pointer',
             }}
           >
@@ -431,7 +431,7 @@ function LockedActiveCard({ s, lineup, champMap, navigate, previewCount = 0, exp
         {hasLineup && lineup.total_points != null && (
           <span style={{
             fontSize: '20px', fontWeight: 700,
-            color: 'var(--color-xama-orange)',
+            color: 'var(--xm-orange)',
             fontFamily: 'JetBrains Mono, monospace',
           }}>{fmt1(lineup.total_points)} pts</span>
         )}
@@ -440,7 +440,7 @@ function LockedActiveCard({ s, lineup, champMap, navigate, previewCount = 0, exp
             fontSize: '11px', fontWeight: 700, letterSpacing: '0.06em',
             padding: '3px 10px', borderRadius: '20px',
             background: 'rgba(107,114,128,0.12)', border: '1px solid rgba(107,114,128,0.2)',
-            color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace',
+            color: 'var(--xm-muted)', fontFamily: 'JetBrains Mono, monospace',
           }}>SEM LINEUP</span>
         )}
         <button className="dash-cta-primary" onClick={() => navigate(`/tournament/${s.id}?tab=leaderboard`)}>
@@ -502,11 +502,11 @@ function ClosedPrimaryCard({ s, champMap, navigate, nextCount = 0, expanded = tr
           border: '1px solid rgba(148,163,184,0.2)',
           borderRadius: 6, padding: '5px 12px',
           fontSize: '11px', fontWeight: 700, letterSpacing: '0.06em',
-          color: 'var(--color-xama-muted)', cursor: 'pointer',
+          color: 'var(--xm-muted)', cursor: 'pointer',
           fontFamily: 'JetBrains Mono, monospace', transition: 'border-color 0.15s, color 0.15s',
         }}
-        onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(249,115,22,0.35)'; e.currentTarget.style.color = 'var(--color-xama-orange)' }}
-        onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(148,163,184,0.2)'; e.currentTarget.style.color = 'var(--color-xama-muted)' }}
+        onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(249,115,22,0.35)'; e.currentTarget.style.color = 'var(--xm-orange)' }}
+        onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(148,163,184,0.2)'; e.currentTarget.style.color = 'var(--xm-muted)' }}
       >
         VER LOBBY
       </button>
@@ -912,7 +912,7 @@ export default function Dashboard() {
   if (loading) return (
     <div className="xama-page">
       <Navbar />
-      <div className="xama-loading" style={{ flex: 1 }}>Carregando dashboard...</div>
+      <div className="xm-empty" style={{ flex: 1 }}><p className="xm-empty__body">Carregando dashboard...</p></div>
     </div>
   )
 
@@ -1053,7 +1053,7 @@ export default function Dashboard() {
                         }
                       </div>
                     </div>
-                    <div className="dash-faceoff-cta" style={{ color: 'var(--color-xama-muted)', fontSize: 12 }}>
+                    <div className="dash-faceoff-cta" style={{ color: 'var(--xm-muted)', fontSize: 12 }}>
                       Ver resultado
                       <DashIcon name="arrow-right" size={14}/>
                     </div>
@@ -1254,7 +1254,7 @@ export default function Dashboard() {
           <Card variant="ghost" style={{ textAlign: 'center', padding: '48px 24px' }}>
             <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎮</div>
             <CardTitle>Nenhum torneio ativo no momento</CardTitle>
-            <p style={{ color: 'var(--color-xama-muted)', marginTop: '8px' }}>
+            <p style={{ color: 'var(--xm-muted)', marginTop: '8px' }}>
               Em breve novos torneios estarão disponíveis. Fique ligado!
             </p>
           </Card>

@@ -50,39 +50,28 @@ export default function SetupUsername() {
   const validationMsg = value ? validate(value.trim()) : ''
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: 'var(--color-xama-black)',
-      padding: '24px',
-    }}>
-      <div style={{
-        width: '100%', maxWidth: '400px',
-        background: 'var(--color-xama-surface)',
-        border: '1px solid var(--color-xama-border)',
-        borderRadius: '16px',
-        overflow: 'hidden',
-      }}>
+    <div className="xm-page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+      <div className="xm-card xm-card--glass" style={{ width: '100%', maxWidth: '400px', borderRadius: '16px', overflow: 'hidden' }}>
         {/* Topo dourado */}
-        <div style={{ height: '3px', background: 'linear-gradient(90deg, var(--color-xama-gold) 0%, transparent 60%)' }} />
+        <div style={{ height: '3px', background: 'linear-gradient(90deg, var(--xm-gold) 0%, transparent 60%)' }} />
 
         <div style={{ padding: '32px 28px' }}>
           {/* Cabeçalho */}
           <div style={{ marginBottom: '28px' }}>
             <p style={{
               fontSize: '11px', fontWeight: 700, letterSpacing: '0.12em',
-              color: 'var(--color-xama-orange)', textTransform: 'uppercase',
+              color: 'var(--xm-orange)', textTransform: 'uppercase',
               fontFamily: "'JetBrains Mono', monospace", marginBottom: '8px',
             }}>
               XAMA Fantasy
             </p>
             <h1 style={{
               fontSize: '24px', fontWeight: 800, letterSpacing: '-0.01em',
-              color: 'var(--color-xama-text)', marginBottom: '8px',
+              color: 'var(--xm-text)', marginBottom: '8px',
             }}>
               Escolha seu username
             </h1>
-            <p style={{ fontSize: '13px', color: 'var(--color-xama-muted)', lineHeight: 1.5 }}>
+            <p style={{ fontSize: '13px', color: 'var(--xm-muted)', lineHeight: 1.5 }}>
               Seu username é como você aparece no leaderboard.
               Escolha com cuidado — pode ser alterado depois no perfil.
             </p>
@@ -101,9 +90,9 @@ export default function SetupUsername() {
                 style={{
                   width: '100%', boxSizing: 'border-box',
                   background: '#0d0f14',
-                  border: `1px solid ${error ? 'var(--color-xama-red)' : value && !validationMsg ? 'rgba(240,192,64,0.4)' : 'var(--color-xama-border)'}`,
+                  border: `1px solid ${error ? 'var(--xm-red)' : value && !validationMsg ? 'rgba(240,192,64,0.4)' : 'var(--xm-border)'}`,
                   borderRadius: '8px',
-                  color: 'var(--color-xama-text)',
+                  color: 'var(--xm-text)',
                   padding: '11px 14px',
                   fontSize: '15px',
                   fontFamily: "'JetBrains Mono', monospace",
@@ -115,9 +104,9 @@ export default function SetupUsername() {
               <div style={{
                 marginTop: '6px', fontSize: '11px', minHeight: '16px',
                 fontFamily: "'JetBrains Mono', monospace",
-                color: error ? 'var(--color-xama-red)'
-                  : value && !validationMsg ? 'var(--color-xama-gold)'
-                  : 'var(--color-xama-muted)',
+                color: error ? 'var(--xm-red)'
+                  : value && !validationMsg ? 'var(--xm-gold)'
+                  : 'var(--xm-muted)',
               }}>
                 {error || (value && !validationMsg ? '✓ Username disponível para tentar' : `${MIN}–${MAX} caracteres · letras, números, _ - .`)}
               </div>
@@ -131,9 +120,9 @@ export default function SetupUsername() {
                 background: loading || !!validationMsg || !value.trim()
                   ? 'rgba(240,192,64,0.08)'
                   : 'rgba(240,192,64,0.15)',
-                border: `1px solid ${loading || !!validationMsg || !value.trim() ? 'var(--color-xama-border)' : 'rgba(240,192,64,0.5)'}`,
+                border: `1px solid ${loading || !!validationMsg || !value.trim() ? 'var(--xm-border)' : 'rgba(240,192,64,0.5)'}`,
                 borderRadius: '8px',
-                color: loading || !!validationMsg || !value.trim() ? 'var(--color-xama-muted)' : '#f0c040',
+                color: loading || !!validationMsg || !value.trim() ? 'var(--xm-muted)' : '#f0c040',
                 padding: '12px',
                 fontSize: '14px', fontWeight: 700, letterSpacing: '0.04em',
                 cursor: loading || !!validationMsg || !value.trim() ? 'not-allowed' : 'pointer',
