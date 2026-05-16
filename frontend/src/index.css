@@ -73,7 +73,7 @@ body {
  * elemento select individual. Por isso `color-scheme: dark` está em html,body.
  * A regra abaixo é redundante mas serve de fallback para outros navegadores.
  *
- * Todo <select> deve usar .dark-select para o styling do elemento em si.
+ * Todo <select> deve usar .dark-select (index.css legacy) ou xm-input para o styling.
  * Para dropdowns com busca embutida, use SearchableSelect de Modal.jsx.
  */
 select { color-scheme: dark; }
