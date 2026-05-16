@@ -78,7 +78,7 @@ export const TEAM_NAME_TO_TAG = {
   'Petrichor Road':       'pero',
   'Made in Thailand':     'mith',
   "Anyone's Legend":      'AL',
-  'SOOPers':              'SOUP',
+  'SOOPers':              'DNS',
   'Theerathon Five':      'T5',
   'Four Angry Men':       '4AM',
 }
@@ -90,11 +90,11 @@ export const TEAM_NAME_TO_TAG = {
  * 3. Fallback: retorna team como estava
  */
 export function formatTeamTag(personName, teamName) {
-  if (teamName && TEAM_NAME_TO_TAG[teamName]) return TEAM_NAME_TO_TAG[teamName]
+  if (teamName && TEAM_NAME_TO_TAG[teamName]) return TEAM_NAME_TO_TAG[teamName].toUpperCase()
   if (personName) {
     const idx = personName.indexOf('_')
     if (idx > 0 && idx < personName.length - 1 && !personName.slice(0, idx).includes('-')) {
-      return personName.slice(0, idx)
+      return personName.slice(0, idx).toUpperCase()
     }
   }
   return teamName || ''
