@@ -308,25 +308,6 @@ select { color-scheme: dark; }
 }
 .xt-tab-icon { font-size: 13px; }
 
-/* ─── Botões base v2 ─── */
-.xbtn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; border-radius: 7px; font-family: 'Rajdhani', sans-serif; font-weight: 700; letter-spacing: 0.04em; cursor: pointer; transition: all 0.15s; white-space: nowrap; border: none; }
-.xbtn:disabled { opacity: 0.38; cursor: default; pointer-events: none; }
-.xbtn-sm  { font-size: 12px; padding: 6px 14px; border-radius: 6px; }
-.xbtn-md  { font-size: 13px; padding: 9px 20px; }
-.xbtn-lg  { font-size: 14px; padding: 11px 24px; }
-.xbtn-full { width: 100%; }
-
-.xbtn-primary { background: var(--xm-orange); color: #fff; }
-.xbtn-primary:hover:not(:disabled) { background: #fb923c; }
-
-.xbtn-gold { background: var(--xm-gold); color: #0d0f14; }
-.xbtn-gold:hover:not(:disabled) { background: #f5d060; }
-
-.xbtn-ghost { background: var(--surface-3); border: 1px solid var(--surface-4); color: var(--xm-muted); }
-.xbtn-ghost:hover:not(:disabled) { color: var(--xm-text); border-color: #3d4d6e; }
-
-.xbtn-outline { background: transparent; border: 1px solid var(--xm-border); color: var(--xm-muted); }
-.xbtn-outline:hover:not(:disabled) { border-color: #3d4d6e; color: var(--xm-text); }
 
 /* ─── Stat Row (para cards de dashboard) ─── */
 .xstat-row { display: flex; justify-content: space-between; align-items: baseline; padding: 5px 0; font-size: var(--fs-table); }
@@ -700,30 +681,6 @@ select { color-scheme: dark; }
 }
 .xama-pulse { animation: xama-pulse 1.5s ease-in-out infinite; }
 
-/* ── XAMA Atmospheric — Scan line + utilitários ────────────────────────── */
-@keyframes xama-scan-global {
-  0%   { top: -2px; opacity: 0; }
-  5%   { opacity: 1; }
-  95%  { opacity: 1; }
-  100% { top: 100vh; opacity: 0; }
-}
-.xama-scan-line {
-  position: fixed;
-  left: 0; right: 0;
-  height: 1px;
-  z-index: 2;
-  pointer-events: none;
-  background: linear-gradient(90deg, transparent, rgba(249,115,22,0.25), transparent);
-  animation: xama-scan-global 8s linear infinite;
-}
-
-/* Linha separadora com brilho laranja */
-.xama-divider {
-  height: 1px;
-  background: linear-gradient(90deg, rgba(249,115,22,0.3), rgba(249,115,22,0.05) 50%, transparent);
-  border: none;
-  margin: 24px 0;
-}
 
 
 /* Chrome / Edge / Safari */
@@ -777,12 +734,6 @@ select { color-scheme: dark; }
   .xnav-links::-webkit-scrollbar { display: none; }
   /* Comprime padding dos botões de nav para caber 3 itens ~100px + Sair em 390px */
   .xnav-links button { padding: 6px 10px !important; font-size: 15px !important; }
-
-  /* Landing: empilha hero + card de auth verticalmente */
-  .xama-landing-grid {
-    grid-template-columns: 1fr !important;
-    gap: 20px !important;
-  }
 
   /* LineupBuilder — slots: grade 2×2 + reserva + salvar */
   .xlb-hslots-row {

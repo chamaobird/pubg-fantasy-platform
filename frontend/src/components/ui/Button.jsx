@@ -1,14 +1,14 @@
 // ui/Button.jsx — Botões reutilizáveis
 
 /**
- * variant: 'primary' | 'gold' | 'ghost' | 'outline' | 'danger'
- * size:    'sm' | 'md' | 'lg'
+ * variant: 'primary' | 'ghost' | 'danger'
+ * size:    'sm' | 'lg'  (omit for default)
  * full:    booleano (width 100%)
  */
 export function Button({
   children,
   variant = 'ghost',
-  size = 'md',
+  size = null,
   full = false,
   loading = false,
   style,
@@ -16,10 +16,10 @@ export function Button({
   ...props
 }) {
   const cls = [
-    'xbtn',
-    `xbtn-${variant}`,
-    `xbtn-${size}`,
-    full ? 'xbtn-full' : '',
+    'xm-btn',
+    `xm-btn--${variant}`,
+    size ? `xm-btn--${size}` : '',
+    full ? 'xm-btn--full' : '',
     className,
   ].filter(Boolean).join(' ')
 
