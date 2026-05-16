@@ -4,17 +4,6 @@ import { useAuth } from '../App'
 import { API_BASE_URL as API } from '../config'
 import Navbar from '../components/Navbar'
 
-const CS = {
-  background: 'rgba(19,22,29,0.82)', backdropFilter: 'blur(8px)',
-  border: '1px solid rgba(249,115,22,0.10)', borderRadius: '12px',
-  padding: '24px', marginBottom: '16px',
-}
-const ST = {
-  fontSize: '12px', fontWeight: 700, letterSpacing: '0.12em',
-  textTransform: 'uppercase', color: 'var(--color-xama-muted)', marginBottom: '16px',
-}
-const ST0 = { ...ST, marginBottom: 0 }
-
 function copyToClipboard(text) {
   if (navigator.clipboard) {
     navigator.clipboard.writeText(text).catch(() => {})
@@ -31,13 +20,11 @@ export default function LeagueDetail() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  // Leaderboard
   const [stages, setStages] = useState([])
   const [selectedStage, setSelectedStage] = useState('')
   const [leaderboard, setLeaderboard] = useState([])
   const [lbLoading, setLbLoading] = useState(false)
 
-  // Copied indicator
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
@@ -51,7 +38,6 @@ export default function LeagueDetail() {
       .then(d => {
         if (!d) return
         setLeague(d)
-        // Busca stages do campeonato desta liga
         return fetch(`${API}/championships/${d.championship_id}`)
           .then(r => r.ok ? r.json() : null)
           .then(ch => {
@@ -98,64 +84,68 @@ export default function LeagueDetail() {
   }
 
   if (loading) return (
-    <div style={{ background: 'transparent', minHeight: '100vh' }}>
+    <div className="xm-page">
       <Navbar />
-      <div style={{ textAlign: 'center', padding: '80px 24px', color: 'var(--color-xama-muted)' }}>Carregando...</div>
+      <p className="xm-empty">Carregando...</p>
     </div>
   )
 
   if (error || !league) return (
-    <div style={{ background: 'transparent', minHeight: '100vh' }}>
+    <div className="xm-page">
       <Navbar />
-      <div style={{ textAlign: 'center', padding: '80px 24px' }}>
-        <div style={{ fontSize: '18px', color: 'var(--color-xama-red)', marginBottom: '16px' }}>{error || 'Liga não encontrada'}</div>
-        <button onClick={() => navigate('/leagues')} style={{ padding: '10px 24px', borderRadius: '7px', border: '1px solid var(--color-xama-border)', background: 'transparent', color: 'var(--color-xama-muted)', cursor: 'pointer', fontWeight: 700 }}>Voltar</button>
+      <div className="xm-empty">
+        <p style={{ color: 'var(--xm-red)', fontSize: 18, marginBottom: 16 }}>
+          {error || 'Liga não encontrada'}
+        </p>
+        <button className="xm-btn xm-btn--ghost" onClick={() => navigate('/leagues')}>
+          Voltar
+        </button>
       </div>
     </div>
   )
 
   return (
-    <div style={{ background: 'transparent', color: 'var(--color-xama-text)', minHeight: '100vh' }}>
+    <div className="xm-page">
       <Navbar />
-      <div style={{ maxWidth: '820px', margin: '0 auto', padding: '40px 24px' }}>
+      <div className="xm-page__container xm-page__container--lg">
 
-        {/* Header */}
-        <div style={{ marginBottom: '28px' }}>
-          <button onClick={() => navigate('/leagues')} style={{ background: 'none', border: 'none', color: 'var(--color-xama-muted)', cursor: 'pointer', fontSize: '14px', padding: 0, marginBottom: '12px' }}>← Minhas Ligas</button>
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+        <header style={{ marginBottom: 28 }}>
+          <button className="xm-page-header__back" onClick={() => navigate('/leagues')}>
+            ← Minhas Ligas
+          </button>
+          <div className="xm-page-header">
             <div>
-              <div style={{ fontSize: '28px', fontWeight: 700, color: '#fff' }}>{league.name}</div>
-              <div style={{ fontSize: '14px', color: 'var(--color-xama-muted)', marginTop: '4px' }}>{league.championship_name} · {league.member_count} membros</div>
+              <h1 className="xm-page-header__title">{league.name}</h1>
+              <p className="xm-page-header__subtitle">
+                {league.championship_name} · {league.member_count} membros
+              </p>
             </div>
-            {/* Invite code */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ padding: '8px 16px', borderRadius: '8px', background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.2)' }}>
-                <div style={{ fontSize: '11px', color: 'var(--color-xama-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '2px' }}>Código de Convite</div>
-                <div style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '0.25em', color: 'var(--color-xama-orange)', fontFamily: 'monospace' }}>{league.invite_code}</div>
+            <div className="xm-invite">
+              <div className="xm-invite__code">
+                <div className="xm-invite__label">Código de Convite</div>
+                <div className="xm-invite__value">{league.invite_code}</div>
               </div>
-              <button onClick={handleCopyCode} style={{
-                padding: '8px 14px', borderRadius: '7px', border: '1px solid var(--color-xama-border)',
-                background: copied ? 'rgba(74,222,128,0.1)' : 'transparent',
-                color: copied ? 'var(--color-xama-green)' : 'var(--color-xama-muted)',
-                cursor: 'pointer', fontWeight: 700, fontSize: '13px', transition: 'all 0.15s',
-              }}>
+              <button
+                onClick={handleCopyCode}
+                className={`xm-invite__copy ${copied ? 'xm-invite__copy--copied' : ''}`}
+              >
                 {copied ? '✓ Copiado' : 'Copiar'}
               </button>
             </div>
           </div>
-        </div>
+        </header>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '16px', alignItems: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 16, alignItems: 'start' }}>
 
-          {/* Leaderboard */}
-          <div style={CS}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-              <div style={ST0}>Leaderboard</div>
+          <section className="xm-card xm-card--glass xm-card--compact">
+            <div className="xm-card__title-row">
+              <h2 className="xm-card__title xm-card__title--inline">Leaderboard</h2>
               {stages.length > 0 && (
                 <select
+                  className="xm-select"
+                  style={{ width: 'auto', fontSize: 13, padding: '6px 32px 6px 10px' }}
                   value={selectedStage}
                   onChange={e => setSelectedStage(e.target.value)}
-                  style={{ padding: '6px 10px', borderRadius: '6px', background: '#0a0c11', border: '1px solid var(--color-xama-border)', color: 'var(--color-xama-text)', fontSize: '13px', cursor: 'pointer' }}
                 >
                   {stages.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
@@ -163,88 +153,72 @@ export default function LeagueDetail() {
             </div>
 
             {stages.length === 0 ? (
-              <div style={{ color: 'var(--color-xama-muted)', fontSize: '14px', textAlign: 'center', padding: '24px 0' }}>
+              <p className="xm-empty__body" style={{ padding: '24px 0' }}>
                 Nenhuma stage encerrada ainda. O leaderboard aparecerá após o scoring.
-              </div>
+              </p>
             ) : lbLoading ? (
-              <div style={{ color: 'var(--color-xama-muted)', textAlign: 'center', padding: '24px 0' }}>Carregando...</div>
+              <p className="xm-empty__body" style={{ padding: '24px 0' }}>Carregando...</p>
             ) : leaderboard.length === 0 ? (
-              <div style={{ color: 'var(--color-xama-muted)', fontSize: '14px', textAlign: 'center', padding: '24px 0' }}>
+              <p className="xm-empty__body" style={{ padding: '24px 0' }}>
                 Nenhum membro pontuou nesta stage ainda.
-              </div>
+              </p>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div>
                 {leaderboard.map((entry, i) => (
-                  <div key={entry.user_id} style={{
-                    display: 'flex', alignItems: 'center', gap: '12px',
-                    padding: '10px 12px', borderRadius: '8px',
-                    background: i === 0 ? 'rgba(249,115,22,0.08)' : 'rgba(255,255,255,0.02)',
-                    border: `1px solid ${i === 0 ? 'rgba(249,115,22,0.2)' : 'var(--color-xama-border)'}`,
-                  }}>
-                    <span style={{
-                      fontSize: '14px', fontWeight: 700, minWidth: '28px', textAlign: 'center',
-                      color: i === 0 ? 'var(--color-xama-orange)' : i === 1 ? '#c0c0c0' : i === 2 ? '#cd7f32' : 'var(--color-xama-muted)',
-                    }}>#{entry.rank}</span>
-                    <span style={{ flex: 1, fontSize: '15px', fontWeight: 600, color: 'var(--color-xama-text)' }}>
+                  <div
+                    key={entry.user_id}
+                    className={`xm-lb-row ${i === 0 ? 'xm-lb-row--first' : ''}`}
+                  >
+                    <span className={`xm-lb-row__rank xm-lb-row__rank--${i + 1 <= 3 ? i + 1 : 'n'}`}>
+                      #{entry.rank}
+                    </span>
+                    <span className="xm-lb-row__name">
                       {entry.username || entry.user_id.slice(0, 8)}
                     </span>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-xama-text)' }}>{entry.total_points.toFixed(2)}</div>
+                    <div>
+                      <div className="xm-lb-row__pts">{entry.total_points.toFixed(2)}</div>
                       {entry.global_rank && (
-                        <div style={{ fontSize: '11px', color: 'var(--color-xama-muted)' }}>#{entry.global_rank} global</div>
+                        <div className="xm-lb-row__sub">#{entry.global_rank} global</div>
                       )}
                     </div>
                   </div>
                 ))}
               </div>
             )}
-          </div>
+          </section>
 
-          {/* Membros */}
-          <div>
-            <div style={CS}>
-              <div style={ST}>Membros ({league.member_count})</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {league.members.map(m => (
-                  <div key={m.user_id} style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '8px 0',
-                    borderBottom: '1px solid var(--color-xama-border)',
-                  }}>
-                    <div>
-                      <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-xama-text)' }}>
-                        {m.username || m.user_id.slice(0, 8)}
-                      </span>
-                      {m.is_owner && (
-                        <span style={{ marginLeft: '6px', fontSize: '10px', padding: '2px 6px', borderRadius: '8px', background: 'rgba(249,115,22,0.15)', color: 'var(--color-xama-orange)', fontWeight: 700 }}>DONO</span>
-                      )}
-                    </div>
-                    {league.is_owner && !m.is_owner && (
-                      <button
-                        onClick={() => handleRemoveMember(m.user_id)}
-                        style={{ background: 'none', border: 'none', color: 'var(--color-xama-muted)', cursor: 'pointer', fontSize: '16px', padding: '2px 6px' }}
-                        title="Remover membro"
-                      >×</button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
+          <aside>
+            <section className="xm-card xm-card--glass xm-card--compact">
+              <h2 className="xm-card__title">Membros ({league.member_count})</h2>
+              {league.members.map(m => (
+                <div key={m.user_id} className="xm-row" style={{ padding: '8px 0' }}>
+                  <span className="xm-row__title" style={{ fontSize: 14 }}>
+                    {m.username || m.user_id.slice(0, 8)}
+                    {m.is_owner && <span className="xm-pill xm-pill--owner xm-pill--sm">DONO</span>}
+                  </span>
+                  {league.is_owner && !m.is_owner && (
+                    <button
+                      className="xm-btn xm-btn--ghost xm-btn--sm"
+                      onClick={() => handleRemoveMember(m.user_id)}
+                      title="Remover membro"
+                      style={{ padding: '2px 8px' }}
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              ))}
+            </section>
 
             {league.is_owner && (
               <button
+                className="xm-btn xm-btn--danger xm-btn--full"
                 onClick={handleDeleteLeague}
-                style={{
-                  width: '100%', padding: '10px', borderRadius: '7px',
-                  background: 'transparent', border: '1px solid rgba(248,113,113,0.2)',
-                  color: 'var(--color-xama-red)', fontWeight: 700, fontSize: '13px',
-                  letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer',
-                }}
               >
                 Deletar Liga
               </button>
             )}
-          </div>
+          </aside>
         </div>
 
       </div>

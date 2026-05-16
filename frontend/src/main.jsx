@@ -17,6 +17,7 @@ import '@fontsource/jetbrains-mono/500.css'
 import '@fontsource/jetbrains-mono/600.css'
 import '@fontsource/jetbrains-mono/700.css'
 import './styles/xm-tokens.css'
+import './styles/xama-components.css'
 
 // PostHog — inicializa apenas em produção
 if (import.meta.env.PROD) {

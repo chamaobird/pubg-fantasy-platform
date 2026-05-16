@@ -4,35 +4,6 @@ import { useAuth } from '../App'
 import { API_BASE_URL as API } from '../config'
 import Navbar from '../components/Navbar'
 
-const CS = {
-  background: 'rgba(19,22,29,0.82)', backdropFilter: 'blur(8px)',
-  border: '1px solid rgba(249,115,22,0.10)', borderRadius: '12px',
-  padding: '28px', marginBottom: '16px',
-}
-const ST = {
-  fontSize: '12px', fontWeight: 700, letterSpacing: '0.12em',
-  textTransform: 'uppercase', color: 'var(--color-xama-muted)', marginBottom: '20px',
-}
-const IS = {
-  width: '100%', padding: '12px 14px', borderRadius: '7px',
-  background: '#0a0c11', border: '1px solid var(--color-xama-border, #1e2330)',
-  color: 'var(--color-xama-text, #dce1ea)', fontSize: '16px',
-  outline: 'none', boxSizing: 'border-box',
-}
-const btnOrange = (disabled) => ({
-  padding: '11px 24px', borderRadius: '7px', border: 'none',
-  background: disabled ? 'var(--surface-3)' : 'var(--color-xama-orange, #f97316)',
-  color: disabled ? 'var(--color-xama-muted)' : '#fff',
-  fontWeight: 700, fontSize: '14px', letterSpacing: '0.06em', textTransform: 'uppercase',
-  cursor: disabled ? 'default' : 'pointer', transition: 'all 0.15s',
-})
-const btnGhost = {
-  padding: '11px 24px', borderRadius: '7px', border: '1px solid var(--color-xama-border)',
-  background: 'transparent', color: 'var(--color-xama-muted)',
-  fontWeight: 700, fontSize: '14px', letterSpacing: '0.06em', textTransform: 'uppercase',
-  cursor: 'pointer',
-}
-
 export default function Leagues() {
   const { token } = useAuth()
   const navigate = useNavigate()
@@ -41,7 +12,6 @@ export default function Leagues() {
   const [leagues, setLeagues] = useState([])
   const [loading, setLoading] = useState(true)
 
-  // Create form
   const [showCreate, setShowCreate] = useState(false)
   const [createName, setCreateName] = useState('')
   const [createChampId, setCreateChampId] = useState('')
@@ -49,7 +19,6 @@ export default function Leagues() {
   const [creating, setCreating] = useState(false)
   const [createMsg, setCreateMsg] = useState(null)
 
-  // Join form
   const [showJoin, setShowJoin] = useState(false)
   const [joinCode, setJoinCode] = useState('')
   const [joining, setJoining] = useState(false)
@@ -103,108 +72,142 @@ export default function Leagues() {
   }
 
   return (
-    <div style={{ background: 'transparent', color: 'var(--color-xama-text)', minHeight: '100vh' }}>
+    <div className="xm-page">
       <Navbar />
-      <div style={{ maxWidth: '720px', margin: '0 auto', padding: '40px 24px' }}>
+      <div className="xm-page__container xm-page__container--md">
 
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '32px' }}>
+        <header className="xm-page-header">
           <div>
-            <div style={{ fontSize: '28px', fontWeight: 700, color: '#fff', fontFamily: 'var(--xm-font-display)' }}>Ligas Privadas</div>
-            <div style={{ fontSize: '15px', color: 'var(--color-xama-muted)', marginTop: '4px' }}>Compete com seus amigos no mesmo campeonato</div>
+            <h1 className="xm-page-header__title">Ligas Privadas</h1>
+            <p className="xm-page-header__subtitle">Compete com seus amigos no mesmo campeonato</p>
           </div>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button style={btnGhost} onClick={() => { setShowJoin(!showJoin); setShowCreate(false) }}>Entrar com código</button>
-            <button style={btnOrange(false)} onClick={() => { setShowCreate(!showCreate); setShowJoin(false) }}>+ Criar Liga</button>
+          <div className="xm-page-header__actions">
+            <button
+              className="xm-btn xm-btn--ghost"
+              onClick={() => { setShowJoin(!showJoin); setShowCreate(false) }}
+            >
+              Entrar com código
+            </button>
+            <button
+              className="xm-btn xm-btn--primary"
+              onClick={() => { setShowCreate(!showCreate); setShowJoin(false) }}
+            >
+              + Criar Liga
+            </button>
           </div>
-        </div>
+        </header>
 
-        {/* Form criar */}
         {showCreate && (
-          <div style={CS}>
-            <div style={ST}>Nova Liga</div>
-            <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div>
-                <label style={{ fontSize: '13px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--color-xama-muted)', display: 'block', marginBottom: '6px' }}>Nome da Liga</label>
-                <input style={IS} value={createName} onChange={e => setCreateName(e.target.value)} placeholder="Ex: Galera do Discord" maxLength={100} autoFocus />
+          <section className="xm-card xm-card--glass">
+            <h2 className="xm-card__title">Nova Liga</h2>
+            <form onSubmit={handleCreate}>
+              <div className="xm-field">
+                <label className="xm-label">Nome da Liga</label>
+                <input
+                  className="xm-input"
+                  value={createName}
+                  onChange={e => setCreateName(e.target.value)}
+                  placeholder="Ex: Galera do Discord"
+                  maxLength={100}
+                  autoFocus
+                />
               </div>
-              <div>
-                <label style={{ fontSize: '13px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--color-xama-muted)', display: 'block', marginBottom: '6px' }}>Campeonato</label>
-                <select style={{ ...IS, cursor: 'pointer' }} value={createChampId} onChange={e => setCreateChampId(e.target.value)}>
-                  {championships.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              <div className="xm-field">
+                <label className="xm-label">Campeonato</label>
+                <select
+                  className="xm-select"
+                  value={createChampId}
+                  onChange={e => setCreateChampId(e.target.value)}
+                >
+                  {championships.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
                 </select>
               </div>
               {createMsg && (
-                <div style={{ fontSize: '13px', color: createMsg.type === 'err' ? 'var(--color-xama-red)' : 'var(--color-xama-green)' }}>
+                <p className={`xm-msg xm-msg--${createMsg.type === 'err' ? 'err' : 'ok'}`}>
                   {createMsg.text}
-                </div>
+                </p>
               )}
-              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                <button type="button" style={btnGhost} onClick={() => setShowCreate(false)}>Cancelar</button>
-                <button type="submit" disabled={!createName.trim() || creating} style={btnOrange(!createName.trim() || creating)}>
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 14 }}>
+                <button type="button" className="xm-btn xm-btn--ghost" onClick={() => setShowCreate(false)}>
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="xm-btn xm-btn--primary"
+                  disabled={!createName.trim() || creating}
+                >
                   {creating ? 'Criando...' : 'Criar'}
                 </button>
               </div>
             </form>
-          </div>
+          </section>
         )}
 
-        {/* Form entrar */}
         {showJoin && (
-          <div style={CS}>
-            <div style={ST}>Entrar em uma Liga</div>
-            <form onSubmit={handleJoin} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+          <section className="xm-card xm-card--glass">
+            <h2 className="xm-card__title">Entrar em uma Liga</h2>
+            <form onSubmit={handleJoin} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
               <div style={{ flex: 1 }}>
                 <input
-                  style={{ ...IS, textTransform: 'uppercase', letterSpacing: '0.2em', fontWeight: 700 }}
-                  value={joinCode} onChange={e => setJoinCode(e.target.value.replace(/[^A-Za-z0-9]/g, '').slice(0, 8))}
-                  placeholder="XXXXXXXX" maxLength={8} autoFocus
+                  className="xm-input xm-input--code"
+                  value={joinCode}
+                  onChange={e => setJoinCode(e.target.value.replace(/[^A-Za-z0-9]/g, '').slice(0, 8))}
+                  placeholder="XXXXXXXX"
+                  maxLength={8}
+                  autoFocus
                 />
                 {joinMsg && (
-                  <div style={{ fontSize: '13px', marginTop: '6px', color: joinMsg.type === 'err' ? 'var(--color-xama-red)' : 'var(--color-xama-green)' }}>
+                  <p className={`xm-msg xm-msg--${joinMsg.type === 'err' ? 'err' : 'ok'}`}>
                     {joinMsg.text}
-                  </div>
+                  </p>
                 )}
               </div>
-              <button type="submit" disabled={joinCode.length < 8 || joining} style={{ ...btnOrange(joinCode.length < 8 || joining), whiteSpace: 'nowrap' }}>
+              <button
+                type="submit"
+                className="xm-btn xm-btn--primary"
+                disabled={joinCode.length < 8 || joining}
+              >
                 {joining ? 'Entrando...' : 'Entrar'}
               </button>
             </form>
-          </div>
+          </section>
         )}
 
-        {/* Lista de ligas */}
         {loading ? (
-          <div style={{ color: 'var(--color-xama-muted)', textAlign: 'center', padding: '40px 0' }}>Carregando...</div>
+          <p className="xm-empty">Carregando...</p>
         ) : leagues.length === 0 ? (
-          <div style={{ ...CS, textAlign: 'center', padding: '48px 28px' }}>
-            <div style={{ fontSize: '40px', marginBottom: '16px' }}>🏆</div>
-            <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-xama-text)', marginBottom: '8px' }}>Nenhuma liga ainda</div>
-            <div style={{ fontSize: '14px', color: 'var(--color-xama-muted)' }}>Crie uma liga e convide seus amigos, ou entre em uma liga com um código.</div>
-          </div>
+          <section className="xm-card xm-card--glass xm-card--empty">
+            <div className="xm-empty__icon">🏆</div>
+            <h3 className="xm-empty__title">Nenhuma liga ainda</h3>
+            <p className="xm-empty__body">
+              Crie uma liga e convide seus amigos, ou entre em uma liga com um código.
+            </p>
+          </section>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {leagues.map(lg => (
-              <div key={lg.id} onClick={() => navigate(`/leagues/${lg.id}`)}
-                style={{
-                  ...CS, cursor: 'pointer', marginBottom: 0,
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px',
-                  transition: 'border-color 0.15s',
-                }}
-                onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(249,115,22,0.35)'}
-                onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(249,115,22,0.10)'}
+              <section
+                key={lg.id}
+                className="xm-card xm-card--glass xm-card--clickable"
+                style={{ marginBottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}
+                onClick={() => navigate(`/leagues/${lg.id}`)}
               >
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: '18px', fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div className="xm-row__main">
+                  <div className="xm-row__title" style={{ fontSize: 18, color: '#fff' }}>
                     {lg.name}
-                    {lg.is_owner && <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '10px', background: 'rgba(249,115,22,0.15)', color: 'var(--color-xama-orange)', fontWeight: 700, letterSpacing: '0.1em' }}>DONO</span>}
+                    {lg.is_owner && <span className="xm-pill xm-pill--owner xm-pill--sm">DONO</span>}
                   </div>
-                  <div style={{ fontSize: '13px', color: 'var(--color-xama-muted)', marginTop: '3px' }}>{lg.championship_name}</div>
+                  <div className="xm-row__meta">{lg.championship_name}</div>
                 </div>
-                <div style={{ flexShrink: 0, textAlign: 'right' }}>
-                  <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-xama-text)' }}>{lg.member_count} / {lg.max_members}</div>
-                  <div style={{ fontSize: '12px', color: 'var(--color-xama-muted)' }}>membros</div>
+                <div className="xm-stat xm-stat--right">
+                  <span className="xm-stat__value xm-stat__value--md">
+                    {lg.member_count} / {lg.max_members}
+                  </span>
+                  <span className="xm-stat__label">membros</span>
                 </div>
-              </div>
+              </section>
             ))}
           </div>
         )}
