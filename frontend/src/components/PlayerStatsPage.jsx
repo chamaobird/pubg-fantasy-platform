@@ -21,9 +21,9 @@ const MAP_DISPLAY = {
 
 const selectStyle = {
   background: '#0d0f14',
-  border: '1px solid var(--color-xama-border)',
+  border: '1px solid var(--xm-border)',
   borderRadius: '6px',
-  color: 'var(--color-xama-text)',
+  color: 'var(--xm-text)',
   padding: '6px 10px',
   fontSize: '13px',
   cursor: 'pointer',
@@ -251,23 +251,23 @@ export default function PlayerStatsPage({
     <div style={{ minHeight: '100vh', background: 'transparent' }}>
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="px-6 py-5 border-b" style={{ background: 'var(--color-xama-surface)', borderColor: 'var(--color-xama-border)' }}>
+      <div className="px-6 py-5 border-b" style={{ background: 'var(--xm-surface-1)', borderColor: 'var(--xm-border)' }}>
         <div style={{ maxWidth: '1600px', margin: '0 auto' }}>
           <div className="flex flex-wrap items-end justify-between gap-4 mb-4">
             <div>
               <div className="flex items-center gap-3 mb-1">
                 <span style={{ fontSize: '22px', lineHeight: 1 }}>📊</span>
-                <h1 className="text-[28px] font-bold tracking-tight" style={{ color: 'var(--color-xama-text)', letterSpacing: '-0.01em' }}>
+                <h1 className="text-[28px] font-bold tracking-tight" style={{ color: 'var(--xm-text)', letterSpacing: '-0.01em' }}>
                   PLAYER STATS
                 </h1>
                 {(selectedDay || selectedMatch || !isSingleCurrentStage) && (
                   <span className="px-2 py-0.5 rounded text-[10px] font-bold"
-                    style={{ fontFamily: "'JetBrains Mono', monospace", background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.3)', color: 'var(--color-xama-blue)' }}>
+                    style={{ fontFamily: "'JetBrains Mono', monospace", background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.3)', color: 'var(--xm-blue)' }}>
                     {filterLabel}
                   </span>
                 )}
               </div>
-              <p className="text-[12px] tracking-[0.1em] uppercase" style={{ color: 'var(--color-xama-muted)' }}>
+              <p className="text-[12px] tracking-[0.1em] uppercase" style={{ color: 'var(--xm-muted)' }}>
                 {stageId ? `Stage #${stageId}` : '—'}
               </p>
             </div>
@@ -285,7 +285,7 @@ export default function PlayerStatsPage({
                     display: 'flex', alignItems: 'center', gap: '6px',
                     background: isAllSelected ? 'rgba(240,192,64,0.08)' : 'rgba(249,115,22,0.08)',
                     borderColor: isAllSelected ? 'rgba(240,192,64,0.4)' : 'rgba(249,115,22,0.4)',
-                    color: isAllSelected ? '#f0c040' : 'var(--color-xama-orange)',
+                    color: isAllSelected ? '#f0c040' : 'var(--xm-orange)',
                   }}>
                   <span style={{ fontSize: '11px' }}>📅</span>
                   {stageDropdownLabel}
@@ -295,7 +295,7 @@ export default function PlayerStatsPage({
                 {stageDropdownOpen && (
                   <div style={{
                     position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 200,
-                    background: '#0d0f14', border: '1px solid var(--color-xama-border)',
+                    background: '#0d0f14', border: '1px solid var(--xm-border)',
                     borderRadius: '8px', padding: '6px', minWidth: '150px',
                     boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
                   }}>
@@ -303,7 +303,7 @@ export default function PlayerStatsPage({
                       display: 'flex', alignItems: 'center', gap: '8px',
                       padding: '6px 10px', cursor: 'pointer', borderRadius: '5px',
                       background: isAllSelected ? 'rgba(240,192,64,0.08)' : 'transparent',
-                      color: isAllSelected ? '#f0c040' : 'var(--color-xama-muted)',
+                      color: isAllSelected ? '#f0c040' : 'var(--xm-muted)',
                       fontSize: '13px', fontWeight: 600, transition: 'background 0.1s',
                     }}
                     onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
@@ -312,7 +312,7 @@ export default function PlayerStatsPage({
                         style={{ accentColor: '#f0c040', width: '14px', height: '14px', cursor: 'pointer' }} />
                       Tudo
                     </label>
-                    <div style={{ borderTop: '1px solid var(--color-xama-border)', margin: '4px 0' }} />
+                    <div style={{ borderTop: '1px solid var(--xm-border)', margin: '4px 0' }} />
                     {allSiblings.map((s, idx) => {
                       const isChecked = selectedStageIds.includes(s.id)
                       return (
@@ -320,13 +320,13 @@ export default function PlayerStatsPage({
                           display: 'flex', alignItems: 'center', gap: '8px',
                           padding: '6px 10px', cursor: 'pointer', borderRadius: '5px',
                           background: isChecked ? 'rgba(249,115,22,0.08)' : 'transparent',
-                          color: isChecked ? 'var(--color-xama-orange)' : 'var(--color-xama-muted)',
+                          color: isChecked ? 'var(--xm-orange)' : 'var(--xm-muted)',
                           fontSize: '13px', fontWeight: 600, transition: 'background 0.1s',
                         }}
                         onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
                         onMouseLeave={e => e.currentTarget.style.background = isChecked ? 'rgba(249,115,22,0.08)' : 'transparent'}>
                           <input type="checkbox" checked={isChecked} onChange={() => toggleStage(s.id)}
-                            style={{ accentColor: 'var(--color-xama-orange)', width: '14px', height: '14px', cursor: 'pointer' }} />
+                            style={{ accentColor: 'var(--xm-orange)', width: '14px', height: '14px', cursor: 'pointer' }} />
                           Dia {idx + 1}
                         </label>
                       )
@@ -344,8 +344,8 @@ export default function PlayerStatsPage({
                     style={{
                       ...selectStyle, padding: '4px 10px', fontWeight: 600,
                       background: !selectedDayId ? 'rgba(240,192,64,0.12)' : '#0d0f14',
-                      borderColor: !selectedDayId ? 'rgba(240,192,64,0.5)' : 'var(--color-xama-border)',
-                      color: !selectedDayId ? '#f0c040' : 'var(--color-xama-muted)',
+                      borderColor: !selectedDayId ? 'rgba(240,192,64,0.5)' : 'var(--xm-border)',
+                      color: !selectedDayId ? '#f0c040' : 'var(--xm-muted)',
                     }}>
                     TOTAL
                   </button>
@@ -356,8 +356,8 @@ export default function PlayerStatsPage({
                     style={{
                       ...selectStyle, padding: '4px 10px', fontWeight: 600,
                       background: selectedDayId === d.id ? 'rgba(96,165,250,0.12)' : '#0d0f14',
-                      borderColor: selectedDayId === d.id ? 'rgba(96,165,250,0.5)' : 'var(--color-xama-border)',
-                      color: selectedDayId === d.id ? 'var(--color-xama-blue)' : 'var(--color-xama-muted)',
+                      borderColor: selectedDayId === d.id ? 'rgba(96,165,250,0.5)' : 'var(--xm-border)',
+                      color: selectedDayId === d.id ? 'var(--xm-blue)' : 'var(--xm-muted)',
                     }}>
                     Dia {d.day_number}
                   </button>
@@ -385,7 +385,7 @@ export default function PlayerStatsPage({
             {(selectedDayId || selectedMatchId) && (
               <button
                 onClick={() => { setSelectedDayId(null); setSelectedMatchId(null) }}
-                style={{ ...selectStyle, color: 'var(--color-xama-red)', borderColor: 'rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.05)' }}>
+                style={{ ...selectStyle, color: 'var(--xm-red)', borderColor: 'rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.05)' }}>
                 ✕ Limpar
               </button>
             )}
@@ -396,20 +396,20 @@ export default function PlayerStatsPage({
       {/* ── Conteúdo ───────────────────────────────────────────────────────── */}
       <div style={{ maxWidth: '1600px', margin: '0 auto', padding: '24px 16px' }}>
 
-        {activeLoading && <p className="text-center py-20 text-[14px]" style={{ color: 'var(--color-xama-muted)' }}>Carregando stats...</p>}
-        {error        && <div className="msg-error max-w-lg mx-auto mt-8">Erro: {error}</div>}
+        {activeLoading && <p className="text-center py-20 text-[14px]" style={{ color: 'var(--xm-muted)' }}>Carregando stats...</p>}
+        {error        && <div className="xm-msg xm-msg--err">Erro: {error}</div>}
 
         {!activeLoading && !error && !stageId && (
           <div className="flex flex-col items-center justify-center py-32 gap-4">
             <span style={{ fontSize: '48px' }}>📊</span>
-            <p className="text-[16px] font-semibold tracking-[0.06em] uppercase" style={{ color: 'var(--color-xama-muted)' }}>
+            <p className="text-[16px] font-semibold tracking-[0.06em] uppercase" style={{ color: 'var(--xm-muted)' }}>
               Selecione um torneio
             </p>
           </div>
         )}
 
         {!activeLoading && !error && stageId && activeStats.length === 0 && (
-          <p className="text-center py-20 text-[13px]" style={{ color: 'var(--color-xama-muted)' }}>
+          <p className="text-center py-20 text-[13px]" style={{ color: 'var(--xm-muted)' }}>
             Nenhum dado disponível para o período selecionado.
           </p>
         )}

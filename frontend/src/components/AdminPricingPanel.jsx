@@ -173,11 +173,11 @@ export default function AdminPricingPanel({ stageId, token }) {
       }}>
         <div>
           <h2 style={{
-            fontSize: '20px', fontWeight: 700, color: 'var(--color-xama-text)',
+            fontSize: '20px', fontWeight: 700, color: 'var(--xm-text)',
             letterSpacing: '0.04em',
             margin: 0,
           }}>Pricing Admin</h2>
-          <p style={{ fontSize: '13px', color: 'var(--color-xama-muted)', margin: '4px 0 0' }}>
+          <p style={{ fontSize: '13px', color: 'var(--xm-muted)', margin: '4px 0 0' }}>
             Defina overrides manuais de custo. Deixe em branco para usar o preço calculado automaticamente.
           </p>
         </div>
@@ -198,7 +198,7 @@ export default function AdminPricingPanel({ stageId, token }) {
             disabled={recalcLoading}
             style={{
               padding: '8px 16px', borderRadius: '6px', border: '1px solid rgba(249,115,22,0.3)',
-              background: 'rgba(249,115,22,0.08)', color: 'var(--color-xama-orange)',
+              background: 'rgba(249,115,22,0.08)', color: 'var(--xm-orange)',
               fontSize: '12px', fontWeight: 700, cursor: recalcLoading ? 'not-allowed' : 'pointer',
               letterSpacing: '0.06em', textTransform: 'uppercase',
             }}>
@@ -219,20 +219,20 @@ export default function AdminPricingPanel({ stageId, token }) {
         </div>
       )}
 
-      {loading && <p style={{ color: 'var(--color-xama-muted)', fontSize: '13px' }}>Carregando jogadores...</p>}
-      {error   && <p style={{ color: 'var(--color-xama-red)', fontSize: '13px' }}>{error}</p>}
+      {loading && <p style={{ color: 'var(--xm-muted)', fontSize: '13px' }}>Carregando jogadores...</p>}
+      {error   && <p style={{ color: 'var(--xm-red)', fontSize: '13px' }}>{error}</p>}
 
       {!loading && !error && (
         <div style={{
           background: 'var(--surface-1)',
-          border: '1px solid var(--color-xama-border)',
+          border: '1px solid var(--xm-border)',
           borderRadius: '10px', overflow: 'hidden',
         }}>
           {/* Cabeçalho da tabela */}
           <div style={{
             display: 'grid', gridTemplateColumns: '1fr 100px 80px 80px 160px 90px',
             padding: '10px 20px',
-            borderBottom: '1px solid var(--color-xama-border)',
+            borderBottom: '1px solid var(--xm-border)',
             background: 'var(--surface-2)',
           }}>
             {[
@@ -248,7 +248,7 @@ export default function AdminPricingPanel({ stageId, token }) {
                 onClick={key ? () => handleSort(key) : undefined}
                 style={{
                   fontSize: '11px', fontWeight: 700,
-                  color: sortKey === key ? 'var(--color-xama-orange)' : 'var(--color-xama-muted)',
+                  color: sortKey === key ? 'var(--xm-orange)' : 'var(--xm-muted)',
                   letterSpacing: '0.08em', textTransform: 'uppercase',
                   cursor: key ? 'pointer' : 'default', userSelect: 'none',
                   display: 'flex', alignItems: 'center', gap: '4px',
@@ -274,27 +274,27 @@ export default function AdminPricingPanel({ stageId, token }) {
                 background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)',
               }}>
                 {/* Nome */}
-                <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-xama-text)', fontFamily: "'Rajdhani', sans-serif" }}>
+                <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--xm-text)', fontFamily: "'Rajdhani', sans-serif" }}>
                   {formatName(r.person_name)}
                   {r.newcomer_to_tier && (
-                    <span style={{ marginLeft: '6px', fontSize: '9px', color: 'var(--color-xama-blue)', fontWeight: 700 }}>NEW</span>
+                    <span style={{ marginLeft: '6px', fontSize: '9px', color: 'var(--xm-blue)', fontWeight: 700 }}>NEW</span>
                   )}
                 </span>
 
                 {/* Time */}
-                <span style={{ fontSize: '12px', color: 'var(--color-xama-muted)' }}>
+                <span style={{ fontSize: '12px', color: 'var(--xm-muted)' }}>
                   {r.team_name || '—'}
                 </span>
 
                 {/* Preço auto */}
-                <span style={{ fontSize: '14px', fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-muted)' }}>
+                <span style={{ fontSize: '14px', fontFamily: "'JetBrains Mono', monospace", color: 'var(--xm-muted)' }}>
                   {r.fantasy_cost != null ? Number(r.fantasy_cost).toFixed(2) : '—'}
                 </span>
 
                 {/* Override atual */}
                 <span style={{
                   fontSize: '14px', fontFamily: "'JetBrains Mono', monospace",
-                  color: r.cost_override != null ? 'var(--color-xama-gold)' : 'var(--color-xama-muted)',
+                  color: r.cost_override != null ? 'var(--xm-gold)' : 'var(--xm-muted)',
                   fontWeight: r.cost_override != null ? 700 : 400,
                 }}>
                   {r.cost_override != null ? Number(r.cost_override).toFixed(2) : '—'}
@@ -314,14 +314,14 @@ export default function AdminPricingPanel({ stageId, token }) {
                     }}
                     style={{
                       width: '80px', padding: '5px 8px', borderRadius: '6px',
-                      background: 'var(--surface-2)', border: '1px solid var(--color-xama-border)',
-                      color: 'var(--color-xama-text)', fontSize: '13px',
+                      background: 'var(--surface-2)', border: '1px solid var(--xm-border)',
+                      color: 'var(--xm-text)', fontSize: '13px',
                       fontFamily: "'JetBrains Mono', monospace",
                       textAlign: 'center',
                     }}
                   />
                   {fb && (
-                    <span style={{ fontSize: '11px', color: fb.ok ? 'var(--color-xama-green)' : 'var(--color-xama-red)', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: '11px', color: fb.ok ? 'var(--xm-green)' : 'var(--xm-red)', whiteSpace: 'nowrap' }}>
                       {fb.msg}
                     </span>
                   )}
@@ -333,8 +333,8 @@ export default function AdminPricingPanel({ stageId, token }) {
                   disabled={saving[r.id]}
                   style={{
                     padding: '5px 12px', borderRadius: '6px', border: 'none',
-                    background: saving[r.id] ? 'var(--surface-3)' : 'var(--color-xama-orange)',
-                    color: saving[r.id] ? 'var(--color-xama-muted)' : 'var(--color-xama-text)',
+                    background: saving[r.id] ? 'var(--surface-3)' : 'var(--xm-orange)',
+                    color: saving[r.id] ? 'var(--xm-muted)' : 'var(--xm-text)',
                     fontSize: '11px', fontWeight: 700, cursor: saving[r.id] ? 'not-allowed' : 'pointer',
                     letterSpacing: '0.06em', textTransform: 'uppercase',
                   }}>
@@ -345,7 +345,7 @@ export default function AdminPricingPanel({ stageId, token }) {
           })}
 
           {roster.length === 0 && (
-            <p style={{ padding: '24px', textAlign: 'center', color: 'var(--color-xama-muted)', fontSize: '13px' }}>
+            <p style={{ padding: '24px', textAlign: 'center', color: 'var(--xm-muted)', fontSize: '13px' }}>
               Nenhum jogador no roster desta stage
             </p>
           )}

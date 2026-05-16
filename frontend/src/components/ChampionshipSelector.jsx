@@ -15,9 +15,9 @@
 
 const selectStyle = {
   background: '#0d0f14',
-  border: '1px solid var(--color-xama-border)',
+  border: '1px solid var(--xm-border)',
   borderRadius: '6px',
-  color: 'var(--color-xama-text)',
+  color: 'var(--xm-text)',
   padding: '6px 10px',
   fontSize: '13px',
   cursor: 'pointer',

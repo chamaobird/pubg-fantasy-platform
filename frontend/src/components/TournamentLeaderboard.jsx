@@ -344,9 +344,9 @@ export default function TournamentLeaderboard({
     <div className="min-h-screen" style={{ background: 'transparent' }}>
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="px-6 py-5 border-b" style={{ background: 'var(--color-xama-surface)', borderColor: 'var(--color-xama-border)' }}>
+      <div className="px-6 py-5 border-b" style={{ background: 'var(--xm-surface-1)', borderColor: 'var(--xm-border)' }}>
         <div className="max-w-3xl mx-auto flex flex-wrap items-center justify-between gap-4">
-          <h1 className="text-[28px] font-bold tracking-tight" style={{ color: 'var(--color-xama-text)', letterSpacing: '-0.01em' }}>
+          <h1 className="text-[28px] font-bold tracking-tight" style={{ color: 'var(--xm-text)', letterSpacing: '-0.01em' }}>
             LEADERBOARD
           </h1>
           <button
@@ -366,17 +366,17 @@ export default function TournamentLeaderboard({
             style={{
               display: 'flex', alignItems: 'center', gap: '8px',
               background: '#0d0f14',
-              border: '1px solid var(--color-xama-border)',
+              border: '1px solid var(--xm-border)',
               borderRadius: '8px',
-              color: 'var(--color-xama-text)',
+              color: 'var(--xm-text)',
               padding: '7px 12px',
               fontSize: '13px', fontWeight: 600, cursor: 'pointer',
               minWidth: '240px', justifyContent: 'space-between',
             }}>
-            <span style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-gold)' }}>
+            <span style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--xm-gold)' }}>
               {filterLabel(selectedKeys, champCode, phases)}
             </span>
-            <span style={{ fontSize: '10px', color: 'var(--color-xama-muted)' }}>
+            <span style={{ fontSize: '10px', color: 'var(--xm-muted)' }}>
               {panelOpen ? '▲' : '▼'}
             </span>
           </button>
@@ -384,17 +384,17 @@ export default function TournamentLeaderboard({
           {panelOpen && (
             <div style={{
               position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 200,
-              background: 'var(--color-xama-surface)',
-              border: '1px solid var(--color-xama-border)',
+              background: 'var(--xm-surface-1)',
+              border: '1px solid var(--xm-border)',
               borderRadius: '10px',
               boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
               minWidth: '280px', overflow: 'hidden',
             }}>
               {/* Cabeçalho do painel */}
               <div style={{
-                padding: '8px 14px', borderBottom: '1px solid var(--color-xama-border)',
+                padding: '8px 14px', borderBottom: '1px solid var(--xm-border)',
                 fontSize: '10px', fontWeight: 700, letterSpacing: '0.1em',
-                color: 'var(--color-xama-muted)', textTransform: 'uppercase',
+                color: 'var(--xm-muted)', textTransform: 'uppercase',
                 fontFamily: "'JetBrains Mono', monospace",
               }}>
                 Visualização
@@ -411,7 +411,7 @@ export default function TournamentLeaderboard({
                 />
 
                 {phases.length > 0 && (
-                  <div style={{ margin: '4px 0', borderTop: '1px solid var(--color-xama-border)' }} />
+                  <div style={{ margin: '4px 0', borderTop: '1px solid var(--xm-border)' }} />
                 )}
 
                 {phases.map((phase, gi) => {
@@ -449,7 +449,7 @@ export default function TournamentLeaderboard({
               </div>
 
               {/* Rodapé */}
-              <div style={{ padding: '8px 14px', borderTop: '1px solid var(--color-xama-border)', display: 'flex', justifyContent: 'flex-end' }}>
+              <div style={{ padding: '8px 14px', borderTop: '1px solid var(--xm-border)', display: 'flex', justifyContent: 'flex-end' }}>
                 <button
                   onClick={() => setPanelOpen(false)}
                   style={{
@@ -470,28 +470,28 @@ export default function TournamentLeaderboard({
       {/* ── Submissões (stage atual aberta) ─────────────────────────────────── */}
       {showSubmissions && (
         <div className="max-w-3xl mx-auto px-4 py-6">
-          <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--color-xama-border)', background: 'var(--color-xama-surface)' }}>
-            <div style={{ height: '2px', background: 'linear-gradient(90deg, var(--color-xama-orange) 0%, transparent 50%)' }} />
+          <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--xm-border)', background: 'var(--xm-surface-1)' }}>
+            <div style={{ height: '2px', background: 'linear-gradient(90deg, var(--xm-orange) 0%, transparent 50%)' }} />
             <div className="px-4 py-3 text-[11px] font-bold tracking-[0.08em] uppercase flex items-center justify-between"
-              style={{ background: 'rgba(249,115,22,0.06)', borderBottom: '1px solid rgba(249,115,22,0.15)', color: 'var(--color-xama-orange)', fontFamily: "'JetBrains Mono', monospace" }}>
+              style={{ background: 'rgba(249,115,22,0.06)', borderBottom: '1px solid rgba(249,115,22,0.15)', color: 'var(--xm-orange)', fontFamily: "'JetBrains Mono', monospace" }}>
               <span>⚡ LINEUP ENVIADO — dia ainda em andamento</span>
-              <span style={{ color: 'var(--color-xama-muted)', fontWeight: 400 }}>
+              <span style={{ color: 'var(--xm-muted)', fontWeight: 400 }}>
                 {submissionsLoading ? '…' : `${submissions.length} manager${submissions.length !== 1 ? 's' : ''}`}
               </span>
             </div>
             {submissionsLoading && (
-              <p className="text-center py-12 text-[13px]" style={{ color: 'var(--color-xama-muted)' }}>Carregando…</p>
+              <p className="text-center py-12 text-[13px]" style={{ color: 'var(--xm-muted)' }}>Carregando…</p>
             )}
             {!submissionsLoading && submissions.length === 0 && (
-              <p className="text-center py-12 text-[13px]" style={{ color: 'var(--color-xama-muted)' }}>Nenhum lineup enviado ainda.</p>
+              <p className="text-center py-12 text-[13px]" style={{ color: 'var(--xm-muted)' }}>Nenhum lineup enviado ainda.</p>
             )}
             {!submissionsLoading && submissions.length > 0 && (
               <table className="w-full border-collapse">
                 <thead>
-                  <tr style={{ background: '#0a0c11', borderBottom: '1px solid var(--color-xama-border)' }}>
+                  <tr style={{ background: '#0a0c11', borderBottom: '1px solid var(--xm-border)' }}>
                     {['#', 'Manager', 'Enviado'].map((h, i) => (
                       <th key={i} className="px-4 py-3 text-[10px] font-bold tracking-[0.1em] uppercase"
-                        style={{ color: 'var(--color-xama-muted)', textAlign: i === 2 ? 'right' : 'left', width: i === 0 ? '52px' : undefined }}>
+                        style={{ color: 'var(--xm-muted)', textAlign: i === 2 ? 'right' : 'left', width: i === 0 ? '52px' : undefined }}>
                         {h}
                       </th>
                     ))}
@@ -513,14 +513,14 @@ export default function TournamentLeaderboard({
                         </td>
                         <td className="px-4 py-[13px]">
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <span style={{ fontSize: '13px', color: 'var(--color-xama-text)', fontFamily: "'JetBrains Mono', monospace" }}>
+                            <span style={{ fontSize: '13px', color: 'var(--xm-text)', fontFamily: "'JetBrains Mono', monospace" }}>
                               {ownerLabel(entry)}
                             </span>
                             {isMe && <span className="text-[10px] font-bold tracking-[0.06em] px-2 py-0.5 rounded" style={{ background: 'rgba(20,184,166,0.18)', border: '1px solid rgba(20,184,166,0.4)', color: '#2dd4bf' }}>EU</span>}
                           </div>
                         </td>
                         <td className="px-4 py-[13px] text-right">
-                          <span style={{ fontSize: '12px', color: 'var(--color-xama-muted)', fontFamily: "'JetBrains Mono', monospace" }}>✓ {time}</span>
+                          <span style={{ fontSize: '12px', color: 'var(--xm-muted)', fontFamily: "'JetBrains Mono', monospace" }}>✓ {time}</span>
                         </td>
                       </tr>
                     )
@@ -528,9 +528,9 @@ export default function TournamentLeaderboard({
                 </tbody>
               </table>
             )}
-            <div className="px-5 py-3 flex items-center justify-between" style={{ borderTop: '1px solid var(--color-xama-border)', background: '#0a0c11' }}>
-              <span className="text-[11px] font-bold tracking-[0.1em] uppercase" style={{ color: 'var(--color-xama-orange)' }}>⚡ XAMA Fantasy</span>
-              <span className="text-[11px]" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-muted)' }}>pontos disponíveis após o encerramento</span>
+            <div className="px-5 py-3 flex items-center justify-between" style={{ borderTop: '1px solid var(--xm-border)', background: '#0a0c11' }}>
+              <span className="text-[11px] font-bold tracking-[0.1em] uppercase" style={{ color: 'var(--xm-orange)' }}>⚡ XAMA Fantasy</span>
+              <span className="text-[11px]" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--xm-muted)' }}>pontos disponíveis após o encerramento</span>
             </div>
           </div>
         </div>
@@ -540,18 +540,18 @@ export default function TournamentLeaderboard({
       {!showSubmissions && highlights && (
         <div className="max-w-3xl mx-auto px-4 pt-4 pb-0">
           <div style={{
-            borderRadius: 12, border: '1px solid var(--color-xama-border)',
-            background: 'var(--color-xama-surface)', overflow: 'hidden',
+            borderRadius: 12, border: '1px solid var(--xm-border)',
+            background: 'var(--xm-surface-1)', overflow: 'hidden',
           }}>
             <div style={{
               height: 2,
-              background: 'linear-gradient(90deg, var(--color-xama-gold) 0%, var(--color-xama-orange) 60%, transparent 100%)',
+              background: 'linear-gradient(90deg, var(--xm-gold) 0%, var(--xm-orange) 60%, transparent 100%)',
             }} />
             <div style={{
               padding: '8px 16px',
               fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
-              color: 'var(--color-xama-gold)',
-              borderBottom: '1px solid var(--color-xama-border)',
+              color: 'var(--xm-gold)',
+              borderBottom: '1px solid var(--xm-border)',
               fontFamily: "'JetBrains Mono', monospace",
               background: 'rgba(240,192,64,0.04)',
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -562,7 +562,7 @@ export default function TournamentLeaderboard({
                 for (const s of siblingStages) {
                   for (const d of (s.stage_days || [])) {
                     if (d.id === sdid) return (
-                      <span style={{ fontWeight: 400, color: 'var(--color-xama-muted)', textTransform: 'none', letterSpacing: 0 }}>
+                      <span style={{ fontWeight: 400, color: 'var(--xm-muted)', textTransform: 'none', letterSpacing: 0 }}>
                         {s.name}
                       </span>
                     )
@@ -582,7 +582,7 @@ export default function TournamentLeaderboard({
                   label="Melhor manager"
                   title={highlights.top_user.username || highlights.top_user.user_id.slice(0, 8)}
                   subtitle={`${highlights.top_user.points.toFixed(2)} pts`}
-                  subtitleColor="var(--color-xama-gold)"
+                  subtitleColor="var(--xm-gold)"
                   detail={highlights.top_user.players?.map(p => p.person_name?.split('_').pop() || p.person_name).join(' · ')}
                 />
               )}
@@ -592,7 +592,7 @@ export default function TournamentLeaderboard({
                   label="Capitão mais escolhido"
                   title={highlights.most_captain.person_name?.split('_').pop() || highlights.most_captain.person_name}
                   subtitle={`${highlights.most_captain.pct}% dos times`}
-                  subtitleColor="var(--color-xama-orange)"
+                  subtitleColor="var(--xm-orange)"
                   detail={highlights.most_captain.team_name}
                   separator
                 />
@@ -603,7 +603,7 @@ export default function TournamentLeaderboard({
                   label="Melhor jogador"
                   title={highlights.best_player.person_name?.split('_').pop() || highlights.best_player.person_name}
                   subtitle={`${highlights.best_player.xama_points.toFixed(1)} pts`}
-                  subtitleColor="var(--color-xama-orange)"
+                  subtitleColor="var(--xm-orange)"
                   detail={highlights.best_player.team_name}
                   separator
                 />
@@ -617,23 +617,23 @@ export default function TournamentLeaderboard({
       {!showSubmissions && (
         <div className="max-w-3xl mx-auto px-4 py-6">
           {loading && (
-            <p className="text-center py-20 text-[13px]" style={{ color: 'var(--color-xama-muted)' }}>Carregando leaderboard…</p>
+            <p className="text-center py-20 text-[13px]" style={{ color: 'var(--xm-muted)' }}>Carregando leaderboard…</p>
           )}
           {error && !loading && (
-            <div className="msg-error max-w-lg mx-auto mt-8">Erro ao carregar: {error}</div>
+            <div className="xm-msg xm-msg--err">Erro ao carregar: {error}</div>
           )}
           {!loading && !error && rankings.length === 0 && (
-            <p className="text-center py-20 text-[13px]" style={{ color: 'var(--color-xama-muted)' }}>Nenhum resultado ainda.</p>
+            <p className="text-center py-20 text-[13px]" style={{ color: 'var(--xm-muted)' }}>Nenhum resultado ainda.</p>
           )}
           {!loading && !error && rankings.length > 0 && (
-            <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--color-xama-border)', background: 'var(--color-xama-surface)' }}>
-              <div style={{ height: '2px', background: 'linear-gradient(90deg, var(--color-xama-gold) 0%, transparent 50%)' }} />
+            <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--xm-border)', background: 'var(--xm-surface-1)' }}>
+              <div style={{ height: '2px', background: 'linear-gradient(90deg, var(--xm-gold) 0%, transparent 50%)' }} />
               <table className="w-full border-collapse">
                 <thead>
-                  <tr style={{ background: '#0a0c11', borderBottom: '1px solid var(--color-xama-border)' }}>
+                  <tr style={{ background: '#0a0c11', borderBottom: '1px solid var(--xm-border)' }}>
                     {['#', 'Manager', 'Pontos'].map((h, i) => (
                       <th key={i} className="px-4 py-3 text-[10px] font-bold tracking-[0.1em] uppercase"
-                        style={{ color: 'var(--color-xama-muted)', textAlign: i >= 2 ? 'right' : 'left', width: i === 0 ? '52px' : undefined }}>
+                        style={{ color: 'var(--xm-muted)', textAlign: i >= 2 ? 'right' : 'left', width: i === 0 ? '52px' : undefined }}>
                         {h}
                       </th>
                     ))}
@@ -675,7 +675,7 @@ export default function TournamentLeaderboard({
                         </td>
                         <td className="px-4 py-[13px]">
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <span className="text-[13px]" style={{ fontFamily: "'JetBrains Mono', monospace", color: canClick ? 'var(--color-xama-text)' : 'var(--color-xama-muted)' }}>
+                            <span className="text-[13px]" style={{ fontFamily: "'JetBrains Mono', monospace", color: canClick ? 'var(--xm-text)' : 'var(--xm-muted)' }}>
                               {ownerLabel(entry)}
                             </span>
                             {isMe && (
@@ -689,7 +689,7 @@ export default function TournamentLeaderboard({
                                 style={{
                                   background: isMe ? 'rgba(20,184,166,0.10)' : 'rgba(255,255,255,0.04)',
                                   border: isMe ? '1px solid rgba(20,184,166,0.30)' : '1px solid rgba(255,255,255,0.08)',
-                                  color: isMe ? '#2dd4bf' : 'var(--color-xama-muted)',
+                                  color: isMe ? '#2dd4bf' : 'var(--xm-muted)',
                                   fontFamily: "'JetBrains Mono', monospace",
                                 }}>
                                 {isMe ? 'meu time' : 'ver time'}
@@ -699,7 +699,7 @@ export default function TournamentLeaderboard({
                         </td>
                         <td className="px-4 py-[13px] text-right">
                           <span className="text-[15px] font-bold tabular-nums"
-                            style={{ fontFamily: "'JetBrains Mono', monospace", color: pts > 0 ? 'var(--color-xama-gold)' : '#374151' }}>
+                            style={{ fontFamily: "'JetBrains Mono', monospace", color: pts > 0 ? 'var(--xm-gold)' : '#374151' }}>
                             {Number(pts).toFixed(2)}
                           </span>
                         </td>
@@ -709,12 +709,12 @@ export default function TournamentLeaderboard({
                 </tbody>
               </table>
               <div className="px-5 py-3 flex items-center justify-between"
-                style={{ borderTop: '1px solid var(--color-xama-border)', background: '#0a0c11' }}>
-                <span className="text-[11px] font-bold tracking-[0.1em] uppercase" style={{ color: 'var(--color-xama-gold)' }}>
+                style={{ borderTop: '1px solid var(--xm-border)', background: '#0a0c11' }}>
+                <span className="text-[11px] font-bold tracking-[0.1em] uppercase" style={{ color: 'var(--xm-gold)' }}>
                   🏆 XAMA Fantasy
                 </span>
                 <span className="text-[11px] tabular-nums"
-                  style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-muted)' }}>
+                  style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--xm-muted)' }}>
                   {rankings.length} managers
                 </span>
               </div>
@@ -746,7 +746,7 @@ export default function TournamentLeaderboard({
 // ── Sub-componentes ────────────────────────────────────────────────────────
 
 function FilterRow({ label, checked, onChange, gold = false, indent = false }) {
-  const activeColor = gold ? '#f0c040' : 'var(--color-xama-blue)'
+  const activeColor = gold ? '#f0c040' : 'var(--xm-blue)'
   const activeBg    = gold ? 'rgba(240,192,64,0.06)' : 'rgba(96,165,250,0.06)'
   return (
     <label
@@ -767,7 +767,7 @@ function FilterRow({ label, checked, onChange, gold = false, indent = false }) {
       />
       <span style={{
         fontSize: '13px',
-        color: checked ? activeColor : 'var(--color-xama-text)',
+        color: checked ? activeColor : 'var(--xm-text)',
         fontWeight: checked ? 600 : 400,
         fontFamily: "'JetBrains Mono', monospace",
       }}>
@@ -793,9 +793,9 @@ function PhaseHeader({ label, allChecked, someChecked, onClick }) {
       {/* Checkbox visual (não é input real — o clique é no botão inteiro) */}
       <span style={{
         width: '14px', height: '14px', flexShrink: 0,
-        border: `2px solid ${allChecked ? 'var(--color-xama-blue)' : someChecked ? 'var(--color-xama-blue)' : 'var(--color-xama-border)'}`,
+        border: `2px solid ${allChecked ? 'var(--xm-blue)' : someChecked ? 'var(--xm-blue)' : 'var(--xm-border)'}`,
         borderRadius: '3px',
-        background: allChecked ? 'var(--color-xama-blue)' : 'transparent',
+        background: allChecked ? 'var(--xm-blue)' : 'transparent',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontSize: '9px', color: '#fff', fontWeight: 700,
       }}>
@@ -804,7 +804,7 @@ function PhaseHeader({ label, allChecked, someChecked, onClick }) {
       <span style={{
         fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em',
         textTransform: 'uppercase',
-        color: allChecked || someChecked ? 'var(--color-xama-blue)' : 'var(--color-xama-muted)',
+        color: allChecked || someChecked ? 'var(--xm-blue)' : 'var(--xm-muted)',
         fontFamily: "'JetBrains Mono', monospace",
       }}>
         {label}
@@ -880,8 +880,8 @@ function ManagerLineupModal({ username, userId, isMe = false, myUserId = null, p
         backdropFilter: 'blur(2px)',
       }}>
       <div style={{
-        background: 'var(--color-xama-surface)',
-        border: '1px solid var(--color-xama-border)',
+        background: 'var(--xm-surface-1)',
+        border: '1px solid var(--xm-border)',
         borderRadius: 14,
         width: '100%', maxWidth: 540,
         maxHeight: '85vh',
@@ -893,15 +893,15 @@ function ManagerLineupModal({ username, userId, isMe = false, myUserId = null, p
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '14px 18px',
-          borderBottom: '1px solid var(--color-xama-border)',
+          borderBottom: '1px solid var(--xm-border)',
           background: 'var(--surface-2)',
         }}>
           <div>
-            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--color-xama-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
+            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--xm-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
               {isMe ? 'Meu lineup' : 'Time de'}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-xama-text)', fontFamily: "'JetBrains Mono', monospace" }}>
+              <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--xm-text)', fontFamily: "'JetBrains Mono', monospace" }}>
                 {username}
               </span>
               {isMe && (
@@ -921,7 +921,7 @@ function ManagerLineupModal({ username, userId, isMe = false, myUserId = null, p
                 style={{
                   background: 'rgba(250,204,21,0.1)', border: '1px solid rgba(250,204,21,0.3)',
                   borderRadius: 8, padding: '0 12px', height: 32, fontSize: 12, fontWeight: 600,
-                  color: 'var(--color-xama-gold)', cursor: 'pointer', whiteSpace: 'nowrap',
+                  color: 'var(--xm-gold)', cursor: 'pointer', whiteSpace: 'nowrap',
                 }}>
                 vs mim
               </button>
@@ -931,7 +931,7 @@ function ManagerLineupModal({ username, userId, isMe = false, myUserId = null, p
               style={{
                 background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)',
                 borderRadius: 8, width: 32, height: 32,
-                color: 'var(--color-xama-muted)', fontSize: 16, cursor: 'pointer',
+                color: 'var(--xm-muted)', fontSize: 16, cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
               ×
@@ -942,12 +942,12 @@ function ManagerLineupModal({ username, userId, isMe = false, myUserId = null, p
         {/* Conteúdo */}
         <div style={{ overflowY: 'auto', padding: '12px 16px', flex: 1 }}>
           {loading && (
-            <p style={{ textAlign: 'center', padding: '48px 0', color: 'var(--color-xama-muted)', fontSize: 13 }}>
+            <p style={{ textAlign: 'center', padding: '48px 0', color: 'var(--xm-muted)', fontSize: 13 }}>
               Carregando…
             </p>
           )}
           {!loading && totalLineups === 0 && (
-            <p style={{ textAlign: 'center', padding: '48px 0', color: 'var(--color-xama-muted)', fontSize: 13 }}>
+            <p style={{ textAlign: 'center', padding: '48px 0', color: 'var(--xm-muted)', fontSize: 13 }}>
               Nenhum lineup encontrado.
             </p>
           )}
@@ -956,7 +956,7 @@ function ManagerLineupModal({ username, userId, isMe = false, myUserId = null, p
               {multiStage && (
                 <div style={{
                   fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
-                  color: 'var(--color-xama-orange)', fontFamily: "'JetBrains Mono', monospace",
+                  color: 'var(--xm-orange)', fontFamily: "'JetBrains Mono', monospace",
                   padding: '6px 2px 8px', marginTop: 4,
                   borderBottom: '1px solid rgba(249,115,22,0.15)',
                   marginBottom: 10,
@@ -974,9 +974,9 @@ function ManagerLineupModal({ username, userId, isMe = false, myUserId = null, p
         {/* Footer */}
         <div style={{
           padding: '10px 18px',
-          borderTop: '1px solid var(--color-xama-border)',
+          borderTop: '1px solid var(--xm-border)',
           background: 'rgba(0,0,0,0.2)',
-          fontSize: 10, color: 'var(--color-xama-muted)', textAlign: 'center',
+          fontSize: 10, color: 'var(--xm-muted)', textAlign: 'center',
           fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.06em', textTransform: 'uppercase',
         }}>
           Clique fora ou pressione Esc para fechar
@@ -1001,21 +1001,21 @@ function ModalLineupCard({ lineup, dayMap, multiStage }) {
 
   return (
     <div style={{
-      background: 'var(--surface-1)', border: '1px solid var(--color-xama-border)',
+      background: 'var(--surface-1)', border: '1px solid var(--xm-border)',
       borderRadius: 10, overflow: 'hidden', marginBottom: 12,
     }}>
       {/* Cabeçalho do card */}
       <div style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         padding: '9px 14px',
-        background: 'var(--surface-2)', borderBottom: '1px solid var(--color-xama-border)',
+        background: 'var(--surface-2)', borderBottom: '1px solid var(--xm-border)',
       }}>
-        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--color-xama-muted)' }}>
+        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--xm-muted)' }}>
           {dayLabel}
         </span>
-        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 20, fontWeight: 700, color: isPending ? 'var(--color-xama-muted)' : 'var(--color-xama-orange)' }}>
+        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 20, fontWeight: 700, color: isPending ? 'var(--xm-muted)' : 'var(--xm-orange)' }}>
           {isPending ? '—' : Number(lineup.total_points).toFixed(2)}
-          {!isPending && <span style={{ fontSize: 11, color: 'var(--color-xama-muted)', marginLeft: 4 }}>pts</span>}
+          {!isPending && <span style={{ fontSize: 11, color: 'var(--xm-muted)', marginLeft: 4 }}>pts</span>}
         </span>
       </div>
 
@@ -1027,7 +1027,7 @@ function ModalLineupCard({ lineup, dayMap, multiStage }) {
       {/* Reserva */}
       {reserva && (
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', background: 'rgba(0,0,0,0.15)' }}>
-          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--color-xama-muted)', padding: '6px 14px 0' }}>
+          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--xm-muted)', padding: '6px 14px 0' }}>
             Reserva
           </div>
           <div style={{ padding: '4px 0 6px' }}>
@@ -1043,17 +1043,17 @@ function HighlightCell({ icon, label, title, subtitle, subtitleColor, detail, se
   return (
     <div style={{
       padding: '12px 16px',
-      borderLeft: separator ? '1px solid var(--color-xama-border)' : 'none',
+      borderLeft: separator ? '1px solid var(--xm-border)' : 'none',
     }}>
       <div style={{
         fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
-        color: 'var(--color-xama-muted)', marginBottom: 6,
+        color: 'var(--xm-muted)', marginBottom: 6,
         fontFamily: "'JetBrains Mono', monospace",
       }}>
         {icon} {label}
       </div>
       <div style={{
-        fontSize: 15, fontWeight: 700, color: 'var(--color-xama-text)',
+        fontSize: 15, fontWeight: 700, color: 'var(--xm-text)',
         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
       }}>
         {title}
@@ -1066,7 +1066,7 @@ function HighlightCell({ icon, label, title, subtitle, subtitleColor, detail, se
       </div>
       {detail && (
         <div style={{
-          fontSize: 10, color: 'var(--color-xama-muted)', marginTop: 3,
+          fontSize: 10, color: 'var(--xm-muted)', marginTop: 3,
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>
           {detail}
@@ -1080,7 +1080,7 @@ function ModalPlayerRow({ lp, isReserve = false }) {
   const name    = lp.person_name || '—'
   const tag     = formatTeamTag(lp.person_name, lp.team_name)
   const pts     = lp.points_earned != null ? Number(lp.points_earned) : null
-  const captainColor = 'var(--color-xama-gold)'
+  const captainColor = 'var(--xm-gold)'
 
   return (
     <div style={{
@@ -1096,7 +1096,7 @@ function ModalPlayerRow({ lp, isReserve = false }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <span style={{
             fontSize: 12, fontWeight: 600,
-            color: lp.is_captain ? captainColor : isReserve ? 'var(--color-xama-muted)' : 'var(--color-xama-text)',
+            color: lp.is_captain ? captainColor : isReserve ? 'var(--xm-muted)' : 'var(--xm-text)',
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 160,
           }}>
             {fmtName(name)}
@@ -1112,7 +1112,7 @@ function ModalPlayerRow({ lp, isReserve = false }) {
           )}
           {isReserve && (
             <span style={{
-              fontSize: 8, fontWeight: 700, color: 'var(--color-xama-muted)',
+              fontSize: 8, fontWeight: 700, color: 'var(--xm-muted)',
               background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)',
               borderRadius: 3, padding: '1px 4px', letterSpacing: '0.05em', flexShrink: 0,
             }}>
@@ -1121,7 +1121,7 @@ function ModalPlayerRow({ lp, isReserve = false }) {
           )}
         </div>
         {tag && (
-          <div style={{ fontSize: 10, color: 'var(--color-xama-muted)', marginTop: 1 }}>{tag}</div>
+          <div style={{ fontSize: 10, color: 'var(--xm-muted)', marginTop: 1 }}>{tag}</div>
         )}
       </div>
 
@@ -1129,7 +1129,7 @@ function ModalPlayerRow({ lp, isReserve = false }) {
         {pts != null ? (
           <span style={{
             fontSize: 13, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace",
-            color: lp.is_captain ? captainColor : isReserve ? 'var(--color-xama-muted)' : 'var(--color-xama-text)',
+            color: lp.is_captain ? captainColor : isReserve ? 'var(--xm-muted)' : 'var(--xm-text)',
           }}>
             {pts.toFixed(2)}
           </span>

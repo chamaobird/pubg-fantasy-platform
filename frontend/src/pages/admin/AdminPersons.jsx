@@ -153,18 +153,18 @@ export default function AdminPersons({ token }) {
             <option key={r} value={r}>{r}</option>
           ))}
         </select>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--color-xama-muted)', whiteSpace: 'nowrap', cursor: 'pointer' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--xm-muted)', whiteSpace: 'nowrap', cursor: 'pointer' }}>
           <input type="checkbox" checked={includeInactive} onChange={e => setIncludeInactive(e.target.checked)} />
           Incluir inativos
         </label>
       </div>
 
       {/* Tabela */}
-      <div style={{ background: 'rgba(18,21,28,0.9)', border: '1px solid var(--color-xama-border)', borderRadius: 12, overflow: 'hidden' }}>
+      <div style={{ background: 'rgba(18,21,28,0.9)', border: '1px solid var(--xm-border)', borderRadius: 12, overflow: 'hidden' }}>
         {loading ? (
-          <div style={{ padding: 40, textAlign: 'center', color: 'var(--color-xama-muted)' }}>Carregando...</div>
+          <div style={{ padding: 40, textAlign: 'center', color: 'var(--xm-muted)' }}>Carregando...</div>
         ) : persons.length === 0 ? (
-          <div style={{ padding: 40, textAlign: 'center', color: 'var(--color-xama-muted)' }}>Nenhum jogador encontrado.</div>
+          <div style={{ padding: 40, textAlign: 'center', color: 'var(--xm-muted)' }}>Nenhum jogador encontrado.</div>
         ) : (
           <table style={tableStyle}>
             <thead>
@@ -188,12 +188,12 @@ export default function AdminPersons({ token }) {
                 accounts:     p => p.accounts?.length ?? 0,
               }).map(p => (
                 <tr key={p.id} style={{ opacity: p.is_active ? 1 : 0.5 }}>
-                  <td style={{ ...tdStyle, color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace', fontSize: 12 }}>{p.id}</td>
+                  <td style={{ ...tdStyle, color: 'var(--xm-muted)', fontFamily: 'JetBrains Mono, monospace', fontSize: 12 }}>{p.id}</td>
                   <td style={{ ...tdStyle, fontWeight: 600 }}>{p.display_name}</td>
                   <td style={{ ...tdStyle, fontFamily: 'JetBrains Mono, monospace', fontSize: 12 }}>
                     {p.team_tag
-                      ? <span style={{ color: 'var(--color-xama-orange)', fontWeight: 700 }}>{p.team_tag}</span>
-                      : <span style={{ color: 'var(--color-xama-muted)', opacity: 0.4 }}>—</span>
+                      ? <span style={{ color: 'var(--xm-orange)', fontWeight: 700 }}>{p.team_tag}</span>
+                      : <span style={{ color: 'var(--xm-muted)', opacity: 0.4 }}>—</span>
                     }
                   </td>
                   <td style={{ ...tdStyle, fontSize: 12 }}>
@@ -203,13 +203,13 @@ export default function AdminPersons({ token }) {
                           background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)',
                           color: '#a5b4fc', fontFamily: 'JetBrains Mono, monospace', fontSize: 11, fontWeight: 600,
                         }}>{p.team_region}</span>
-                      : <span style={{ color: 'var(--color-xama-muted)', opacity: 0.4 }}>—</span>
+                      : <span style={{ color: 'var(--xm-muted)', opacity: 0.4 }}>—</span>
                     }
                   </td>
                   <td style={tdStyle}>
                     <StatusBadge status={p.is_active ? 'open' : 'locked'} />
                   </td>
-                  <td style={{ ...tdStyle, color: 'var(--color-xama-muted)' }}>
+                  <td style={{ ...tdStyle, color: 'var(--xm-muted)' }}>
                     {p.accounts?.length ?? 0} conta{(p.accounts?.length ?? 0) !== 1 ? 's' : ''}
                   </td>
                   <td style={{ ...tdStyle, textAlign: 'right' }}>
@@ -240,7 +240,7 @@ export default function AdminPersons({ token }) {
           </Field>
           {modal.mode === 'edit' && (
             <Field label="Status">
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: 'var(--color-xama-text)' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: 'var(--xm-text)' }}>
                 <input type="checkbox" checked={!!form.is_active} onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))} />
                 Ativo
               </label>
@@ -251,8 +251,8 @@ export default function AdminPersons({ token }) {
           {/* Accounts — só no edit */}
           {modal.mode === 'edit' && (
             <>
-            <div style={{ marginTop: 28, paddingTop: 20, borderTop: '1px solid var(--color-xama-border)' }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-xama-text)', marginBottom: 14 }}>Contas PUBG</div>
+            <div style={{ marginTop: 28, paddingTop: 20, borderTop: '1px solid var(--xm-border)' }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--xm-text)', marginBottom: 14 }}>Contas PUBG</div>
 
               {/* Accounts existentes */}
               {modal.data?.accounts?.length > 0 ? (
@@ -265,22 +265,22 @@ export default function AdminPersons({ token }) {
                       border: '1px solid rgba(255,255,255,0.07)', fontSize: 12,
                     }}>
                       <div>
-                        <span style={{ fontWeight: 600, color: 'var(--color-xama-text)' }}>{acc.alias || acc.account_id}</span>
-                        <span style={{ color: 'var(--color-xama-muted)', marginLeft: 8 }}>{acc.shard}</span>
+                        <span style={{ fontWeight: 600, color: 'var(--xm-text)' }}>{acc.alias || acc.account_id}</span>
+                        <span style={{ color: 'var(--xm-muted)', marginLeft: 8 }}>{acc.shard}</span>
                       </div>
                       {acc.active_until
                         ? <span style={{ fontSize: 10, color: '#f87171' }}>INATIVA</span>
-                        : <span style={{ fontSize: 10, color: 'var(--color-xama-green)' }}>ATIVA</span>
+                        : <span style={{ fontSize: 10, color: 'var(--xm-green)' }}>ATIVA</span>
                       }
                     </div>
                   ))}
                 </div>
               ) : (
-                <div style={{ color: 'var(--color-xama-muted)', fontSize: 13, marginBottom: 16 }}>Nenhuma conta cadastrada.</div>
+                <div style={{ color: 'var(--xm-muted)', fontSize: 13, marginBottom: 16 }}>Nenhuma conta cadastrada.</div>
               )}
 
               {/* Adicionar conta */}
-              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-xama-muted)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Adicionar Conta</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--xm-muted)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Adicionar Conta</div>
               <Msg msg={accMsg} />
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 <Field label="Account ID">
@@ -301,8 +301,8 @@ export default function AdminPersons({ token }) {
             </div>
 
             {/* Aliases — nomes alternativos para busca */}
-            <div style={{ marginTop: 28, paddingTop: 20, borderTop: '1px solid var(--color-xama-border)' }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-xama-text)', marginBottom: 14 }}>Aliases (busca)</div>
+            <div style={{ marginTop: 28, paddingTop: 20, borderTop: '1px solid var(--xm-border)' }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--xm-text)', marginBottom: 14 }}>Aliases (busca)</div>
 
               {modal.data?.aliases?.length > 0 ? (
                 <div style={{ marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -313,7 +313,7 @@ export default function AdminPersons({ token }) {
                       background: 'rgba(255,255,255,0.04)',
                       border: '1px solid rgba(255,255,255,0.07)', fontSize: 12,
                     }}>
-                      <span style={{ fontWeight: 600, color: 'var(--color-xama-text)' }}>{a.alias}</span>
+                      <span style={{ fontWeight: 600, color: 'var(--xm-text)' }}>{a.alias}</span>
                       <button
                         onClick={() => handleRemoveAlias(a.id)}
                         style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#f87171', fontSize: 14, padding: '0 4px' }}
@@ -322,10 +322,10 @@ export default function AdminPersons({ token }) {
                   ))}
                 </div>
               ) : (
-                <div style={{ color: 'var(--color-xama-muted)', fontSize: 13, marginBottom: 16 }}>Nenhum alias cadastrado.</div>
+                <div style={{ color: 'var(--xm-muted)', fontSize: 13, marginBottom: 16 }}>Nenhum alias cadastrado.</div>
               )}
 
-              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-xama-muted)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Adicionar Alias</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--xm-muted)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Adicionar Alias</div>
               <Msg msg={aliasMsg} />
               <Field label="Alias">
                 <input

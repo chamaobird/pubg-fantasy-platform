@@ -152,17 +152,17 @@ function CoverageAuditPanel({ token, championships }) {
     cursor: step >= n ? 'pointer' : 'default',
     background: step === n ? 'rgba(240,192,64,0.12)' : step > n ? 'rgba(74,222,128,0.08)' : 'rgba(255,255,255,0.03)',
     border: step === n ? '1px solid rgba(240,192,64,0.4)' : step > n ? '1px solid rgba(74,222,128,0.3)' : '1px solid rgba(255,255,255,0.07)',
-    color: step === n ? '#f0c040' : step > n ? '#4ade80' : 'var(--color-xama-muted)',
+    color: step === n ? '#f0c040' : step > n ? '#4ade80' : 'var(--xm-muted)',
   })
 
   return (
     <div style={{ marginTop: 32 }}>
       <SectionHeader title="Recuperação de Dados — Aliases & Contas" />
       <div style={{
-        background: 'rgba(18,21,28,0.9)', border: '1px solid var(--color-xama-border)',
+        background: 'rgba(18,21,28,0.9)', border: '1px solid var(--xm-border)',
         borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', gap: 16,
       }}>
-        <p style={{ fontSize: 12, color: 'var(--color-xama-muted)', margin: 0 }}>
+        <p style={{ fontSize: 12, color: 'var(--xm-muted)', margin: 0 }}>
           Detecta jogadores sem cobertura completa (conta não cadastrada, rename de IGN, substituição), sugere mapeamentos automaticamente e reprocessa as partidas de forma segura.
         </p>
 
@@ -204,7 +204,7 @@ function CoverageAuditPanel({ token, championships }) {
                     { label: 'Cobertura 0%', value: audit.zero_coverage, color: audit.zero_coverage > 0 ? '#ef4444' : '#4ade80' },
                   ].map(({ label, value, color }) => (
                     <div key={label} style={{ padding: '8px 14px', borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                      <div style={{ fontSize: 10, color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.1em' }}>{label.toUpperCase()}</div>
+                      <div style={{ fontSize: 10, color: 'var(--xm-muted)', fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.1em' }}>{label.toUpperCase()}</div>
                       <div style={{ fontSize: 22, fontWeight: 700, color, fontFamily: 'Rajdhani, sans-serif' }}>{value}</div>
                     </div>
                   ))}
@@ -216,7 +216,7 @@ function CoverageAuditPanel({ token, championships }) {
                     <>
                       {Object.entries(byStage).map(([sid, players]) => (
                         <div key={sid} style={{ border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, overflow: 'hidden' }}>
-                          <div style={{ padding: '8px 14px', background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.06)', fontSize: 11, fontWeight: 700, fontFamily: 'JetBrains Mono, monospace', color: 'var(--color-xama-muted)' }}>
+                          <div style={{ padding: '8px 14px', background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.06)', fontSize: 11, fontWeight: 700, fontFamily: 'JetBrains Mono, monospace', color: 'var(--xm-muted)' }}>
                             STAGE #{sid}
                           </div>
                           <table style={{ ...tableStyle, margin: 0 }}>
@@ -229,10 +229,10 @@ function CoverageAuditPanel({ token, championships }) {
                               {players.map(p => (
                                 <tr key={`${p.stage_id}-${p.person_id}`}>
                                   <td style={{ ...tdStyle, fontWeight: 600 }}>{p.display_name}</td>
-                                  <td style={{ ...tdStyle, fontSize: 12, color: 'var(--color-xama-muted)' }}>{p.team_name}</td>
+                                  <td style={{ ...tdStyle, fontSize: 12, color: 'var(--xm-muted)' }}>{p.team_name}</td>
                                   <td style={{ ...tdStyle, fontFamily: 'JetBrains Mono, monospace', fontSize: 12 }}>{p.matches_appeared}/{p.total_matches}</td>
                                   <td style={tdStyle}>{coverageBadge(p.coverage_pct)}</td>
-                                  <td style={{ ...tdStyle, fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: p.registered_accounts.length ? 'var(--color-xama-muted)' : '#ef4444' }}>
+                                  <td style={{ ...tdStyle, fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: p.registered_accounts.length ? 'var(--xm-muted)' : '#ef4444' }}>
                                     {p.registered_accounts.length ? p.registered_accounts.join(' | ') : '⚠ nenhuma'}
                                   </td>
                                 </tr>
@@ -254,7 +254,7 @@ function CoverageAuditPanel({ token, championships }) {
         {/* ── STEP 2: Full scan + mapping ── */}
         {selectedId && step === 2 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <p style={{ margin: 0, fontSize: 12, color: 'var(--color-xama-muted)' }}>
+            <p style={{ margin: 0, fontSize: 12, color: 'var(--xm-muted)' }}>
               Busca 2 partidas por stage na PUBG API. Aliases não resolvidos recebem sugestão automática de person pelo nome/time. Confirme ou ajuste cada mapeamento antes de aplicar.
             </p>
             <ActBtn onClick={runFullScan} disabled={scanning} style={{ alignSelf: 'flex-start' }}>
@@ -271,7 +271,7 @@ function CoverageAuditPanel({ token, championships }) {
                     { label: 'Para revisar', value: scanData.needs_review + scanData.no_match_found, color: scanData.needs_review + scanData.no_match_found > 0 ? '#f59e0b' : '#4ade80' },
                   ].map(({ label, value, color }) => (
                     <div key={label} style={{ padding: '8px 14px', borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                      <div style={{ fontSize: 10, color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.1em' }}>{label.toUpperCase()}</div>
+                      <div style={{ fontSize: 10, color: 'var(--xm-muted)', fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.1em' }}>{label.toUpperCase()}</div>
                       <div style={{ fontSize: 22, fontWeight: 700, color, fontFamily: 'Rajdhani, sans-serif' }}>{value}</div>
                     </div>
                   ))}
@@ -298,14 +298,14 @@ function CoverageAuditPanel({ token, championships }) {
                               <tr key={u.account_id}>
                                 <td style={{ ...tdStyle, fontWeight: 700 }}>
                                   {u.alias}
-                                  <div style={{ fontSize: 9, color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace', marginTop: 2 }}>{u.account_id.slice(0, 20)}...</div>
+                                  <div style={{ fontSize: 9, color: 'var(--xm-muted)', fontFamily: 'JetBrains Mono, monospace', marginTop: 2 }}>{u.account_id.slice(0, 20)}...</div>
                                 </td>
-                                <td style={{ ...tdStyle, fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'var(--color-xama-muted)' }}>#{u.stage_id}</td>
+                                <td style={{ ...tdStyle, fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'var(--xm-muted)' }}>#{u.stage_id}</td>
                                 <td style={tdStyle}>{confBadge(u.confidence)}</td>
                                 <td style={{ ...tdStyle, fontSize: 12 }}>
                                   {u.suggested_display_name
-                                    ? <><span style={{ fontWeight: 600 }}>{u.suggested_display_name}</span><br /><span style={{ fontSize: 10, color: 'var(--color-xama-muted)' }}>{u.suggested_team}</span></>
-                                    : <span style={{ color: 'var(--color-xama-muted)', fontSize: 11 }}>—</span>
+                                    ? <><span style={{ fontWeight: 600 }}>{u.suggested_display_name}</span><br /><span style={{ fontSize: 10, color: 'var(--xm-muted)' }}>{u.suggested_team}</span></>
+                                    : <span style={{ color: 'var(--xm-muted)', fontSize: 11 }}>—</span>
                                   }
                                 </td>
                                 <td style={tdStyle}>
@@ -334,7 +334,7 @@ function CoverageAuditPanel({ token, championships }) {
                                       checked={!!m.confirmed}
                                       onChange={e => updateMapping(u.account_id, 'confirmed', e.target.checked)}
                                     />
-                                    <span style={{ fontSize: 11, color: m.confirmed ? '#4ade80' : 'var(--color-xama-muted)' }}>
+                                    <span style={{ fontSize: 11, color: m.confirmed ? '#4ade80' : 'var(--xm-muted)' }}>
                                       {m.confirmed ? 'OK' : 'Verificar'}
                                     </span>
                                   </label>
@@ -346,7 +346,7 @@ function CoverageAuditPanel({ token, championships }) {
                       </table>
 
                       <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: 12, color: 'var(--color-xama-muted)' }}>
+                        <span style={{ fontSize: 12, color: 'var(--xm-muted)' }}>
                           {Object.values(mappings).filter(m => m.confirmed && m.person_id).length} mapeamento(s) confirmado(s)
                         </span>
                         <ActBtn
@@ -370,7 +370,7 @@ function CoverageAuditPanel({ token, championships }) {
         {/* ── STEP 3: Reprocess ── */}
         {selectedId && step === 3 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <p style={{ margin: 0, fontSize: 12, color: 'var(--color-xama-muted)' }}>
+            <p style={{ margin: 0, fontSize: 12, color: 'var(--xm-muted)' }}>
               Reprocessa todas as partidas do campeonato — re-busca dados da API e recalcula match_stat e pontuações de usuários usando os novos mapeamentos de contas. Operação idempotente e segura.
             </p>
             <ActBtn
@@ -390,8 +390,8 @@ function CoverageAuditPanel({ token, championships }) {
                     { label: 'Erros', value: reprocessResult.matches_error, color: reprocessResult.matches_error > 0 ? '#ef4444' : '#4ade80' },
                   ].map(({ label, value, color }) => (
                     <div key={label} style={{ padding: '8px 14px', borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                      <div style={{ fontSize: 10, color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.1em' }}>{label.toUpperCase()}</div>
-                      <div style={{ fontSize: 22, fontWeight: 700, color: color || 'var(--color-xama-text)', fontFamily: 'Rajdhani, sans-serif' }}>{value}</div>
+                      <div style={{ fontSize: 10, color: 'var(--xm-muted)', fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.1em' }}>{label.toUpperCase()}</div>
+                      <div style={{ fontSize: 22, fontWeight: 700, color: color || 'var(--xm-text)', fontFamily: 'Rajdhani, sans-serif' }}>{value}</div>
                     </div>
                   ))}
                 </div>
@@ -406,7 +406,7 @@ function CoverageAuditPanel({ token, championships }) {
                           {reprocessResult.results.filter(r => r.error).map((r, i) => (
                             <tr key={i}>
                               <td style={{ ...tdStyle, fontFamily: 'JetBrains Mono, monospace', fontSize: 11 }}>#{r.stage_id}</td>
-                              <td style={{ ...tdStyle, fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: 'var(--color-xama-muted)' }}>{r.pubg_match_id?.slice(0, 12)}...</td>
+                              <td style={{ ...tdStyle, fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: 'var(--xm-muted)' }}>{r.pubg_match_id?.slice(0, 12)}...</td>
                               <td style={{ ...tdStyle, color: '#ef4444', fontSize: 11 }}>{r.error}</td>
                             </tr>
                           ))}
@@ -509,11 +509,11 @@ export default function AdminChampionships({ token }) {
 
   const renderRow = (c) => (
     <tr key={c.id} style={{ opacity: c.is_active ? 1 : 0.4 }}>
-      <td style={{ ...tdStyle, fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: 'var(--color-xama-muted)' }}>{c.id}</td>
+      <td style={{ ...tdStyle, fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: 'var(--xm-muted)' }}>{c.id}</td>
       <td style={{ ...tdStyle, fontWeight: 600 }}>{c.name}</td>
       <td style={{ ...tdStyle, fontFamily: 'JetBrains Mono, monospace', fontSize: 12 }}>{c.short_name}</td>
-      <td style={{ ...tdStyle, color: 'var(--color-xama-muted)', fontSize: 12 }}>{c.shard}</td>
-      <td style={{ ...tdStyle, color: 'var(--color-xama-muted)' }}>{c.tier_weight}</td>
+      <td style={{ ...tdStyle, color: 'var(--xm-muted)', fontSize: 12 }}>{c.shard}</td>
+      <td style={{ ...tdStyle, color: 'var(--xm-muted)' }}>{c.tier_weight}</td>
       <td style={tdStyle}>
         {c.has_faceoff && !c.finished_at && (
           <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 4, fontFamily: 'JetBrains Mono, monospace', background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)', color: '#f59e0b' }}>
@@ -521,12 +521,12 @@ export default function AdminChampionships({ token }) {
           </span>
         )}
         {c.has_faceoff && c.finished_at && (
-          <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 4, fontFamily: 'JetBrains Mono, monospace', background: 'rgba(107,114,128,0.1)', border: '1px solid rgba(107,114,128,0.3)', color: 'var(--color-xama-muted)' }}>
+          <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 4, fontFamily: 'JetBrains Mono, monospace', background: 'rgba(107,114,128,0.1)', border: '1px solid rgba(107,114,128,0.3)', color: 'var(--xm-muted)' }}>
             VOTAÇÃO ENCERRADA
           </span>
         )}
         {!c.has_faceoff && (
-          <span style={{ fontSize: 10, color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace' }}>—</span>
+          <span style={{ fontSize: 10, color: 'var(--xm-muted)', fontFamily: 'JetBrains Mono, monospace' }}>—</span>
         )}
       </td>
       <td style={tdStyle}>
@@ -535,7 +535,7 @@ export default function AdminChampionships({ token }) {
           fontFamily: 'JetBrains Mono, monospace',
           background: c.is_active ? 'rgba(74,222,128,0.1)' : 'rgba(107,114,128,0.1)',
           border: c.is_active ? '1px solid rgba(74,222,128,0.3)' : '1px solid rgba(107,114,128,0.3)',
-          color: c.is_active ? 'var(--color-xama-green)' : 'var(--color-xama-muted)',
+          color: c.is_active ? 'var(--xm-green)' : 'var(--xm-muted)',
         }}>
           {c.is_active ? 'ATIVA' : 'INATIVA'}
         </span>
@@ -568,9 +568,9 @@ export default function AdminChampionships({ token }) {
         action={<ActBtn onClick={openCreate}>+ Nova Championship</ActBtn>}
       />
 
-      <div style={{ background: 'rgba(18,21,28,0.9)', border: '1px solid var(--color-xama-border)', borderRadius: 12, overflow: 'hidden' }}>
+      <div style={{ background: 'rgba(18,21,28,0.9)', border: '1px solid var(--xm-border)', borderRadius: 12, overflow: 'hidden' }}>
         {loading ? (
-          <div style={{ padding: 40, textAlign: 'center', color: 'var(--color-xama-muted)' }}>Carregando...</div>
+          <div style={{ padding: 40, textAlign: 'center', color: 'var(--xm-muted)' }}>Carregando...</div>
         ) : (
           <table style={tableStyle}>
             <thead>
@@ -594,11 +594,11 @@ export default function AdminChampionships({ token }) {
                       onClick={() => setShowOld(v => !v)}
                       style={{
                         width: '100%', padding: '10px 16px', background: 'rgba(255,255,255,0.02)',
-                        border: 'none', borderTop: '1px solid var(--color-xama-border)',
+                        border: 'none', borderTop: '1px solid var(--xm-border)',
                         cursor: 'pointer', textAlign: 'center',
                         fontSize: 11, fontWeight: 700, letterSpacing: '0.14em',
                         fontFamily: 'JetBrains Mono, monospace',
-                        color: 'var(--color-xama-muted)',
+                        color: 'var(--xm-muted)',
                       }}
                     >
                       {showOld ? '▲' : '▼'} &nbsp;ENCERRADOS ({oldItems.length})
@@ -638,14 +638,14 @@ export default function AdminChampionships({ token }) {
             </select>
           </Field>
           <Field label="Team Faceoff">
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: 'var(--color-xama-text)' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: 'var(--xm-text)' }}>
               <input type="checkbox" checked={!!form.has_faceoff} onChange={e => setForm(prev => ({ ...prev, has_faceoff: e.target.checked }))} />
               Habilitar Team Faceoff neste campeonato
             </label>
           </Field>
           {modal.mode === 'edit' && (
             <Field label="Status">
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: 'var(--color-xama-text)' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: 'var(--xm-text)' }}>
                 <input type="checkbox" checked={!!form.is_active} onChange={e => setForm(prev => ({ ...prev, is_active: e.target.checked }))} />
                 Ativa
               </label>

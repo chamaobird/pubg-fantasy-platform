@@ -171,11 +171,11 @@ export default function AdminTeams({ token }) {
         </select>
       </div>
 
-      <div style={{ background: 'rgba(18,21,28,0.9)', border: '1px solid var(--color-xama-border)', borderRadius: 12, overflow: 'hidden' }}>
+      <div style={{ background: 'rgba(18,21,28,0.9)', border: '1px solid var(--xm-border)', borderRadius: 12, overflow: 'hidden' }}>
         {loading ? (
-          <div style={{ padding: 40, textAlign: 'center', color: 'var(--color-xama-muted)' }}>Carregando...</div>
+          <div style={{ padding: 40, textAlign: 'center', color: 'var(--xm-muted)' }}>Carregando...</div>
         ) : teams.length === 0 ? (
-          <div style={{ padding: 40, textAlign: 'center', color: 'var(--color-xama-muted)' }}>Nenhum time encontrado.</div>
+          <div style={{ padding: 40, textAlign: 'center', color: 'var(--xm-muted)' }}>Nenhum time encontrado.</div>
         ) : (
           <table style={tableStyle}>
             <thead>
@@ -203,15 +203,15 @@ export default function AdminTeams({ token }) {
                     <TeamLogo tag={t.tag} region={t.region} size={26} />
                   </td>
                   <td style={{ ...tdStyle, fontWeight: 600 }}>{t.name}</td>
-                  <td style={{ ...tdStyle, color: 'var(--color-xama-muted)', fontSize: 12 }}>{t.region}</td>
-                  <td style={{ ...tdStyle, color: 'var(--color-xama-muted)' }}>{t.active_member_count} jogador{t.active_member_count !== 1 ? 'es' : ''}</td>
+                  <td style={{ ...tdStyle, color: 'var(--xm-muted)', fontSize: 12 }}>{t.region}</td>
+                  <td style={{ ...tdStyle, color: 'var(--xm-muted)' }}>{t.active_member_count} jogador{t.active_member_count !== 1 ? 'es' : ''}</td>
                   <td style={tdStyle}>
                     <span style={{
                       fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 4,
                       fontFamily: 'JetBrains Mono, monospace',
                       background: t.is_active ? 'rgba(74,222,128,0.1)' : 'rgba(107,114,128,0.1)',
                       border: t.is_active ? '1px solid rgba(74,222,128,0.3)' : '1px solid rgba(107,114,128,0.3)',
-                      color: t.is_active ? 'var(--color-xama-green)' : 'var(--color-xama-muted)',
+                      color: t.is_active ? 'var(--xm-green)' : 'var(--xm-muted)',
                     }}>
                       {t.is_active ? 'ATIVO' : 'INATIVO'}
                     </span>
@@ -256,7 +256,7 @@ export default function AdminTeams({ token }) {
           </div>
           {modal.mode === 'edit' && (
             <Field label="Status">
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: 'var(--color-xama-text)' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: 'var(--xm-text)' }}>
                 <input type="checkbox" checked={!!form.is_active} onChange={e => setForm(p => ({ ...p, is_active: e.target.checked }))} />
                 Ativo
               </label>
@@ -275,12 +275,12 @@ export default function AdminTeams({ token }) {
         >
           {/* Membros atuais */}
           <div style={{ marginBottom: 22 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-xama-muted)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--xm-muted)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
               Membros ativos ({detailModal.active_members?.length ?? 0})
             </div>
             <Msg msg={memberMsg} />
             {detailModal.active_members?.length === 0 ? (
-              <div style={{ color: 'var(--color-xama-muted)', fontSize: 13 }}>Nenhum membro ativo.</div>
+              <div style={{ color: 'var(--xm-muted)', fontSize: 13 }}>Nenhum membro ativo.</div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {detailModal.active_members.map(m => (
@@ -290,8 +290,8 @@ export default function AdminTeams({ token }) {
                     background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)',
                   }}>
                     <div>
-                      <span style={{ fontWeight: 600, color: 'var(--color-xama-text)' }}>{m.person_name}</span>
-                      <span style={{ fontSize: 11, color: 'var(--color-xama-muted)', marginLeft: 8 }}>
+                      <span style={{ fontWeight: 600, color: 'var(--xm-text)' }}>{m.person_name}</span>
+                      <span style={{ fontSize: 11, color: 'var(--xm-muted)', marginLeft: 8 }}>
                         desde {new Date(m.joined_at).toLocaleDateString('pt-BR')}
                       </span>
                     </div>
@@ -309,8 +309,8 @@ export default function AdminTeams({ token }) {
           </div>
 
           {/* Adicionar membro */}
-          <div style={{ paddingTop: 16, borderTop: '1px solid var(--color-xama-border)', marginBottom: 24 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-xama-muted)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          <div style={{ paddingTop: 16, borderTop: '1px solid var(--xm-border)', marginBottom: 24 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--xm-muted)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
               Adicionar Jogador
             </div>
             <input
@@ -329,9 +329,9 @@ export default function AdminTeams({ token }) {
                       padding: '8px 12px', borderRadius: 8,
                       background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
                     }}>
-                      <span style={{ fontSize: 13, color: alreadyMember ? 'var(--color-xama-muted)' : 'var(--color-xama-text)' }}>
+                      <span style={{ fontSize: 13, color: alreadyMember ? 'var(--xm-muted)' : 'var(--xm-text)' }}>
                         {p.display_name}
-                        {alreadyMember && <span style={{ marginLeft: 8, fontSize: 11, color: 'var(--color-xama-muted)' }}>já é membro</span>}
+                        {alreadyMember && <span style={{ marginLeft: 8, fontSize: 11, color: 'var(--xm-muted)' }}>já é membro</span>}
                       </span>
                       {!alreadyMember && (
                         <ActBtn small onClick={() => handleAddMember(p)} disabled={memberSaving === p.id}>
@@ -346,8 +346,8 @@ export default function AdminTeams({ token }) {
           </div>
 
           {/* Importar para stage */}
-          <div style={{ paddingTop: 16, borderTop: '1px solid var(--color-xama-border)' }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-xama-muted)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          <div style={{ paddingTop: 16, borderTop: '1px solid var(--xm-border)' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--xm-muted)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
               Importar para Roster de Stage
             </div>
             <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', marginBottom: 12 }}>
@@ -378,19 +378,19 @@ export default function AdminTeams({ token }) {
                   <div>
                     {importResult.added?.length > 0 && (
                       <div style={{ marginBottom: 8, padding: '10px 14px', borderRadius: 8, background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.25)' }}>
-                        <div style={{ fontWeight: 700, color: 'var(--color-xama-green)', marginBottom: 4 }}>
+                        <div style={{ fontWeight: 700, color: 'var(--xm-green)', marginBottom: 4 }}>
                           {importResult.added.length} adicionado{importResult.added.length !== 1 ? 's' : ''}
                         </div>
-                        {importResult.added.map(p => <div key={p.person_id} style={{ color: 'var(--color-xama-text)' }}>• {p.person_name}</div>)}
+                        {importResult.added.map(p => <div key={p.person_id} style={{ color: 'var(--xm-text)' }}>• {p.person_name}</div>)}
                       </div>
                     )}
                     {importResult.skipped?.length > 0 && (
                       <div style={{ padding: '10px 14px', borderRadius: 8, background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.2)' }}>
-                        <div style={{ fontWeight: 700, color: 'var(--color-xama-orange)', marginBottom: 4 }}>
+                        <div style={{ fontWeight: 700, color: 'var(--xm-orange)', marginBottom: 4 }}>
                           {importResult.skipped.length} pulado{importResult.skipped.length !== 1 ? 's' : ''}
                         </div>
                         {importResult.skipped.map(p => (
-                          <div key={p.person_id} style={{ color: 'var(--color-xama-muted)', fontSize: 12 }}>
+                          <div key={p.person_id} style={{ color: 'var(--xm-muted)', fontSize: 12 }}>
                             • {p.person_name} — {p.reason}
                           </div>
                         ))}

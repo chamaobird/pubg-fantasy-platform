@@ -322,8 +322,8 @@ export default function PlayerHistoryModal({
       }}
     >
       <div style={{
-        background: 'var(--color-xama-surface)',
-        border: '1px solid var(--color-xama-border)',
+        background: 'var(--xm-surface-1)',
+        border: '1px solid var(--xm-border)',
         borderRadius: '14px',
         width: '100%', maxWidth: '740px',
         maxHeight: '90vh', overflow: 'hidden',
@@ -333,7 +333,7 @@ export default function PlayerHistoryModal({
         {/* Header */}
         <div style={{
           padding: '18px 24px 14px',
-          borderBottom: '1px solid var(--color-xama-border)',
+          borderBottom: '1px solid var(--xm-border)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -345,7 +345,7 @@ export default function PlayerHistoryModal({
                 {teamName && (
                   <span style={{
                     fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em',
-                    color: 'var(--color-xama-muted)', fontFamily: "'JetBrains Mono', monospace",
+                    color: 'var(--xm-muted)', fontFamily: "'JetBrains Mono', monospace",
                     background: 'var(--surface-3)', padding: '2px 8px', borderRadius: '4px',
                   }}>
                     {teamName}
@@ -353,12 +353,12 @@ export default function PlayerHistoryModal({
                 )}
                 <span style={{
                   fontSize: '22px', fontWeight: 700,
-                  color: 'var(--color-xama-text)',
+                  color: 'var(--xm-text)',
                 }}>
                   {personName}
                 </span>
               </div>
-              <div style={{ fontSize: '11px', color: 'var(--color-xama-muted)', marginTop: '3px' }}>
+              <div style={{ fontSize: '11px', color: 'var(--xm-muted)', marginTop: '3px' }}>
                 {data.length} partidas · {contextLabel}
               </div>
             </div>
@@ -368,11 +368,11 @@ export default function PlayerHistoryModal({
             onClick={onClose}
             style={{
               background: 'none', border: 'none', cursor: 'pointer',
-              color: 'var(--color-xama-muted)', fontSize: '22px', lineHeight: 1,
+              color: 'var(--xm-muted)', fontSize: '22px', lineHeight: 1,
               padding: '4px 8px', borderRadius: '6px',
             }}
-            onMouseEnter={e => e.currentTarget.style.color = 'var(--color-xama-text)'}
-            onMouseLeave={e => e.currentTarget.style.color = 'var(--color-xama-muted)'}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--xm-text)'}
+            onMouseLeave={e => e.currentTarget.style.color = 'var(--xm-muted)'}
           >
             ✕
           </button>
@@ -383,16 +383,16 @@ export default function PlayerHistoryModal({
           <div style={{
             padding: '10px 24px',
             display: 'flex', gap: '28px',
-            borderBottom: '1px solid var(--color-xama-border)',
+            borderBottom: '1px solid var(--xm-border)',
             background: 'var(--surface-2)',
           }}>
             {[
-              { label: 'Média pts',      value: avgPts,     color: 'var(--color-xama-orange)' },
-              { label: 'Melhor partida', value: bestPts,    color: 'var(--color-xama-gold)' },
-              { label: 'Total kills',    value: totalKills, color: 'var(--color-xama-text)' },
+              { label: 'Média pts',      value: avgPts,     color: 'var(--xm-orange)' },
+              { label: 'Melhor partida', value: bestPts,    color: 'var(--xm-gold)' },
+              { label: 'Total kills',    value: totalKills, color: 'var(--xm-text)' },
             ].map(({ label, value, color }) => (
               <div key={label}>
-                <div style={{ fontSize: '10px', color: 'var(--color-xama-muted)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                <div style={{ fontSize: '10px', color: 'var(--xm-muted)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
                   {label}
                 </div>
                 <div style={{ fontSize: '20px', fontWeight: 700, color, fontFamily: "'JetBrains Mono', monospace" }}>
@@ -407,7 +407,7 @@ export default function PlayerHistoryModal({
         {player && (
           <div style={{
             padding: '8px 24px 10px',
-            borderBottom: '1px solid var(--color-xama-border)',
+            borderBottom: '1px solid var(--xm-border)',
             background: 'var(--surface-2)',
           }}>
             <PriceBreakdown player={player} />
@@ -417,17 +417,17 @@ export default function PlayerHistoryModal({
         {/* Gráfico */}
         <div style={{ padding: '20px 24px', overflowY: 'auto', flex: 1 }}>
           {loading && (
-            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--color-xama-muted)' }}>
+            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--xm-muted)' }}>
               Carregando histórico...
             </div>
           )}
           {error && (
-            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--color-xama-red)' }}>
+            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--xm-red)' }}>
               Erro ao carregar histórico.
             </div>
           )}
           {!loading && !error && data.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--color-xama-muted)' }}>
+            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--xm-muted)' }}>
               Nenhuma partida registrada para este jogador{beforeDate ? ' até esta data' : ''}.
             </div>
           )}
@@ -437,7 +437,7 @@ export default function PlayerHistoryModal({
             <div style={{ marginTop: '24px' }}>
               <div style={{
                 fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em',
-                textTransform: 'uppercase', color: 'var(--color-xama-muted)',
+                textTransform: 'uppercase', color: 'var(--xm-muted)',
                 marginBottom: '10px',
               }}>
                 Evolução de Preço

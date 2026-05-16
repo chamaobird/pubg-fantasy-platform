@@ -21,9 +21,9 @@ const api = (token) => async (method, path, body) => {
 
 const STATUS_LABEL = { draft: 'DRAFT', open: 'ABERTO', closed: 'FECHADO', resolved: 'RESOLVIDO' }
 const STATUS_COLOR = {
-  draft:    'var(--color-xama-muted)',
-  open:     'var(--color-xama-green)',
-  closed:   'var(--color-xama-orange)',
+  draft:    'var(--xm-muted)',
+  open:     'var(--xm-green)',
+  closed:   'var(--xm-orange)',
   resolved: '#a5b4fc',
 }
 const NEXT_STATUS = { draft: 'open', open: 'closed', closed: null }
@@ -261,7 +261,7 @@ export default function AdminFaceoffs({ token }) {
     return (
       <div>
         <SectionHeader title="Team Faceoff" />
-        <div style={{ padding: 40, textAlign: 'center', color: 'var(--color-xama-muted)' }}>Carregando...</div>
+        <div style={{ padding: 40, textAlign: 'center', color: 'var(--xm-muted)' }}>Carregando...</div>
       </div>
     )
   }
@@ -272,12 +272,12 @@ export default function AdminFaceoffs({ token }) {
 
       {/* Seletor de campeonato */}
       <div style={{ marginBottom: 20 }}>
-        <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--color-xama-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+        <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--xm-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
           Campeonato das Finals (alvo)
         </label>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           {eligibleChampionships.length === 0 ? (
-            <p style={{ fontSize: 13, color: 'var(--color-xama-muted)' }}>
+            <p style={{ fontSize: 13, color: 'var(--xm-muted)' }}>
               Nenhum campeonato com stages em andamento ou futuras.
             </p>
           ) : (
@@ -292,7 +292,7 @@ export default function AdminFaceoffs({ token }) {
                     padding: '8px 14px', borderRadius: 8, cursor: 'pointer',
                     background: isSelected ? 'rgba(249,115,22,0.12)' : 'rgba(255,255,255,0.03)',
                     border: `1px solid ${isSelected ? 'rgba(249,115,22,0.5)' : 'rgba(255,255,255,0.1)'}`,
-                    color: isSelected ? 'var(--color-xama-orange)' : 'var(--color-xama-text)',
+                    color: isSelected ? 'var(--xm-orange)' : 'var(--xm-text)',
                     fontWeight: isSelected ? 700 : 400,
                     fontSize: 13,
                     display: 'flex', alignItems: 'center', gap: 8,
@@ -304,7 +304,7 @@ export default function AdminFaceoffs({ token }) {
                     <span style={{
                       fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 10,
                       background: isSelected ? 'rgba(249,115,22,0.2)' : 'rgba(99,102,241,0.15)',
-                      color: isSelected ? 'var(--color-xama-orange)' : '#a5b4fc',
+                      color: isSelected ? 'var(--xm-orange)' : '#a5b4fc',
                       border: `1px solid ${isSelected ? 'rgba(249,115,22,0.3)' : 'rgba(99,102,241,0.3)'}`,
                     }}>
                       {count} faceoff{count !== 1 ? 's' : ''}
@@ -321,7 +321,7 @@ export default function AdminFaceoffs({ token }) {
         <div style={{
           marginBottom: 14, padding: '8px 14px', borderRadius: 8, fontSize: 13,
           background: msg.startsWith('!') ? 'rgba(239,68,68,0.1)' : 'rgba(74,222,128,0.1)',
-          color: msg.startsWith('!') ? '#f87171' : 'var(--color-xama-green)',
+          color: msg.startsWith('!') ? '#f87171' : 'var(--xm-green)',
           border: `1px solid ${msg.startsWith('!') ? 'rgba(239,68,68,0.3)' : 'rgba(74,222,128,0.3)'}`,
         }}>
           {msg.startsWith('!') ? msg.slice(1) : msg}
@@ -336,12 +336,12 @@ export default function AdminFaceoffs({ token }) {
           border: '1px solid rgba(99,102,241,0.2)',
           borderRadius: 12,
         }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-xama-text)', marginBottom: 4 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--xm-text)', marginBottom: 4 }}>
             Sugerir Chaves por Performance
           </div>
-          <div style={{ fontSize: 12, color: 'var(--color-xama-muted)', marginBottom: 16, lineHeight: 1.5 }}>
+          <div style={{ fontSize: 12, color: 'var(--xm-muted)', marginBottom: 16, lineHeight: 1.5 }}>
             Selecione stages anteriores da <strong style={{ color: '#a5b4fc' }}>mesma região ({selectedChamp?.shard})</strong> como base de performance.
-            O sistema cria os pares <strong style={{ color: 'var(--color-xama-text)' }}>#1 vs #2, #3 vs #4...</strong>
+            O sistema cria os pares <strong style={{ color: 'var(--xm-text)' }}>#1 vs #2, #3 vs #4...</strong>
           </div>
 
           {groupKeys.length === 0 ? (
@@ -356,11 +356,11 @@ export default function AdminFaceoffs({ token }) {
                 return (
                   <div key={groupName} style={{ marginBottom: 12 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-xama-orange)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--xm-orange)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
                         {groupName}
                       </span>
                       {!allSelected && (
-                        <button onClick={() => selectAllGroup(stages)} style={{ fontSize: 10, color: 'var(--color-xama-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
+                        <button onClick={() => selectAllGroup(stages)} style={{ fontSize: 10, color: 'var(--xm-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
                           selecionar todos
                         </button>
                       )}
@@ -377,8 +377,8 @@ export default function AdminFaceoffs({ token }) {
                             fontSize: 12, transition: 'all 0.12s', userSelect: 'none',
                           }}>
                             <input type="checkbox" checked={checked} onChange={() => toggleSourceId(s.id)} style={{ accentColor: '#6366f1', width: 13, height: 13 }} />
-                            <span style={{ color: checked ? '#a5b4fc' : 'var(--color-xama-text)' }}>{s.name}</span>
-                            <span style={{ fontSize: 10, color: 'var(--color-xama-muted)', fontFamily: "'JetBrains Mono', monospace" }}>#{s.id}</span>
+                            <span style={{ color: checked ? '#a5b4fc' : 'var(--xm-text)' }}>{s.name}</span>
+                            <span style={{ fontSize: 10, color: 'var(--xm-muted)', fontFamily: "'JetBrains Mono', monospace" }}>#{s.id}</span>
                           </label>
                         )
                       })}
@@ -397,7 +397,7 @@ export default function AdminFaceoffs({ token }) {
 
           {suggested.length > 0 && (
             <div style={{ marginTop: 16 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-xama-muted)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--xm-muted)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
                 Pares sugeridos — revise e ajuste se necessário
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 8, marginBottom: 14 }}>
@@ -408,12 +408,12 @@ export default function AdminFaceoffs({ token }) {
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                       <span style={{ color: '#f97316', fontWeight: 700 }}>#{p.seed_a} {p.team_a_name}</span>
-                      <span style={{ color: 'var(--color-xama-muted)', fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }}>{p.pts_per_match_a?.toFixed(1)} pts/g</span>
+                      <span style={{ color: 'var(--xm-muted)', fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }}>{p.pts_per_match_a?.toFixed(1)} pts/g</span>
                     </div>
-                    <div style={{ fontSize: 11, color: 'var(--color-xama-muted)', textAlign: 'center', margin: '2px 0' }}>vs</div>
+                    <div style={{ fontSize: 11, color: 'var(--xm-muted)', textAlign: 'center', margin: '2px 0' }}>vs</div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span style={{ color: '#6366f1', fontWeight: 700 }}>#{p.seed_b} {p.team_b_name}</span>
-                      <span style={{ color: 'var(--color-xama-muted)', fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }}>{p.pts_per_match_b?.toFixed(1)} pts/g</span>
+                      <span style={{ color: 'var(--xm-muted)', fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }}>{p.pts_per_match_b?.toFixed(1)} pts/g</span>
                     </div>
                   </div>
                 ))}
@@ -428,11 +428,11 @@ export default function AdminFaceoffs({ token }) {
 
       {/* Lista de faceoffs do campeonato selecionado */}
       {champId && (
-        <div style={{ background: 'rgba(18,21,28,0.9)', border: '1px solid var(--color-xama-border)', borderRadius: 12, overflow: 'hidden' }}>
-          <div style={{ padding: '10px 20px', borderBottom: '1px solid var(--color-xama-border)', display: 'flex', alignItems: 'center', gap: 16, fontSize: 11, color: 'var(--color-xama-muted)', flexWrap: 'wrap' }}>
-            <span><strong style={{ color: 'var(--color-xama-text)' }}>→</strong> Avança status</span>
+        <div style={{ background: 'rgba(18,21,28,0.9)', border: '1px solid var(--xm-border)', borderRadius: 12, overflow: 'hidden' }}>
+          <div style={{ padding: '10px 20px', borderBottom: '1px solid var(--xm-border)', display: 'flex', alignItems: 'center', gap: 16, fontSize: 11, color: 'var(--xm-muted)', flexWrap: 'wrap' }}>
+            <span><strong style={{ color: 'var(--xm-text)' }}>→</strong> Avança status</span>
             <span><strong style={{ color: '#a5b4fc' }}>←</strong> Reverte status</span>
-            <span><strong style={{ color: 'var(--color-xama-green)' }}>⚡</strong> Resolve pelo standing</span>
+            <span><strong style={{ color: 'var(--xm-green)' }}>⚡</strong> Resolve pelo standing</span>
             <span><strong>✏</strong> Edita nomes/seeds/winner</span>
             {faceoffs.some(f => f.status === 'closed') && (
               <button
@@ -441,7 +441,7 @@ export default function AdminFaceoffs({ token }) {
                 style={{
                   marginLeft: 'auto', fontSize: 11, padding: '4px 12px', borderRadius: 6, cursor: 'pointer',
                   background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.35)',
-                  color: 'var(--color-xama-green)', fontWeight: 700,
+                  color: 'var(--xm-green)', fontWeight: 700,
                 }}
               >
                 ⚡ Auto-resolver todos ({faceoffs.filter(f => f.status === 'closed').length})
@@ -449,9 +449,9 @@ export default function AdminFaceoffs({ token }) {
             )}
           </div>
           {loading ? (
-            <div style={{ padding: 40, textAlign: 'center', color: 'var(--color-xama-muted)' }}>Carregando...</div>
+            <div style={{ padding: 40, textAlign: 'center', color: 'var(--xm-muted)' }}>Carregando...</div>
           ) : faceoffs.length === 0 ? (
-            <div style={{ padding: 40, textAlign: 'center', color: 'var(--color-xama-muted)' }}>
+            <div style={{ padding: 40, textAlign: 'center', color: 'var(--xm-muted)' }}>
               Nenhum faceoff criado para este campeonato.
             </div>
           ) : (
@@ -471,7 +471,7 @@ export default function AdminFaceoffs({ token }) {
               <tbody>
                 {faceoffs.map(f => (
                   <tr key={f.id}>
-                    <td style={{ ...tdStyle, fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: 'var(--color-xama-muted)' }}>
+                    <td style={{ ...tdStyle, fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: 'var(--xm-muted)' }}>
                       #{f.seed_a} / #{f.seed_b}
                     </td>
                     <td style={{ ...tdStyle, color: '#f97316', fontWeight: 600 }}>{f.team_a_name}</td>
@@ -488,9 +488,9 @@ export default function AdminFaceoffs({ token }) {
                     </td>
                     <td style={{ ...tdStyle, fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>
                       {f.votes_a} / {f.votes_b}
-                      <span style={{ color: 'var(--color-xama-muted)', fontSize: 11, marginLeft: 6 }}>({f.total_votes})</span>
+                      <span style={{ color: 'var(--xm-muted)', fontSize: 11, marginLeft: 6 }}>({f.total_votes})</span>
                     </td>
-                    <td style={{ ...tdStyle, fontWeight: 600, color: 'var(--color-xama-green)' }}>
+                    <td style={{ ...tdStyle, fontWeight: 600, color: 'var(--xm-green)' }}>
                       {f.winner_team_name || '—'}
                     </td>
                     <td style={tdStyle}>
@@ -508,7 +508,7 @@ export default function AdminFaceoffs({ token }) {
                           <button onClick={() => handleAdvanceStatus(f)} style={{
                             fontSize: 11, padding: '3px 8px', borderRadius: 6, cursor: 'pointer',
                             background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.3)',
-                            color: 'var(--color-xama-orange)', fontWeight: 700,
+                            color: 'var(--xm-orange)', fontWeight: 700,
                           }}>
                             → {STATUS_LABEL[NEXT_STATUS[f.status]]}
                           </button>
@@ -517,7 +517,7 @@ export default function AdminFaceoffs({ token }) {
                           <button onClick={() => handleResolve(f)} style={{
                             fontSize: 11, padding: '3px 8px', borderRadius: 6, cursor: 'pointer',
                             background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.3)',
-                            color: 'var(--color-xama-green)', fontWeight: 700,
+                            color: 'var(--xm-green)', fontWeight: 700,
                           }}>
                             ⚡ Resolver
                           </button>
@@ -529,7 +529,7 @@ export default function AdminFaceoffs({ token }) {
                         <button onClick={() => openEdit(f)} style={{
                           fontSize: 11, padding: '3px 8px', borderRadius: 6, cursor: 'pointer',
                           background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)',
-                          color: 'var(--color-xama-text)', fontWeight: 700,
+                          color: 'var(--xm-text)', fontWeight: 700,
                         }}>✏</button>
                         {f.status === 'draft' && (
                           <button onClick={() => handleDelete(f)} style={{

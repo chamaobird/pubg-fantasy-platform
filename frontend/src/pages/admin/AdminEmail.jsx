@@ -85,12 +85,12 @@ function ChecklistGroup({ group, card, onDismiss, onRestore, onDispatch, onMarkS
         {/* Toggle colapso */}
         <button onClick={onToggle} style={{
           background: 'none', border: 'none', cursor: 'pointer',
-          color: 'var(--color-xama-muted)', fontSize: 13, padding: '2px 4px', lineHeight: 1,
+          color: 'var(--xm-muted)', fontSize: 13, padding: '2px 4px', lineHeight: 1,
         }}>
           {isCollapsed ? '▶' : '▼'}
         </button>
 
-        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-xama-text)', flex: 1, cursor: 'pointer' }} onClick={onToggle}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--xm-text)', flex: 1, cursor: 'pointer' }} onClick={onToggle}>
           {group.stage_name}
           {allOptional && !isCollapsed && (
             <span style={{ marginLeft: 8, fontSize: 10, color: '#818cf8', fontWeight: 400 }}>opcional</span>
@@ -100,7 +100,7 @@ function ChecklistGroup({ group, card, onDismiss, onRestore, onDispatch, onMarkS
         <span style={{
           fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 20,
           background: group.lineup_status === 'open' ? 'rgba(74,222,128,0.15)' : 'rgba(100,116,139,0.15)',
-          color: group.lineup_status === 'open' ? '#4ade80' : 'var(--color-xama-muted)',
+          color: group.lineup_status === 'open' ? '#4ade80' : 'var(--xm-muted)',
           letterSpacing: '0.06em', textTransform: 'uppercase',
         }}>{group.lineup_status}</span>
 
@@ -125,7 +125,7 @@ function ChecklistGroup({ group, card, onDismiss, onRestore, onDispatch, onMarkS
         {isDismissed && (
           <button onClick={() => onRestore(group.stage_id)} style={{
             ...btnBase, background: 'rgba(255,255,255,0.04)',
-            border: '1px solid var(--color-xama-border)', color: 'var(--color-xama-muted)',
+            border: '1px solid var(--xm-border)', color: 'var(--xm-muted)',
           }}>
             Restaurar
           </button>
@@ -147,7 +147,7 @@ function ChecklistGroup({ group, card, onDismiss, onRestore, onDispatch, onMarkS
             <button key={d} onClick={() => handlePreset(d)} style={{
               ...btnBase, padding: '5px 12px',
               background: 'rgba(255,255,255,0.06)',
-              border: '1px solid var(--color-xama-border)', color: 'var(--color-xama-text)',
+              border: '1px solid var(--xm-border)', color: 'var(--xm-text)',
             }}>{label}</button>
           ))}
           {/* Campo personalizado */}
@@ -159,16 +159,16 @@ function ChecklistGroup({ group, card, onDismiss, onRestore, onDispatch, onMarkS
               placeholder="Ex: 3"
               style={{
                 width: 64, padding: '4px 8px', borderRadius: 6, fontSize: 12,
-                background: 'rgba(255,255,255,0.06)', border: '1px solid var(--color-xama-border)',
-                color: 'var(--color-xama-text)', outline: 'none',
+                background: 'rgba(255,255,255,0.06)', border: '1px solid var(--xm-border)',
+                color: 'var(--xm-text)', outline: 'none',
               }}
             />
             <select
               value={customUnit} onChange={e => setCustomUnit(e.target.value)}
               style={{
                 padding: '4px 8px', borderRadius: 6, fontSize: 12, cursor: 'pointer',
-                background: 'rgba(255,255,255,0.06)', border: '1px solid var(--color-xama-border)',
-                color: 'var(--color-xama-text)', outline: 'none', colorScheme: 'dark',
+                background: 'rgba(255,255,255,0.06)', border: '1px solid var(--xm-border)',
+                color: 'var(--xm-text)', outline: 'none', colorScheme: 'dark',
               }}
             >
               <option value="days">dias</option>
@@ -180,8 +180,8 @@ function ChecklistGroup({ group, card, onDismiss, onRestore, onDispatch, onMarkS
               style={{
                 ...btnBase, padding: '5px 10px',
                 background: customVal && parseInt(customVal) > 0 ? 'rgba(249,115,22,0.15)' : 'rgba(255,255,255,0.04)',
-                border: `1px solid ${customVal && parseInt(customVal) > 0 ? 'rgba(249,115,22,0.4)' : 'var(--color-xama-border)'}`,
-                color: customVal && parseInt(customVal) > 0 ? 'var(--color-xama-orange)' : 'var(--color-xama-muted)',
+                border: `1px solid ${customVal && parseInt(customVal) > 0 ? 'rgba(249,115,22,0.4)' : 'var(--xm-border)'}`,
+                color: customVal && parseInt(customVal) > 0 ? 'var(--xm-orange)' : 'var(--xm-muted)',
               }}
             >OK</button>
           </div>
@@ -191,7 +191,7 @@ function ChecklistGroup({ group, card, onDismiss, onRestore, onDispatch, onMarkS
 
       {/* ── Resumo colapsado ── */}
       {isCollapsed && (
-        <div style={{ fontSize: 12, color: 'var(--color-xama-muted)', paddingLeft: 26, cursor: 'pointer' }} onClick={onToggle}>
+        <div style={{ fontSize: 12, color: 'var(--xm-muted)', paddingLeft: 26, cursor: 'pointer' }} onClick={onToggle}>
           {group.items.filter(i => i.status === 'pending').length} pendentes
           · {group.items.filter(i => i.status === 'sent').length} enviados
           {allOptional && ' · apenas opcionais'}
@@ -209,7 +209,7 @@ function ChecklistGroup({ group, card, onDismiss, onRestore, onDispatch, onMarkS
                 display: 'flex', alignItems: 'center', gap: 10,
                 padding: '9px 12px', borderRadius: 8,
                 background: sent ? 'rgba(255,255,255,0.02)' : colors.bg,
-                border: `1px solid ${sent ? 'var(--color-xama-border)' : colors.border}`,
+                border: `1px solid ${sent ? 'var(--xm-border)' : colors.border}`,
                 opacity: sent ? 0.65 : 1,
               }}>
                 <div style={{
@@ -218,11 +218,11 @@ function ChecklistGroup({ group, card, onDismiss, onRestore, onDispatch, onMarkS
                 }} />
 
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-xama-text)' }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--xm-text)' }}>
                     {item.template_label}
                   </div>
                   {sent && item.last_sent_at ? (
-                    <div style={{ fontSize: 11, color: 'var(--color-xama-muted)', marginTop: 1 }}>
+                    <div style={{ fontSize: 11, color: 'var(--xm-muted)', marginTop: 1 }}>
                       Enviado {new Date(item.last_sent_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
                       {item.total_sent > 0 && ` · ${item.total_sent} dest.`}
                     </div>
@@ -242,8 +242,8 @@ function ChecklistGroup({ group, card, onDismiss, onRestore, onDispatch, onMarkS
                         title="Marcar como enviado sem disparar"
                         style={{
                           padding: '5px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600,
-                          background: 'rgba(255,255,255,0.04)', border: '1px solid var(--color-xama-border)',
-                          color: 'var(--color-xama-muted)', cursor: 'pointer', whiteSpace: 'nowrap',
+                          background: 'rgba(255,255,255,0.04)', border: '1px solid var(--xm-border)',
+                          color: 'var(--xm-muted)', cursor: 'pointer', whiteSpace: 'nowrap',
                         }}
                       >
                         Já enviei
@@ -254,9 +254,9 @@ function ChecklistGroup({ group, card, onDismiss, onRestore, onDispatch, onMarkS
                       onClick={() => onDispatch(item)}
                       style={{
                         padding: '5px 12px', borderRadius: 6, fontSize: 11, fontWeight: 700,
-                        background: sent ? 'rgba(255,255,255,0.05)' : 'var(--color-xama-orange)',
+                        background: sent ? 'rgba(255,255,255,0.05)' : 'var(--xm-orange)',
                         border: 'none',
-                        color: sent ? 'var(--color-xama-muted)' : '#0d0f14',
+                        color: sent ? 'var(--xm-muted)' : '#0d0f14',
                         cursor: 'pointer', whiteSpace: 'nowrap',
                       }}
                     >
@@ -483,19 +483,19 @@ export default function AdminEmail({ token }) {
 
   const card = {
     background: 'rgba(18,21,28,0.92)',
-    border: '1px solid var(--color-xama-border)',
+    border: '1px solid var(--xm-border)',
     borderRadius: 12, padding: '20px 24px',
   }
   const inputStyle = {
     width: '100%', boxSizing: 'border-box',
     background: 'rgba(255,255,255,0.04)',
-    border: '1px solid var(--color-xama-border)',
+    border: '1px solid var(--xm-border)',
     borderRadius: 8, padding: '9px 12px',
-    color: 'var(--color-xama-text)', fontSize: 14, outline: 'none',
+    color: 'var(--xm-text)', fontSize: 14, outline: 'none',
   }
   const labelStyle = {
     display: 'block', fontSize: 11, fontWeight: 600,
-    color: 'var(--color-xama-muted)', letterSpacing: '0.08em',
+    color: 'var(--xm-muted)', letterSpacing: '0.08em',
     textTransform: 'uppercase', marginBottom: 6,
   }
 
@@ -543,10 +543,10 @@ export default function AdminEmail({ token }) {
 
       {/* Header */}
       <div style={{ ...card, padding: '16px 24px' }}>
-        <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-xama-text)' }}>
+        <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--xm-text)' }}>
           Comunicação por Email
         </div>
-        <div style={{ fontSize: 12, color: 'var(--color-xama-muted)', marginTop: 4 }}>
+        <div style={{ fontSize: 12, color: 'var(--xm-muted)', marginTop: 4 }}>
           Disparo de emails transacionais para usuários da plataforma via Resend
         </div>
       </div>
@@ -560,8 +560,8 @@ export default function AdminEmail({ token }) {
         ].map(([t, label]) => (
           <button key={t} onClick={() => setTab(t)} style={{
             padding: '8px 18px', borderRadius: 8, border: 'none', cursor: 'pointer',
-            background: tab === t ? 'var(--color-xama-orange)' : 'rgba(255,255,255,0.06)',
-            color: tab === t ? '#0d0f14' : t === 'checklist' && pendingCount > 0 ? '#f97316' : 'var(--color-xama-muted)',
+            background: tab === t ? 'var(--xm-orange)' : 'rgba(255,255,255,0.06)',
+            color: tab === t ? '#0d0f14' : t === 'checklist' && pendingCount > 0 ? '#f97316' : 'var(--xm-muted)',
             fontWeight: tab === t ? 700 : t === 'checklist' && pendingCount > 0 ? 600 : 400,
             fontSize: 13,
           }}>{label}</button>
@@ -592,9 +592,9 @@ export default function AdminEmail({ token }) {
 
             <button onClick={() => setShowSent(v => !v)} style={{
               padding: '8px 14px', borderRadius: 8,
-              border: `1px solid ${showSent ? 'rgba(74,222,128,0.3)' : 'var(--color-xama-border)'}`,
+              border: `1px solid ${showSent ? 'rgba(74,222,128,0.3)' : 'var(--xm-border)'}`,
               background: showSent ? 'rgba(74,222,128,0.08)' : 'rgba(255,255,255,0.04)',
-              color: showSent ? '#4ade80' : 'var(--color-xama-muted)',
+              color: showSent ? '#4ade80' : 'var(--xm-muted)',
               cursor: 'pointer', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap',
             }}>
               {showSent ? 'Ocultar enviados' : 'Mostrar enviados'}
@@ -604,7 +604,7 @@ export default function AdminEmail({ token }) {
 
           {/* Lista principal de pendências */}
           {Object.values(visibleGroups).length === 0 ? (
-            <div style={{ ...card, color: 'var(--color-xama-muted)', fontSize: 13 }}>
+            <div style={{ ...card, color: 'var(--xm-muted)', fontSize: 13 }}>
               {Object.values(dismissedGroups).length > 0
                 ? 'Todas as stages foram arquivadas. Expanda "Arquivados" abaixo para restaurar.'
                 : 'Nenhuma stage com pendências para os filtros selecionados.'}
@@ -638,14 +638,14 @@ export default function AdminEmail({ token }) {
                   background: 'none', border: 'none', cursor: 'pointer', padding: '6px 2px',
                 }}
               >
-                <span style={{ fontSize: 12, color: 'var(--color-xama-muted)' }}>
+                <span style={{ fontSize: 12, color: 'var(--xm-muted)' }}>
                   {showDismissed ? '▼' : '▶'}
                 </span>
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-xama-muted)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--xm-muted)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                   Arquivados ({Object.values(dismissedGroups).length})
                 </span>
                 {!showDismissed && (
-                  <span style={{ fontSize: 11, color: 'var(--color-xama-muted)', fontWeight: 400 }}>
+                  <span style={{ fontSize: 11, color: 'var(--xm-muted)', fontWeight: 400 }}>
                     — clique para expandir
                   </span>
                 )}
@@ -655,8 +655,8 @@ export default function AdminEmail({ token }) {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 }}>
                   <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                     <button onClick={restoreAll} style={{
-                      padding: '5px 14px', borderRadius: 6, border: '1px solid var(--color-xama-border)',
-                      background: 'rgba(255,255,255,0.04)', color: 'var(--color-xama-muted)',
+                      padding: '5px 14px', borderRadius: 6, border: '1px solid var(--xm-border)',
+                      background: 'rgba(255,255,255,0.04)', color: 'var(--xm-muted)',
                       cursor: 'pointer', fontSize: 11, fontWeight: 600,
                     }}>
                       Restaurar todos
@@ -689,16 +689,16 @@ export default function AdminEmail({ token }) {
 
           {/* Template selector */}
           <div style={{ ...card, flex: '0 0 240px', minWidth: 200 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-xama-orange)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 14 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--xm-orange)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 14 }}>
               Templates
             </div>
             {templates.map(tpl => (
               <button key={tpl.key} onClick={() => applyTemplate(tpl)} style={{
                 display: 'block', width: '100%', textAlign: 'left',
                 padding: '10px 12px', marginBottom: 6, borderRadius: 8,
-                border: `1px solid ${selected?.key === tpl.key ? 'var(--color-xama-orange)' : 'transparent'}`,
+                border: `1px solid ${selected?.key === tpl.key ? 'var(--xm-orange)' : 'transparent'}`,
                 background: selected?.key === tpl.key ? 'rgba(249,115,22,0.1)' : 'rgba(255,255,255,0.03)',
-                color: selected?.key === tpl.key ? 'var(--color-xama-text)' : 'var(--color-xama-muted)',
+                color: selected?.key === tpl.key ? 'var(--xm-text)' : 'var(--xm-muted)',
                 cursor: 'pointer', fontSize: 13, fontWeight: selected?.key === tpl.key ? 600 : 400,
               }}>
                 <div>{tpl.label}</div>
@@ -710,10 +710,10 @@ export default function AdminEmail({ token }) {
           {/* Form */}
           {selected && (
             <div style={{ ...card, flex: 1, minWidth: 300 }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-xama-text)', marginBottom: 4 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--xm-text)', marginBottom: 4 }}>
                 {selected.label}
               </div>
-              <div style={{ fontSize: 12, color: 'var(--color-xama-muted)', marginBottom: 20 }}>
+              <div style={{ fontSize: 12, color: 'var(--xm-muted)', marginBottom: 20 }}>
                 {selected.description}
               </div>
 
@@ -724,10 +724,10 @@ export default function AdminEmail({ token }) {
                     Selecionar Stage
                   </div>
                   {variables.stage_id && !stages.find(s => s.id === parseInt(variables.stage_id)) ? (
-                    <div style={{ fontSize: 13, color: 'var(--color-xama-text)', padding: '8px 12px', background: 'rgba(249,115,22,0.08)', borderRadius: 8, border: '1px solid rgba(249,115,22,0.2)' }}>
+                    <div style={{ fontSize: 13, color: 'var(--xm-text)', padding: '8px 12px', background: 'rgba(249,115,22,0.08)', borderRadius: 8, border: '1px solid rgba(249,115,22,0.2)' }}>
                       Stage ID <strong>{variables.stage_id}</strong> — {variables.stage_name}
                       <button onClick={() => { setVar('stage_id', ''); setVar('stage_name', ''); setSelectedStage(null) }}
-                        style={{ marginLeft: 10, background: 'none', border: 'none', color: 'var(--color-xama-muted)', cursor: 'pointer', fontSize: 12 }}>
+                        style={{ marginLeft: 10, background: 'none', border: 'none', color: 'var(--xm-muted)', cursor: 'pointer', fontSize: 12 }}>
                         ✕ trocar
                       </button>
                     </div>
@@ -746,7 +746,7 @@ export default function AdminEmail({ token }) {
                         />
                       </div>
                       <div style={{ flex: '2 1 220px' }}>
-                        <label style={labelStyle}>Stage <span style={{ color: 'var(--color-xama-orange)' }}>*</span></label>
+                        <label style={labelStyle}>Stage <span style={{ color: 'var(--xm-orange)' }}>*</span></label>
                         <SearchableSelect
                           value={selectedStage?.id ? String(selectedStage.id) : ''}
                           onChange={handleStageSelect}
@@ -763,10 +763,10 @@ export default function AdminEmail({ token }) {
                     </div>
                   )}
                   {selectedStage && stages.find(s => s.id === selectedStage.id) && (
-                    <div style={{ marginTop: 10, fontSize: 12, color: 'var(--color-xama-muted)', display: 'flex', gap: 16 }}>
-                      <span>ID: <strong style={{ color: 'var(--color-xama-text)', fontFamily: 'JetBrains Mono, monospace' }}>{selectedStage.id}</strong></span>
-                      <span>Status: <strong style={{ color: selectedStage.lineup_status === 'open' ? '#4ade80' : 'var(--color-xama-muted)' }}>{selectedStage.lineup_status}</strong></span>
-                      <span>Fase: <strong style={{ color: 'var(--color-xama-text)' }}>{selectedStage.stage_phase}</strong></span>
+                    <div style={{ marginTop: 10, fontSize: 12, color: 'var(--xm-muted)', display: 'flex', gap: 16 }}>
+                      <span>ID: <strong style={{ color: 'var(--xm-text)', fontFamily: 'JetBrains Mono, monospace' }}>{selectedStage.id}</strong></span>
+                      <span>Status: <strong style={{ color: selectedStage.lineup_status === 'open' ? '#4ade80' : 'var(--xm-muted)' }}>{selectedStage.lineup_status}</strong></span>
+                      <span>Fase: <strong style={{ color: 'var(--xm-text)' }}>{selectedStage.stage_phase}</strong></span>
                     </div>
                   )}
                 </div>
@@ -777,7 +777,7 @@ export default function AdminEmail({ token }) {
                 {selected.variables.filter(v => !STAGE_VARS.has(v.key)).map(v => (
                   <div key={v.key}>
                     <label style={labelStyle}>
-                      {v.label}{v.required && <span style={{ color: 'var(--color-xama-orange)' }}> *</span>}
+                      {v.label}{v.required && <span style={{ color: 'var(--xm-orange)' }}> *</span>}
                     </label>
                     {v.multiline ? (
                       <textarea rows={4} value={variables[v.key] || ''} onChange={e => setVar(v.key, e.target.value)}
@@ -801,15 +801,15 @@ export default function AdminEmail({ token }) {
                         padding: '7px 14px', borderRadius: 8, cursor: 'pointer', fontSize: 13,
                         border: `1px solid ${recipientGroup === g ? 'rgba(249,115,22,0.4)' : 'transparent'}`,
                         background: recipientGroup === g ? 'rgba(249,115,22,0.15)' : 'rgba(255,255,255,0.05)',
-                        color: recipientGroup === g ? 'var(--color-xama-orange)' : 'var(--color-xama-muted)',
+                        color: recipientGroup === g ? 'var(--xm-orange)' : 'var(--xm-muted)',
                         fontWeight: recipientGroup === g ? 600 : 400,
                       }}>{RECIPIENT_LABELS[g] || g}</button>
                     ))}
                   </div>
                 </div>
               ) : (
-                <div style={{ marginBottom: 20, fontSize: 12, color: 'var(--color-xama-muted)' }}>
-                  Destinatários: <strong style={{ color: 'var(--color-xama-text)' }}>
+                <div style={{ marginBottom: 20, fontSize: 12, color: 'var(--xm-muted)' }}>
+                  Destinatários: <strong style={{ color: 'var(--xm-text)' }}>
                     {RECIPIENT_LABELS[recipientGroup] || recipientGroup}
                   </strong>
                 </div>
@@ -824,7 +824,7 @@ export default function AdminEmail({ token }) {
               {result && (
                 <div style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 8, padding: '12px 16px', marginBottom: 16 }}>
                   <div style={{ color: '#4ade80', fontWeight: 700, fontSize: 14, marginBottom: 4 }}>Email disparado</div>
-                  <div style={{ color: 'var(--color-xama-muted)', fontSize: 13 }}>
+                  <div style={{ color: 'var(--xm-muted)', fontSize: 13 }}>
                     ✅ {result.sent} enviados &nbsp;·&nbsp; ❌ {result.failed} falhas &nbsp;·&nbsp; Log #{result.log_id}
                   </div>
                 </div>
@@ -842,7 +842,7 @@ export default function AdminEmail({ token }) {
                 <button onClick={handleDispatch} disabled={loading} style={{
                   padding: '11px 28px', borderRadius: 8, border: 'none',
                   cursor: loading ? 'not-allowed' : 'pointer',
-                  background: loading ? 'rgba(249,115,22,0.4)' : 'var(--color-xama-orange)',
+                  background: loading ? 'rgba(249,115,22,0.4)' : 'var(--xm-orange)',
                   color: '#0d0f14', fontWeight: 700, fontSize: 14, letterSpacing: '0.04em',
                 }}>
                   {loading ? 'Enviando...' : 'Disparar email'}
@@ -856,33 +856,33 @@ export default function AdminEmail({ token }) {
       {/* ── Aba Histórico ───────────────────────────────────────────────────── */}
       {tab === 'logs' && (
         <div style={card}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-xama-text)', marginBottom: 16 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--xm-text)', marginBottom: 16 }}>
             Histórico de envios
           </div>
           {logs.length === 0 ? (
-            <div style={{ color: 'var(--color-xama-muted)', fontSize: 13 }}>Nenhum disparo registrado.</div>
+            <div style={{ color: 'var(--xm-muted)', fontSize: 13 }}>Nenhum disparo registrado.</div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                 <thead>
                   <tr>
                     {['#', 'Template', 'Assunto', 'Destinatários', 'Stage', 'Enviados', 'Falhas', 'Por', 'Data'].map(h => (
-                      <th key={h} style={{ textAlign: 'left', padding: '6px 10px', color: 'var(--color-xama-muted)', fontWeight: 600, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', borderBottom: '1px solid var(--color-xama-border)', whiteSpace: 'nowrap' }}>{h}</th>
+                      <th key={h} style={{ textAlign: 'left', padding: '6px 10px', color: 'var(--xm-muted)', fontWeight: 600, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', borderBottom: '1px solid var(--xm-border)', whiteSpace: 'nowrap' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {logs.map(log => (
                     <tr key={log.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                      <td style={{ padding: '8px 10px', color: 'var(--color-xama-muted)' }}>{log.id}</td>
-                      <td style={{ padding: '8px 10px', color: 'var(--color-xama-text)', fontWeight: 600 }}>{log.template_key}</td>
-                      <td style={{ padding: '8px 10px', color: 'var(--color-xama-muted)', maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{log.subject}</td>
-                      <td style={{ padding: '8px 10px', color: 'var(--color-xama-muted)', whiteSpace: 'nowrap' }}>{RECIPIENT_LABELS[log.recipient_group] || log.recipient_group}</td>
-                      <td style={{ padding: '8px 10px', color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace' }}>{log.stage_id ?? '—'}</td>
+                      <td style={{ padding: '8px 10px', color: 'var(--xm-muted)' }}>{log.id}</td>
+                      <td style={{ padding: '8px 10px', color: 'var(--xm-text)', fontWeight: 600 }}>{log.template_key}</td>
+                      <td style={{ padding: '8px 10px', color: 'var(--xm-muted)', maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{log.subject}</td>
+                      <td style={{ padding: '8px 10px', color: 'var(--xm-muted)', whiteSpace: 'nowrap' }}>{RECIPIENT_LABELS[log.recipient_group] || log.recipient_group}</td>
+                      <td style={{ padding: '8px 10px', color: 'var(--xm-muted)', fontFamily: 'JetBrains Mono, monospace' }}>{log.stage_id ?? '—'}</td>
                       <td style={{ padding: '8px 10px', color: '#4ade80', fontWeight: 700 }}>{log.sent_count}</td>
-                      <td style={{ padding: '8px 10px', color: log.failed_count > 0 ? '#f87171' : 'var(--color-xama-muted)' }}>{log.failed_count}</td>
-                      <td style={{ padding: '8px 10px', color: 'var(--color-xama-muted)' }}>{log.triggered_by ?? '—'}</td>
-                      <td style={{ padding: '8px 10px', color: 'var(--color-xama-muted)', whiteSpace: 'nowrap' }}>
+                      <td style={{ padding: '8px 10px', color: log.failed_count > 0 ? '#f87171' : 'var(--xm-muted)' }}>{log.failed_count}</td>
+                      <td style={{ padding: '8px 10px', color: 'var(--xm-muted)' }}>{log.triggered_by ?? '—'}</td>
+                      <td style={{ padding: '8px 10px', color: 'var(--xm-muted)', whiteSpace: 'nowrap' }}>
                         {new Date(log.sent_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
                       </td>
                     </tr>
@@ -902,16 +902,16 @@ export default function AdminEmail({ token }) {
           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
         }}>
           <div onClick={e => e.stopPropagation()} style={{
-            background: '#13151f', border: '1px solid var(--color-xama-border)',
+            background: '#13151f', border: '1px solid var(--xm-border)',
             borderRadius: 14, width: '100%', maxWidth: 560,
             maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden',
           }}>
-            <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--color-xama-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--xm-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-xama-text)' }}>Pré-visualização</div>
-                <div style={{ fontSize: 11, color: 'var(--color-xama-muted)', marginTop: 2 }}>Assunto: {preview.subject}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--xm-text)' }}>Pré-visualização</div>
+                <div style={{ fontSize: 11, color: 'var(--xm-muted)', marginTop: 2 }}>Assunto: {preview.subject}</div>
               </div>
-              <button onClick={() => setPreview(null)} style={{ background: 'none', border: 'none', color: 'var(--color-xama-muted)', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>✕</button>
+              <button onClick={() => setPreview(null)} style={{ background: 'none', border: 'none', color: 'var(--xm-muted)', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>✕</button>
             </div>
             <iframe srcDoc={preview.html} title="Email preview" sandbox="allow-same-origin" style={{ flex: 1, border: 'none', minHeight: 480 }} />
           </div>

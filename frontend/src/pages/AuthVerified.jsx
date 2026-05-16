@@ -21,7 +21,7 @@ export default function AuthVerified() {
         borderRadius: '16px', maxWidth: '400px',
       }}>
         <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>
-        <h1 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--color-xama-green)', marginBottom: '8px' }}>
+        <h1 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--xm-green)', marginBottom: '8px' }}>
           Email confirmado!
         </h1>
         <p style={{ fontSize: '15px', color: '#94a3b8', marginBottom: '24px' }}>
@@ -30,7 +30,7 @@ export default function AuthVerified() {
         <button
           onClick={() => navigate('/')}
           style={{
-            padding: '10px 28px', background: 'var(--color-xama-orange)', color: 'var(--color-xama-black)',
+            padding: '10px 28px', background: 'var(--xm-orange)', color: 'var(--xm-bg)',
             border: 'none', borderRadius: '6px', fontWeight: 700,
             fontSize: '15px', cursor: 'pointer',
           }}>

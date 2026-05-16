@@ -41,7 +41,7 @@ const COLUMNS = [
   { key: 'fantasy_cost',
     label: 'PREÇO', title: 'Preço fantasy atual', right: true,
     render: (p) => (
-      <span style={{ color: p.fantasy_cost != null ? 'var(--color-xama-gold)' : 'var(--color-xama-muted)', fontWeight: 700 }}>
+      <span style={{ color: p.fantasy_cost != null ? 'var(--xm-gold)' : 'var(--xm-muted)', fontWeight: 700 }}>
         {p.fantasy_cost != null ? Number(p.fantasy_cost).toFixed(2) : '—'}
       </span>
     ),
@@ -54,7 +54,7 @@ const COLUMNS = [
   { key: 'total_xama_points',
     label: 'PTS XAMA', title: 'Pontos XAMA totais', right: true,
     render: (p) => (
-      <span style={{ color: 'var(--color-xama-orange)' }}>
+      <span style={{ color: 'var(--xm-orange)' }}>
         {fmt2(p.total_xama_points)}
       </span>
     ),
@@ -86,7 +86,7 @@ const COLUMNS = [
     render: (p) => {
       const sp = survivalPts(p)
       if (sp == null) return '—'
-      return <span style={{ color: sp >= 0 ? 'var(--color-xama-text)' : '#f87171' }}>{fmtInt(sp)}</span>
+      return <span style={{ color: sp >= 0 ? 'var(--xm-text)' : '#f87171' }}>{fmtInt(sp)}</span>
     },
     sortVal: (p) => survivalPts(p) ?? 0 },
 
@@ -137,14 +137,14 @@ function RankDelta({ currentRank, prevRank }) {
 // ── Sub-componentes ───────────────────────────────────────────────────────────
 function SortIcon({ active, dir }) {
   if (!active) return <span className="ml-0.5 opacity-20 text-[9px]">⇅</span>
-  return <span className="ml-0.5 text-[9px]" style={{ color: 'var(--color-xama-orange)' }}>{dir === 'desc' ? '▼' : '▲'}</span>
+  return <span className="ml-0.5 text-[9px]" style={{ color: 'var(--xm-orange)' }}>{dir === 'desc' ? '▼' : '▲'}</span>
 }
 
 const selectStyle = {
   background: '#0d0f14',
-  border: '1px solid var(--color-xama-border)',
+  border: '1px solid var(--xm-border)',
   borderRadius: '6px',
-  color: 'var(--color-xama-text)',
+  color: 'var(--xm-text)',
   padding: '6px 10px',
   fontSize: '13px',
   cursor: 'pointer',
@@ -232,7 +232,7 @@ export default function PlayerStatsTable({
     textAlign: col?.right ? 'center' : 'left',
     cursor: 'pointer', userSelect: 'none',
     whiteSpace: 'nowrap',
-    color: sortKey === col?.key ? 'var(--color-xama-orange)' : 'var(--color-xama-muted)',
+    color: sortKey === col?.key ? 'var(--xm-orange)' : 'var(--xm-muted)',
     transition: 'color 0.15s',
   })
 
@@ -256,26 +256,26 @@ export default function PlayerStatsTable({
         {(teamFilter || search) && (
           <button
             onClick={() => { setTeamFilter(''); setSearch('') }}
-            style={{ ...selectStyle, color: 'var(--color-xama-red)', borderColor: 'rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.05)' }}>
+            style={{ ...selectStyle, color: 'var(--xm-red)', borderColor: 'rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.05)' }}>
             ✕ Limpar
           </button>
         )}
 
         {sorted.length > 0 && (
           <span className="px-2 py-1 rounded text-[12px]"
-            style={{ fontFamily: "'JetBrains Mono', monospace", background: 'var(--surface-3)', border: '1px solid var(--color-xama-border)', color: 'var(--color-xama-muted)' }}>
+            style={{ fontFamily: "'JetBrains Mono', monospace", background: 'var(--surface-3)', border: '1px solid var(--xm-border)', color: 'var(--xm-muted)' }}>
             {sorted.length}
           </span>
         )}
       </div>
 
       {/* ── Tabela ──────────────────────────────────────────────────────────── */}
-      <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--color-xama-border)', background: 'var(--color-xama-surface)' }}>
-        <div style={{ height: '2px', background: 'linear-gradient(90deg, var(--color-xama-orange) 0%, transparent 55%)' }} />
+      <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--xm-border)', background: 'var(--xm-surface-1)' }}>
+        <div style={{ height: '2px', background: 'linear-gradient(90deg, var(--xm-orange) 0%, transparent 55%)' }} />
         <div className="overflow-x-auto">
           <table className="w-full border-collapse" style={{ fontSize: '14px' }}>
             <thead>
-              <tr style={{ background: '#0a0c11', borderBottom: '1px solid var(--color-xama-border)' }}>
+              <tr style={{ background: '#0a0c11', borderBottom: '1px solid var(--xm-border)' }}>
                 <th style={{ ...thStyle({}), width: '40px' }}>#</th>
                 <th onClick={() => handleSort('team')} style={thStyle({ key: 'team', right: false })}>
                   Time<SortIcon active={sortKey === 'team'} dir={sortDir} />
@@ -316,7 +316,7 @@ export default function PlayerStatsTable({
                     <td style={{ padding: '10px 12px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <TeamLogo teamName={teamTag} shortName={shortName} size={28} />
-                        <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.06em', color: 'var(--color-xama-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
+                        <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.06em', color: 'var(--xm-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
                           {teamTag}
                         </span>
                       </div>
@@ -333,7 +333,7 @@ export default function PlayerStatsTable({
                             price_components: p.price_components ?? null,
                             fantasy_cost: p.fantasy_cost ?? null,
                           })}
-                          style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-xama-text)', cursor: 'pointer', borderBottom: '1px dashed rgba(249,115,22,0.4)', paddingBottom: '1px' }}
+                          style={{ fontSize: '15px', fontWeight: 600, color: 'var(--xm-text)', cursor: 'pointer', borderBottom: '1px dashed rgba(249,115,22,0.4)', paddingBottom: '1px' }}
                           title="Ver histórico de partidas"
                         >
                           {playerName}
@@ -361,7 +361,7 @@ export default function PlayerStatsTable({
 
                     {/* Colunas numéricas */}
                     {visibleColumns.map(col => (
-                      <td key={col.key} style={{ padding: '10px 12px', textAlign: col.right ? 'center' : 'left', fontFamily: "'JetBrains Mono', monospace", fontVariantNumeric: 'tabular-nums', color: 'var(--color-xama-text)' }}>
+                      <td key={col.key} style={{ padding: '10px 12px', textAlign: col.right ? 'center' : 'left', fontFamily: "'JetBrains Mono', monospace", fontVariantNumeric: 'tabular-nums', color: 'var(--xm-text)' }}>
                         {col.render(p)}
                       </td>
                     ))}
@@ -374,11 +374,11 @@ export default function PlayerStatsTable({
 
         {/* Rodapé */}
         <div className="px-5 py-3 flex items-center justify-between"
-          style={{ borderTop: '1px solid var(--color-xama-border)', background: '#0a0c11' }}>
-          <span className="text-[11px] font-bold tracking-[0.1em] uppercase" style={{ color: 'var(--color-xama-orange)' }}>
+          style={{ borderTop: '1px solid var(--xm-border)', background: '#0a0c11' }}>
+          <span className="text-[11px] font-bold tracking-[0.1em] uppercase" style={{ color: 'var(--xm-orange)' }}>
             🔥 XAMA Fantasy
           </span>
-          <span className="text-[11px] tabular-nums" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-muted)' }}>
+          <span className="text-[11px] tabular-nums" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--xm-muted)' }}>
             {sorted.length} / {displayTotal} jogadores{footerLabel ? ` · ${footerLabel}` : ''}
           </span>
         </div>

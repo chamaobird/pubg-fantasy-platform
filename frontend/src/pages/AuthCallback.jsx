@@ -63,8 +63,8 @@ export default function AuthCallback() {
       <div style={{
         minHeight: '100vh', display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center',
-        background: 'var(--color-xama-black)', fontFamily: "'Rajdhani', sans-serif",
-        color: 'var(--color-xama-muted)', fontSize: '16px', letterSpacing: '0.05em',
+        background: 'var(--xm-bg)', fontFamily: "'Rajdhani', sans-serif",
+        color: 'var(--xm-muted)', fontSize: '16px', letterSpacing: '0.05em',
         gap: '16px',
       }}>
         <span>Falha na autenticação. O link pode ter expirado.</span>
@@ -72,7 +72,7 @@ export default function AuthCallback() {
           onClick={() => navigate('/', { replace: true })}
           style={{
             padding: '8px 20px', borderRadius: '6px', cursor: 'pointer',
-            background: 'var(--color-xama-orange)', color: 'var(--color-xama-black)',
+            background: 'var(--xm-orange)', color: 'var(--xm-bg)',
             border: 'none', fontFamily: "'Rajdhani', sans-serif",
             fontSize: '14px', fontWeight: 700, letterSpacing: '0.05em',
           }}
@@ -86,8 +86,8 @@ export default function AuthCallback() {
   return (
     <div style={{
       minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: 'var(--color-xama-black)', fontFamily: "'Rajdhani', sans-serif",
-      color: 'var(--color-xama-muted)', fontSize: '16px', letterSpacing: '0.05em'
+      background: 'var(--xm-bg)', fontFamily: "'Rajdhani', sans-serif",
+      color: 'var(--xm-muted)', fontSize: '16px', letterSpacing: '0.05em'
     }}>
       Autenticando…
     </div>

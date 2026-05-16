@@ -21,19 +21,19 @@ export default function ScoringRulesModal({ captainMultiplier = 1.30, onClose })
         transform: 'translate(-50%, -50%)',
         width: '100%', maxWidth: 560,
         maxHeight: '90vh', overflowY: 'auto',
-        background: 'var(--color-xama-surface)',
-        border: '1px solid var(--color-xama-border)',
+        background: 'var(--xm-surface-1)',
+        border: '1px solid var(--xm-border)',
         borderRadius: 14,
         boxShadow: '0 24px 64px rgba(0,0,0,0.6)',
       }}>
         {/* Barra laranja topo */}
-        <div style={{ height: 3, background: 'linear-gradient(90deg, var(--color-xama-orange), transparent 60%)', borderRadius: '14px 14px 0 0' }} />
+        <div style={{ height: 3, background: 'linear-gradient(90deg, var(--xm-orange), transparent 60%)', borderRadius: '14px 14px 0 0' }} />
 
         {/* Header */}
         <div style={{ padding: '20px 24px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ fontSize: 22 }}>🔥</span>
-            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: 'var(--color-xama-text)', letterSpacing: '0.04em' }}>
+            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: 'var(--xm-text)', letterSpacing: '0.04em' }}>
               Fórmula de Pontuação XAMA
             </h2>
           </div>
@@ -41,7 +41,7 @@ export default function ScoringRulesModal({ captainMultiplier = 1.30, onClose })
             onClick={onClose}
             style={{
               background: 'none', border: 'none', cursor: 'pointer',
-              color: 'var(--color-xama-muted)', fontSize: 20, lineHeight: 1,
+              color: 'var(--xm-muted)', fontSize: 20, lineHeight: 1,
               padding: '4px 8px', borderRadius: 6,
             }}>
             ×
@@ -55,18 +55,18 @@ export default function ScoringRulesModal({ captainMultiplier = 1.30, onClose })
             <SectionTitle>Pontos por Partida</SectionTitle>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ borderBottom: '1px solid var(--color-xama-border)' }}>
+                <tr style={{ borderBottom: '1px solid var(--xm-border)' }}>
                   <Th left>Ação</Th>
                   <Th>Pontos</Th>
                   <Th left>Observação</Th>
                 </tr>
               </thead>
               <tbody>
-                <Row label="Kill"           value="+5"   note="Por eliminação" color="var(--color-xama-orange)" />
+                <Row label="Kill"           value="+5"   note="Por eliminação" color="var(--xm-orange)" />
                 <Row label="Assist"         value="+1"   note="Por assistência" />
                 <Row label="Knock"          value="+1"   note="Por derrubada" />
-                <Row label="Dano"           value="+0.03" note="Por ponto de dano causado" color="var(--color-xama-gold)" />
-                <Row label="Morte precoce"  value="−15"  note="Morreu antes de 10 min sem nenhum kill" color="var(--color-xama-red)" />
+                <Row label="Dano"           value="+0.03" note="Por ponto de dano causado" color="var(--xm-gold)" />
+                <Row label="Morte precoce"  value="−15"  note="Morreu antes de 10 min sem nenhum kill" color="var(--xm-red)" />
               </tbody>
             </table>
           </div>
@@ -74,7 +74,7 @@ export default function ScoringRulesModal({ captainMultiplier = 1.30, onClose })
           {/* Seção 2 — Late game */}
           <div>
             <SectionTitle>Bônus de Sobrevivência (Late Game)</SectionTitle>
-            <p style={{ fontSize: 13, color: 'var(--color-xama-muted)', margin: '0 0 12px', lineHeight: 1.6 }}>
+            <p style={{ fontSize: 13, color: 'var(--xm-muted)', margin: '0 0 12px', lineHeight: 1.6 }}>
               Recompensa jogadores que sobreviveram até o final da partida.
               O bônus depende de quantos jogadores do time vencedor estavam vivos nos últimos 60 segundos.
             </p>
@@ -87,22 +87,22 @@ export default function ScoringRulesModal({ captainMultiplier = 1.30, onClose })
             }}>
               <span style={{ fontSize: 18 }}>🏆</span>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-xama-orange)' }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--xm-orange)' }}>
                   Sobreviventes do time vencedor
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--color-xama-muted)', marginTop: 2 }}>
-                  Cada jogador vivo nos últimos 60s da partida recebe <strong style={{ color: 'var(--color-xama-text)' }}>+10 pts</strong>
+                <div style={{ fontSize: 12, color: 'var(--xm-muted)', marginTop: 2 }}>
+                  Cada jogador vivo nos últimos 60s da partida recebe <strong style={{ color: 'var(--xm-text)' }}>+10 pts</strong>
                 </div>
               </div>
             </div>
 
             {/* Tabela de bônus por N */}
-            <p style={{ fontSize: 12, color: 'var(--color-xama-muted)', margin: '0 0 8px' }}>
+            <p style={{ fontSize: 12, color: 'var(--xm-muted)', margin: '0 0 8px' }}>
               Os demais jogadores que duraram mais tempo também recebem bônus decrescentes:
             </p>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ borderBottom: '1px solid var(--color-xama-border)' }}>
+                <tr style={{ borderBottom: '1px solid var(--xm-border)' }}>
                   <Th left>Sobreviventes do vencedor</Th>
                   <Th left>Bônus para os próximos (por ordem de sobrevivência)</Th>
                 </tr>
@@ -115,8 +115,8 @@ export default function ScoringRulesModal({ captainMultiplier = 1.30, onClose })
                   { n: 1, bonuses: '6, 5, 4, 2, 2, 1, 1' },
                 ].map(({ n, bonuses }) => (
                   <tr key={n} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                    <td style={tdStyle}><span style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-gold)', fontWeight: 700 }}>{n} jogador{n > 1 ? 'es' : ''}</span></td>
-                    <td style={tdStyle}><span style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-text)', fontSize: 13 }}>{bonuses}</span></td>
+                    <td style={tdStyle}><span style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--xm-gold)', fontWeight: 700 }}>{n} jogador{n > 1 ? 'es' : ''}</span></td>
+                    <td style={tdStyle}><span style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--xm-text)', fontSize: 13 }}>{bonuses}</span></td>
                   </tr>
                 ))}
               </tbody>
@@ -131,11 +131,11 @@ export default function ScoringRulesModal({ captainMultiplier = 1.30, onClose })
           }}>
             <span style={{ fontSize: 22 }}>⭐</span>
             <div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-xama-gold)' }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--xm-gold)' }}>
                 Capitão — ×{mult}
               </div>
-              <div style={{ fontSize: 12, color: 'var(--color-xama-muted)', marginTop: 3 }}>
-                O capitão do seu lineup recebe um multiplicador de <strong style={{ color: 'var(--color-xama-text)' }}>×{mult}</strong> sobre todos os seus pontos. Escolha bem!
+              <div style={{ fontSize: 12, color: 'var(--xm-muted)', marginTop: 3 }}>
+                O capitão do seu lineup recebe um multiplicador de <strong style={{ color: 'var(--xm-text)' }}>×{mult}</strong> sobre todos os seus pontos. Escolha bem!
               </div>
             </div>
           </div>
@@ -143,29 +143,29 @@ export default function ScoringRulesModal({ captainMultiplier = 1.30, onClose })
           {/* Seção 4 — Exemplo */}
           <div>
             <SectionTitle>Exemplo Prático</SectionTitle>
-            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--color-xama-border)', borderRadius: 8, padding: '14px 16px' }}>
-              <div style={{ fontSize: 13, color: 'var(--color-xama-muted)', marginBottom: 10 }}>
-                Jogador com: <strong style={{ color: 'var(--color-xama-text)' }}>3 kills · 1 assist · 200 dano · sobreviveu até o top 3</strong>
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--xm-border)', borderRadius: 8, padding: '14px 16px' }}>
+              <div style={{ fontSize: 13, color: 'var(--xm-muted)', marginBottom: 10 }}>
+                Jogador com: <strong style={{ color: 'var(--xm-text)' }}>3 kills · 1 assist · 200 dano · sobreviveu até o top 3</strong>
               </div>
               {[
-                { label: '3 kills',       calc: '3 × 5',     pts: '+15',  color: 'var(--color-xama-orange)' },
-                { label: '1 assist',      calc: '1 × 1',     pts: '+1',   color: 'var(--color-xama-text)' },
-                { label: '200 dano',      calc: '200 × 0.03',pts: '+6',   color: 'var(--color-xama-gold)' },
-                { label: 'Late game',     calc: 'bônus',     pts: '+4',   color: 'var(--color-xama-blue)' },
+                { label: '3 kills',       calc: '3 × 5',     pts: '+15',  color: 'var(--xm-orange)' },
+                { label: '1 assist',      calc: '1 × 1',     pts: '+1',   color: 'var(--xm-text)' },
+                { label: '200 dano',      calc: '200 × 0.03',pts: '+6',   color: 'var(--xm-gold)' },
+                { label: 'Late game',     calc: 'bônus',     pts: '+4',   color: 'var(--xm-blue)' },
               ].map(({ label, calc, pts, color }) => (
                 <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                  <span style={{ fontSize: 13, color: 'var(--color-xama-muted)' }}>{label}</span>
-                  <span style={{ fontSize: 12, fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-muted)' }}>{calc}</span>
+                  <span style={{ fontSize: 13, color: 'var(--xm-muted)' }}>{label}</span>
+                  <span style={{ fontSize: 12, fontFamily: "'JetBrains Mono', monospace", color: 'var(--xm-muted)' }}>{calc}</span>
                   <span style={{ fontSize: 13, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color }}>{pts}</span>
                 </div>
               ))}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, paddingTop: 8, borderTop: '1px solid var(--color-xama-border)' }}>
-                <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-xama-text)' }}>Total</span>
-                <span style={{ fontSize: 16, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-orange)' }}>26 pts</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, paddingTop: 8, borderTop: '1px solid var(--xm-border)' }}>
+                <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--xm-text)' }}>Total</span>
+                <span style={{ fontSize: 16, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: 'var(--xm-orange)' }}>26 pts</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
-                <span style={{ fontSize: 13, color: 'var(--color-xama-gold)' }}>⭐ Como capitão (×{mult})</span>
-                <span style={{ fontSize: 16, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-xama-gold)' }}>{(26 * Number(mult)).toFixed(1)} pts</span>
+                <span style={{ fontSize: 13, color: 'var(--xm-gold)' }}>⭐ Como capitão (×{mult})</span>
+                <span style={{ fontSize: 16, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: 'var(--xm-gold)' }}>{(26 * Number(mult)).toFixed(1)} pts</span>
               </div>
             </div>
           </div>
@@ -182,7 +182,7 @@ function SectionTitle({ children }) {
   return (
     <div style={{
       fontSize: 13, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase',
-      color: 'var(--color-xama-orange)', fontFamily: "'JetBrains Mono', monospace",
+      color: 'var(--xm-orange)', fontFamily: "'JetBrains Mono', monospace",
       marginBottom: 10,
     }}>
       {children}
@@ -190,10 +190,10 @@ function SectionTitle({ children }) {
   )
 }
 
-const tdStyle = { padding: '8px 10px', fontSize: 13, color: 'var(--color-xama-text)' }
+const tdStyle = { padding: '8px 10px', fontSize: 13, color: 'var(--xm-text)' }
 const thStyle = (left) => ({
   padding: '7px 10px', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em',
-  textTransform: 'uppercase', color: 'var(--color-xama-muted)',
+  textTransform: 'uppercase', color: 'var(--xm-muted)',
   textAlign: left ? 'left' : 'right',
 })
 
@@ -205,8 +205,8 @@ function Row({ label, value, note, color }) {
   return (
     <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
       <td style={{ ...tdStyle, fontWeight: 600 }}>{label}</td>
-      <td style={{ ...tdStyle, textAlign: 'right', fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, color: color || 'var(--color-xama-text)' }}>{value}</td>
-      <td style={{ ...tdStyle, color: 'var(--color-xama-muted)', fontSize: 12 }}>{note}</td>
+      <td style={{ ...tdStyle, textAlign: 'right', fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, color: color || 'var(--xm-text)' }}>{value}</td>
+      <td style={{ ...tdStyle, color: 'var(--xm-muted)', fontSize: 12 }}>{note}</td>
     </tr>
   )
 }

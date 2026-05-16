@@ -52,30 +52,30 @@ export default function PriceHistoryModal({ stageId, roster, onClose }) {
         transform: 'translate(-50%, -50%)',
         width: '100%', maxWidth: '480px',
         background: 'var(--surface-1)',
-        border: '1px solid var(--color-xama-border)',
+        border: '1px solid var(--xm-border)',
         borderRadius: '12px', overflow: 'hidden',
         boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
       }}>
         {/* Header */}
         <div style={{
           padding: '18px 20px',
-          borderBottom: '1px solid var(--color-xama-border)',
+          borderBottom: '1px solid var(--xm-border)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <div>
             <div style={{
               fontSize: '16px', fontWeight: 700,
-              color: 'var(--color-xama-text)',
+              color: 'var(--xm-text)',
               letterSpacing: '0.04em',
             }}>
               {playerName}
               {roster.team_name && (
-                <span style={{ fontSize: '12px', color: 'var(--color-xama-muted)', marginLeft: '8px', fontWeight: 600 }}>
+                <span style={{ fontSize: '12px', color: 'var(--xm-muted)', marginLeft: '8px', fontWeight: 600 }}>
                   {roster.team_name}
                 </span>
               )}
             </div>
-            <div style={{ fontSize: '11px', color: 'var(--color-xama-muted)', marginTop: '2px', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+            <div style={{ fontSize: '11px', color: 'var(--xm-muted)', marginTop: '2px', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
               Histórico de preços
             </div>
           </div>
@@ -83,7 +83,7 @@ export default function PriceHistoryModal({ stageId, roster, onClose }) {
             <span style={{
               fontSize: '20px', fontWeight: 700,
               fontFamily: "'JetBrains Mono', monospace",
-              color: 'var(--color-xama-gold)',
+              color: 'var(--xm-gold)',
             }}>
               {roster.effective_cost ?? '—'}
             </span>
@@ -91,7 +91,7 @@ export default function PriceHistoryModal({ stageId, roster, onClose }) {
               onClick={onClose}
               style={{
                 background: 'none', border: 'none', cursor: 'pointer',
-                color: 'var(--color-xama-muted)', fontSize: '20px',
+                color: 'var(--xm-muted)', fontSize: '20px',
                 lineHeight: 1, padding: '4px',
               }}>×</button>
           </div>
@@ -100,17 +100,17 @@ export default function PriceHistoryModal({ stageId, roster, onClose }) {
         {/* Body */}
         <div style={{ maxHeight: '360px', overflowY: 'auto', padding: '8px 0' }}>
           {loading && (
-            <p style={{ padding: '24px', textAlign: 'center', color: 'var(--color-xama-muted)', fontSize: '13px' }}>
+            <p style={{ padding: '24px', textAlign: 'center', color: 'var(--xm-muted)', fontSize: '13px' }}>
               Carregando...
             </p>
           )}
           {error && (
-            <p style={{ padding: '16px', textAlign: 'center', color: 'var(--color-xama-red)', fontSize: '13px' }}>
+            <p style={{ padding: '16px', textAlign: 'center', color: 'var(--xm-red)', fontSize: '13px' }}>
               {error}
             </p>
           )}
           {!loading && !error && history.length === 0 && (
-            <p style={{ padding: '24px', textAlign: 'center', color: 'var(--color-xama-muted)', fontSize: '13px' }}>
+            <p style={{ padding: '24px', textAlign: 'center', color: 'var(--xm-muted)', fontSize: '13px' }}>
               Nenhum registro encontrado
             </p>
           )}
@@ -129,19 +129,19 @@ export default function PriceHistoryModal({ stageId, roster, onClose }) {
                     ? 'rgba(250,204,21,0.12)'
                     : 'rgba(249,115,22,0.1)',
                   color: h.source === 'override'
-                    ? 'var(--color-xama-gold)'
-                    : 'var(--color-xama-orange)',
+                    ? 'var(--xm-gold)'
+                    : 'var(--xm-orange)',
                 }}>
                   {h.source === 'override' ? '✏️ override' : '⚡ auto'}
                 </span>
-                <span style={{ fontSize: '12px', color: 'var(--color-xama-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
+                <span style={{ fontSize: '12px', color: 'var(--xm-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
                   {fmt(h.recorded_at)}
                 </span>
               </div>
               <span style={{
                 fontSize: '16px', fontWeight: 700,
                 fontFamily: "'JetBrains Mono', monospace",
-                color: 'var(--color-xama-text)',
+                color: 'var(--xm-text)',
               }}>
                 {h.cost}
               </span>
@@ -152,14 +152,14 @@ export default function PriceHistoryModal({ stageId, roster, onClose }) {
         {/* Footer */}
         <div style={{
           padding: '12px 20px',
-          borderTop: '1px solid var(--color-xama-border)',
+          borderTop: '1px solid var(--xm-border)',
           display: 'flex', justifyContent: 'flex-end',
         }}>
           <button
             onClick={onClose}
             style={{
-              padding: '8px 20px', borderRadius: '6px', border: '1px solid var(--color-xama-border)',
-              background: 'var(--surface-2)', color: 'var(--color-xama-muted)',
+              padding: '8px 20px', borderRadius: '6px', border: '1px solid var(--xm-border)',
+              background: 'var(--surface-2)', color: 'var(--xm-muted)',
               fontSize: '13px', fontWeight: 600, cursor: 'pointer',
               letterSpacing: '0.04em',
             }}>

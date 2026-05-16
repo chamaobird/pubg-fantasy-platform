@@ -41,7 +41,7 @@ const STYLE = {
   },
   modal: {
     background: 'rgba(18,21,28,0.97)',
-    border: '1px solid var(--color-xama-border, #2d3148)',
+    border: '1px solid var(--xm-border, #2d3148)',
     borderRadius: 14,
     padding: '22px 20px',
     width: 340,

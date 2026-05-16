@@ -229,7 +229,7 @@
 .dash-faceoff--locked .dash-faceoff-icon {
   background: rgba(148,163,184,0.1);
   border-color: rgba(148,163,184,0.2);
-  color: var(--color-xama-muted);
+  color: var(--xm-muted);
 }
 .dash-faceoff--locked:hover {
   border-color: rgba(148,163,184,0.4);
@@ -238,7 +238,7 @@
 .dash-faceoff--locked .dash-faceoff-cta {
   background: rgba(148,163,184,0.08);
   border-color: rgba(148,163,184,0.25);
-  color: var(--color-xama-muted);
+  color: var(--xm-muted);
 }
 
 /* Finished variant — campeonato encerrado, ver resultados */
@@ -255,7 +255,7 @@
 .dash-faceoff--finished .dash-faceoff-icon {
   background: rgba(240,192,64,0.1);
   border-color: rgba(240,192,64,0.2);
-  color: var(--color-xama-gold);
+  color: var(--xm-gold);
 }
 .dash-faceoff--finished:hover {
   border-color: rgba(240,192,64,0.45);
@@ -264,7 +264,7 @@
 .dash-faceoff--finished .dash-faceoff-cta {
   background: rgba(240,192,64,0.08);
   border-color: rgba(240,192,64,0.25);
-  color: var(--color-xama-gold);
+  color: var(--xm-gold);
 }
 .dash-faceoff--finished:hover .dash-faceoff-cta {
   background: rgba(240,192,64,0.15);

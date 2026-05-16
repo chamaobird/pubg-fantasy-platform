@@ -13,8 +13,8 @@ const btn = (variant = 'primary', extra = {}) => ({
   cursor: 'pointer',
   fontSize: '13px',
   fontWeight: 600,
-  ...(variant === 'primary'   && { background: 'var(--color-xama-orange)', color: '#000' }),
-  ...(variant === 'secondary' && { background: 'rgba(249,115,22,0.08)', color: 'var(--color-xama-orange)', border: '1px solid rgba(249,115,22,0.2)' }),
+  ...(variant === 'primary'   && { background: 'var(--xm-orange)', color: '#000' }),
+  ...(variant === 'secondary' && { background: 'rgba(249,115,22,0.08)', color: 'var(--xm-orange)', border: '1px solid rgba(249,115,22,0.2)' }),
   ...(variant === 'ghost'     && { background: 'transparent', color: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.1)' }),
   ...extra,
 })
@@ -30,7 +30,7 @@ const card = {
 const sectionTitle = {
   fontSize: '13px',
   fontWeight: 700,
-  color: 'var(--color-xama-orange)',
+  color: 'var(--xm-orange)',
   letterSpacing: '0.06em',
   textTransform: 'uppercase',
   marginBottom: '14px',
@@ -98,8 +98,8 @@ function MatchList({ matches, selectedMatches, toggleMatch, toggleAllNew, newMat
                 opacity: m.imported && !checked ? 0.5 : 1,
               }}
             >
-              <input type="checkbox" checked={checked} onChange={() => {}} style={{ accentColor: 'var(--color-xama-orange)', flexShrink: 0 }} />
-              <span style={{ fontFamily: 'monospace', fontSize: 11, color: m.imported ? 'rgba(255,255,255,0.4)' : 'var(--color-xama-text)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <input type="checkbox" checked={checked} onChange={() => {}} style={{ accentColor: 'var(--xm-orange)', flexShrink: 0 }} />
+              <span style={{ fontFamily: 'monospace', fontSize: 11, color: m.imported ? 'rgba(255,255,255,0.4)' : 'var(--xm-text)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {m.match_id}
               </span>
               {m.twire_id && (
@@ -110,7 +110,7 @@ function MatchList({ matches, selectedMatches, toggleMatch, toggleAllNew, newMat
               {m.imported ? (
                 <span style={{ fontSize: 10, fontWeight: 700, color: '#4ade80', flexShrink: 0 }}>importado</span>
               ) : (
-                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--color-xama-orange)', flexShrink: 0 }}>novo</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--xm-orange)', flexShrink: 0 }}>novo</span>
               )}
               {m.played_at && (
                 <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', flexShrink: 0 }}>{fmtUtc(m.played_at)}</span>
@@ -367,7 +367,7 @@ export default function AdminOpsPanel({ stageId, token }) {
           {[['tournament', 'Por Torneio'], ['twire', 'Via Twire'], ['manual', 'Manual']].map(([t, label]) => (
             <button key={t} onClick={() => { setImportTab(t); setImportResult(null); setTournamentMatches([]); setSelectedMatches(new Set()); setFetchResult(null) }} style={{
               padding: '5px 14px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600,
-              background: importTab === t ? 'var(--color-xama-orange)' : 'rgba(255,255,255,0.06)',
+              background: importTab === t ? 'var(--xm-orange)' : 'rgba(255,255,255,0.06)',
               color: importTab === t ? '#000' : 'rgba(255,255,255,0.5)',
             }}>{label}</button>
           ))}
@@ -377,7 +377,7 @@ export default function AdminOpsPanel({ stageId, token }) {
         {importTab === 'tournament' && (
           <div>
             <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', marginBottom: '10px' }}>
-              Informe o Tournament ID da PUBG API (ex: <code style={{ color: 'var(--color-xama-orange)' }}>am-pas126</code>)
+              Informe o Tournament ID da PUBG API (ex: <code style={{ color: 'var(--xm-orange)' }}>am-pas126</code>)
               para buscar as partidas recentes e selecionar quais importar.
             </div>
 
@@ -420,8 +420,8 @@ export default function AdminOpsPanel({ stageId, token }) {
           <div>
             <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', marginBottom: '10px' }}>
               Backup quando a PUBG API falha. Informe o ID numérico do torneio no Twire
-              (ex: <code style={{ color: 'var(--color-xama-orange)' }}>2513</code> para PAS,{' '}
-              <code style={{ color: 'var(--color-xama-orange)' }}>2512</code> para PEC).
+              (ex: <code style={{ color: 'var(--xm-orange)' }}>2513</code> para PAS,{' '}
+              <code style={{ color: 'var(--xm-orange)' }}>2512</code> para PEC).
             </div>
             <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
               <input
@@ -495,7 +495,7 @@ export default function AdminOpsPanel({ stageId, token }) {
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'rgba(255,255,255,0.5)', cursor: 'pointer' }}>
-                <input type='checkbox' checked={forceReproc} onChange={e => setForceReproc(e.target.checked)} style={{ accentColor: 'var(--color-xama-orange)' }} />
+                <input type='checkbox' checked={forceReproc} onChange={e => setForceReproc(e.target.checked)} style={{ accentColor: 'var(--xm-orange)' }} />
                 Force reprocess
               </label>
               <button

@@ -489,7 +489,7 @@ export default function LineupBuilder({
 
   const budgetUsedPct  = Math.min((totalCost / BUDGET_CAP) * 100, 100)
   const budgetBarColor = isOverBudget ? '#f87171' : totalCost / BUDGET_CAP > 0.85
-    ? 'var(--color-xama-gold)' : 'var(--color-xama-orange)'
+    ? 'var(--xm-gold)' : 'var(--xm-orange)'
 
   const ps = (p) => priorStats[p.person_id]  // helper: prior stats de um player
 
@@ -498,7 +498,7 @@ export default function LineupBuilder({
     { key: 'name',              label: 'Jogador',  right: false },
     { key: 'effective_cost',    label: 'Preço',    right: true,
       title: 'Custo do jogador nesta stage',
-      render: (p) => <span style={{ color: 'var(--color-xama-gold)', fontWeight: 700, fontSize: 14 }}>{fmtCost(p.effective_cost)}</span> },
+      render: (p) => <span style={{ color: 'var(--xm-gold)', fontWeight: 700, fontSize: 14 }}>{fmtCost(p.effective_cost)}</span> },
     { key: 'pts_per_match',     label: 'PTS/G',    right: true,
       title: 'Pontos XAMA médios por partida (dias anteriores deste campeonato)',
       render: (p) => ps(p) ? ps(p).pts_per_match.toFixed(1) : '—' },
@@ -535,14 +535,14 @@ export default function LineupBuilder({
               borderRadius: 8, padding: '12px 16px', marginBottom: 12,
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-xama-blue)', marginBottom: 8 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--xm-blue)', marginBottom: 8 }}>
                   📋 Como montar seu lineup
                 </div>
                 <button
                   onClick={() => { setTutorialDismissed(true); localStorage.setItem(TUTORIAL_KEY, '1') }}
                   style={{
                     background: 'none', border: 'none', cursor: 'pointer',
-                    color: 'var(--color-xama-muted)', fontSize: 16, lineHeight: 1,
+                    color: 'var(--xm-muted)', fontSize: 16, lineHeight: 1,
                     padding: 0, flexShrink: 0,
                   }}
                   title="Dispensar">×</button>
@@ -554,8 +554,8 @@ export default function LineupBuilder({
                   'Clique ⭐ num slot para definir o Capitão — ele recebe ×1.30 nos pontos',
                   'Pontos: Kill +5 · Assist +1 · Knock +1 · Dano ×0.03',
                 ].map(tip => (
-                  <div key={tip} style={{ fontSize: 12, color: 'var(--color-xama-muted)', display: 'flex', gap: 6 }}>
-                    <span style={{ color: 'var(--color-xama-blue)', flexShrink: 0 }}>›</span>
+                  <div key={tip} style={{ fontSize: 12, color: 'var(--xm-muted)', display: 'flex', gap: 6 }}>
+                    <span style={{ color: 'var(--xm-blue)', flexShrink: 0 }}>›</span>
                     {tip}
                   </div>
                 ))}
@@ -573,10 +573,10 @@ export default function LineupBuilder({
             }}>
               <span style={{ fontSize: 18 }}>⏳</span>
               <div>
-                <div style={{ color: 'var(--color-xama-orange)', fontSize: 13, fontWeight: 700 }}>
+                <div style={{ color: 'var(--xm-orange)', fontSize: 13, fontWeight: 700 }}>
                   Lineup desabilitado — Aguardando confirmação
                 </div>
-                <div style={{ color: 'var(--color-xama-muted)', fontSize: 12, marginTop: 2 }}>
+                <div style={{ color: 'var(--xm-muted)', fontSize: 12, marginTop: 2 }}>
                   O roster está sendo validado. A montagem será liberada em breve.
                 </div>
               </div>
@@ -589,7 +589,7 @@ export default function LineupBuilder({
               background: 'rgba(248,113,113,0.08)',
               border: '1px solid rgba(248,113,113,0.3)',
               borderRadius: 8, padding: '10px 16px', marginBottom: 12,
-              color: 'var(--color-xama-red)', fontSize: 13, fontWeight: 600, textAlign: 'center',
+              color: 'var(--xm-red)', fontSize: 13, fontWeight: 600, textAlign: 'center',
             }}>
               🔒 Lineup fechado — submissões não são aceitas no momento
             </div>
@@ -601,14 +601,14 @@ export default function LineupBuilder({
 
               {/* Budget */}
               <div style={{ flexShrink: 0 }}>
-                <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--color-xama-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>
+                <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--xm-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>
                   Budget
                 </div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 3, fontFamily: "'JetBrains Mono', monospace", lineHeight: 1 }}>
-                  <span style={{ fontSize: 22, fontWeight: 800, color: isOverBudget ? '#f87171' : 'var(--color-xama-gold)' }}>
+                  <span style={{ fontSize: 22, fontWeight: 800, color: isOverBudget ? '#f87171' : 'var(--xm-gold)' }}>
                     {fmtCost(totalCost)}
                   </span>
-                  <span style={{ fontSize: 13, color: 'var(--color-xama-muted)' }}>/ {BUDGET_CAP}</span>
+                  <span style={{ fontSize: 13, color: 'var(--xm-muted)' }}>/ {BUDGET_CAP}</span>
                 </div>
               </div>
 
@@ -618,7 +618,7 @@ export default function LineupBuilder({
                   title={`Capitão recebe ×${Number(stage.captain_multiplier).toFixed(2)} nos pontos`}
                   style={{
                     fontSize: 11, fontWeight: 700, letterSpacing: '0.05em',
-                    color: 'var(--color-xama-gold)',
+                    color: 'var(--xm-gold)',
                     background: 'rgba(250,204,21,0.10)',
                     border: '1px solid rgba(250,204,21,0.25)',
                     borderRadius: 4, padding: '3px 7px',
@@ -636,7 +636,7 @@ export default function LineupBuilder({
                 const { diff, days, hours, mins, secs } = countdown
                 const urgent  = diff < 10 * 60_000
                 const warning = diff < 60 * 60_000
-                const color   = urgent ? '#f87171' : warning ? 'var(--color-xama-gold)' : 'var(--color-xama-muted)'
+                const color   = urgent ? '#f87171' : warning ? 'var(--xm-gold)' : 'var(--xm-muted)'
                 const label   = urgent ? 'URGENTE' : warning ? 'fechando' : 'fecha em'
                 const timeStr = diff > 24 * 3_600_000
                   ? `${days}d ${hours}h`
@@ -678,10 +678,10 @@ export default function LineupBuilder({
                       transition: 'background 0.15s, border-color 0.15s, opacity 0.15s',
                       alignSelf: 'center',
                       ...(isEditMode
-                        ? { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--color-xama-muted)', opacity: 0.7 }
+                        ? { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--xm-muted)', opacity: 0.7 }
                         : active
-                          ? { background: 'var(--color-xama-orange)', border: '1px solid transparent', color: '#fff' }
-                          : { background: 'var(--surface-3)', border: '1px solid transparent', color: 'var(--color-xama-muted)' }
+                          ? { background: 'var(--xm-orange)', border: '1px solid transparent', color: '#fff' }
+                          : { background: 'var(--surface-3)', border: '1px solid transparent', color: 'var(--xm-muted)' }
                       ),
                     }}
                   >
@@ -711,11 +711,11 @@ export default function LineupBuilder({
                 style={{
                   background: 'none', border: 'none', padding: '2px 0',
                   fontSize: 12, fontWeight: 600,
-                  color: 'var(--color-xama-muted)', cursor: 'pointer',
+                  color: 'var(--xm-muted)', cursor: 'pointer',
                   textDecoration: 'underline', textUnderlineOffset: '3px',
                 }}
-                onMouseEnter={e => e.currentTarget.style.color = 'var(--color-xama-orange)'}
-                onMouseLeave={e => e.currentTarget.style.color = 'var(--color-xama-muted)'}
+                onMouseEnter={e => e.currentTarget.style.color = 'var(--xm-orange)'}
+                onMouseLeave={e => e.currentTarget.style.color = 'var(--xm-muted)'}
               >
                 ⚡ preencher automaticamente
               </button>
@@ -725,7 +725,7 @@ export default function LineupBuilder({
           {/* Mensagens de erro / sucesso */}
           {(saveError || saveSuccess) && (
             <div style={{ padding: '6px 16px 0' }}>
-              {saveError   && <div className="msg-error">{saveError}</div>}
+              {saveError   && <div className="xm-msg xm-msg--err">{saveError}</div>}
               {saveSuccess && <div className="msg-success">Lineup salvo com sucesso!</div>}
             </div>
           )}
@@ -742,7 +742,7 @@ export default function LineupBuilder({
                 <div key={p.id} className="xlb-hslot" style={{
                   flex: 1,
                   background: 'var(--surface-2)',
-                  border: `1px solid ${isCap ? 'var(--color-xama-gold)' : isCheapest ? 'rgba(249,115,22,0.7)' : 'var(--color-xama-border)'}`,
+                  border: `1px solid ${isCap ? 'var(--xm-gold)' : isCheapest ? 'rgba(249,115,22,0.7)' : 'var(--xm-border)'}`,
                   boxShadow: isCap ? '0 0 0 2px rgba(250,204,21,0.10)' : isCheapest ? '0 0 0 2px rgba(249,115,22,0.18)' : 'none',
                   borderRadius: 8, overflow: 'hidden',
                   transition: 'border-color 0.2s, box-shadow 0.2s',
@@ -774,7 +774,7 @@ export default function LineupBuilder({
                         {isRecCap && (
                           <span style={{ fontSize: 8, color: 'rgba(250,204,21,0.85)', fontWeight: 800, letterSpacing: '0.05em', marginRight: 2 }}>REC</span>
                         )}
-                        <span style={{ color: isCap ? 'var(--color-xama-gold)' : isRecCap ? 'rgba(250,204,21,0.65)' : 'var(--color-xama-muted)', lineHeight: 1, fontSize: 16 }}>{isCap ? '⭐' : '☆'}</span>
+                        <span style={{ color: isCap ? 'var(--xm-gold)' : isRecCap ? 'rgba(250,204,21,0.65)' : 'var(--xm-muted)', lineHeight: 1, fontSize: 16 }}>{isCap ? '⭐' : '☆'}</span>
                       </button>
                     </div>
                   </div>
@@ -782,13 +782,13 @@ export default function LineupBuilder({
               ) : (
                 <div key={i} className="xlb-hslot empty" style={{
                   flex: 1, background: 'var(--surface-1)',
-                  border: '1px dashed var(--color-xama-border)',
+                  border: '1px dashed var(--xm-border)',
                   borderRadius: 8, padding: '8px 10px',
                   display: 'flex', flexDirection: 'column',
                   alignItems: 'center', justifyContent: 'center', gap: 4, minHeight: 120,
                 }}>
-                  <span style={{ fontSize: 9, color: 'var(--color-xama-muted)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>T{i + 1}</span>
-                  <span style={{ fontSize: 10, color: 'var(--color-xama-muted)', fontStyle: 'italic' }}>— vazio —</span>
+                  <span style={{ fontSize: 9, color: 'var(--xm-muted)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>T{i + 1}</span>
+                  <span style={{ fontSize: 10, color: 'var(--xm-muted)', fontStyle: 'italic' }}>— vazio —</span>
                 </div>
               )
             })}
@@ -807,12 +807,12 @@ export default function LineupBuilder({
                 <div className="xlb-hslot-sep" />
                 <div className="xlb-hslot-info">
                   <div className="xlb-hslot-toprow">
-                    <span className="xlb-hslot-tag-label" style={{ color: 'var(--color-xama-blue)' }}>RESERVA</span>
+                    <span className="xlb-hslot-tag-label" style={{ color: 'var(--xm-blue)' }}>RESERVA</span>
                     <button className="xlb-remove-btn" onClick={removeReserve} title="Remover reserva">×</button>
                   </div>
                   <div className="xlb-hslot-name">{formatPlayerName(reservePlayer.person_name, reservePlayer.team_name)}</div>
                   <div className="xlb-hslot-bottomrow">
-                    <span className="xlb-hslot-price" style={{ color: reserveEligible ? 'var(--color-xama-gold)' : 'var(--color-xama-red)' }}>
+                    <span className="xlb-hslot-price" style={{ color: reserveEligible ? 'var(--xm-gold)' : 'var(--xm-red)' }}>
                       {fmtCost(reservePlayer.effective_cost)}{!reserveEligible && ' ⚠'}
                     </span>
                   </div>
@@ -827,7 +827,7 @@ export default function LineupBuilder({
                 alignItems: 'center', justifyContent: 'center', gap: 4, minHeight: 120,
                 marginLeft: 12,
               }}>
-                <span style={{ fontSize: 9, color: 'var(--color-xama-blue)', letterSpacing: '0.10em', textTransform: 'uppercase' }}>RESERVA</span>
+                <span style={{ fontSize: 9, color: 'var(--xm-blue)', letterSpacing: '0.10em', textTransform: 'uppercase' }}>RESERVA</span>
                 <span style={{ fontSize: 10, color: 'rgba(96,165,250,0.6)', fontStyle: 'italic' }}>— vazio —</span>
                 {selectedPlayers.length > 0 && (
                   <span style={{
@@ -857,10 +857,10 @@ export default function LineupBuilder({
                       cursor: isEditMode ? 'default' : (canSave && !saveLoading ? 'pointer' : 'not-allowed'),
                       transition: 'background 0.15s, opacity 0.15s',
                       ...(isEditMode
-                        ? { background: 'rgba(255,255,255,0.04)', color: 'var(--color-xama-muted)', opacity: 0.7 }
+                        ? { background: 'rgba(255,255,255,0.04)', color: 'var(--xm-muted)', opacity: 0.7 }
                         : active
-                          ? { background: 'var(--color-xama-orange)', color: '#fff' }
-                          : { background: 'var(--surface-3)', color: 'var(--color-xama-muted)' }
+                          ? { background: 'var(--xm-orange)', color: '#fff' }
+                          : { background: 'var(--surface-3)', color: 'var(--xm-muted)' }
                       ),
                     }}
                   >
@@ -887,8 +887,8 @@ export default function LineupBuilder({
                 style={{
                   fontSize: 11, fontWeight: 700, letterSpacing: '0.06em',
                   padding: '3px 10px', borderRadius: 20, border: 'none', cursor: 'pointer',
-                  background: teamFilter === null ? 'var(--color-xama-orange)' : 'var(--surface-3)',
-                  color: teamFilter === null ? '#fff' : 'var(--color-xama-muted)',
+                  background: teamFilter === null ? 'var(--xm-orange)' : 'var(--surface-3)',
+                  color: teamFilter === null ? '#fff' : 'var(--xm-muted)',
                   transition: 'background 0.12s, color 0.12s',
                 }}>
                 Todos
@@ -900,8 +900,8 @@ export default function LineupBuilder({
                   style={{
                     fontSize: 11, fontWeight: 700, letterSpacing: '0.06em',
                     padding: '3px 10px', borderRadius: 20, border: 'none', cursor: 'pointer',
-                    background: teamFilter === tag ? 'var(--color-xama-orange)' : 'var(--surface-3)',
-                    color: teamFilter === tag ? '#fff' : 'var(--color-xama-muted)',
+                    background: teamFilter === tag ? 'var(--xm-orange)' : 'var(--surface-3)',
+                    color: teamFilter === tag ? '#fff' : 'var(--xm-muted)',
                     transition: 'background 0.12s, color 0.12s',
                   }}>
                   {tag}
@@ -926,7 +926,7 @@ export default function LineupBuilder({
                 background: 'rgba(249,115,22,0.08)',
                 border: '1px solid rgba(249,115,22,0.25)',
                 borderRadius: 6, padding: '5px 12px', cursor: 'pointer',
-                color: 'var(--color-xama-orange)',
+                color: 'var(--xm-orange)',
                 fontSize: 13, fontWeight: 700, letterSpacing: '0.04em',
                 whiteSpace: 'nowrap', flexShrink: 0,
               }}>
@@ -947,24 +947,24 @@ export default function LineupBuilder({
             onMouseEnter={e => e.currentTarget.style.background = 'rgba(249,115,22,0.08)'}
             onMouseLeave={e => e.currentTarget.style.background = 'rgba(249,115,22,0.04)'}
           >
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-xama-orange)', letterSpacing: '0.08em', fontFamily: "'JetBrains Mono', monospace" }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--xm-orange)', letterSpacing: '0.08em', fontFamily: "'JetBrains Mono', monospace" }}>
               🔥 XAMA
             </span>
             {[
               'Kill +5', 'Assist +1', 'Knock +1', 'Dano ×0.03', 'Morte precoce −15', 'Late Game bônus', `Cap ×${Number(stage?.captain_multiplier ?? 1.30).toFixed(2)}`
             ].map(item => (
-              <span key={item} style={{ fontSize: 11, color: 'var(--color-xama-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
+              <span key={item} style={{ fontSize: 11, color: 'var(--xm-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
                 {item}
               </span>
             ))}
-            <span style={{ fontSize: 11, color: 'var(--color-xama-orange)', fontFamily: "'JetBrains Mono', monospace", marginLeft: 'auto' }}>
+            <span style={{ fontSize: 11, color: 'var(--xm-orange)', fontFamily: "'JetBrains Mono', monospace", marginLeft: 'auto' }}>
               ver detalhes →
             </span>
           </div>
 
           {/* Estados */}
-          {playersLoading && <p className="xama-loading" style={{ padding: '24px 18px' }}>Carregando jogadores...</p>}
-          {playersError   && <p className="xama-error"   style={{ padding: '16px 18px' }}>{playersError}</p>}
+          {playersLoading && <p className="xm-empty__body" style={{ padding: '24px 18px' }}>Carregando jogadores...</p>}
+          {playersError   && <p className="xm-msg xm-msg--err"   style={{ padding: '16px 18px' }}>{playersError}</p>}
 
           {/* Tabela — sempre renderizada em preview, botões desabilitados */}
           {!playersLoading && !playersError && (
@@ -1005,12 +1005,12 @@ export default function LineupBuilder({
                         <td>
                           <div className="flex items-center gap-1.5">
                             <TeamLogo teamName={playerTag} shortName={stage?.championship_short_name ?? ''} size={20} />
-                            <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--color-xama-muted)' }}>
+                            <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--xm-muted)' }}>
                               {playerTag || '—'}
                             </span>
                           </div>
                         </td>
-                        <td className="font-semibold whitespace-nowrap" style={{ color: 'var(--color-xama-text)', fontSize: 15 }}>
+                        <td className="font-semibold whitespace-nowrap" style={{ color: 'var(--xm-text)', fontSize: 15 }}>
                           <span
                             onClick={() => setHistoryPlayer({
                               person_id: p.person_id,
@@ -1025,7 +1025,7 @@ export default function LineupBuilder({
                             {formatPlayerName(p.person_name, p.team_name)}
                           </span>
                           {isCap && (
-                            <span style={{ marginLeft: 4, fontSize: 9, color: 'var(--color-xama-gold)', fontWeight: 700 }}>⭐CAP</span>
+                            <span style={{ marginLeft: 4, fontSize: 9, color: 'var(--xm-gold)', fontWeight: 700 }}>⭐CAP</span>
                           )}
                           {isRecCaptain && (
                             <span title="Recomendado como capitão — melhor pts/g do lineup" style={{ marginLeft: 4, fontSize: 9, color: 'rgba(250,204,21,0.75)', fontWeight: 700 }}>★REC</span>
@@ -1054,7 +1054,7 @@ export default function LineupBuilder({
                             style={{
                               fontFamily: "'JetBrains Mono', monospace",
                               fontSize: 13,
-                              color: 'var(--color-xama-text)',
+                              color: 'var(--xm-text)',
                               whiteSpace: 'nowrap',
                               textAlign: 'center',
                             }}>
@@ -1066,7 +1066,7 @@ export default function LineupBuilder({
                             {onPlayerInfoClick && (
                               <button
                                 className="xlb-action-btn xlb-action-btn--graph"
-                                style={{ background: 'rgba(96,165,250,0.08)', borderColor: 'rgba(96,165,250,0.2)', color: 'var(--color-xama-blue)' }}
+                                style={{ background: 'rgba(96,165,250,0.08)', borderColor: 'rgba(96,165,250,0.2)', color: 'var(--xm-blue)' }}
                                 onClick={() => onPlayerInfoClick(p)}
                                 title="Ver histórico de preços">
                                 📈
@@ -1085,7 +1085,7 @@ export default function LineupBuilder({
                               style={isReserveHighlighted ? {
                                 background: 'rgba(249,115,22,0.15)',
                                 borderColor: 'rgba(249,115,22,0.5)',
-                                color: 'var(--color-xama-orange)',
+                                color: 'var(--xm-orange)',
                               } : undefined}
                               onClick={() => !btnDisabled && !isSelected && setAsReserve(p)}>
                               Reserva

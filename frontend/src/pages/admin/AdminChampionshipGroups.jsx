@@ -15,7 +15,7 @@ function authHeaders(token) {
 function Row({ label, children }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-xama-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: "'JetBrains Mono', monospace" }}>
+      <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--xm-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: "'JetBrains Mono', monospace" }}>
         {label}
       </label>
       {children}
@@ -26,9 +26,9 @@ function Row({ label, children }) {
 const inputStyle = {
   padding: '8px 10px',
   background: 'rgba(255,255,255,0.05)',
-  border: '1px solid var(--color-xama-border)',
+  border: '1px solid var(--xm-border)',
   borderRadius: 6,
-  color: 'var(--color-xama-text)',
+  color: 'var(--xm-text)',
   fontSize: 13,
   width: '100%',
   boxSizing: 'border-box',
@@ -105,7 +105,7 @@ function GroupForm({ token, onSaved, initial = null }) {
         style={{
           padding: '9px 20px', borderRadius: 7, cursor: saving ? 'not-allowed' : 'pointer',
           background: 'rgba(249,115,22,0.15)', border: '1px solid rgba(249,115,22,0.4)',
-          color: 'var(--color-xama-orange)', fontWeight: 700, fontSize: 13, alignSelf: 'flex-start',
+          color: 'var(--xm-orange)', fontWeight: 700, fontSize: 13, alignSelf: 'flex-start',
         }}
       >
         {saving ? 'Salvando…' : editing ? 'Salvar alterações' : 'Criar grupo'}
@@ -170,13 +170,13 @@ function MemberManager({ token, group, allChampionships, onChanged }) {
 
   return (
     <div>
-      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-xama-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: "'JetBrains Mono', monospace", marginBottom: 10 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--xm-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: "'JetBrains Mono', monospace", marginBottom: 10 }}>
         Fases ({memberChamps.length})
       </div>
 
       {/* Lista de membros */}
       {memberChamps.length === 0 ? (
-        <div style={{ fontSize: 13, color: 'var(--color-xama-muted)', fontStyle: 'italic', marginBottom: 12 }}>
+        <div style={{ fontSize: 13, color: 'var(--xm-muted)', fontStyle: 'italic', marginBottom: 12 }}>
           Nenhum championship no grupo.
         </div>
       ) : (
@@ -189,8 +189,8 @@ function MemberManager({ token, group, allChampionships, onChanged }) {
               borderRadius: 7, gap: 12,
             }}>
               <div>
-                <span style={{ fontSize: 13, color: 'var(--color-xama-text)', fontWeight: 500 }}>{c.name}</span>
-                <span style={{ marginLeft: 8, fontSize: 11, color: 'var(--color-xama-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
+                <span style={{ fontSize: 13, color: 'var(--xm-text)', fontWeight: 500 }}>{c.name}</span>
+                <span style={{ marginLeft: 8, fontSize: 11, color: 'var(--xm-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
                   #{c.id}
                 </span>
               </div>
@@ -292,8 +292,8 @@ function GroupCard({ token, group: initialGroup, allChampionships, onDeactivated
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 16 }}>
         <div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-xama-text)' }}>{group.name}</div>
-          <div style={{ fontSize: 11, color: 'var(--color-xama-muted)', fontFamily: "'JetBrains Mono', monospace", marginTop: 3 }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--xm-text)' }}>{group.name}</div>
+          <div style={{ fontSize: 11, color: 'var(--xm-muted)', fontFamily: "'JetBrains Mono', monospace", marginTop: 3 }}>
             {group.short_name} · id={group.id} · order={group.display_order}
           </div>
         </div>
@@ -303,7 +303,7 @@ function GroupCard({ token, group: initialGroup, allChampionships, onDeactivated
             style={{
               padding: '5px 12px', borderRadius: 5, cursor: 'pointer',
               background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)',
-              color: 'var(--color-xama-text)', fontSize: 12,
+              color: 'var(--xm-text)', fontSize: 12,
             }}
           >
             {editing ? 'Cancelar' : 'Editar'}
@@ -388,8 +388,8 @@ export default function AdminChampionshipGroups({ token }) {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-xama-text)' }}>Championship Groups</div>
-          <div style={{ fontSize: 12, color: 'var(--color-xama-muted)', marginTop: 2 }}>
+          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--xm-text)' }}>Championship Groups</div>
+          <div style={{ fontSize: 12, color: 'var(--xm-muted)', marginTop: 2 }}>
             Agrupa championships de um mesmo torneio para rankings e stats unificadas
           </div>
         </div>
@@ -411,7 +411,7 @@ export default function AdminChampionshipGroups({ token }) {
           background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
           borderRadius: 10, padding: '18px 20px',
         }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-xama-text)', marginBottom: 14 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--xm-text)', marginBottom: 14 }}>
             Novo grupo
           </div>
           <GroupForm token={token} onSaved={handleCreated} />
@@ -419,12 +419,12 @@ export default function AdminChampionshipGroups({ token }) {
       )}
 
       {loading && (
-        <div style={{ padding: 40, textAlign: 'center', color: 'var(--color-xama-muted)' }}>Carregando…</div>
+        <div style={{ padding: 40, textAlign: 'center', color: 'var(--xm-muted)' }}>Carregando…</div>
       )}
-      {error && <div className="msg-error">{error}</div>}
+      {error && <div className="xm-msg xm-msg--err">{error}</div>}
 
       {!loading && !error && groups.length === 0 && (
-        <div style={{ padding: 40, textAlign: 'center', color: 'var(--color-xama-muted)', fontSize: 14, fontStyle: 'italic' }}>
+        <div style={{ padding: 40, textAlign: 'center', color: 'var(--xm-muted)', fontSize: 14, fontStyle: 'italic' }}>
           Nenhum grupo criado ainda.
         </div>
       )}

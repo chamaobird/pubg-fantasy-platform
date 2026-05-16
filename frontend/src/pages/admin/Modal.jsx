@@ -75,7 +75,7 @@ export function Modal({ title, onClose, children, width = 520 }) {
             onClick={onClose}
             style={{
               background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: 6, color: 'var(--color-xama-muted)',
+              borderRadius: 6, color: 'var(--xm-muted)',
               fontSize: 18, cursor: 'pointer', width: 32, height: 32,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
@@ -90,11 +90,11 @@ export function Modal({ title, onClose, children, width = 520 }) {
 export function Field({ label, children, hint }) {
   return (
     <div style={{ marginBottom: 16 }}>
-      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--color-xama-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--xm-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
         {label}
       </label>
       {children}
-      {hint && <div style={{ fontSize: 11, color: 'var(--color-xama-muted)', marginTop: 4 }}>{hint}</div>}
+      {hint && <div style={{ fontSize: 11, color: 'var(--xm-muted)', marginTop: 4 }}>{hint}</div>}
     </div>
   )
 }
@@ -102,7 +102,7 @@ export function Field({ label, children, hint }) {
 export const inputStyle = {
   width: '100%', padding: '9px 12px', borderRadius: 8,
   background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)',
-  color: 'var(--color-xama-text)', fontSize: 14, outline: 'none',
+  color: 'var(--xm-text)', fontSize: 14, outline: 'none',
   boxSizing: 'border-box',
 }
 
@@ -190,7 +190,7 @@ export function SearchableSelect({ value, onChange, options = [], placeholder = 
       />
       <span style={{
         position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
-        color: 'var(--color-xama-muted)', fontSize: 10, pointerEvents: 'none',
+        color: 'var(--xm-muted)', fontSize: 10, pointerEvents: 'none',
         transition: 'transform 0.15s',
         ...(open ? { transform: 'translateY(-50%) rotate(180deg)' } : {}),
       }}>▼</span>
@@ -203,7 +203,7 @@ export function SearchableSelect({ value, onChange, options = [], placeholder = 
           boxShadow: '0 8px 28px rgba(0,0,0,0.5)',
         }}>
           {filtered.length === 0 ? (
-            <div style={{ padding: '10px 12px', fontSize: 12, color: 'var(--color-xama-muted)' }}>
+            <div style={{ padding: '10px 12px', fontSize: 12, color: 'var(--xm-muted)' }}>
               Nenhum resultado para "{query}"
             </div>
           ) : filtered.map((opt, i) => (
@@ -213,7 +213,7 @@ export function SearchableSelect({ value, onChange, options = [], placeholder = 
               onMouseEnter={() => setHighlighted(i)}
               style={{
                 padding: '9px 12px', fontSize: 13, cursor: 'pointer',
-                color: String(opt.value) === String(value) ? 'var(--color-xama-orange)' : 'var(--color-xama-text)',
+                color: String(opt.value) === String(value) ? 'var(--xm-orange)' : 'var(--xm-text)',
                 background: i === highlighted ? 'rgba(249,115,22,0.1)' : 'transparent',
                 borderBottom: i < filtered.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
                 fontWeight: String(opt.value) === String(value) ? 600 : 400,
@@ -236,7 +236,7 @@ export function Msg({ msg }) {
       padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 13,
       background: isErr ? 'rgba(239,68,68,0.1)' : 'rgba(74,222,128,0.1)',
       border: `1px solid ${isErr ? 'rgba(239,68,68,0.3)' : 'rgba(74,222,128,0.3)'}`,
-      color: isErr ? '#f87171' : 'var(--color-xama-green)',
+      color: isErr ? '#f87171' : 'var(--xm-green)',
     }}>
       {isErr ? msg.slice(1) : msg}
     </div>
@@ -257,7 +257,7 @@ export function ActBtn({ children, onClick, danger, small, disabled }) {
         transition: 'opacity 0.15s',
         ...(danger
           ? { background: 'rgba(239,68,68,0.1)', borderColor: 'rgba(239,68,68,0.35)', color: '#f87171' }
-          : { background: 'rgba(249,115,22,0.1)', borderColor: 'rgba(249,115,22,0.35)', color: 'var(--color-xama-orange)' }
+          : { background: 'rgba(249,115,22,0.1)', borderColor: 'rgba(249,115,22,0.35)', color: 'var(--xm-orange)' }
         ),
       }}
     >
@@ -274,7 +274,7 @@ export function SaveBtn({ loading, label = 'Salvar', onClick }) {
       style={{
         width: '100%', padding: '10px', borderRadius: 8, cursor: loading ? 'not-allowed' : 'pointer',
         fontSize: 14, fontWeight: 700,
-        background: loading ? 'rgba(249,115,22,0.3)' : 'var(--color-xama-orange)',
+        background: loading ? 'rgba(249,115,22,0.3)' : 'var(--xm-orange)',
         border: 'none', color: '#fff', transition: 'opacity 0.15s',
         opacity: loading ? 0.7 : 1,
         marginTop: 8,
@@ -288,7 +288,7 @@ export function SaveBtn({ loading, label = 'Salvar', onClick }) {
 export function SectionHeader({ title, action }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
-      <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--color-xama-text)', fontFamily: 'var(--xm-font-display)' }}>{title}</div>
+      <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--xm-text)', fontFamily: 'var(--xm-font-display)' }}>{title}</div>
       {action}
     </div>
   )
@@ -309,13 +309,13 @@ export const tableStyle = {
   width: '100%', borderCollapse: 'collapse', fontSize: 13,
 }
 export const thStyle = {
-  textAlign: 'left', padding: '10px 14px', borderBottom: '1px solid var(--color-xama-border)',
-  fontSize: 11, fontWeight: 700, color: 'var(--color-xama-muted)',
+  textAlign: 'left', padding: '10px 14px', borderBottom: '1px solid var(--xm-border)',
+  fontSize: 11, fontWeight: 700, color: 'var(--xm-muted)',
   textTransform: 'uppercase', letterSpacing: '0.08em',
 }
 export const tdStyle = {
   padding: '11px 14px', borderBottom: '1px solid rgba(255,255,255,0.04)',
-  color: 'var(--color-xama-text)', verticalAlign: 'middle',
+  color: 'var(--xm-text)', verticalAlign: 'middle',
 }
 
 export function SortableHeader({ label, col, sort, onSort, style }) {
@@ -335,11 +335,11 @@ export function SortableHeader({ label, col, sort, onSort, style }) {
 
 export function StatusBadge({ status }) {
   const map = {
-    open:    { bg: 'rgba(74,222,128,0.12)',  border: 'rgba(74,222,128,0.35)',  color: 'var(--color-xama-green)',  label: 'ABERTO' },
-    preview: { bg: 'rgba(249,115,22,0.12)',  border: 'rgba(249,115,22,0.35)', color: 'var(--color-xama-orange)', label: 'PREVIEW' },
-    live:    { bg: 'rgba(249,115,22,0.12)',  border: 'rgba(249,115,22,0.35)', color: 'var(--color-xama-orange)', label: 'AO VIVO' },
-    closed:  { bg: 'rgba(107,114,128,0.12)', border: 'rgba(107,114,128,0.3)', color: 'var(--color-xama-muted)',  label: 'FECHADO' },
-    locked:  { bg: 'rgba(107,114,128,0.12)', border: 'rgba(107,114,128,0.3)', color: 'var(--color-xama-muted)',  label: 'ENCERRADO' },
+    open:    { bg: 'rgba(74,222,128,0.12)',  border: 'rgba(74,222,128,0.35)',  color: 'var(--xm-green)',  label: 'ABERTO' },
+    preview: { bg: 'rgba(249,115,22,0.12)',  border: 'rgba(249,115,22,0.35)', color: 'var(--xm-orange)', label: 'PREVIEW' },
+    live:    { bg: 'rgba(249,115,22,0.12)',  border: 'rgba(249,115,22,0.35)', color: 'var(--xm-orange)', label: 'AO VIVO' },
+    closed:  { bg: 'rgba(107,114,128,0.12)', border: 'rgba(107,114,128,0.3)', color: 'var(--xm-muted)',  label: 'FECHADO' },
+    locked:  { bg: 'rgba(107,114,128,0.12)', border: 'rgba(107,114,128,0.3)', color: 'var(--xm-muted)',  label: 'ENCERRADO' },
   }
   const s = map[status] ?? map.closed
   return (

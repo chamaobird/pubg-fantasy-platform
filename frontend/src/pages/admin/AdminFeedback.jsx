@@ -6,7 +6,7 @@ import { listFeedback } from '../../api/feedback'
 
 const CARD = {
   background: 'rgba(18,21,28,0.9)',
-  border: '1px solid var(--color-xama-border, #2d3148)',
+  border: '1px solid var(--xm-border, #2d3148)',
   borderRadius: 10,
   padding: '14px 16px',
   display: 'flex',
@@ -124,7 +124,7 @@ export default function AdminFeedback({ token }) {
         <button
           onClick={() => setSkip(s => s + LIMIT)}
           style={{
-            background: 'none', border: '1px solid var(--color-xama-border, #2d3148)',
+            background: 'none', border: '1px solid var(--xm-border, #2d3148)',
             borderRadius: 8, color: '#94a3b8', cursor: 'pointer', padding: '8px 18px',
             fontFamily: "'Rajdhani', sans-serif", fontWeight: 600, fontSize: 13,
             letterSpacing: '0.06em', alignSelf: 'center',

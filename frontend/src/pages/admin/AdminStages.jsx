@@ -210,10 +210,10 @@ function RosterPanel({ stage, token }) {
     <div style={{ padding: '18px 24px 20px', background: 'rgba(74,222,128,0.02)', borderTop: '1px solid rgba(74,222,128,0.12)' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-xama-text)' }}>Roster</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--xm-text)' }}>Roster</span>
         <span style={{
           fontSize: 11, fontWeight: 700, padding: '2px 10px', borderRadius: 20,
-          background: 'rgba(74,222,128,0.1)', color: 'var(--color-xama-green)',
+          background: 'rgba(74,222,128,0.1)', color: 'var(--xm-green)',
           border: '1px solid rgba(74,222,128,0.3)', fontFamily: 'JetBrains Mono, monospace',
         }}>
           {teams.length} times · {totalAvailable}/{totalAll} jogadores
@@ -222,14 +222,14 @@ function RosterPanel({ stage, token }) {
           <span style={{
             fontSize: 12, padding: '3px 9px', borderRadius: 6,
             background: msg.startsWith('!') ? 'rgba(239,68,68,0.1)' : 'rgba(74,222,128,0.1)',
-            color: msg.startsWith('!') ? '#f87171' : 'var(--color-xama-green)',
+            color: msg.startsWith('!') ? '#f87171' : 'var(--xm-green)',
             border: `1px solid ${msg.startsWith('!') ? 'rgba(239,68,68,0.3)' : 'rgba(74,222,128,0.3)'}`,
           }}>
             {msg.startsWith('!') ? msg.slice(1) : msg}
           </span>
         )}
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
-          <button onClick={() => { setMsg(''); refresh() }} style={{ fontSize: 11, color: 'var(--color-xama-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
+          <button onClick={() => { setMsg(''); refresh() }} style={{ fontSize: 11, color: 'var(--xm-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
             ↺ Recarregar
           </button>
           <button
@@ -238,7 +238,7 @@ function RosterPanel({ stage, token }) {
             style={{
               fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 6,
               background: preflighting ? 'rgba(249,115,22,0.03)' : 'rgba(249,115,22,0.08)',
-              color: 'var(--color-xama-orange)', border: '1px solid rgba(249,115,22,0.35)',
+              color: 'var(--xm-orange)', border: '1px solid rgba(249,115,22,0.35)',
               cursor: preflighting ? 'default' : 'pointer', transition: 'all 0.15s',
             }}
           >
@@ -268,13 +268,13 @@ function RosterPanel({ stage, token }) {
           fontSize: 12, fontFamily: 'JetBrains Mono, monospace',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: preflightResult.issues?.length > 0 ? 8 : 0 }}>
-            <span style={{ fontWeight: 700, color: preflightResult.ok ? 'var(--color-xama-green)' : 'var(--color-xama-orange)' }}>
+            <span style={{ fontWeight: 700, color: preflightResult.ok ? 'var(--xm-green)' : 'var(--xm-orange)' }}>
               {preflightResult.ok
                 ? `✓ Preflight OK — ${preflightResult.total_active} jogadores com conta ${preflightResult.shard} vinculada`
                 : `⚠ ${preflightResult.issues_count} jogador${preflightResult.issues_count !== 1 ? 'es' : ''} sem conta ${preflightResult.shard} válida`
               }
             </span>
-            <button onClick={() => setPreflightResult(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-xama-muted)', fontSize: 13 }}>✕</button>
+            <button onClick={() => setPreflightResult(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--xm-muted)', fontSize: 13 }}>✕</button>
           </div>
           {preflightResult.issues?.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -285,11 +285,11 @@ function RosterPanel({ stage, token }) {
                   background: issue.status === 'pendente' ? 'rgba(249,115,22,0.06)' : 'rgba(239,68,68,0.06)',
                   border: `1px solid ${issue.status === 'pendente' ? 'rgba(249,115,22,0.2)' : 'rgba(239,68,68,0.2)'}`,
                 }}>
-                  <span style={{ fontWeight: 700, color: issue.status === 'pendente' ? 'var(--color-xama-orange)' : '#f87171', minWidth: 68 }}>
+                  <span style={{ fontWeight: 700, color: issue.status === 'pendente' ? 'var(--xm-orange)' : '#f87171', minWidth: 68 }}>
                     {issue.status === 'pendente' ? 'PENDENTE' : 'SEM CONTA'}
                   </span>
-                  <span style={{ color: 'var(--color-xama-text)', flex: 1 }}>{issue.person_name}</span>
-                  <span style={{ color: 'var(--color-xama-muted)' }}>{issue.team_name}</span>
+                  <span style={{ color: 'var(--xm-text)', flex: 1 }}>{issue.person_name}</span>
+                  <span style={{ color: 'var(--xm-muted)' }}>{issue.team_name}</span>
                   {issue.pending_ids?.length > 0 && (
                     <span style={{ color: 'rgba(249,115,22,0.6)', fontSize: 10 }}>{issue.pending_ids[0]}</span>
                   )}
@@ -314,7 +314,7 @@ function RosterPanel({ stage, token }) {
             {reprocessResult.players_skipped_total > 0 && ` · ${reprocessResult.players_skipped_total} skippados`}
             {reprocessResult.matches_errored > 0 && ` · ${reprocessResult.matches_errored} erros`}
           </div>
-          <div style={{ color: 'var(--color-xama-muted)', marginBottom: reprocessResult.unresolved_players?.length > 0 ? 6 : 0 }}>
+          <div style={{ color: 'var(--xm-muted)', marginBottom: reprocessResult.unresolved_players?.length > 0 ? 6 : 0 }}>
             Total XAMA: {reprocessResult.total_pts?.toFixed(2)} pts
           </div>
           {reprocessResult.unresolved_players?.length > 0 && (
@@ -337,7 +337,7 @@ function RosterPanel({ stage, token }) {
       )}
 
       {loading ? (
-        <div style={{ fontSize: 13, color: 'var(--color-xama-muted)', marginBottom: 16 }}>Carregando...</div>
+        <div style={{ fontSize: 13, color: 'var(--xm-muted)', marginBottom: 16 }}>Carregando...</div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10, marginBottom: 20 }}>
           {teams.map(teamName => (
@@ -348,7 +348,7 @@ function RosterPanel({ stage, token }) {
               {/* cabeçalho do time */}
               <div style={{
                 padding: '6px 10px', background: 'rgba(255,255,255,0.04)',
-                fontSize: 12, fontWeight: 700, color: 'var(--color-xama-orange)',
+                fontSize: 12, fontWeight: 700, color: 'var(--xm-orange)',
                 fontFamily: 'JetBrains Mono, monospace',
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6,
               }}>
@@ -356,7 +356,7 @@ function RosterPanel({ stage, token }) {
                   <TeamLogo tag={teamName} region={teamMap[teamName]?.region} size={18} />
                   <span>{teamName}</span>
                 </div>
-                <span style={{ color: 'var(--color-xama-muted)', fontWeight: 400 }}>
+                <span style={{ color: 'var(--xm-muted)', fontWeight: 400 }}>
                   {byTeam[teamName].filter(r => r.is_available).length}/{byTeam[teamName].length}
                 </span>
               </div>
@@ -380,7 +380,7 @@ function RosterPanel({ stage, token }) {
                     />
                   ) : (
                     <span
-                      style={{ fontSize: 12, flex: 1, color: 'var(--color-xama-text)', cursor: 'default' }}
+                      style={{ fontSize: 12, flex: 1, color: 'var(--xm-text)', cursor: 'default' }}
                       title={`ID pessoa: ${r.person_id}`}
                     >
                       {r.person_name}
@@ -388,7 +388,7 @@ function RosterPanel({ stage, token }) {
                   )}
 
                   {/* custo */}
-                  <span style={{ fontSize: 11, color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace', minWidth: 28, textAlign: 'right' }}>
+                  <span style={{ fontSize: 11, color: 'var(--xm-muted)', fontFamily: 'JetBrains Mono, monospace', minWidth: 28, textAlign: 'right' }}>
                     {r.effective_cost != null ? r.effective_cost : '—'}
                   </span>
 
@@ -403,12 +403,12 @@ function RosterPanel({ stage, token }) {
                       <button
                         onClick={() => { setEditingId(r.id); setEditTeam(r.team_name || '') }}
                         title="Editar time"
-                        style={iconBtnStyle('var(--color-xama-muted)')}
+                        style={iconBtnStyle('var(--xm-muted)')}
                       >✎</button>
                       <button
                         onClick={() => handleToggleAvailable(r)}
                         title={r.is_available ? 'Desativar' : 'Ativar'}
-                        style={iconBtnStyle(r.is_available ? 'var(--color-xama-green)' : '#6b7280')}
+                        style={iconBtnStyle(r.is_available ? 'var(--xm-green)' : '#6b7280')}
                       >{r.is_available ? '●' : '○'}</button>
                       <button
                         onClick={() => handleRemove(r)}
@@ -426,7 +426,7 @@ function RosterPanel({ stage, token }) {
 
       {/* Adicionar jogador */}
       <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 14 }}>
-        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-xama-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--xm-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
           Adicionar jogador
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', flexWrap: 'wrap' }}>
@@ -443,7 +443,7 @@ function RosterPanel({ stage, token }) {
                 background: '#1a1d2a', border: '1px solid rgba(255,255,255,0.12)',
                 borderRadius: 6, marginTop: 2, overflow: 'hidden',
               }}>
-                {searching && <div style={{ padding: '8px 12px', fontSize: 12, color: 'var(--color-xama-muted)' }}>Buscando...</div>}
+                {searching && <div style={{ padding: '8px 12px', fontSize: 12, color: 'var(--xm-muted)' }}>Buscando...</div>}
                 {searchResults.map(p => (
                   <button
                     key={p.id}
@@ -451,14 +451,14 @@ function RosterPanel({ stage, token }) {
                     style={{
                       display: 'block', width: '100%', textAlign: 'left',
                       padding: '8px 12px', background: 'none', border: 'none',
-                      fontSize: 12, color: 'var(--color-xama-text)', cursor: 'pointer',
+                      fontSize: 12, color: 'var(--xm-text)', cursor: 'pointer',
                       borderTop: '1px solid rgba(255,255,255,0.05)',
                     }}
                     onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
                     onMouseLeave={e => e.currentTarget.style.background = 'none'}
                   >
                     {p.display_name}
-                    {p.id && <span style={{ color: 'var(--color-xama-muted)', marginLeft: 8, fontFamily: 'JetBrains Mono, monospace', fontSize: 10 }}>#{p.id}</span>}
+                    {p.id && <span style={{ color: 'var(--xm-muted)', marginLeft: 8, fontFamily: 'JetBrains Mono, monospace', fontSize: 10 }}>#{p.id}</span>}
                   </button>
                 ))}
               </div>
@@ -554,13 +554,13 @@ function ImportPanel({ stage, stages, token }) {
     }}>
       {/* Cabeçalho */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-xama-text)' }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--xm-text)' }}>
           Importar Times
         </span>
         <span style={{
           fontSize: 11, fontWeight: 700, padding: '2px 10px', borderRadius: 20,
           background: targetTeamNames.length >= 16 ? 'rgba(74,222,128,0.12)' : 'rgba(249,115,22,0.12)',
-          color: targetTeamNames.length >= 16 ? 'var(--color-xama-green)' : 'var(--color-xama-orange)',
+          color: targetTeamNames.length >= 16 ? 'var(--xm-green)' : 'var(--xm-orange)',
           border: `1px solid ${targetTeamNames.length >= 16 ? 'rgba(74,222,128,0.3)' : 'rgba(249,115,22,0.3)'}`,
           fontFamily: 'JetBrains Mono, monospace',
         }}>
@@ -570,7 +570,7 @@ function ImportPanel({ stage, stages, token }) {
 
       {/* Seletor de stage de origem */}
       <div style={{ maxWidth: 440, marginBottom: 16 }}>
-        <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--color-xama-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+        <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--xm-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
           Stage de origem
         </label>
         <SearchableSelect
@@ -586,18 +586,18 @@ function ImportPanel({ stage, stages, token }) {
 
       {/* Lista de times */}
       {loadingSource && (
-        <div style={{ fontSize: 13, color: 'var(--color-xama-muted)', marginBottom: 12 }}>Carregando times...</div>
+        <div style={{ fontSize: 13, color: 'var(--xm-muted)', marginBottom: 12 }}>Carregando times...</div>
       )}
       {sourceTeams.length > 0 && (
         <>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-            <span style={{ fontSize: 12, color: 'var(--color-xama-muted)' }}>
+            <span style={{ fontSize: 12, color: 'var(--xm-muted)' }}>
               {sourceTeams.length} times na stage de origem
             </span>
             {availableToSelect.length > 0 && (
               <button
                 onClick={selectAll}
-                style={{ fontSize: 11, color: 'var(--color-xama-orange)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
+                style={{ fontSize: 11, color: 'var(--xm-orange)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
               >
                 selecionar todos disponíveis
               </button>
@@ -626,12 +626,12 @@ function ImportPanel({ stage, stages, token }) {
                     checked={alreadyIn || isSel}
                     disabled={alreadyIn}
                     onChange={() => !alreadyIn && toggle(t.team_name)}
-                    style={{ accentColor: 'var(--color-xama-orange)', width: 14, height: 14, flexShrink: 0 }}
+                    style={{ accentColor: 'var(--xm-orange)', width: 14, height: 14, flexShrink: 0 }}
                   />
-                  <span style={{ fontSize: 13, flex: 1, color: alreadyIn ? 'var(--color-xama-green)' : 'var(--color-xama-text)' }}>
+                  <span style={{ fontSize: 13, flex: 1, color: alreadyIn ? 'var(--xm-green)' : 'var(--xm-text)' }}>
                     {t.team_name}
                   </span>
-                  <span style={{ fontSize: 11, color: 'var(--color-xama-muted)', fontFamily: 'JetBrains Mono, monospace' }}>
+                  <span style={{ fontSize: 11, color: 'var(--xm-muted)', fontFamily: 'JetBrains Mono, monospace' }}>
                     {alreadyIn ? '✓' : `${t.player_count}j`}
                   </span>
                 </label>
@@ -647,7 +647,7 @@ function ImportPanel({ stage, stages, token }) {
               <span style={{
                 fontSize: 12, padding: '4px 10px', borderRadius: 6,
                 background: msg.startsWith('!') ? 'rgba(239,68,68,0.1)' : 'rgba(74,222,128,0.1)',
-                color: msg.startsWith('!') ? '#f87171' : 'var(--color-xama-green)',
+                color: msg.startsWith('!') ? '#f87171' : 'var(--xm-green)',
                 border: `1px solid ${msg.startsWith('!') ? 'rgba(239,68,68,0.3)' : 'rgba(74,222,128,0.3)'}`,
               }}>
                 {msg.startsWith('!') ? msg.slice(1) : msg}
@@ -796,11 +796,11 @@ export default function AdminStages({ token }) {
         style={{ maxWidth: 320, marginBottom: 14 }}
       />
 
-      <div style={{ background: 'rgba(18,21,28,0.9)', border: '1px solid var(--color-xama-border)', borderRadius: 12, overflow: 'hidden' }}>
+      <div style={{ background: 'rgba(18,21,28,0.9)', border: '1px solid var(--xm-border)', borderRadius: 12, overflow: 'hidden' }}>
         {loading ? (
-          <div style={{ padding: 40, textAlign: 'center', color: 'var(--color-xama-muted)' }}>Carregando...</div>
+          <div style={{ padding: 40, textAlign: 'center', color: 'var(--xm-muted)' }}>Carregando...</div>
         ) : stages.length === 0 ? (
-          <div style={{ padding: 40, textAlign: 'center', color: 'var(--color-xama-muted)' }}>Nenhuma stage encontrada.</div>
+          <div style={{ padding: 40, textAlign: 'center', color: 'var(--xm-muted)' }}>Nenhuma stage encontrada.</div>
         ) : (() => {
           const sorted = stApply(stages, {
             id: s => s.id,
@@ -815,10 +815,10 @@ export default function AdminStages({ token }) {
           const renderRow = (s, dimmed = false) => (
             <Fragment key={s.id}>
               <tr style={dimmed ? { opacity: 0.55 } : {}}>
-                <td style={{ ...tdStyle, fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: 'var(--color-xama-muted)' }}>{s.id}</td>
-                <td style={{ ...tdStyle, color: 'var(--color-xama-muted)', fontSize: 12 }}>{champName(s.championship_id)}</td>
+                <td style={{ ...tdStyle, fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: 'var(--xm-muted)' }}>{s.id}</td>
+                <td style={{ ...tdStyle, color: 'var(--xm-muted)', fontSize: 12 }}>{champName(s.championship_id)}</td>
                 <td style={{ ...tdStyle, fontWeight: 600 }}>{s.name}</td>
-                <td style={{ ...tdStyle, color: 'var(--color-xama-muted)', fontSize: 12 }}>{fmtDate(s.start_date || s.lineup_open_at)}</td>
+                <td style={{ ...tdStyle, color: 'var(--xm-muted)', fontSize: 12 }}>{fmtDate(s.start_date || s.lineup_open_at)}</td>
                 <td style={tdStyle}>
                   <select
                     value={s.lineup_status}
@@ -828,7 +828,7 @@ export default function AdminStages({ token }) {
                       padding: '4px 8px', borderRadius: 6, fontSize: 12, fontWeight: 700,
                       fontFamily: 'JetBrains Mono, monospace', cursor: 'pointer',
                       border: '1px solid rgba(249,115,22,0.35)',
-                      background: 'rgba(249,115,22,0.08)', color: 'var(--color-xama-orange)',
+                      background: 'rgba(249,115,22,0.08)', color: 'var(--xm-orange)',
                       outline: 'none', colorScheme: 'dark',
                     }}
                   >
@@ -857,7 +857,7 @@ export default function AdminStages({ token }) {
                       small
                       onClick={() => togglePanel(s.id, 'roster')}
                       style={expandedStage?.id === s.id && expandedStage?.panel === 'roster'
-                        ? { borderColor: 'rgba(74,222,128,0.5)', color: 'var(--color-xama-green)' } : {}}
+                        ? { borderColor: 'rgba(74,222,128,0.5)', color: 'var(--xm-green)' } : {}}
                     >
                       {expandedStage?.id === s.id && expandedStage?.panel === 'roster' ? '▲ Roster' : 'Roster'}
                     </ActBtn>
@@ -865,7 +865,7 @@ export default function AdminStages({ token }) {
                       small
                       onClick={() => togglePanel(s.id, 'import')}
                       style={expandedStage?.id === s.id && expandedStage?.panel === 'import'
-                        ? { borderColor: 'rgba(249,115,22,0.6)', color: 'var(--color-xama-orange)' } : {}}
+                        ? { borderColor: 'rgba(249,115,22,0.6)', color: 'var(--xm-orange)' } : {}}
                     >
                       {expandedStage?.id === s.id && expandedStage?.panel === 'import' ? '▲ Importar' : '↓ Importar'}
                     </ActBtn>
@@ -875,7 +875,7 @@ export default function AdminStages({ token }) {
               </tr>
               {expandedStage?.id === s.id && (
                 <tr>
-                  <td colSpan={6} style={{ padding: 0, borderBottom: '1px solid var(--color-xama-border)' }}>
+                  <td colSpan={6} style={{ padding: 0, borderBottom: '1px solid var(--xm-border)' }}>
                     {expandedStage.panel === 'roster'
                       ? <RosterPanel stage={s} token={token} />
                       : <ImportPanel stage={s} stages={stages} token={token} />
@@ -910,8 +910,8 @@ export default function AdminStages({ token }) {
                         style={{
                           width: '100%', display: 'flex', alignItems: 'center', gap: 10,
                           padding: '10px 16px', background: 'rgba(255,255,255,0.02)',
-                          border: 'none', borderTop: '1px solid var(--color-xama-border)',
-                          cursor: 'pointer', color: 'var(--color-xama-muted)', fontSize: 12,
+                          border: 'none', borderTop: '1px solid var(--xm-border)',
+                          cursor: 'pointer', color: 'var(--xm-muted)', fontSize: 12,
                           fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase',
                         }}
                       >
@@ -980,10 +980,10 @@ export default function AdminStages({ token }) {
           {/* Badge de timezone + hint */}
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 8, padding: '10px 14px' }}>
             <span style={{ fontSize: 15, flexShrink: 0 }}>🕐</span>
-            <div style={{ fontSize: 11, color: 'var(--color-xama-muted)', lineHeight: 1.6 }}>
+            <div style={{ fontSize: 11, color: 'var(--xm-muted)', lineHeight: 1.6 }}>
               <span style={{ color: '#a5b4fc', fontWeight: 700 }}>Fuso detectado: {detectTzLabel()}</span>
               <br />
-              Todos os horários abaixo devem ser inseridos no <strong style={{ color: 'var(--color-xama-text)' }}>seu fuso local</strong> — a conversão para UTC é feita automaticamente ao salvar.
+              Todos os horários abaixo devem ser inseridos no <strong style={{ color: 'var(--xm-text)' }}>seu fuso local</strong> — a conversão para UTC é feita automaticamente ao salvar.
             </div>
           </div>
 
