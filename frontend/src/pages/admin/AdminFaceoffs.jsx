@@ -50,6 +50,10 @@ export default function AdminFaceoffs({ token }) {
   const [editForm, setEditForm]         = useState({})
   const [saving, setSaving]             = useState(false)
 
+  // Criação manual de pares
+  const [manualPairs, setManualPairs]   = useState([])
+  const [manualForm, setManualForm]     = useState({ team_a_name: '', team_b_name: '', seed_a: '', seed_b: '' })
+
   // Carrega tudo de uma vez ao montar
   useEffect(() => {
     setGlobalLoading(true)
@@ -112,6 +116,8 @@ export default function AdminFaceoffs({ token }) {
     if (!champId) { setFaceoffs([]); return }
     setSuggested([])
     setSelectedSourceIds(new Set())
+    setManualPairs([])
+    setManualForm({ team_a_name: '', team_b_name: '', seed_a: '', seed_b: '' })
     loadFaceoffs()
   }, [champId])
 
@@ -172,6 +178,39 @@ export default function AdminFaceoffs({ token }) {
       })
       setSuggested([])
       setMsg(`${suggested.length} faceoffs criados em draft.`)
+      await loadFaceoffs()
+    } catch (e) { setMsg('!' + e.message) }
+    finally { setSaving(false) }
+  }
+
+  const handleAddManualPair = () => {
+    const { team_a_name, team_b_name, seed_a, seed_b } = manualForm
+    if (!team_a_name.trim() || !team_b_name.trim()) { setMsg('!Informe os dois times.'); return }
+    if (team_a_name.trim().toLowerCase() === team_b_name.trim().toLowerCase()) { setMsg('!Times devem ser diferentes.'); return }
+    setManualPairs(prev => [...prev, {
+      team_a_name: team_a_name.trim(),
+      team_b_name: team_b_name.trim(),
+      seed_a: seed_a !== '' ? parseInt(seed_a) : prev.length * 2 + 1,
+      seed_b: seed_b !== '' ? parseInt(seed_b) : prev.length * 2 + 2,
+    }])
+    setManualForm({ team_a_name: '', team_b_name: '', seed_a: '', seed_b: '' })
+    setMsg('')
+  }
+
+  const handleRemoveManualPair = (idx) => {
+    setManualPairs(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  const handleCreateManualPairs = async () => {
+    if (!manualPairs.length) return
+    setSaving(true); setMsg('')
+    try {
+      await call('POST', '/admin/faceoffs/bulk', {
+        championship_id: parseInt(champId),
+        pairs: manualPairs,
+      })
+      setManualPairs([])
+      setMsg(`${manualPairs.length} faceoff(s) criado(s) em draft.`)
       await loadFaceoffs()
     } catch (e) { setMsg('!' + e.message) }
     finally { setSaving(false) }
@@ -420,6 +459,98 @@ export default function AdminFaceoffs({ token }) {
               </div>
               <ActBtn onClick={handleBulkCreate} disabled={saving}>
                 {saving ? 'Criando...' : `Criar ${suggested.length} Faceoffs (Draft)`}
+              </ActBtn>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Criação manual de pares */}
+      {champId && (
+        <div style={{
+          marginBottom: 24, padding: '16px 20px',
+          background: 'rgba(249,115,22,0.04)',
+          border: '1px solid rgba(249,115,22,0.18)',
+          borderRadius: 12,
+        }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--xm-text)', marginBottom: 4 }}>
+            Criar Chaves Manualmente
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--xm-muted)', marginBottom: 14, lineHeight: 1.5 }}>
+            Para torneios sem stages de referência (ex: PGS global). Informe os nomes exatos dos times conforme o roster.
+          </div>
+
+          {/* Form para adicionar um par */}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 12 }}>
+            <div>
+              <div style={{ fontSize: 10, color: 'var(--xm-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Time A</div>
+              <input
+                value={manualForm.team_a_name}
+                onChange={e => setManualForm(f => ({ ...f, team_a_name: e.target.value }))}
+                placeholder="ex: Virtus.pro"
+                style={{ ...inputStyle, width: 180 }}
+              />
+            </div>
+            <div>
+              <div style={{ fontSize: 10, color: 'var(--xm-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Time B</div>
+              <input
+                value={manualForm.team_b_name}
+                onChange={e => setManualForm(f => ({ ...f, team_b_name: e.target.value }))}
+                placeholder="ex: Natus Vincere"
+                style={{ ...inputStyle, width: 180 }}
+              />
+            </div>
+            <div>
+              <div style={{ fontSize: 10, color: 'var(--xm-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Seed A</div>
+              <input
+                type="number" min="1"
+                value={manualForm.seed_a}
+                onChange={e => setManualForm(f => ({ ...f, seed_a: e.target.value }))}
+                placeholder="auto"
+                style={{ ...inputStyle, width: 70 }}
+              />
+            </div>
+            <div>
+              <div style={{ fontSize: 10, color: 'var(--xm-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Seed B</div>
+              <input
+                type="number" min="1"
+                value={manualForm.seed_b}
+                onChange={e => setManualForm(f => ({ ...f, seed_b: e.target.value }))}
+                placeholder="auto"
+                style={{ ...inputStyle, width: 70 }}
+              />
+            </div>
+            <ActBtn onClick={handleAddManualPair}>+ Adicionar Par</ActBtn>
+          </div>
+
+          {/* Lista de pares adicionados */}
+          {manualPairs.length > 0 && (
+            <div style={{ marginTop: 8 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--xm-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                Fila ({manualPairs.length} par{manualPairs.length !== 1 ? 'es' : ''})
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
+                {manualPairs.map((p, i) => (
+                  <div key={i} style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '7px 12px', borderRadius: 8, fontSize: 13,
+                    background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+                  }}>
+                    <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: 'var(--xm-muted)', width: 50 }}>
+                      #{p.seed_a}/#{p.seed_b}
+                    </span>
+                    <span style={{ color: '#f97316', fontWeight: 600, flex: 1 }}>{p.team_a_name}</span>
+                    <span style={{ color: 'var(--xm-muted)', fontSize: 11 }}>vs</span>
+                    <span style={{ color: '#6366f1', fontWeight: 600, flex: 1 }}>{p.team_b_name}</span>
+                    <button
+                      onClick={() => handleRemoveManualPair(i)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#f87171', fontSize: 14, padding: '0 4px', lineHeight: 1 }}
+                    >×</button>
+                  </div>
+                ))}
+              </div>
+              <ActBtn onClick={handleCreateManualPairs} disabled={saving}>
+                {saving ? 'Criando...' : `Criar ${manualPairs.length} Faceoff${manualPairs.length !== 1 ? 's' : ''} (Draft)`}
               </ActBtn>
             </div>
           )}
