@@ -449,14 +449,18 @@ export default function LineupBuilder({
       return eb - ea
     })
 
-    // Greedy fill: pick best 4 titulares within budget
+    // Greedy fill: pick best 4 titulares within budget, max 1 per team
     const titulares = []
+    const usedTeams = new Set()
     let spent = 0
     for (const p of ranked) {
       if (titulares.length >= 4) break
       const cost = Number(p.effective_cost)
+      const team = p.team_name || ''
+      if (usedTeams.has(team)) continue
       if (spent + cost <= BUDGET_CAP) {
         titulares.push(p)
+        usedTeams.add(team)
         spent += cost
       }
     }
@@ -465,13 +469,18 @@ export default function LineupBuilder({
     const minCost = Math.min(...titulares.map(p => Number(p.effective_cost)))
     const titularIds = new Set(titulares.map(p => p.id))
 
-    // Pick cheapest reserve (must be cheaper than cheapest titular, not already selected)
+    // Pick cheapest reserve (must be cheaper than cheapest titular, not already selected, different team)
     const reserveCandidates = ranked.filter(p =>
-      !titularIds.has(p.id) && Number(p.effective_cost) <= minCost
+      !titularIds.has(p.id) &&
+      !usedTeams.has(p.team_name || '') &&
+      Number(p.effective_cost) <= minCost
     )
     const reserve = reserveCandidates[reserveCandidates.length - 1] // least efficient but cheapest
-      ?? available.filter(p => !titularIds.has(p.id) && Number(p.effective_cost) <= minCost)
-          .sort((a, b) => Number(a.effective_cost) - Number(b.effective_cost))[0]
+      ?? available.filter(p =>
+          !titularIds.has(p.id) &&
+          !usedTeams.has(p.team_name || '') &&
+          Number(p.effective_cost) <= minCost
+        ).sort((a, b) => Number(a.effective_cost) - Number(b.effective_cost))[0]
 
     // Pick captain = highest pts_per_match among titulares
     const captain = titulares.reduce((best, p) => {
