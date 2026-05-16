@@ -339,7 +339,7 @@ function ManagerLeaderboard({ groupId, currentUserId, onCurrentUser }) {
   }, [groupId, currentUserId, onCurrentUser])
 
   if (loading) return <LoadingBlock />
-  if (error)   return <div className="msg-error">{error}</div>
+  if (error)   return <p className="xm-msg xm-msg--err">{error}</p>
   if (!data.length) return <EmptyBlock msg="Nenhum dado de pontuação ainda." />
 
   // Best phase = maior pontuação de qualquer phase_score
@@ -391,17 +391,15 @@ function ManagerLeaderboard({ groupId, currentUserId, onCurrentUser }) {
               return (
                 <>
                   <tr key={entry.user_id}
+                    className="xm-ldr-row"
+                    data-me={isMe ? 'true' : undefined}
                     onClick={() => hasBreakdown && setExpandedId(isOpen ? null : entry.user_id)}
                     style={{
                       borderBottom: isOpen ? 'none' : '1px solid #13161f',
-                      // Highlight teal MAIS chamativo no usuário logado
                       background: isMe ? 'rgba(20,184,166,0.08)' : isTop3 ? RANK_BG[pos] : 'transparent',
                       borderLeft: isMe ? '3px solid #2dd4bf' : '3px solid transparent',
                       cursor: hasBreakdown ? 'pointer' : 'default',
-                      transition: 'background 0.15s',
-                    }}
-                    onMouseEnter={e => { if (!isMe) e.currentTarget.style.background = '#161b27' }}
-                    onMouseLeave={e => { e.currentTarget.style.background = isMe ? 'rgba(20,184,166,0.08)' : isTop3 ? RANK_BG[pos] : 'transparent' }}>
+                    }}>
                     <td style={{ padding: '12px 14px', textAlign: 'center' }}>
                       <span style={{
                         fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums',
@@ -518,7 +516,7 @@ function PlayerStats({ groupId, shortName }) {
   }, [groupId])
 
   if (loading) return <LoadingBlock />
-  if (error)   return <div className="msg-error">{error}</div>
+  if (error)   return <p className="xm-msg xm-msg--err">{error}</p>
   if (!players.length) return <EmptyBlock msg="Nenhuma stat de jogador registrada." />
 
   return (
@@ -668,10 +666,10 @@ function FaceoffResults({ championshipIds }) {
 // ── Micro-components ──────────────────────────────────────────────────────────
 
 function LoadingBlock() {
-  return <div style={{ textAlign: 'center', padding: 60, color: 'var(--xm-muted)', fontSize: 16 }}>Carregando…</div>
+  return <div className="xm-empty" style={{ paddingTop: 60, paddingBottom: 60 }}><p className="xm-empty__body">Carregando…</p></div>
 }
 function EmptyBlock({ msg }) {
-  return <div style={{ textAlign: 'center', padding: 60, color: 'var(--xm-muted)', fontSize: 14, fontStyle: 'italic' }}>{msg}</div>
+  return <div className="xm-empty" style={{ paddingTop: 60, paddingBottom: 60 }}><p className="xm-empty__body">{msg}</p></div>
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
@@ -735,29 +733,23 @@ export default function ChampionshipGroupDetail() {
   const summaryChamps = summary?.championships ?? champDetails
 
   return (
-    <div style={{ minHeight: '100vh', background: 'transparent', position: 'relative' }}>
+    <div className="xm-page">
       <Navbar />
 
-      <main style={{
-        position: 'relative', zIndex: 1, maxWidth: contentMaxWidth,
-        margin: '0 auto', padding: '40px 24px 64px', transition: 'max-width 0.2s',
-      }}>
-        <button onClick={() => navigate('/championships')}
-          style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: 'var(--xm-muted)', fontSize: 12,
-            marginBottom: 20, padding: 0,
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.06em',
-            transition: 'color 0.15s',
-          }}
-          onMouseEnter={e => e.currentTarget.style.color = 'var(--xm-text)'}
-          onMouseLeave={e => e.currentTarget.style.color = 'var(--xm-muted)'}>
+      <main
+        className="xm-page__container"
+        style={{ maxWidth: contentMaxWidth, paddingBottom: 64, transition: 'max-width 0.2s' }}
+      >
+        <button
+          onClick={() => navigate('/championships')}
+          className="xm-page-header__back"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.06em', marginBottom: 20 }}
+        >
           <DashIconSafe name="arrow-left" size={12} /> Campeonatos
         </button>
 
         {loading && <LoadingBlock />}
-        {error && <div className="msg-error">{error}</div>}
+        {error && <p className="xm-msg xm-msg--err">{error}</p>}
 
         {!loading && !error && group && (
           <>

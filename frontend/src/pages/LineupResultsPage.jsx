@@ -146,12 +146,12 @@ export default function LineupResultsPage({ token = '', stageId: stageIdProp, em
           <div>
             <h1 style={{
               fontSize: 22, fontWeight: 700, letterSpacing: '0.06em',
-              textTransform: 'uppercase', color: 'var(--color-xama-text)', margin: 0,
+              textTransform: 'uppercase', color: 'var(--xm-text)', margin: 0,
             }}>
               Meus Resultados
             </h1>
             {stage && (
-              <p style={{ fontSize: 13, color: 'var(--color-xama-muted)', margin: '4px 0 0' }}>
+              <p style={{ fontSize: 13, color: 'var(--xm-muted)', margin: '4px 0 0' }}>
                 {stage.name}
               </p>
             )}
@@ -162,18 +162,18 @@ export default function LineupResultsPage({ token = '', stageId: stageIdProp, em
               display: 'flex', alignItems: 'center', gap: 6,
               padding: '5px 12px', borderRadius: 20, flexShrink: 0,
               background: liveConnected ? 'rgba(74,222,128,0.08)' : 'rgba(255,255,255,0.04)',
-              border: `1px solid ${liveConnected ? 'rgba(74,222,128,0.25)' : 'var(--color-xama-border)'}`,
+              border: `1px solid ${liveConnected ? 'rgba(74,222,128,0.25)' : 'var(--xm-border)'}`,
             }}>
               <span style={{
                 width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
-                background: liveConnected ? 'var(--color-xama-green, #4ade80)' : 'var(--color-xama-muted)',
+                background: liveConnected ? 'var(--xm-green, #4ade80)' : 'var(--xm-muted)',
                 animation: liveConnected ? 'xamaPulse 1.8s ease-in-out infinite' : 'none',
               }} />
-              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: liveConnected ? 'var(--color-xama-green, #4ade80)' : 'var(--color-xama-muted)' }}>
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: liveConnected ? 'var(--xm-green, #4ade80)' : 'var(--xm-muted)' }}>
                 {liveConnected ? 'Ao Vivo' : 'Offline'}
               </span>
               {lastUpdate && liveConnected && (
-                <span style={{ fontSize: 10, color: 'var(--color-xama-muted)' }}>
+                <span style={{ fontSize: 10, color: 'var(--xm-muted)' }}>
                   · {lastUpdate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                 </span>
               )}
@@ -182,16 +182,16 @@ export default function LineupResultsPage({ token = '', stageId: stageIdProp, em
         </div>
 
         {loading && (
-          <p className="xama-loading" style={{ padding: '32px 0', textAlign: 'center' }}>
-            Carregando resultados...
-          </p>
+          <div className="xm-empty" style={{ paddingTop: 32, paddingBottom: 32 }}>
+            <p className="xm-empty__body">Carregando resultados…</p>
+          </div>
         )}
-        {error && <p className="xama-error" style={{ padding: '16px 0' }}>{error}</p>}
+        {error && <p className="xm-msg xm-msg--err" style={{ margin: '16px 0' }}>{error}</p>}
         {!loading && !error && !token && (
           <div style={{
             background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.3)',
             borderRadius: 8, padding: '16px', textAlign: 'center',
-            color: 'var(--color-xama-red)', fontSize: 14,
+            color: 'var(--xm-red)', fontSize: 14,
           }}>
             Faça login para ver seus resultados.
           </div>
@@ -214,9 +214,9 @@ export default function LineupResultsPage({ token = '', stageId: stageIdProp, em
                         fontSize: 13, fontWeight: 700, letterSpacing: '0.06em',
                         textTransform: 'uppercase',
                         borderRadius: 6, border: 'none', cursor: 'pointer',
-                        background: isActive ? 'var(--color-xama-orange)' : hasLineup ? 'var(--surface-2)' : 'var(--surface-1)',
-                        color: isActive ? '#fff' : hasLineup ? 'var(--color-xama-text)' : 'var(--color-xama-muted)',
-                        outline: isActive ? 'none' : hasLineup ? '1px solid var(--color-xama-border)' : '1px dashed var(--color-xama-border)',
+                        background: isActive ? 'var(--xm-orange)' : hasLineup ? 'var(--surface-2)' : 'var(--surface-1)',
+                        color: isActive ? '#fff' : hasLineup ? 'var(--xm-text)' : 'var(--xm-muted)',
+                        outline: isActive ? 'none' : hasLineup ? '1px solid var(--xm-border)' : '1px dashed var(--xm-border)',
                       }}>
                       Dia {d.day_number}
                     </button>
@@ -227,9 +227,9 @@ export default function LineupResultsPage({ token = '', stageId: stageIdProp, em
 
             {activeDayId && !activeLineup && (
               <div style={{
-                background: 'var(--surface-1)', border: '1px dashed var(--color-xama-border)',
+                background: 'var(--surface-1)', border: '1px dashed var(--xm-border)',
                 borderRadius: 8, padding: '24px', textAlign: 'center',
-                color: 'var(--color-xama-muted)', fontSize: 14,
+                color: 'var(--xm-muted)', fontSize: 14,
               }}>
                 Nenhum lineup submetido para este dia.
               </div>
@@ -301,31 +301,31 @@ function MyLineupStatsTable({ lineup, captainMultiplier, statByPersonId }) {
   return (
     <div style={{
       background: 'var(--surface-1)',
-      border: '1px solid var(--color-xama-border)',
+      border: '1px solid var(--xm-border)',
       borderRadius: 12,
       overflow: 'hidden',
       marginBottom: 20,
     }}>
       {/* Barra laranja */}
-      <div style={{ height: 2, background: 'linear-gradient(90deg, var(--color-xama-orange) 0%, transparent 60%)' }} />
+      <div style={{ height: 2, background: 'linear-gradient(90deg, var(--xm-orange) 0%, transparent 60%)' }} />
 
       {/* Total do dia */}
       <div style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         padding: '12px 16px',
-        background: 'var(--surface-2)', borderBottom: '1px solid var(--color-xama-border)',
+        background: 'var(--surface-2)', borderBottom: '1px solid var(--xm-border)',
       }}>
-        <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--color-xama-muted)' }}>
+        <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--xm-muted)' }}>
           Total do dia
         </span>
-        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 24, fontWeight: 700, color: isPending ? 'var(--color-xama-muted)' : 'var(--color-xama-orange)' }}>
+        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 24, fontWeight: 700, color: isPending ? 'var(--xm-muted)' : 'var(--xm-orange)' }}>
           {isPending ? '—' : Number(lineup.total_points).toFixed(2)}
-          {!isPending && <span style={{ fontSize: 12, color: 'var(--color-xama-muted)', marginLeft: 5 }}>pts</span>}
+          {!isPending && <span style={{ fontSize: 12, color: 'var(--xm-muted)', marginLeft: 5 }}>pts</span>}
         </span>
       </div>
 
       {isPending && (
-        <div style={{ padding: '10px 16px', background: 'rgba(250,204,21,0.06)', borderBottom: '1px solid rgba(250,204,21,0.15)', color: 'var(--color-xama-gold)', fontSize: 12, textAlign: 'center' }}>
+        <div style={{ padding: '10px 16px', background: 'rgba(250,204,21,0.06)', borderBottom: '1px solid rgba(250,204,21,0.15)', color: 'var(--xm-gold)', fontSize: 12, textAlign: 'center' }}>
           ⏳ Aguardando pontuação
         </div>
       )}
@@ -375,7 +375,7 @@ function MyLineupStatsTable({ lineup, captainMultiplier, statByPersonId }) {
           const killColor  = kills  != null && kills  >= 5 ? '#fb923c' : kills  != null && kills  >= 3 ? '#fbbf24' : null
           const dmgColor   = damage != null && damage >= 800 ? '#4ade80' : damage != null && damage >= 400 ? '#a3e635' : null
           const posColor   = avgPlace != null && avgPlace <= 3 ? '#fde68a' : null
-          const ptsColor   = lp.is_captain ? 'var(--color-xama-gold)' : isReserve ? 'var(--color-xama-muted)' : 'var(--color-xama-text)'
+          const ptsColor   = lp.is_captain ? 'var(--xm-gold)' : isReserve ? 'var(--xm-muted)' : 'var(--xm-text)'
 
           return (
             <div
@@ -410,14 +410,14 @@ function MyLineupStatsTable({ lineup, captainMultiplier, statByPersonId }) {
               <div className="xlr-stats-cols">
                 {/* K */}
                 <div className="xlr-stat-col" title="Kills no dia">
-                  <span className="xlr-stat-value" style={{ color: killColor || 'var(--color-xama-text)' }}>
+                  <span className="xlr-stat-value" style={{ color: killColor || 'var(--xm-text)' }}>
                     {kills !== null ? kills : '—'}
                   </span>
                 </div>
 
                 {/* DMG */}
                 <div className="xlr-stat-col xlr-stat-col--hide-mobile" title="Dano no dia">
-                  <span className="xlr-stat-value" style={{ color: dmgColor || 'var(--color-xama-text)' }}>
+                  <span className="xlr-stat-value" style={{ color: dmgColor || 'var(--xm-text)' }}>
                     {damage !== null ? damage : '—'}
                   </span>
                 </div>
@@ -431,21 +431,21 @@ function MyLineupStatsTable({ lineup, captainMultiplier, statByPersonId }) {
 
                 {/* POS */}
                 <div className="xlr-stat-col xlr-stat-col--hide-mobile" title="Colocação média">
-                  <span className="xlr-stat-value" style={{ color: posColor || 'var(--color-xama-text)' }}>
+                  <span className="xlr-stat-value" style={{ color: posColor || 'var(--xm-text)' }}>
                     {avgPlace !== null ? `#${avgPlace}` : '—'}
                   </span>
                 </div>
 
                 {/* SOBREV */}
                 <div className="xlr-stat-col xlr-stat-col--hide-mobile" title="Pontos de sobrevivência">
-                  <span className="xlr-stat-value" style={{ color: sobrev != null && sobrev > 0 ? 'var(--color-xama-text)' : sobrev != null && sobrev < 0 ? '#f87171' : 'var(--color-xama-muted)' }}>
+                  <span className="xlr-stat-value" style={{ color: sobrev != null && sobrev > 0 ? 'var(--xm-text)' : sobrev != null && sobrev < 0 ? '#f87171' : 'var(--xm-muted)' }}>
                     {sobrev !== null ? sobrev : '—'}
                   </span>
                 </div>
 
                 {/* XAMA */}
                 <div className="xlr-stat-col" title="Pontos XAMA brutos">
-                  <span className="xlr-stat-value" style={{ color: 'var(--color-xama-orange)' }}>
+                  <span className="xlr-stat-value" style={{ color: 'var(--xm-orange)' }}>
                     {xama !== null ? xama.toFixed(1) : '—'}
                   </span>
                 </div>
@@ -456,7 +456,7 @@ function MyLineupStatsTable({ lineup, captainMultiplier, statByPersonId }) {
                     {pts !== null ? pts.toFixed(2) : '—'}
                   </span>
                   {lp.is_captain && basePts !== null && (
-                    <span style={{ fontSize: 9, color: 'var(--color-xama-muted)', lineHeight: 1, marginTop: 1 }}>
+                    <span style={{ fontSize: 9, color: 'var(--xm-muted)', lineHeight: 1, marginTop: 1 }}>
                       {basePts.toFixed(1)} ×{captainMultiplier.toFixed(2)}
                     </span>
                   )}
@@ -469,15 +469,15 @@ function MyLineupStatsTable({ lineup, captainMultiplier, statByPersonId }) {
 
       {/* Footer */}
       <div style={{
-        borderTop: '1px solid var(--color-xama-border)',
+        borderTop: '1px solid var(--xm-border)',
         padding: '8px 16px',
         display: 'flex', alignItems: 'center', gap: 6,
         background: 'var(--surface-0)',
       }}>
-        <span style={{ fontSize: 10, color: 'var(--color-xama-muted)' }}>Multiplicador do capitão:</span>
+        <span style={{ fontSize: 10, color: 'var(--xm-muted)' }}>Multiplicador do capitão:</span>
         <span style={{
           fontSize: 11, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace",
-          color: 'var(--color-xama-gold)',
+          color: 'var(--xm-gold)',
           background: 'rgba(250,204,21,0.10)', border: '1px solid rgba(250,204,21,0.25)',
           borderRadius: 4, padding: '1px 6px',
         }}>
@@ -498,23 +498,23 @@ function StageSummary({ lineups, days }) {
 
   return (
     <div style={{
-      background: 'var(--surface-1)', border: '1px solid var(--color-xama-border)',
+      background: 'var(--surface-1)', border: '1px solid var(--xm-border)',
       borderRadius: 10, overflow: 'hidden',
     }}>
       <div style={{
         padding: '10px 16px',
-        background: 'var(--surface-2)', borderBottom: '1px solid var(--color-xama-border)',
+        background: 'var(--surface-2)', borderBottom: '1px solid var(--xm-border)',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       }}>
         <span style={{
           fontSize: 12, fontWeight: 700,
-          letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--color-xama-muted)',
+          letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--xm-muted)',
         }}>
           Acumulado da Stage
         </span>
         <span style={{
           fontFamily: "'JetBrains Mono', monospace", fontSize: 18, fontWeight: 700,
-          color: 'var(--color-xama-orange)',
+          color: 'var(--xm-orange)',
         }}>
           {total.toFixed(2)} pts
         </span>
@@ -530,18 +530,18 @@ function StageSummary({ lineups, days }) {
             const day = days.find(d => d.id === l.stage_day_id)
             return (
               <div key={l.id} style={{
-                background: 'var(--surface-2)', border: '1px solid var(--color-xama-border)',
+                background: 'var(--surface-2)', border: '1px solid var(--xm-border)',
                 borderRadius: 6, padding: '6px 14px', textAlign: 'center', minWidth: 80,
               }}>
                 <div style={{
-                  fontSize: 10, color: 'var(--color-xama-muted)',
+                  fontSize: 10, color: 'var(--xm-muted)',
                   fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
                 }}>
                   Dia {day?.day_number || '?'}
                 </div>
                 <div style={{
                   fontFamily: "'JetBrains Mono', monospace", fontSize: 16, fontWeight: 700,
-                  color: 'var(--color-xama-text)', marginTop: 3,
+                  color: 'var(--xm-text)', marginTop: 3,
                 }}>
                   {Number(l.total_points).toFixed(2)}
                 </div>

@@ -468,6 +468,10 @@
 .xm-page__container--lg { max-width: 820px; }
 .xm-page__container--xl { max-width: 1000px; }
 
+/* ── LEADERBOARD ROW ────────────────────────────────────────────────── */
+.xm-ldr-row { transition: background 0.15s; }
+.xm-ldr-row:not([data-me="true"]):hover { background: #161b27 !important; }
+
 /* ── STAGE ROW (Championships) ──────────────────────────────────────── */
 .xm-stage-row {
   display: flex; align-items: center; justify-content: space-between;

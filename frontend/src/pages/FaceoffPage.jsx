@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import FaceoffCard from '../components/FaceoffCard'
+import { DashIcon } from '../components/DashIcon'
 import { API_BASE_URL } from '../config'
 
 export default function FaceoffPage({ token, championshipId: championshipIdProp }) {
@@ -55,7 +56,7 @@ export default function FaceoffPage({ token, championshipId: championshipIdProp 
 
       {/* Back link — só na rota standalone */}
       {!isEmbedded && (
-        <Link to="/championships" style={{ fontSize: 12, color: 'var(--color-xama-muted)', textDecoration: 'none', display: 'inline-block', marginBottom: 20 }}>
+        <Link to="/championships" className="xm-page-header__back" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none', marginBottom: 20 }}>
           ← Campeonatos
         </Link>
       )}
@@ -86,23 +87,23 @@ export default function FaceoffPage({ token, championshipId: championshipIdProp 
 
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap', position: 'relative' }}>
           <div style={{
-            fontSize: 40, width: 64, height: 64, borderRadius: 14,
+            width: 64, height: 64, borderRadius: 14,
             background: 'linear-gradient(135deg, rgba(99,102,241,0.2), rgba(249,115,22,0.15))',
             border: '1px solid rgba(99,102,241,0.3)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0,
+            flexShrink: 0, color: '#a5b4fc',
           }}>
-            ⚔️
+            <DashIcon name="swords" size={28} />
           </div>
           <div style={{ flex: 1, minWidth: 200 }}>
             <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', color: '#a5b4fc', textTransform: 'uppercase', marginBottom: 4 }}>
               Team Faceoff
             </div>
-            <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, color: 'var(--color-xama-text)', lineHeight: 1.15, letterSpacing: '0.02em' }}>
+            <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, color: 'var(--xm-text)', lineHeight: 1.15, letterSpacing: '0.02em' }}>
               Quem vai longe nas Finals?
             </h1>
             {champ && (
-              <p style={{ margin: '6px 0 0', fontSize: 13, color: 'var(--color-xama-muted)' }}>
+              <p style={{ margin: '6px 0 0', fontSize: 13, color: 'var(--xm-muted)' }}>
                 {champ.name}
               </p>
             )}
@@ -118,20 +119,20 @@ export default function FaceoffPage({ token, championshipId: championshipIdProp 
             }}>
               {openFaceoffs.length > 0 && (
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 22, fontWeight: 900, color: myVotedOpen === openFaceoffs.length ? '#4ade80' : 'var(--color-xama-orange)', lineHeight: 1 }}>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: myVotedOpen === openFaceoffs.length ? '#4ade80' : 'var(--xm-orange)', lineHeight: 1 }}>
                     {myVotedOpen}/{openFaceoffs.length}
                   </div>
-                  <div style={{ fontSize: 10, color: 'var(--color-xama-muted)', marginTop: 2, whiteSpace: 'nowrap' }}>votados</div>
+                  <div style={{ fontSize: 10, color: 'var(--xm-muted)', marginTop: 2, whiteSpace: 'nowrap' }}>votados</div>
                 </div>
               )}
               {myResolved > 0 && (
                 <>
                   <div style={{ width: 1, background: 'rgba(255,255,255,0.08)' }} />
                   <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 22, fontWeight: 900, color: myCorrect === myResolved ? '#4ade80' : 'var(--color-xama-text)', lineHeight: 1 }}>
+                    <div style={{ fontSize: 22, fontWeight: 900, color: myCorrect === myResolved ? '#4ade80' : 'var(--xm-text)', lineHeight: 1 }}>
                       {myCorrect}/{myResolved}
                     </div>
-                    <div style={{ fontSize: 10, color: 'var(--color-xama-muted)', marginTop: 2, whiteSpace: 'nowrap' }}>acertos</div>
+                    <div style={{ fontSize: 10, color: 'var(--xm-muted)', marginTop: 2, whiteSpace: 'nowrap' }}>acertos</div>
                   </div>
                 </>
               )}
@@ -140,10 +141,10 @@ export default function FaceoffPage({ token, championshipId: championshipIdProp 
         </div>
 
         {/* How it works */}
-        <div style={{ marginTop: 18, fontSize: 12, color: 'var(--color-xama-muted)', lineHeight: 1.65, position: 'relative' }}>
-          Escolha qual time você acha que vai terminar as Finals <strong style={{ color: 'var(--color-xama-text)' }}>melhor posicionado</strong> em cada confronto.
+        <div style={{ marginTop: 18, fontSize: 12, color: 'var(--xm-muted)', lineHeight: 1.65, position: 'relative' }}>
+          Escolha qual time você acha que vai terminar as Finals <strong style={{ color: 'var(--xm-text)' }}>melhor posicionado</strong> em cada confronto.
           Os percentuais ficam ocultos até fechar as votações.
-          O vencedor é determinado pelo <strong style={{ color: 'var(--color-xama-text)' }}>ranking acumulado das 3 rodadas</strong>.
+          O vencedor é determinado pelo <strong style={{ color: 'var(--xm-text)' }}>ranking acumulado das 3 rodadas</strong>.
         </div>
       </div>
 
@@ -153,12 +154,12 @@ export default function FaceoffPage({ token, championshipId: championshipIdProp 
           marginBottom: 20, padding: '13px 18px',
           background: 'rgba(249,115,22,0.06)',
           border: '1px solid rgba(249,115,22,0.2)',
-          borderRadius: 10, fontSize: 13, color: 'var(--color-xama-muted)',
+          borderRadius: 10, fontSize: 13, color: 'var(--xm-muted)',
           display: 'flex', alignItems: 'center', gap: 8,
         }}>
-          <span style={{ fontSize: 20 }}>🔒</span>
+          <DashIcon name="lock" size={16} style={{ color: 'var(--xm-orange)', flexShrink: 0 }} />
           <span>
-            <Link to="/login" style={{ color: 'var(--color-xama-orange)', fontWeight: 700 }}>Faça login</Link>
+            <Link to="/login" style={{ color: 'var(--xm-orange)', fontWeight: 700 }}>Faça login</Link>
             {' '}para participar das votações.
           </span>
         </div>
@@ -172,27 +173,22 @@ export default function FaceoffPage({ token, championshipId: championshipIdProp 
           borderRadius: 10, fontSize: 13, color: '#4ade80',
           display: 'flex', alignItems: 'center', gap: 8,
         }}>
-          <span style={{ fontSize: 20 }}>🎯</span>
+          <DashIcon name="target" size={16} style={{ color: '#4ade80', flexShrink: 0 }} />
           <span>Você votou em todos os confrontos! Resultado revelado ao encerrar as votações.</span>
         </div>
       )}
 
       {loading && (
-        <p style={{ color: 'var(--color-xama-muted)', textAlign: 'center', padding: 60 }}>
-          Carregando confrontos...
-        </p>
+        <div className="xm-empty" style={{ paddingTop: 60, paddingBottom: 60 }}>
+          <p className="xm-empty__body">Carregando confrontos…</p>
+        </div>
       )}
-      {error && (
-        <p style={{ color: '#f87171', textAlign: 'center', padding: 40 }}>{error}</p>
-      )}
+      {error && <p className="xm-msg xm-msg--err" style={{ marginBottom: 16 }}>{error}</p>}
 
       {!loading && !error && faceoffs.length === 0 && (
-        <div style={{
-          textAlign: 'center', padding: '60px 20px',
-          color: 'var(--color-xama-muted)', fontSize: 14,
-        }}>
-          <div style={{ fontSize: 40, marginBottom: 12, opacity: 0.4 }}>⚔️</div>
-          Nenhum confronto disponível para este campeonato ainda.
+        <div className="xm-empty" style={{ paddingTop: 60, paddingBottom: 60 }}>
+          <DashIcon name="swords" size={32} style={{ color: 'var(--xm-muted)', opacity: 0.4, marginBottom: 12 }} />
+          <p className="xm-empty__body">Nenhum confronto disponível para este campeonato ainda.</p>
         </div>
       )}
 
@@ -216,7 +212,7 @@ export default function FaceoffPage({ token, championshipId: championshipIdProp 
 
       {/* Footer info */}
       {!loading && faceoffs.length > 0 && (
-        <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--color-xama-muted)', marginTop: 32, opacity: 0.5 }}>
+        <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--xm-muted)', marginTop: 32, opacity: 0.5 }}>
           {faceoffs.reduce((s, f) => s + f.total_votes, 0)} votos registrados no total
         </p>
       )}
