@@ -41,7 +41,7 @@ import { STATUS_COLOR, STATUS_LABEL } from '../utils/statusColors'
 
 const DROPDOWN_SHOW_SEARCH = 6  // mostra campo de busca quando há mais de N stages
 
-export default function TournamentHeader({ tournament, championship, championshipName, siblingStages, currentStageId, phaseLabel, myRank }) {
+export default function TournamentHeader({ tournament, championship, championshipName, championshipShortName, siblingStages, currentStageId, phaseLabel, myRank }) {
   const navigate = useNavigate()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [stageSearch, setStageSearch] = useState('')
@@ -49,6 +49,13 @@ export default function TournamentHeader({ tournament, championship, championshi
   if (!tournament) return null
 
   const hasDropdown = siblingStages && siblingStages.length > 1
+
+  // Prefixes stage name with championship short name when stage name has no tournament context
+  const upper = tournament.name.toUpperCase()
+  const hasTournamentContext = upper.includes('PGS') || upper.includes('PAS') || upper.includes('PEC')
+  const displayName = championshipShortName && !hasTournamentContext
+    ? `${championshipShortName} — ${tournament.name}`
+    : tournament.name
 
   return (
     <div className="xt-header">
@@ -58,7 +65,7 @@ export default function TournamentHeader({ tournament, championship, championshi
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
 
           {/* Logo do campeonato */}
-          <ChampionshipLogo shortName={phaseLabel} championshipName={championshipName} width={155} height="auto" />
+          <ChampionshipLogo shortName={phaseLabel} championshipName={championshipName} width="auto" height={90} />
 
           <div>
             <h2 className="xt-name" style={{ fontSize: '30px', display: 'flex', alignItems: 'center', gap: '8px', position: 'relative' }}>
@@ -73,7 +80,7 @@ export default function TournamentHeader({ tournament, championship, championshi
                       display: 'flex', alignItems: 'center', gap: '8px',
                     }}
                   >
-                    {tournament.name}
+                    {displayName}
                     <span style={{ fontSize: '14px', color: 'var(--xm-muted)', marginTop: '2px' }}>
                       {dropdownOpen ? '▲' : '▼'}
                     </span>
@@ -159,7 +166,7 @@ export default function TournamentHeader({ tournament, championship, championshi
                   )}
                 </>
               ) : (
-                tournament.name
+                displayName
               )}
             </h2>
 

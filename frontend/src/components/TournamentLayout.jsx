@@ -19,6 +19,7 @@ export default function TournamentLayout({
   tournament,
   championship,
   championshipName,
+  championshipShortName,
   siblingStages,
   currentStageId,
   phaseLabel,
@@ -36,6 +37,7 @@ export default function TournamentLayout({
         tournament={tournament}
         championship={championship}
         championshipName={championshipName}
+        championshipShortName={championshipShortName}
         siblingStages={siblingStages}
         currentStageId={currentStageId}
         phaseLabel={phaseLabel}

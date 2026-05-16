@@ -93,6 +93,7 @@ export default function TournamentHub() {
         tournament={stage ? { name: stage.name, status: stage.lineup_status } : null}
         championship={null}
         championshipName={stage?.championship_name ?? null}
+        championshipShortName={stage?.championship_short_name ?? null}
         siblingStages={siblingStages}
         currentStageId={Number(id)}
         phaseLabel={stage?.short_name ?? null}

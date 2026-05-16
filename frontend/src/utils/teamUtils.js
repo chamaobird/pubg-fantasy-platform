@@ -68,6 +68,19 @@ export const TEAM_NAME_TO_TAG = {
   'ACEND Club':           'ACE',
   'Team Vitality':        'VIT',
   'S8UL':                 'S8UL',
+  // PGS S2 teams
+  'eArena':               'eA',
+  'T1':                   'T1',
+  '17 Gaming':            '17',
+  'Crazy Raccoon':        'CR',
+  'Natus Vincere':        'NaVi',
+  'JD Gaming':            'JDG',
+  'Petrichor Road':       'pero',
+  'Made in Thailand':     'mith',
+  "Anyone's Legend":      'AL',
+  'SOOPers':              'SOUP',
+  'Theerathon Five':      'T5',
+  'Four Angry Men':       '4AM',
 }
 
 /**
