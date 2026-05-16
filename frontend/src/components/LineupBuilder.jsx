@@ -726,7 +726,7 @@ export default function LineupBuilder({
           {(saveError || saveSuccess) && (
             <div style={{ padding: '6px 16px 0' }}>
               {saveError   && <div className="xm-msg xm-msg--err">{saveError}</div>}
-              {saveSuccess && <div className="msg-success">Lineup salvo com sucesso!</div>}
+              {saveSuccess && <p className="xm-msg xm-msg--ok">Lineup salvo com sucesso!</p>}
             </div>
           )}
 

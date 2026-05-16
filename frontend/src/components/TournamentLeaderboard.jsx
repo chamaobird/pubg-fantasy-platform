@@ -350,7 +350,8 @@ export default function TournamentLeaderboard({
             LEADERBOARD
           </h1>
           <button
-            className="dark-btn flex items-center gap-2"
+            className="xm-btn xm-btn--ghost xm-btn--sm"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 600 }}
             onClick={fetchLeaderboard}
             disabled={loading}
             style={{ fontWeight: 600 }}>
