@@ -438,12 +438,171 @@ const api = (token) => async (method, path, body) => {
 
 const BLANK = { name: '', short_name: '', shard: 'steam', tier_weight: 1.0, is_active: true, has_faceoff: false }
 
+// ── Championship Wizard ────────────────────────────────────────────────────────
+
+const BLANK_STAGE = { name: '', short_name: '', start_date: '', lineup_close_at: '', price_min: 10, price_max: 35, captain_multiplier: 1.30 }
+
+function ChampionshipWizard({ token, onClose, onCreated }) {
+  const call = useCallback(api(token), [token])
+  const [step, setStep] = useState(1)
+  const [champ, setChamp] = useState({ name: '', short_name: '', shard: 'pc-tournament', tier_weight: 1.0, has_faceoff: false })
+  const [stages, setStages] = useState([{ ...BLANK_STAGE }])
+  const [saving, setSaving] = useState(false)
+  const [msg, setMsg] = useState('')
+
+  const fc = (k) => (e) => setChamp(p => ({ ...p, [k]: e.target.value }))
+  const fs = (i, k) => (e) => setStages(p => p.map((s, j) => j === i ? { ...s, [k]: e.target.value } : s))
+
+  const addStage = () => setStages(p => [...p, { ...BLANK_STAGE }])
+  const removeStage = (i) => setStages(p => p.filter((_, j) => j !== i))
+
+  const handleCreate = async () => {
+    setSaving(true); setMsg('')
+    try {
+      const body = {
+        championship: { ...champ, tier_weight: parseFloat(champ.tier_weight) },
+        stages: stages.map(s => ({
+          name: s.name,
+          short_name: s.short_name,
+          start_date: s.start_date || null,
+          lineup_close_at: s.lineup_close_at || null,
+          price_min: parseInt(s.price_min),
+          price_max: parseInt(s.price_max),
+          captain_multiplier: parseFloat(s.captain_multiplier),
+        })),
+      }
+      const res = await call('POST', '/admin/championships/create-with-stages', body)
+      onCreated(res)
+      onClose()
+    } catch (e) { setMsg('!' + e.message) }
+    finally { setSaving(false) }
+  }
+
+  const labelStyle = { display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--xm-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.08em' }
+
+  return (
+    <Modal title="Novo Championship + Stages" onClose={onClose}>
+      <Msg msg={msg} />
+      {/* Step indicator */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+        {[1, 2].map(n => (
+          <button key={n} onClick={() => setStep(n)} style={{
+            padding: '4px 14px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+            background: step === n ? 'rgba(99,102,241,0.15)' : 'transparent',
+            border: `1px solid ${step === n ? 'rgba(99,102,241,0.5)' : 'var(--xm-border)'}`,
+            color: step === n ? '#a5b4fc' : 'var(--xm-muted)',
+          }}>
+            {n === 1 ? '1. Championship' : '2. Stages'}
+          </button>
+        ))}
+      </div>
+
+      {step === 1 && (
+        <>
+          <Field label="Nome completo">
+            <input style={inputStyle} value={champ.name} onChange={fc('name')} placeholder="ex: PUBG Global Series 2026 S3" />
+          </Field>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <Field label="Short name">
+              <input style={inputStyle} value={champ.short_name} onChange={fc('short_name')} placeholder="ex: PGS" />
+            </Field>
+            <Field label="Peso (tier_weight)">
+              <input style={inputStyle} type="number" step="0.1" min="0.1" max="2" value={champ.tier_weight} onChange={fc('tier_weight')} />
+            </Field>
+          </div>
+          <Field label="Shard">
+            <select style={selectStyle} value={champ.shard} onChange={fc('shard')}>
+              <option value="steam">steam</option>
+              <option value="pc-tournament">pc-tournament</option>
+            </select>
+          </Field>
+          <Field label="Team Faceoff">
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: 'var(--xm-text)' }}>
+              <input type="checkbox" checked={!!champ.has_faceoff} onChange={e => setChamp(p => ({ ...p, has_faceoff: e.target.checked }))} />
+              Habilitar Team Faceoff
+            </label>
+          </Field>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
+            <button onClick={() => setStep(2)} style={{ padding: '7px 18px', borderRadius: 7, fontSize: 13, fontWeight: 700, background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.4)', color: '#a5b4fc', cursor: 'pointer' }}>
+              Próximo →
+            </button>
+          </div>
+        </>
+      )}
+
+      {step === 2 && (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <span style={{ fontSize: 12, color: 'var(--xm-muted)' }}>{stages.length} stage{stages.length !== 1 ? 's' : ''}</span>
+            <button onClick={addStage} style={{ fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 6, background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.3)', color: '#4ade80', cursor: 'pointer' }}>
+              + Adicionar stage
+            </button>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxHeight: 420, overflowY: 'auto' }}>
+            {stages.map((s, i) => (
+              <div key={i} style={{ background: 'var(--surface-2)', border: '1px solid var(--xm-border)', borderRadius: 8, padding: '12px 14px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--xm-muted)' }}>Stage {i + 1}</span>
+                  {stages.length > 1 && (
+                    <button onClick={() => removeStage(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', fontSize: 13 }}>✕</button>
+                  )}
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 8, marginBottom: 8 }}>
+                  <div>
+                    <label style={labelStyle}>Nome</label>
+                    <input style={inputStyle} value={s.name} onChange={fs(i, 'name')} placeholder="ex: Winners Stage" />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Short name</label>
+                    <input style={inputStyle} value={s.short_name} onChange={fs(i, 'short_name')} placeholder="ex: WS" />
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
+                  <div>
+                    <label style={labelStyle}>Data início</label>
+                    <input style={inputStyle} type="datetime-local" value={s.start_date} onChange={fs(i, 'start_date')} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Lineup fecha em</label>
+                    <input style={inputStyle} type="datetime-local" value={s.lineup_close_at} onChange={fs(i, 'lineup_close_at')} />
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                  <div>
+                    <label style={labelStyle}>Price min</label>
+                    <input style={inputStyle} type="number" value={s.price_min} onChange={fs(i, 'price_min')} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Price max</label>
+                    <input style={inputStyle} type="number" value={s.price_max} onChange={fs(i, 'price_max')} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Cap ×</label>
+                    <input style={inputStyle} type="number" step="0.05" value={s.captain_multiplier} onChange={fs(i, 'captain_multiplier')} />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 14 }}>
+            <button onClick={() => setStep(1)} style={{ padding: '7px 14px', borderRadius: 7, fontSize: 13, background: 'transparent', border: '1px solid var(--xm-border)', color: 'var(--xm-muted)', cursor: 'pointer' }}>
+              ← Voltar
+            </button>
+            <SaveBtn loading={saving} onClick={handleCreate} label={`Criar championship + ${stages.length} stage${stages.length !== 1 ? 's' : ''}`} />
+          </div>
+        </>
+      )}
+    </Modal>
+  )
+}
+
 export default function AdminChampionships({ token }) {
   const call = useCallback(api(token), [token])
 
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [modal, setModal] = useState(null)
+  const [showWizard, setShowWizard] = useState(false)
   const [form, setForm] = useState(BLANK)
   const [msg, setMsg] = useState('')
   const [saving, setSaving] = useState(false)
@@ -565,7 +724,12 @@ export default function AdminChampionships({ token }) {
     <div>
       <SectionHeader
         title="Championships"
-        action={<ActBtn onClick={openCreate}>+ Nova Championship</ActBtn>}
+        action={
+          <div style={{ display: 'flex', gap: 8 }}>
+            <ActBtn onClick={() => setShowWizard(true)}>⚡ Wizard</ActBtn>
+            <ActBtn onClick={openCreate}>+ Simples</ActBtn>
+          </div>
+        }
       />
 
       <div style={{ background: 'rgba(18,21,28,0.9)', border: '1px solid var(--xm-border)', borderRadius: 12, overflow: 'hidden' }}>
@@ -613,6 +777,17 @@ export default function AdminChampionships({ token }) {
       </div>
 
       <CoverageAuditPanel token={token} championships={items} />
+
+      {showWizard && (
+        <ChampionshipWizard
+          token={token}
+          onClose={() => setShowWizard(false)}
+          onCreated={async (res) => {
+            await load()
+            setMsg(`Championship #${res.championship.id} criada com ${res.stages.length} stages.`)
+          }}
+        />
+      )}
 
       {modal && (
         <Modal

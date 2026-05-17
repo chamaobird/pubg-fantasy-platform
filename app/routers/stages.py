@@ -27,11 +27,13 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
+from app.models.championship import Championship
 from app.models.lineup import Lineup
 from app.models.match import Match
 from app.models.match_stat import MatchStat
 from app.models.person import Person
 from app.models.person_alias import PersonAlias
+from app.models.person_stage_stat import PersonStageStat
 from app.models.roster import Roster, RosterPriceHistory
 from app.models.stage import Stage
 from app.models.stage_day import StageDay
@@ -1194,3 +1196,66 @@ def get_person_match_history(
         )
         for ms, m, sd, s in rows
     ]
+
+
+@router.get("/persons/{person_id}/stats-cross-stages")
+def get_person_cross_stage_stats(person_id: int, db: Session = Depends(get_db)):
+    """
+    Retorna estatísticas agregadas de um jogador por championship (cross-stage).
+    """
+    person = db.query(Person).filter(Person.id == person_id).first()
+    if not person:
+        raise HTTPException(status_code=404, detail="Jogador não encontrado.")
+
+    rows = (
+        db.query(PersonStageStat, Stage, Championship)
+        .join(Stage, PersonStageStat.stage_id == Stage.id)
+        .join(Championship, Stage.championship_id == Championship.id)
+        .filter(PersonStageStat.person_id == person_id)
+        .all()
+    )
+
+    if not rows:
+        return {
+            "person_id": person_id,
+            "total_pts": 0.0,
+            "total_matches": 0,
+            "avg_pts_per_match": 0.0,
+            "by_championship": [],
+        }
+
+    # Group by championship in Python
+    champ_map: dict = {}
+    for pss, stage, champ in rows:
+        cid = champ.id
+        if cid not in champ_map:
+            champ_map[cid] = {
+                "championship_id": champ.id,
+                "championship_name": champ.name,
+                "championship_short_name": champ.short_name,
+                "total_pts": 0.0,
+                "total_matches": 0,
+                "stages_count": 0,
+            }
+        champ_map[cid]["total_pts"] += float(pss.total_xama_points or 0)
+        champ_map[cid]["total_matches"] += int(pss.matches_played or 0)
+        champ_map[cid]["stages_count"] += 1
+
+    by_championship = []
+    for entry in sorted(champ_map.values(), key=lambda x: x["championship_id"], reverse=True):
+        matches = entry["total_matches"]
+        entry["avg_pts_per_match"] = round(entry["total_pts"] / matches, 2) if matches > 0 else 0.0
+        entry["total_pts"] = round(entry["total_pts"], 2)
+        by_championship.append(entry)
+
+    total_pts = round(sum(e["total_pts"] for e in by_championship), 2)
+    total_matches = sum(e["total_matches"] for e in by_championship)
+    avg_pts_per_match = round(total_pts / total_matches, 2) if total_matches > 0 else 0.0
+
+    return {
+        "person_id": person_id,
+        "total_pts": total_pts,
+        "total_matches": total_matches,
+        "avg_pts_per_match": avg_pts_per_match,
+        "by_championship": by_championship,
+    }

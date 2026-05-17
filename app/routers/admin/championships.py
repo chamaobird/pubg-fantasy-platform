@@ -19,6 +19,7 @@ from app.schemas.championship import (
     ChampionshipResponse,
     ChampionshipUpdate,
 )
+from app.schemas.stage import StageResponse
 
 _PUBG_BASE = "https://api.pubg.com"
 
@@ -36,6 +37,29 @@ class ShardDetectResponse(BaseModel):
     shard: str
     sample_match_id: str
     verified: bool
+
+
+class StageWizardIn(BaseModel):
+    """Stage definition inside the championship wizard — championship_id is injected server-side."""
+    name: str
+    short_name: str
+    start_date: Optional[str] = None        # ISO datetime string or None
+    lineup_close_at: Optional[str] = None   # ISO datetime string or None
+    price_min: int = 10
+    price_max: int = 35
+    captain_multiplier: float = 1.30
+    shard: Optional[str] = None             # inherits from championship if None
+
+
+class ChampionshipWizardIn(BaseModel):
+    """Creates a championship + N stages in a single atomic transaction."""
+    championship: ChampionshipCreate
+    stages: list[StageWizardIn]
+
+
+class ChampionshipWizardOut(BaseModel):
+    championship: ChampionshipResponse
+    stages: list[StageResponse]
 
 
 class CoveragePlayerEntry(BaseModel):
@@ -131,6 +155,80 @@ def detect_shard(
         shard=shard,
         sample_match_id=sample_match_id,
         verified=verified,
+    )
+
+
+@router.post("/create-with-stages", response_model=ChampionshipWizardOut, status_code=status.HTTP_201_CREATED)
+def create_championship_with_stages(
+    body: ChampionshipWizardIn,
+    db: Session = Depends(get_db),
+    _admin: User = Depends(require_admin),
+) -> ChampionshipWizardOut:
+    """
+    Cria championship + N stages em uma única transação atômica.
+    Se qualquer stage falhar, o championship também é revertido.
+    """
+    from datetime import datetime, timezone
+    from app.models.stage import Stage
+    from app.models.stage_day import StageDay
+
+    if not body.stages:
+        raise HTTPException(status_code=422, detail="Pelo menos uma stage é necessária.")
+
+    championship = Championship(**body.championship.model_dump())
+    db.add(championship)
+    db.flush()  # get championship.id before creating stages
+
+    created_stages: list[Stage] = []
+    for s in body.stages:
+        shard = s.shard or body.championship.shard
+
+        def _parse_dt(val: Optional[str]) -> Optional[datetime]:
+            if not val:
+                return None
+            try:
+                dt = datetime.fromisoformat(val.replace("Z", "+00:00"))
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                return dt
+            except ValueError:
+                raise HTTPException(status_code=422, detail=f"Data inválida: {val!r}")
+
+        start_dt = _parse_dt(s.start_date)
+        close_dt = _parse_dt(s.lineup_close_at)
+
+        stage = Stage(
+            championship_id=championship.id,
+            name=s.name,
+            short_name=s.short_name,
+            shard=shard,
+            start_date=start_dt,
+            lineup_close_at=close_dt,
+            price_min=s.price_min,
+            price_max=s.price_max,
+            captain_multiplier=s.captain_multiplier,
+        )
+        db.add(stage)
+        db.flush()
+
+        if start_dt:
+            db.add(StageDay(
+                stage_id=stage.id,
+                day_number=1,
+                date=start_dt.date(),
+                lineup_close_at=close_dt,
+            ))
+
+        created_stages.append(stage)
+
+    db.commit()
+    db.refresh(championship)
+    for stage in created_stages:
+        db.refresh(stage)
+
+    return ChampionshipWizardOut(
+        championship=ChampionshipResponse.model_validate(championship),
+        stages=[StageResponse.model_validate(s) for s in created_stages],
     )
 
 

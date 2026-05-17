@@ -17,6 +17,7 @@ from app.models.stage import Stage
 from app.models.user import User
 from pydantic import BaseModel
 from app.schemas.roster import RosterCreate, RosterResponse, RosterUpdate
+from app.models.roster_change_log import RosterChangeLog
 from app.schemas.team import (
     ImportTeamRequest,
     ImportTeamResponse,
@@ -110,6 +111,20 @@ def _get_roster_or_404(db: Session, roster_id: int, stage_id: int) -> Roster:
     return obj
 
 
+def _log_change(db: Session, roster: Roster, change_type: str, admin: User, field_name: str | None = None, old_value=None, new_value=None, note: str | None = None):
+    db.add(RosterChangeLog(
+        roster_id=roster.id,
+        stage_id=roster.stage_id,
+        person_id=roster.person_id,
+        change_type=change_type,
+        field_name=field_name,
+        old_value=str(old_value) if old_value is not None else None,
+        new_value=str(new_value) if new_value is not None else None,
+        changed_by_id=str(admin.id),
+        note=note,
+    ))
+
+
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
 @router.post("", response_model=RosterResponse, status_code=status.HTTP_201_CREATED)
@@ -148,6 +163,8 @@ def add_to_roster(
 
     roster = Roster(stage_id=stage_id, **body.model_dump())
     db.add(roster)
+    db.flush()  # ensure roster.id is populated
+    _log_change(db, roster, "created", _admin)
     db.commit()
     db.refresh(roster)
     return roster
@@ -189,6 +206,39 @@ def list_roster(
     ]
 
 
+@router.get("/changes", summary="Histórico de alterações do roster da stage")
+def get_roster_changes(
+    stage_id: int,
+    db: Session = Depends(get_db),
+    _admin: User = Depends(require_admin),
+):
+    from app.models.person import Person
+    logs = (
+        db.query(RosterChangeLog)
+        .filter(RosterChangeLog.stage_id == stage_id)
+        .order_by(RosterChangeLog.changed_at.desc())
+        .limit(200)
+        .all()
+    )
+    result = []
+    for log in logs:
+        person = db.query(Person).filter(Person.id == log.person_id).first()
+        result.append({
+            "id": log.id,
+            "roster_id": log.roster_id,
+            "person_id": log.person_id,
+            "person_name": person.display_name if person else str(log.person_id),
+            "change_type": log.change_type,
+            "field_name": log.field_name,
+            "old_value": log.old_value,
+            "new_value": log.new_value,
+            "changed_by_id": log.changed_by_id,
+            "changed_at": log.changed_at.isoformat() if log.changed_at else None,
+            "note": log.note,
+        })
+    return result
+
+
 @router.patch("/{roster_id}", response_model=RosterResponse)
 def update_roster_entry(
     stage_id: int,
@@ -200,8 +250,10 @@ def update_roster_entry(
     roster = _get_roster_or_404(db, roster_id, stage_id)
 
     updates = body.model_dump(exclude_unset=True)
-    for field, value in updates.items():
-        setattr(roster, field, value)
+    for field, new_val in updates.items():
+        old_val = getattr(roster, field, None)
+        _log_change(db, roster, "updated", _admin, field_name=field, old_value=old_val, new_value=new_val)
+        setattr(roster, field, new_val)
 
     db.commit()
     db.refresh(roster)
@@ -223,8 +275,11 @@ def preflight_roster(
     Retorna lista de jogadores problemáticos:
       - sem_conta: não tem nenhum PlayerAccount no shard correto
       - pendente:  tem apenas accounts PENDING_* (nunca resolvido pela API)
+
+    Também inclui config_warnings sobre configuração da stage.
     """
     from app.models.player_account import PlayerAccount
+    from app.models.stage_day import StageDay
 
     stage = _get_stage_or_404(db, stage_id)
     shard = stage.shard
@@ -263,13 +318,41 @@ def preflight_roster(
             "pending_ids": [a.account_id for a in pending_accounts],
         })
 
+    # Config checks
+    stage_days_ok = db.query(StageDay).filter(StageDay.stage_id == stage_id).count() > 0
+    lineup_close_ok = stage.lineup_close_at is not None
+    tournament_id_ok = stage.pubg_tournament_id is not None
+
+    config_warnings = []
+    if not stage_days_ok:
+        config_warnings.append({
+            "check": "stage_days",
+            "ok": False,
+            "message": "Nenhum StageDay configurado para esta stage.",
+        })
+    if not lineup_close_ok:
+        config_warnings.append({
+            "check": "lineup_close_at",
+            "ok": False,
+            "message": "lineup_close_at não configurado — lineup nunca fechará automaticamente.",
+        })
+    if shard == "pc-tournament" and not tournament_id_ok:
+        config_warnings.append({
+            "check": "pubg_tournament_id",
+            "ok": False,
+            "message": "pubg_tournament_id não configurado — match discovery automático não funcionará.",
+        })
+
+    critical_fail = not stage_days_ok
+
     return {
-        "stage_id":     stage_id,
-        "shard":        shard,
-        "total_active": len(roster_rows),
-        "issues_count": len(issues),
-        "ok":           len(issues) == 0,
-        "issues":       issues,
+        "stage_id":        stage_id,
+        "shard":           shard,
+        "total_active":    len(roster_rows),
+        "issues_count":    len(issues),
+        "ok":              not critical_fail and len(issues) == 0,
+        "issues":          issues,
+        "config_warnings": config_warnings,
     }
 
 

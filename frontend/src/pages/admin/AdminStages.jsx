@@ -92,6 +92,12 @@ function RosterPanel({ stage, token }) {
   const [preflighting, setPreflighting] = useState(false)
   const [preflightResult, setPreflightResult] = useState(null)
   const autoPreflightDone = useRef(false)
+  // scan unresolved
+  const [scanning, setScanning] = useState(false)
+  const [scanResult, setScanResult] = useState(null)
+  // change log
+  const [loadingLog, setLoadingLog] = useState(false)
+  const [changeLog, setChangeLog] = useState(null)
 
   const refresh = useCallback(() => {
     setLoading(true)
@@ -182,6 +188,24 @@ function RosterPanel({ stage, token }) {
     finally { setReprocessing(false) }
   }
 
+  const handleScanUnresolved = async () => {
+    setScanning(true); setScanResult(null)
+    try {
+      const res = await call('POST', `/admin/stages/${stage.id}/scan-unresolved`, {})
+      setScanResult(res)
+    } catch (e) { setMsg('!' + e.message) }
+    finally { setScanning(false) }
+  }
+
+  const handleLoadChanges = async () => {
+    setLoadingLog(true)
+    try {
+      const res = await call('GET', `/admin/stages/${stage.id}/roster/changes`)
+      setChangeLog(res)
+    } catch (e) { setMsg('!' + e.message) }
+    finally { setLoadingLog(false) }
+  }
+
   const handleAddPlayer = async (person) => {
     if (!addTeam.trim()) { setMsg('!Informe o nome do time antes de adicionar.'); return }
     try {
@@ -256,6 +280,30 @@ function RosterPanel({ stage, token }) {
           >
             {reprocessing ? '⟳ Reprocessando...' : '⟳ Reprocessar Partidas'}
           </button>
+          <button
+            onClick={handleScanUnresolved}
+            disabled={scanning}
+            style={{
+              fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 6,
+              background: scanning ? 'rgba(239,68,68,0.03)' : 'rgba(239,68,68,0.08)',
+              color: '#f87171', border: '1px solid rgba(239,68,68,0.35)',
+              cursor: scanning ? 'default' : 'pointer', transition: 'all 0.15s',
+            }}
+          >
+            {scanning ? '⚙ Verificando...' : '🔍 Scan Unresolved'}
+          </button>
+          <button
+            onClick={handleLoadChanges}
+            disabled={loadingLog}
+            style={{
+              fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 6,
+              background: loadingLog ? 'rgba(99,102,241,0.03)' : 'rgba(99,102,241,0.08)',
+              color: '#818cf8', border: '1px solid rgba(99,102,241,0.35)',
+              cursor: loadingLog ? 'default' : 'pointer', transition: 'all 0.15s',
+            }}
+          >
+            {loadingLog ? '⟳ Carregando...' : '📋 Histórico'}
+          </button>
         </div>
       </div>
 
@@ -267,7 +315,7 @@ function RosterPanel({ stage, token }) {
           border: `1px solid ${preflightResult.ok ? 'rgba(74,222,128,0.25)' : 'rgba(249,115,22,0.35)'}`,
           fontSize: 12, fontFamily: 'JetBrains Mono, monospace',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: preflightResult.issues?.length > 0 ? 8 : 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: (preflightResult.issues?.length > 0 || preflightResult.config_warnings?.length > 0) ? 8 : 0 }}>
             <span style={{ fontWeight: 700, color: preflightResult.ok ? 'var(--xm-green)' : 'var(--xm-orange)' }}>
               {preflightResult.ok
                 ? `✓ Preflight OK — ${preflightResult.total_active} jogadores com conta ${preflightResult.shard} vinculada`
@@ -293,6 +341,20 @@ function RosterPanel({ stage, token }) {
                   {issue.pending_ids?.length > 0 && (
                     <span style={{ color: 'rgba(249,115,22,0.6)', fontSize: 10 }}>{issue.pending_ids[0]}</span>
                   )}
+                </div>
+              ))}
+            </div>
+          )}
+          {preflightResult.config_warnings?.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: preflightResult.issues?.length > 0 ? 6 : 0 }}>
+              {preflightResult.config_warnings.map(w => (
+                <div key={w.check} style={{
+                  padding: '5px 8px', borderRadius: 6,
+                  background: 'rgba(234,179,8,0.06)',
+                  border: '1px solid rgba(234,179,8,0.25)',
+                  color: '#fbbf24',
+                }}>
+                  ⚠ {w.message}
                 </div>
               ))}
             </div>
@@ -331,6 +393,97 @@ function RosterPanel({ stage, token }) {
                   }}>{alias}</span>
                 ))}
               </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Resultado do scan unresolved */}
+      {scanResult && (
+        <div style={{
+          marginBottom: 12, padding: '10px 14px', borderRadius: 8,
+          background: scanResult.unique_unresolved_players === 0 ? 'rgba(74,222,128,0.05)' : 'rgba(239,68,68,0.07)',
+          border: `1px solid ${scanResult.unique_unresolved_players === 0 ? 'rgba(74,222,128,0.25)' : 'rgba(239,68,68,0.3)'}`,
+          fontSize: 12, fontFamily: 'JetBrains Mono, monospace',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: scanResult.unique_unresolved_players > 0 ? 8 : 0 }}>
+            <span style={{ fontWeight: 700, color: scanResult.unique_unresolved_players === 0 ? 'var(--xm-green)' : '#f87171' }}>
+              {scanResult.unique_unresolved_players === 0
+                ? `✓ Nenhum alias não resolvido nos últimos ${scanResult.matches_scanned} matches.`
+                : `⚠ ${scanResult.unique_unresolved_players} alias${scanResult.unique_unresolved_players !== 1 ? 'es' : ''} não resolvido${scanResult.unique_unresolved_players !== 1 ? 's' : ''} (${scanResult.matches_scanned} matches escaneados)`
+              }
+            </span>
+            <button onClick={() => setScanResult(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--xm-muted)', fontSize: 13 }}>✕</button>
+          </div>
+          {scanResult.unresolved?.length > 0 && (
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                {scanResult.unresolved.map(u => (
+                  <span key={u.account_id} style={{
+                    padding: '2px 8px', borderRadius: 4, fontSize: 11,
+                    background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
+                    color: '#f87171',
+                  }} title={`account_id: ${u.account_id} | first seen: ${u.first_seen_match}`}>
+                    {u.alias} <span style={{ opacity: 0.6, fontSize: 10 }}>{u.account_id.slice(0, 12)}…</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          {scanResult.next_steps && (
+            <div style={{ color: 'var(--xm-muted)', fontSize: 11, marginTop: 4 }}>{scanResult.next_steps}</div>
+          )}
+        </div>
+      )}
+
+      {/* Histórico de alterações do roster */}
+      {changeLog !== null && (
+        <div style={{
+          marginBottom: 12, padding: '10px 14px', borderRadius: 8,
+          background: 'rgba(99,102,241,0.05)',
+          border: '1px solid rgba(99,102,241,0.25)',
+          fontSize: 12,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <span style={{ fontWeight: 700, color: '#818cf8' }}>Histórico de alterações (últimas 200)</span>
+            <button onClick={() => setChangeLog(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--xm-muted)', fontSize: 13 }}>✕</button>
+          </div>
+          {changeLog.length === 0 ? (
+            <div style={{ color: 'var(--xm-muted)', fontSize: 12 }}>Nenhuma alteração registrada.</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              {changeLog.map(log => (
+                <div key={log.id} style={{
+                  display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
+                  padding: '4px 8px', borderRadius: 5,
+                  background: 'rgba(255,255,255,0.02)',
+                  border: '1px solid rgba(255,255,255,0.05)',
+                  fontFamily: 'JetBrains Mono, monospace', fontSize: 11,
+                }}>
+                  <span style={{ color: 'var(--xm-muted)', minWidth: 110, flexShrink: 0 }}>
+                    {new Date(log.changed_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+                  </span>
+                  <span style={{ color: 'var(--xm-text)', flex: '0 0 auto', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {log.person_name}
+                  </span>
+                  <span style={{
+                    padding: '1px 7px', borderRadius: 4, fontSize: 10, fontWeight: 700, flexShrink: 0,
+                    background: log.change_type === 'created' ? 'rgba(74,222,128,0.1)' : log.change_type === 'updated' ? 'rgba(234,179,8,0.1)' : 'rgba(239,68,68,0.1)',
+                    color: log.change_type === 'created' ? 'var(--xm-green)' : log.change_type === 'updated' ? '#fbbf24' : '#f87171',
+                    border: `1px solid ${log.change_type === 'created' ? 'rgba(74,222,128,0.3)' : log.change_type === 'updated' ? 'rgba(234,179,8,0.3)' : 'rgba(239,68,68,0.3)'}`,
+                  }}>
+                    {log.change_type.toUpperCase()}
+                  </span>
+                  {log.field_name && (
+                    <span style={{ color: 'var(--xm-muted)', flexShrink: 0 }}>{log.field_name}:</span>
+                  )}
+                  {(log.old_value !== null || log.new_value !== null) && (
+                    <span style={{ color: 'var(--xm-text)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {log.old_value ?? '—'} → {log.new_value ?? '—'}
+                    </span>
+                  )}
+                </div>
+              ))}
             </div>
           )}
         </div>

@@ -272,6 +272,7 @@ export default function PlayerHistoryModal({
   const [loading, setLoading]       = useState(true)
   const [error, setError]           = useState(null)
   const [priceHistory, setPriceHistory] = useState([])
+  const [crossStats, setCrossStats] = useState(null)
   const overlayRef                  = useRef(null)
 
   useEffect(() => {
@@ -292,6 +293,14 @@ export default function PlayerHistoryModal({
       .then(r => r.ok ? r.json() : [])
       .then(d => setPriceHistory(Array.isArray(d) ? d : []))
       .catch(() => setPriceHistory([]))
+  }, [personId])
+
+  useEffect(() => {
+    if (!personId) return
+    fetch(`${API_BASE_URL}/stages/persons/${personId}/stats-cross-stages`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => setCrossStats(d))
+      .catch(() => setCrossStats(null))
   }, [personId])
 
   useEffect(() => {
@@ -398,6 +407,31 @@ export default function PlayerHistoryModal({
                 <div style={{ fontSize: '20px', fontWeight: 700, color, fontFamily: "'JetBrains Mono', monospace" }}>
                   {value}
                 </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Stats cross-stage */}
+        {crossStats && crossStats.total_matches > 0 && (
+          <div style={{
+            padding: '8px 24px 10px',
+            borderBottom: '1px solid var(--xm-border)',
+            background: 'var(--surface-2)',
+            display: 'flex', gap: 24, alignItems: 'center', flexWrap: 'wrap',
+          }}>
+            <div style={{ fontSize: 10, color: 'var(--xm-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700, whiteSpace: 'nowrap' }}>
+              Histórico total
+            </div>
+            {[
+              { label: 'pts totais', value: crossStats.total_pts?.toFixed(1) },
+              { label: 'partidas', value: crossStats.total_matches },
+              { label: 'pts/match', value: crossStats.avg_pts_per_match?.toFixed(2) },
+              { label: 'campeonatos', value: crossStats.by_championship?.length },
+            ].map(({ label, value }) => (
+              <div key={label} style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 10, color: 'var(--xm-muted)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{label}</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--xm-text)', fontFamily: "'JetBrains Mono', monospace" }}>{value}</div>
               </div>
             ))}
           </div>
