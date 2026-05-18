@@ -52,8 +52,9 @@ function VoteBar({ pctA, pctB, tagA, tagB, winnerSide }) {
   )
 }
 
-// ── TeamSide (compacto, horizontal — logo 48px) ───────────────────────────────
+// ── TeamSide (card equilibrado — logo 64px, badge em linha dedicada) ──────────
 function TeamSide({ tag, name, isWinner, isLoser, isVoted, align, onClick, canVote, voting }) {
+  const isRight = align === 'right'
   return (
     <button
       type="button"
@@ -61,13 +62,13 @@ function TeamSide({ tag, name, isWinner, isLoser, isVoted, align, onClick, canVo
       disabled={!canVote || voting}
       style={{
         flex: 1, minWidth: 0,
-        display: 'flex', alignItems: 'center', gap: 12,
-        flexDirection: align === 'right' ? 'row-reverse' : 'row',
-        textAlign: align === 'right' ? 'right' : 'left',
-        padding: '12px 14px',
+        display: 'flex', alignItems: 'center', gap: 14,
+        flexDirection: isRight ? 'row-reverse' : 'row',
+        textAlign: isRight ? 'right' : 'left',
+        padding: '16px 16px',
         background: isWinner
-          ? 'rgba(74,222,128,0.06)'                      // vencedor — verde sutil
-          : isVoted ? 'rgba(249,115,22,0.08)'            // seu voto — laranja
+          ? 'rgba(74,222,128,0.06)'
+          : isVoted ? 'rgba(249,115,22,0.08)'
           : 'rgba(255,255,255,0.02)',
         border: `1px solid ${
           isWinner ? 'rgba(74,222,128,0.4)' :
@@ -75,10 +76,9 @@ function TeamSide({ tag, name, isWinner, isLoser, isVoted, align, onClick, canVo
                      'rgba(255,255,255,0.06)'
         }`,
         borderRadius: 10,
-        opacity: isLoser ? 0.45 : 1,
+        opacity: isLoser ? 0.4 : 1,
         cursor: canVote ? 'pointer' : 'default',
         transition: 'border-color 0.15s, background 0.15s, transform 0.15s',
-        position: 'relative',
         font: 'inherit', color: 'inherit',
       }}
       onMouseEnter={e => {
@@ -94,15 +94,18 @@ function TeamSide({ tag, name, isWinner, isLoser, isVoted, align, onClick, canVo
         }
       }}
     >
-      <TeamLogo teamName={tag} size={48} />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        {/* Tag + badge "SEU VOTO" + trophy (vencedor) inline com o nome */}
+      <TeamLogo teamName={tag} size={64} />
+
+      {/* Info block — altura fixa via estrutura de 3 linhas */}
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+
+        {/* Linha 1: tag + trophy */}
         <div style={{
-          display: 'flex', alignItems: 'center', gap: 7,
-          justifyContent: align === 'right' ? 'flex-end' : 'flex-start',
+          display: 'flex', alignItems: 'center', gap: 6,
+          justifyContent: isRight ? 'flex-end' : 'flex-start',
         }}>
           <span style={{
-            fontSize: 18, fontWeight: 800, color: 'var(--xm-text-bright, #f1f5f9)',
+            fontSize: 20, fontWeight: 800, color: 'var(--xm-text-bright, #f1f5f9)',
             fontFamily: 'var(--xm-font-display, Rajdhani), Rajdhani, sans-serif',
             letterSpacing: '0.02em', lineHeight: 1,
           }}>
@@ -113,10 +116,28 @@ function TeamSide({ tag, name, isWinner, isLoser, isVoted, align, onClick, canVo
               <DashIcon name="trophy" size={14} />
             </span>
           )}
+        </div>
+
+        {/* Linha 2: nome completo */}
+        <div style={{
+          fontSize: 11, color: 'var(--xm-muted, #6b7280)',
+          lineHeight: 1.3,
+          fontFamily: "'JetBrains Mono', monospace",
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
+          {name}
+        </div>
+
+        {/* Linha 3: badge "SEU VOTO" — espaço reservado em ambos os lados para simetria */}
+        <div style={{
+          height: 20, marginTop: 4,
+          display: 'flex', alignItems: 'center',
+          justifyContent: isRight ? 'flex-end' : 'flex-start',
+        }}>
           {isVoted && (
             <span style={{
               fontSize: 9, fontWeight: 800, letterSpacing: '0.1em',
-              padding: '2px 6px', borderRadius: 3,
+              padding: '2px 7px', borderRadius: 3,
               background: 'rgba(249,115,22,0.18)', color: '#f97316',
               fontFamily: "'JetBrains Mono', monospace",
               border: '1px solid rgba(249,115,22,0.35)',
@@ -125,15 +146,6 @@ function TeamSide({ tag, name, isWinner, isLoser, isVoted, align, onClick, canVo
               ✓ SEU VOTO
             </span>
           )}
-        </div>
-        {/* Nome completo, em mono e muted */}
-        <div style={{
-          fontSize: 11, color: 'var(--xm-muted, #6b7280)',
-          marginTop: 4, lineHeight: 1.3,
-          fontFamily: "'JetBrains Mono', monospace",
-          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-        }}>
-          {name}
         </div>
       </div>
     </button>

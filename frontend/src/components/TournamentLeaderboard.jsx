@@ -538,7 +538,7 @@ export default function TournamentLeaderboard({
       )}
 
       {/* ── Destaques do dia ─────────────────────────────────────────────────── */}
-      {!showSubmissions && highlights && (
+      {!isOpen && !showSubmissions && highlights && (
         <div className="max-w-3xl mx-auto px-4 pt-4 pb-0">
           <div style={{
             borderRadius: 12, border: '1px solid var(--xm-border)',
