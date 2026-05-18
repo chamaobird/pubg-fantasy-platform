@@ -1,7 +1,6 @@
 // components/FaceoffCard.jsx
-// XAMA Fantasy — Faceoff card redesenhado: layout HORIZONTAL compacto
-// Antes: cards verticais empilhados, logos 96px, visual pesado
-// Agora: row horizontal com logos 48px, vs central, barra de votos proeminente
+// Layout: sem header strip, times centrados verticalmente, nomes sem corte,
+// ACERTOU/ERROU na coluna VS, SEU VOTO em linha dedicada abaixo do nome.
 
 import { useState } from 'react'
 import TeamLogo from './TeamLogo'
@@ -9,18 +8,9 @@ import { formatTeamTag } from '../utils/teamUtils'
 import { API_BASE_URL } from '../config'
 import { DashIcon } from './DashIcon'
 
-// Status pill — usado tanto no header quanto no badge "ACERTOU/ERROU"
-const STATUS_PILL = {
-  open:     { label: 'VOTANDO',   color: '#4ade80', bg: 'rgba(74,222,128,0.12)', border: 'rgba(74,222,128,0.35)' },
-  closed:   { label: 'ENCERRADO', color: '#94a3b8', bg: 'rgba(148,163,184,0.08)', border: 'rgba(148,163,184,0.2)' },
-  resolved: { label: 'RESOLVIDO', color: '#a5b4fc', bg: 'rgba(99,102,241,0.12)', border: 'rgba(99,102,241,0.35)' },
-  draft:    { label: 'DRAFT',     color: '#64748b', bg: 'rgba(100,116,139,0.08)', border: 'rgba(100,116,139,0.2)' },
-}
-
-// ── VoteBar (mais proeminente — 10px de altura, labels maiores) ───────────────
+// ── VoteBar ───────────────────────────────────────────────────────────────────
 function VoteBar({ pctA, pctB, tagA, tagB, winnerSide }) {
   if (pctA == null) return null
-  // Cinza neutro do lado perdedor, laranja do vencedor — sem mais azul/indigo
   const colorA = winnerSide === 'a' ? '#f97316' : winnerSide === 'b' ? 'rgba(255,255,255,0.18)' : '#f97316'
   const colorB = winnerSide === 'b' ? '#f97316' : winnerSide === 'a' ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.32)'
 
@@ -31,8 +21,8 @@ function VoteBar({ pctA, pctB, tagA, tagB, winnerSide }) {
         height: 10, background: 'rgba(255,255,255,0.04)',
         border: '1px solid rgba(255,255,255,0.06)',
       }}>
-        {pctA > 0 && <div style={{ width: `${pctA}%`, background: colorA, transition: 'width 0.7s var(--xm-ease, ease)' }} />}
-        {pctB > 0 && <div style={{ width: `${pctB}%`, background: colorB, transition: 'width 0.7s var(--xm-ease, ease)' }} />}
+        {pctA > 0 && <div style={{ width: `${pctA}%`, background: colorA, transition: 'width 0.7s ease' }} />}
+        {pctB > 0 && <div style={{ width: `${pctB}%`, background: colorB, transition: 'width 0.7s ease' }} />}
       </div>
       <div style={{
         display: 'flex', justifyContent: 'space-between', marginTop: 8,
@@ -52,9 +42,8 @@ function VoteBar({ pctA, pctB, tagA, tagB, winnerSide }) {
   )
 }
 
-// ── TeamSide (card equilibrado — logo 64px, badge em linha dedicada) ──────────
-function TeamSide({ tag, name, isWinner, isLoser, isVoted, align, onClick, canVote, voting }) {
-  const isRight = align === 'right'
+// ── TeamSide — centrado verticalmente, nome sem truncagem ─────────────────────
+function TeamSide({ tag, name, isWinner, isLoser, isVoted, onClick, canVote, voting }) {
   return (
     <button
       type="button"
@@ -62,10 +51,9 @@ function TeamSide({ tag, name, isWinner, isLoser, isVoted, align, onClick, canVo
       disabled={!canVote || voting}
       style={{
         flex: 1, minWidth: 0,
-        display: 'flex', alignItems: 'center', gap: 14,
-        flexDirection: isRight ? 'row-reverse' : 'row',
-        textAlign: isRight ? 'right' : 'left',
-        padding: '16px 16px',
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        textAlign: 'center',
+        padding: '20px 12px 16px',
         background: isWinner
           ? 'rgba(74,222,128,0.06)'
           : isVoted ? 'rgba(249,115,22,0.08)'
@@ -80,6 +68,7 @@ function TeamSide({ tag, name, isWinner, isLoser, isVoted, align, onClick, canVo
         cursor: canVote ? 'pointer' : 'default',
         transition: 'border-color 0.15s, background 0.15s, transform 0.15s',
         font: 'inherit', color: 'inherit',
+        gap: 0,
       }}
       onMouseEnter={e => {
         if (canVote && !isVoted && !isWinner) {
@@ -94,59 +83,53 @@ function TeamSide({ tag, name, isWinner, isLoser, isVoted, align, onClick, canVo
         }
       }}
     >
-      <TeamLogo teamName={tag} size={64} />
+      {/* Logo */}
+      <TeamLogo teamName={tag} size={72} />
 
-      {/* Info block — altura fixa via estrutura de 3 linhas */}
-      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-
-        {/* Linha 1: tag + trophy */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 6,
-          justifyContent: isRight ? 'flex-end' : 'flex-start',
+      {/* Tag + trophy */}
+      <div style={{
+        marginTop: 12,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+      }}>
+        <span style={{
+          fontSize: 22, fontWeight: 800, color: 'var(--xm-text-bright, #f1f5f9)',
+          fontFamily: 'var(--xm-font-display, Rajdhani), Rajdhani, sans-serif',
+          letterSpacing: '0.02em', lineHeight: 1,
         }}>
-          <span style={{
-            fontSize: 20, fontWeight: 800, color: 'var(--xm-text-bright, #f1f5f9)',
-            fontFamily: 'var(--xm-font-display, Rajdhani), Rajdhani, sans-serif',
-            letterSpacing: '0.02em', lineHeight: 1,
-          }}>
-            {tag}
+          {tag}
+        </span>
+        {isWinner && (
+          <span style={{ color: '#4ade80', display: 'inline-flex' }}>
+            <DashIcon name="trophy" size={14} />
           </span>
-          {isWinner && (
-            <span style={{ color: '#4ade80', display: 'inline-flex' }}>
-              <DashIcon name="trophy" size={14} />
-            </span>
-          )}
-        </div>
+        )}
+      </div>
 
-        {/* Linha 2: nome completo */}
-        <div style={{
-          fontSize: 11, color: 'var(--xm-muted, #6b7280)',
-          lineHeight: 1.3,
-          fontFamily: "'JetBrains Mono', monospace",
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>
-          {name}
-        </div>
+      {/* Nome completo — wrap permitido, sem ellipsis */}
+      <div style={{
+        marginTop: 5,
+        fontSize: 11, color: 'var(--xm-muted, #6b7280)',
+        lineHeight: 1.4,
+        fontFamily: "'JetBrains Mono', monospace",
+        wordBreak: 'break-word',
+        maxWidth: '100%',
+      }}>
+        {name}
+      </div>
 
-        {/* Linha 3: badge "SEU VOTO" — espaço reservado em ambos os lados para simetria */}
-        <div style={{
-          height: 20, marginTop: 4,
-          display: 'flex', alignItems: 'center',
-          justifyContent: isRight ? 'flex-end' : 'flex-start',
-        }}>
-          {isVoted && (
-            <span style={{
-              fontSize: 9, fontWeight: 800, letterSpacing: '0.1em',
-              padding: '2px 7px', borderRadius: 3,
-              background: 'rgba(249,115,22,0.18)', color: '#f97316',
-              fontFamily: "'JetBrains Mono', monospace",
-              border: '1px solid rgba(249,115,22,0.35)',
-              whiteSpace: 'nowrap',
-            }}>
-              ✓ SEU VOTO
-            </span>
-          )}
-        </div>
+      {/* SEU VOTO — espaço reservado para simetria entre os dois lados */}
+      <div style={{ height: 22, marginTop: 8, display: 'flex', alignItems: 'center' }}>
+        {isVoted && (
+          <span style={{
+            fontSize: 9, fontWeight: 800, letterSpacing: '0.1em',
+            padding: '2px 7px', borderRadius: 3,
+            background: 'rgba(249,115,22,0.18)', color: '#f97316',
+            fontFamily: "'JetBrains Mono', monospace",
+            border: '1px solid rgba(249,115,22,0.35)',
+          }}>
+            ✓ SEU VOTO
+          </span>
+        )}
       </div>
     </button>
   )
@@ -157,7 +140,7 @@ export default function FaceoffCard({ faceoff, token, onVoted }) {
   const [voting, setVoting] = useState(false)
   const [error, setError]   = useState('')
 
-  const { id, team_a_name, team_b_name, seed_a, seed_b,
+  const { id, team_a_name, team_b_name,
           status, winner_team_name, pct_a, pct_b, total_votes, my_vote } = faceoff
 
   const canVote    = status === 'open' && !!token
@@ -176,7 +159,7 @@ export default function FaceoffCard({ faceoff, token, onVoted }) {
   const votedA = my_vote === 'a'
   const votedB = my_vote === 'b'
 
-  // Resultado pessoal (acertou/errou) — apenas em faceoffs resolved com voto
+  // ACERTOU/ERROU — apenas resolved com voto registrado
   let personalResult = null
   if (isResolved && my_vote && winner_team_name) {
     const myWin = (votedA && isWinnerA) || (votedB && isWinnerB)
@@ -184,8 +167,6 @@ export default function FaceoffCard({ faceoff, token, onVoted }) {
       ? { label: 'ACERTOU', symbol: '✓', color: '#4ade80', bg: 'rgba(74,222,128,0.12)', border: 'rgba(74,222,128,0.35)' }
       : { label: 'ERROU',   symbol: '✗', color: '#f87171', bg: 'rgba(248,113,113,0.12)', border: 'rgba(248,113,113,0.35)' }
   }
-
-  const pill = STATUS_PILL[status] || { label: status.toUpperCase(), color: '#94a3b8', bg: 'transparent', border: 'transparent' }
 
   async function vote(side) {
     if (!canVote || voting) return
@@ -212,55 +193,23 @@ export default function FaceoffCard({ faceoff, token, onVoted }) {
       borderRadius: 12, overflow: 'hidden',
       boxShadow: '0 4px 20px rgba(0,0,0,0.35)',
     }}>
-      {/* Header: status + resultado pessoal */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
-        padding: '10px 16px', gap: 10,
-        borderBottom: '1px solid rgba(255,255,255,0.05)',
-        background: 'rgba(255,255,255,0.015)',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {personalResult && (
-            // Badge "ACERTOU/ERROU" — destaque pessoal no canto sup. direito
-            <span style={{
-              fontSize: 10, fontWeight: 800, letterSpacing: '0.1em',
-              padding: '3px 9px', borderRadius: 4,
-              background: personalResult.bg,
-              color: personalResult.color,
-              border: `1px solid ${personalResult.border}`,
-              fontFamily: "'JetBrains Mono', monospace",
-              display: 'inline-flex', alignItems: 'center', gap: 5,
-            }}>
-              {personalResult.label} {personalResult.symbol}
-            </span>
-          )}
-          <span style={{
-            fontSize: 10, fontWeight: 800, letterSpacing: '0.12em',
-            padding: '3px 9px', borderRadius: 4,
-            background: pill.bg, color: pill.color, border: `1px solid ${pill.border}`,
-            fontFamily: "'JetBrains Mono', monospace",
-          }}>
-            {pill.label}
-          </span>
-        </div>
-      </div>
-
-      {/* Confronto horizontal: TIME A | vs | TIME B */}
+      {/* Confronto: TIME A | coluna central | TIME B — sem header strip */}
       <div style={{
         display: 'flex', alignItems: 'stretch', gap: 10,
-        padding: '14px 16px 12px',
+        padding: '16px 16px 12px',
       }}>
         <TeamSide
           tag={tagA} name={team_a_name}
           isWinner={isWinnerA} isLoser={isLoserA} isVoted={votedA}
-          align="left"
           canVote={canVote && !votedA} voting={voting}
           onClick={() => vote('a')}
         />
-        {/* VS central */}
+
+        {/* Coluna central: VS + ACERTOU/ERROU */}
         <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          minWidth: 32, flexShrink: 0,
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          minWidth: 36, flexShrink: 0, gap: 10,
         }}>
           <span style={{
             fontSize: 11, fontWeight: 900, color: 'rgba(255,255,255,0.25)',
@@ -272,23 +221,37 @@ export default function FaceoffCard({ faceoff, token, onVoted }) {
           }}>
             VS
           </span>
+          {personalResult && (
+            <span style={{
+              fontSize: 9, fontWeight: 800, letterSpacing: '0.08em',
+              padding: '3px 6px', borderRadius: 4,
+              background: personalResult.bg,
+              color: personalResult.color,
+              border: `1px solid ${personalResult.border}`,
+              fontFamily: "'JetBrains Mono', monospace",
+              textAlign: 'center', lineHeight: 1.3,
+              writingMode: 'horizontal-tb',
+            }}>
+              {personalResult.symbol}<br />{personalResult.label}
+            </span>
+          )}
         </div>
+
         <TeamSide
           tag={tagB} name={team_b_name}
           isWinner={isWinnerB} isLoser={isLoserB} isVoted={votedB}
-          align="right"
           canVote={canVote && !votedB} voting={voting}
           onClick={() => vote('b')}
         />
       </div>
 
-      {/* Barra de votos — só após fechar ou resolver */}
+      {/* Barra de votos — apenas após fechar/resolver */}
       {showPct && <VoteBar pctA={pct_a} pctB={pct_b} tagA={tagA} tagB={tagB} winnerSide={winnerSide} />}
 
-      {/* Footer (apenas se ainda não há %) */}
+      {/* Footer discreto — contagem e aviso de % */}
       {!showPct && (
         <div style={{
-          padding: '8px 16px 12px',
+          padding: '4px 16px 12px',
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         }}>
           <span style={{ fontSize: 11, color: 'var(--xm-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
