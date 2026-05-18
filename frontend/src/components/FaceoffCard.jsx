@@ -212,19 +212,13 @@ export default function FaceoffCard({ faceoff, token, onVoted }) {
       borderRadius: 12, overflow: 'hidden',
       boxShadow: '0 4px 20px rgba(0,0,0,0.35)',
     }}>
-      {/* Header: seeds + status + resultado pessoal (canto superior direito) */}
+      {/* Header: status + resultado pessoal */}
       <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
         padding: '10px 16px', gap: 10,
         borderBottom: '1px solid rgba(255,255,255,0.05)',
         background: 'rgba(255,255,255,0.015)',
       }}>
-        <span style={{
-          fontSize: 10, fontFamily: "'JetBrains Mono', monospace",
-          color: 'var(--xm-muted, #6b7280)', letterSpacing: '0.12em', fontWeight: 700,
-        }}>
-          #{seed_a}&nbsp;VS&nbsp;#{seed_b}
-        </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {personalResult && (
             // Badge "ACERTOU/ERROU" — destaque pessoal no canto sup. direito
