@@ -85,8 +85,11 @@ export const TEAM_NAME_TO_TAG = {
   'Gen.G Esports':        'GEN',
   'The Expendables':      'TE',
   'Finhay Cerberus':      'FCE',
+  'CERBERUS Esports':     'FCE',  // variante DB Group Stage
   'Change the Game':      'CTG',
+  'Change The Game':      'CTG',  // variante DB Group Stage (T maiúsculo)
   'Full Sense':           'FS',
+  'FULL SENSE':           'FS',   // variante DB Group Stage (all caps)
   'S2G Esports':          'S2G',
 }
 
