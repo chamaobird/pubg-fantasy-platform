@@ -32,7 +32,7 @@ TARGET_STAGE_ID = 43  # Survival Stage — produção
 # 8 times que entram diretamente na Survival (seeds #9–#16)
 TEAMS = [
     dict(name="Gen.G Esports",    tag="GEN",  region="AS", seed=9),
-    dict(name="The Expendables",  tag="TE",   region="EU", seed=10),
+    dict(name="The Expendables",  tag="GTE",  region="EU", seed=10),
     dict(name="FURIA",            tag="FUR",  region="SA", seed=11),
     dict(name="Finhay Cerberus",  tag="FCE",  region="AS", seed=12),
     dict(name="Change the Game",  tag="CTG",  region="AS", seed=13),

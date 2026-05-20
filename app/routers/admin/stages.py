@@ -187,13 +187,14 @@ def list_tournament_matches(
     para indicar quais já foram importados.
     Retorna lista ordenada: novos primeiro, depois importados.
     """
-    from app.services.match_discovery import discover_matches_tournament
+    from app.services.match_discovery import discover_matches_tournament_with_dates
     from app.models.match import Match
 
-    all_ids = discover_matches_tournament(tournament_id)
-    if not all_ids:
+    matches_with_dates = discover_matches_tournament_with_dates(tournament_id)
+    if not matches_with_dates:
         return []
 
+    all_ids = list(matches_with_dates.keys())
     imported_matches = (
         db.query(Match)
         .filter(Match.pubg_match_id.in_(all_ids))
@@ -204,14 +205,21 @@ def list_tournament_matches(
     result = []
     for mid in all_ids:
         m = imported_map.get(mid)
+        # played_at: prefer DB value (definitive), fallback to API createdAt for unimported matches
+        if m and m.played_at:
+            played_at_str = m.played_at.isoformat()
+        elif matches_with_dates.get(mid):
+            played_at_str = matches_with_dates[mid]
+        else:
+            played_at_str = None
         result.append({
             "match_id": mid,
             "imported": m is not None,
             "stage_day_id": m.stage_day_id if m else None,
-            "played_at": m.played_at.isoformat() if m and m.played_at else None,
+            "played_at": played_at_str,
         })
 
-    result.sort(key=lambda x: x["imported"])  # novos primeiro
+    result.sort(key=lambda x: (x["imported"], x["played_at"] or ""))  # novos primeiro, ordenados por data
     return result
 
 

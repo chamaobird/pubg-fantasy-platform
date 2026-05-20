@@ -77,7 +77,7 @@ ALL_24_TEAMS: dict[str, list[str] | None] = {
     "Team Liquid":      ["Team Liquid", "TL"],
     "Team Vitality":    ["Team Vitality", "VIT"],
     "FURIA":            ["FURIA", "Furia"],
-    "The Expendables":  ["The Expendables", "TE"],
+    "The Expendables":  ["The Expendables", "GTE", "TE"],
     "S2G Esports":      ["S2G", "S2G Esports"],
 
     # --- Grupo B ---

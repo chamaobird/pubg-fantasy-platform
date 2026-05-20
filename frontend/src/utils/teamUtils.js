@@ -83,7 +83,7 @@ export const TEAM_NAME_TO_TAG = {
   'Four Angry Men':       '4AM',
   // PGS S2 — Survival Stage (8 times diretos)
   'Gen.G Esports':        'GEN',
-  'The Expendables':      'TE',
+  'The Expendables':      'GTE',
   'Finhay Cerberus':      'FCE',
   'CERBERUS Esports':     'FCE',  // variante DB Group Stage
   'Change the Game':      'CTG',

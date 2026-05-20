@@ -107,13 +107,13 @@ function MatchList({ matches, selectedMatches, toggleMatch, toggleAllNew, newMat
                   #{m.twire_id}
                 </span>
               )}
+              {m.played_at && (
+                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', flexShrink: 0 }}>{fmtUtc(m.played_at)}</span>
+              )}
               {m.imported ? (
                 <span style={{ fontSize: 10, fontWeight: 700, color: '#4ade80', flexShrink: 0 }}>importado</span>
               ) : (
                 <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--xm-orange)', flexShrink: 0 }}>novo</span>
-              )}
-              {m.played_at && (
-                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', flexShrink: 0 }}>{fmtUtc(m.played_at)}</span>
               )}
             </div>
           )
@@ -345,7 +345,7 @@ export default function AdminOpsPanel({ stageId, token }) {
 
   const dayLabel = d => {
     const dateStr = d.date
-      ? new Date(d.date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
+      ? new Date(d.date.substring(0, 10) + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
       : '—'
     return `Dia ${d.day_number} — ${dateStr}`
   }

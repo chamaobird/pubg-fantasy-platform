@@ -194,14 +194,33 @@ def discover_matches_tournament(pubg_tournament_id: str) -> list[str]:
     Descobre match IDs via endpoint /tournaments/{id} (pc-tournament shard).
     Retorna todos os match IDs do torneio (inclusive já importados — o caller filtra).
     """
+    return list(discover_matches_tournament_with_dates(pubg_tournament_id).keys())
+
+
+def discover_matches_tournament_with_dates(pubg_tournament_id: str) -> dict[str, Optional[str]]:
+    """
+    Descobre match IDs e timestamps via endpoint /tournaments/{id}.
+    Retorna dict {match_id: played_at_iso_or_None}.
+    Os timestamps vêm do campo `included` da resposta JSON:API, quando disponível.
+    """
     _throttle()
     url = f"{PUBG_API_BASE}/tournaments/{pubg_tournament_id}"
     try:
         resp = httpx.get(url, headers=_headers(), timeout=15)
         resp.raise_for_status()
         data = resp.json()
-        matches = data.get("data", {}).get("relationships", {}).get("matches", {}).get("data", [])
-        return [m["id"] for m in matches if m.get("type") == "match"]
+        match_rels = data.get("data", {}).get("relationships", {}).get("matches", {}).get("data", [])
+        match_ids = [m["id"] for m in match_rels if m.get("type") == "match"]
+
+        # Parse createdAt from included objects (JSON:API pattern)
+        included_dates: dict[str, str] = {}
+        for obj in data.get("included", []):
+            if obj.get("type") == "match":
+                raw = obj.get("attributes", {}).get("createdAt", "")
+                if raw and obj.get("id"):
+                    included_dates[obj["id"]] = raw
+
+        return {mid: included_dates.get(mid) for mid in match_ids}
     except Exception as exc:
         logger.error("[MatchDiscovery] Erro no endpoint tournament %s: %s", pubg_tournament_id, exc)
-        return []
+        return {}

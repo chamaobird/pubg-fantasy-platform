@@ -499,7 +499,7 @@ def import_team_to_roster(
         roster_entry = Roster(
             stage_id=stage_id,
             person_id=person.id,
-            team_name=team.tag,
+            team_name=team.name,
         )
         db.add(roster_entry)
         added.append(ImportedPlayer(person_id=person.id, person_name=person.display_name))
