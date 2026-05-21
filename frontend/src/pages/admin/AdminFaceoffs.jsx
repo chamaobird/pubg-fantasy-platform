@@ -270,6 +270,19 @@ export default function AdminFaceoffs({ token }) {
     } catch (e) { setMsg('!' + e.message) }
   }
 
+  const handleCloseAll = async () => {
+    const openCount = faceoffs.filter(f => f.status === 'open').length
+    if (!confirm(`Fechar votação de ${openCount} faceoff(s) aberto(s)? O resultado ainda poderá ser adicionado depois.`)) return
+    setSaving(true); setMsg('')
+    try {
+      const open = faceoffs.filter(f => f.status === 'open')
+      await Promise.all(open.map(f => call('PATCH', `/admin/faceoffs/${f.id}`, { status: 'closed' })))
+      setMsg(`${open.length} faceoff(s) fechados.`)
+      await loadFaceoffs()
+    } catch (e) { setMsg('!' + e.message) }
+    finally { setSaving(false) }
+  }
+
   const handleBulkResolve = async () => {
     const closedCount = faceoffs.filter(f => f.status === 'closed').length
     if (!confirm(`Resolver automaticamente ${closedCount} faceoff(s) fechado(s) pelo standing do campeonato?`)) return
@@ -628,12 +641,26 @@ export default function AdminFaceoffs({ token }) {
             <span><strong style={{ color: '#a5b4fc' }}>←</strong> Reverte status</span>
             <span><strong style={{ color: 'var(--xm-green)' }}>⚡</strong> Resolve pelo standing</span>
             <span><strong>✏</strong> Edita nomes/seeds/winner</span>
+            {faceoffs.some(f => f.status === 'open') && (
+              <button
+                onClick={handleCloseAll}
+                disabled={saving}
+                style={{
+                  marginLeft: 'auto', fontSize: 11, padding: '4px 12px', borderRadius: 6, cursor: 'pointer',
+                  background: 'rgba(234,179,8,0.1)', border: '1px solid rgba(234,179,8,0.35)',
+                  color: '#eab308', fontWeight: 700,
+                }}
+              >
+                🔒 Fechar todos ({faceoffs.filter(f => f.status === 'open').length})
+              </button>
+            )}
             {faceoffs.some(f => f.status === 'closed') && (
               <button
                 onClick={handleBulkResolve}
                 disabled={saving}
                 style={{
-                  marginLeft: 'auto', fontSize: 11, padding: '4px 12px', borderRadius: 6, cursor: 'pointer',
+                  marginLeft: faceoffs.some(f => f.status === 'open') ? 8 : 'auto',
+                  fontSize: 11, padding: '4px 12px', borderRadius: 6, cursor: 'pointer',
                   background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.35)',
                   color: 'var(--xm-green)', fontWeight: 700,
                 }}

@@ -77,6 +77,7 @@ def _process_stage_status(db, stage, now: datetime) -> None:
             stage.lineup_status = "open"
             logger.info("lineup_control: stage %s (%s) → open", stage.id, stage.name)
             _notify_lineup_open(db, stage)
+            _apply_faceoff_lifecycle(db, stage, old_status, "open")
 
     if stage.lineup_status == "open":
         if stage.lineup_close_at:
@@ -86,9 +87,65 @@ def _process_stage_status(db, stage, now: datetime) -> None:
             stage.lineup_status = "locked"
             stage.stage_phase = "live"  # exibe como "EM JOGO" no dashboard
             logger.info("lineup_control: stage %s (%s) → locked / phase=live", stage.id, stage.name)
+            _apply_faceoff_lifecycle(db, stage, "open", "locked")
 
     if stage.lineup_status != old_status:
         db.add(stage)
+
+
+def _apply_faceoff_lifecycle(db, stage, prev_status: str, new_status: str) -> None:
+    """
+    Espelha o lifecycle de faceoffs do endpoint PATCH /admin/stages/{id} para o scheduler.
+
+    O endpoint aplica as transições ao processar o body da requisição; o scheduler
+    altera o ORM diretamente, então precisa chamar esta função explicitamente após
+    cada mudança de lineup_status para manter o comportamento consistente.
+
+    Regras:
+      closed → open   : abre faceoffs draft (se nenhuma outra stage já aberta/locked)
+      open   → locked : fecha faceoffs abertos
+    """
+    if not stage.championship_id:
+        return
+
+    from app.models.championship import Championship
+    from app.models.faceoff import Faceoff
+
+    championship = db.query(Championship).filter(
+        Championship.id == stage.championship_id
+    ).first()
+    if not championship or not championship.has_faceoff:
+        return
+
+    # closed → open: abre faceoffs draft (só se é a primeira stage a abrir)
+    if prev_status == "closed" and new_status == "open":
+        other_active = db.query(Stage).filter(
+            Stage.championship_id == stage.championship_id,
+            Stage.id != stage.id,
+            Stage.lineup_status.in_(["open", "locked"]),
+        ).first()
+        if not other_active:
+            updated = db.query(Faceoff).filter(
+                Faceoff.championship_id == stage.championship_id,
+                Faceoff.status == "draft",
+            ).update({"status": "open"}, synchronize_session=False)
+            if updated:
+                logger.info(
+                    "lineup_control: %d faceoff(s) abertos para championship %s",
+                    updated, stage.championship_id,
+                )
+
+    # open → locked: fecha faceoffs abertos
+    elif prev_status == "open" and new_status == "locked":
+        updated = db.query(Faceoff).filter(
+            Faceoff.championship_id == stage.championship_id,
+            Faceoff.status == "open",
+        ).update({"status": "closed"}, synchronize_session=False)
+        if updated:
+            logger.info(
+                "lineup_control: %d faceoff(s) fechados para championship %s",
+                updated, stage.championship_id,
+            )
 
 
 def _notify_lineup_open(db, stage) -> None:
