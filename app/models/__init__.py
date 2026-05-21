@@ -18,6 +18,7 @@ from app.models.email_log import EmailLog
 from app.models.feedback import Feedback
 from app.models.oauth_code import OAuthCode
 from app.models.faceoff import Faceoff, FaceoffVote
+from app.models.stage_sync_schedule import StageSyncSchedule
 
 __all__ = [
     "User",
@@ -44,4 +45,5 @@ __all__ = [
     "OAuthCode",
     "Faceoff",
     "FaceoffVote",
+    "StageSyncSchedule",
 ]

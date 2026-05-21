@@ -42,6 +42,38 @@ def scan_seatlon(
     return scan_new_tournaments(db)
 
 
+@router.get("/unassigned")
+def list_unassigned_tournament_ids(
+    db: Session = Depends(get_db),
+    _admin: User = Depends(require_admin),
+) -> dict:
+    """
+    Lista tournament IDs ativos no seatlon.eu que ainda não estão atribuídos
+    a nenhum Stage. Não envia email — usado pela UI de admin para o painel
+    de atribuição rápida.
+    """
+    from app.services.seatlon_monitor import (
+        _fetch_seatlon_tournaments,
+        _get_assigned_tournament_ids,
+        _is_relevant,
+    )
+
+    tournaments = _fetch_seatlon_tournaments()
+    assigned = _get_assigned_tournament_ids(db)
+
+    unassigned = [
+        {
+            "tournament_id": t.tournament_id,
+            "matches_count": t.matches_count,
+            "pubg_created_at": t.pubg_created_at[:10] if t.pubg_created_at else None,
+        }
+        for t in tournaments
+        if t.active and _is_relevant(t.tournament_id) and t.tournament_id not in assigned
+    ]
+
+    return {"count": len(unassigned), "unassigned": unassigned}
+
+
 @router.get("/assigned")
 def list_assigned_tournament_ids(
     db: Session = Depends(get_db),

@@ -32,6 +32,7 @@ const BLANK = {
   start_date: '', end_date: '',
   lineup_size: 4, captain_multiplier: 1.3,
   price_min: 12, price_max: 35,
+  pubg_tournament_id: '',
 }
 
 // ── Timezone helpers ──────────────────────────────────────────────────────────
@@ -813,6 +814,388 @@ function ImportPanel({ stage, stages, token }) {
   )
 }
 
+// ── Seatlon Assignment Panel ───────────────────────────────────────────────────
+
+const SYNC_INTERVALS = [5, 15, 30, 60, 120]
+
+function SeatlonPanel({ token, stages, onAssigned }) {
+  const call = useCallback(api(token), [token])
+  const [unassigned, setUnassigned] = useState(null)
+  const [loadingIds, setLoadingIds] = useState(false)
+  const [expanded, setExpanded] = useState(false)
+  const [selectedStage, setSelectedStage] = useState({})
+  const [assigning, setAssigning] = useState(null)
+  const [assignErr, setAssignErr] = useState({})
+
+  // Sync config modal state
+  const [syncTarget, setSyncTarget] = useState(null) // { tournamentId, stageId, stageName }
+  const [syncForm, setSyncForm] = useState({ intervalMin: 15, useRunFrom: false, runFrom: '', runUntil: '', notes: '' })
+  const [creatingSync, setCreatingSync] = useState(false)
+  const [syncMsg, setSyncMsg] = useState('')
+
+  const load = useCallback(async () => {
+    setLoadingIds(true)
+    try {
+      const data = await call('GET', '/admin/seatlon/unassigned')
+      setUnassigned(data.unassigned || [])
+      if ((data.count || 0) > 0) setExpanded(true)
+    } catch { setUnassigned([]) }
+    finally { setLoadingIds(false) }
+  }, [call])
+
+  useEffect(() => { load() }, [load])
+
+  const handleAssign = async (t) => {
+    const stageId = selectedStage[t.tournament_id]
+    if (!stageId) return
+    setAssigning(t.tournament_id)
+    setAssignErr(prev => ({ ...prev, [t.tournament_id]: '' }))
+    try {
+      await call('PATCH', `/admin/stages/${stageId}`, { pubg_tournament_id: t.tournament_id })
+      const stageName = stages.find(s => String(s.id) === String(stageId))?.name || `Stage #${stageId}`
+      setSyncTarget({ tournamentId: t.tournament_id, stageId, stageName })
+      setSyncForm({ intervalMin: 15, useRunFrom: false, runFrom: '', runUntil: '', notes: '' })
+      setSyncMsg('')
+      await load()
+      onAssigned?.()
+    } catch (e) {
+      setAssignErr(prev => ({ ...prev, [t.tournament_id]: e.message }))
+    } finally { setAssigning(null) }
+  }
+
+  const handleCreateSync = async () => {
+    if (!syncForm.runUntil) { setSyncMsg('!Defina o horário de término do sync.'); return }
+    setCreatingSync(true); setSyncMsg('')
+    try {
+      await call('POST', '/admin/stage-sync', {
+        stage_id: parseInt(syncTarget.stageId),
+        tournament_id: syncTarget.tournamentId,
+        interval_min: syncForm.intervalMin,
+        run_from: syncForm.useRunFrom && syncForm.runFrom ? localInputToUtc(syncForm.runFrom) : null,
+        run_until: localInputToUtc(syncForm.runUntil),
+        notes: syncForm.notes?.trim() || null,
+      })
+      setSyncMsg('ok')
+      setTimeout(() => setSyncTarget(null), 1200)
+    } catch (e) { setSyncMsg('!' + e.message) }
+    finally { setCreatingSync(false) }
+  }
+
+  if (unassigned === null) return null
+  if (unassigned.length === 0 && !loadingIds) return null
+
+  const stagesWithoutId = stages.filter(s => !s.pubg_tournament_id)
+  const sf = k => e => setSyncForm(p => ({ ...p, [k]: e.target.value }))
+
+  return (
+    <>
+      <div style={{ marginBottom: 16, border: '1px solid rgba(234,179,8,0.35)', borderRadius: 10, background: 'rgba(234,179,8,0.04)' }}>
+        <button
+          onClick={() => setExpanded(e => !e)}
+          style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 16px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--xm-text)', textAlign: 'left' }}
+        >
+          <span style={{ color: '#eab308', fontSize: 15 }}>⚠</span>
+          <strong style={{ color: '#eab308', fontSize: 13 }}>
+            {loadingIds ? '…' : `${unassigned.length} tournament ID${unassigned.length !== 1 ? 's' : ''} não atribuído${unassigned.length !== 1 ? 's' : ''}`}
+          </strong>
+          <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--xm-muted)' }}>{expanded ? '▼' : '▶'}</span>
+        </button>
+
+        {expanded && (
+          <div style={{ padding: '0 16px 14px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+              <thead>
+                <tr>
+                  {['Tournament ID', 'Matches', 'Criado em', 'Atribuir a Stage', ''].map(h => (
+                    <th key={h} style={{ ...thStyle, textAlign: h === 'Matches' || h === 'Criado em' ? 'center' : 'left', padding: '6px 10px' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {unassigned.map(t => (
+                  <tr key={t.tournament_id}>
+                    <td style={{ ...tdStyle, fontFamily: 'monospace', color: '#eab308', padding: '7px 10px' }}>{t.tournament_id}</td>
+                    <td style={{ ...tdStyle, textAlign: 'center', padding: '7px 10px' }}>{t.matches_count}</td>
+                    <td style={{ ...tdStyle, textAlign: 'center', color: 'var(--xm-muted)', padding: '7px 10px' }}>{t.pubg_created_at || '—'}</td>
+                    <td style={{ ...tdStyle, padding: '7px 10px' }}>
+                      <select
+                        style={{ ...selectStyle, width: '100%', fontSize: 12 }}
+                        value={selectedStage[t.tournament_id] || ''}
+                        onChange={e => setSelectedStage(prev => ({ ...prev, [t.tournament_id]: e.target.value }))}
+                      >
+                        <option value="">Selecione stage…</option>
+                        {stagesWithoutId.map(s => (
+                          <option key={s.id} value={s.id}>#{s.id} — {s.name}</option>
+                        ))}
+                      </select>
+                    </td>
+                    <td style={{ ...tdStyle, padding: '7px 10px', whiteSpace: 'nowrap' }}>
+                      <button
+                        onClick={() => handleAssign(t)}
+                        disabled={!selectedStage[t.tournament_id] || assigning === t.tournament_id}
+                        style={{
+                          background: selectedStage[t.tournament_id] ? '#4ade80' : '#374151',
+                          color: selectedStage[t.tournament_id] ? '#000' : '#6b7280',
+                          border: 'none', borderRadius: 6, padding: '5px 12px',
+                          cursor: selectedStage[t.tournament_id] ? 'pointer' : 'default',
+                          fontSize: 12, fontWeight: 700,
+                        }}
+                      >
+                        {assigning === t.tournament_id ? '…' : 'Atribuir'}
+                      </button>
+                      {assignErr[t.tournament_id] && (
+                        <span style={{ marginLeft: 6, color: '#f87171', fontSize: 11 }}>{assignErr[t.tournament_id]}</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p style={{ fontSize: 11, color: 'var(--xm-muted)', marginTop: 8, marginBottom: 0 }}>
+              Stages sem tournament ID aparecem no seletor. Após atribuir, um modal pergunta se quer configurar sync automático.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Modal de configuração de sync pós-atribuição */}
+      {syncTarget && (
+        <Modal
+          title={`Sync automático — ${syncTarget.tournamentId}`}
+          onClose={() => setSyncTarget(null)}
+          width={520}
+        >
+          <div style={{ fontSize: 13, color: 'var(--xm-muted)', marginBottom: 16 }}>
+            Tournament ID atribuído a <strong style={{ color: 'var(--xm-text)' }}>{syncTarget.stageName}</strong>.
+            Configure um scheduler para buscar partidas e atualizar stats automaticamente.
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <Field label="Intervalo entre runs">
+              <select style={selectStyle} value={syncForm.intervalMin} onChange={sf('intervalMin')}>
+                {SYNC_INTERVALS.map(m => (
+                  <option key={m} value={m}>{m} minutos</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Parar em (horário local)">
+              <input style={inputStyle} type="datetime-local" value={syncForm.runUntil} onChange={sf('runUntil')} />
+            </Field>
+          </div>
+
+          <Field label="">
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13 }}>
+              <input
+                type="checkbox"
+                checked={syncForm.useRunFrom}
+                onChange={e => setSyncForm(p => ({ ...p, useRunFrom: e.target.checked }))}
+              />
+              Início diferido (janela futura — ex: Final em 2 dias)
+            </label>
+          </Field>
+
+          {syncForm.useRunFrom && (
+            <Field label="Iniciar em (horário local)">
+              <input style={inputStyle} type="datetime-local" value={syncForm.runFrom} onChange={sf('runFrom')} />
+            </Field>
+          )}
+
+          <Field label="Observação (opcional)">
+            <input style={inputStyle} value={syncForm.notes} onChange={sf('notes')} placeholder="ex: WS Final D2" />
+          </Field>
+
+          {syncMsg === 'ok' && (
+            <div style={{ color: '#4ade80', fontSize: 13, marginBottom: 8 }}>Sync criado com sucesso.</div>
+          )}
+          {syncMsg.startsWith('!') && (
+            <div style={{ color: '#f87171', fontSize: 13, marginBottom: 8 }}>{syncMsg.slice(1)}</div>
+          )}
+
+          <div style={{ display: 'flex', gap: 10 }}>
+            <SaveBtn loading={creatingSync} onClick={handleCreateSync} label="Criar Sync" />
+            <button
+              onClick={() => setSyncTarget(null)}
+              style={{ background: 'transparent', border: '1px solid var(--xm-border)', color: 'var(--xm-muted)', borderRadius: 8, padding: '8px 18px', cursor: 'pointer', fontSize: 13 }}
+            >
+              Pular (sem sync)
+            </button>
+          </div>
+        </Modal>
+      )}
+    </>
+  )
+}
+
+// ── Sync Schedules Panel ───────────────────────────────────────────────────────
+
+const STATUS_COLOR = {
+  pending:   '#a78bfa',
+  active:    '#4ade80',
+  completed: '#6b7280',
+  cancelled: '#f87171',
+}
+
+function SyncSchedulesPanel({ token }) {
+  const call = useCallback(api(token), [token])
+  const [schedules, setSchedules] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [expanded, setExpanded] = useState(false)
+  const [running, setRunning] = useState(null)
+  const [cancelling, setCancelling] = useState(null)
+  const [editingUntil, setEditingUntil] = useState(null) // schedule id
+  const [newUntil, setNewUntil] = useState('')
+  const [actionMsg, setActionMsg] = useState({})
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const data = await call('GET', '/admin/stage-sync')
+      setSchedules(Array.isArray(data) ? data : [])
+    } catch { setSchedules([]) }
+    finally { setLoading(false) }
+  }, [call])
+
+  useEffect(() => { load() }, [load])
+
+  const active = schedules.filter(s => s.status === 'pending' || s.status === 'active')
+
+  if (schedules.length === 0 && !loading) return null
+
+  const handleRunNow = async (s) => {
+    setRunning(s.id); setActionMsg(p => ({ ...p, [s.id]: '' }))
+    try {
+      const r = await call('POST', `/admin/stage-sync/${s.id}/run-now`)
+      setActionMsg(p => ({ ...p, [s.id]: `ok run#${r.runs_count}` }))
+      await load()
+    } catch (e) { setActionMsg(p => ({ ...p, [s.id]: '!' + e.message })) }
+    finally { setRunning(null) }
+  }
+
+  const handleCancel = async (s) => {
+    if (!confirm(`Cancelar sync #${s.id} (${s.tournament_id})?`)) return
+    setCancelling(s.id)
+    try {
+      await call('POST', `/admin/stage-sync/${s.id}/cancel`)
+      await load()
+    } catch (e) { setActionMsg(p => ({ ...p, [s.id]: '!' + e.message })) }
+    finally { setCancelling(null) }
+  }
+
+  const handleSaveUntil = async (s) => {
+    if (!newUntil) return
+    try {
+      await call('PATCH', `/admin/stage-sync/${s.id}`, { run_until: localInputToUtc(newUntil) })
+      setEditingUntil(null)
+      await load()
+    } catch (e) { setActionMsg(p => ({ ...p, [s.id]: '!' + e.message })) }
+  }
+
+  const fmtDt = iso => iso ? new Date(iso).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '—'
+
+  return (
+    <div style={{ marginBottom: 16, border: '1px solid rgba(99,102,241,0.3)', borderRadius: 10, background: 'rgba(99,102,241,0.03)' }}>
+      <button
+        onClick={() => setExpanded(e => !e)}
+        style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 16px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--xm-text)', textAlign: 'left' }}
+      >
+        <span style={{ color: '#a78bfa', fontSize: 14 }}>⏱</span>
+        <strong style={{ color: '#a78bfa', fontSize: 13 }}>
+          {loading ? '…' : `Sync Schedulers — ${active.length} ativo${active.length !== 1 ? 's' : ''} / ${schedules.length} total`}
+        </strong>
+        <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--xm-muted)' }}>{expanded ? '▼' : '▶'}</span>
+      </button>
+
+      {expanded && (
+        <div style={{ padding: '0 16px 14px', overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 700 }}>
+            <thead>
+              <tr>
+                {['#', 'Stage', 'Tournament ID', 'Intervalo', 'Início', 'Fim', 'Último run', 'Runs', 'Status', 'Ações'].map(h => (
+                  <th key={h} style={{ ...thStyle, padding: '6px 8px', textAlign: 'left', whiteSpace: 'nowrap' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {schedules.map(s => (
+                <tr key={s.id} style={{ opacity: s.status === 'cancelled' ? 0.5 : 1 }}>
+                  <td style={{ ...tdStyle, padding: '7px 8px', color: 'var(--xm-muted)' }}>{s.id}</td>
+                  <td style={{ ...tdStyle, padding: '7px 8px', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.stage_name || `#${s.stage_id}`}</td>
+                  <td style={{ ...tdStyle, padding: '7px 8px', fontFamily: 'monospace', color: '#eab308' }}>{s.tournament_id}</td>
+                  <td style={{ ...tdStyle, padding: '7px 8px', textAlign: 'center' }}>{s.interval_min}min</td>
+                  <td style={{ ...tdStyle, padding: '7px 8px', color: 'var(--xm-muted)', whiteSpace: 'nowrap' }}>{s.run_from ? fmtDt(s.run_from) : 'imediato'}</td>
+                  <td style={{ ...tdStyle, padding: '7px 8px', whiteSpace: 'nowrap' }}>
+                    {editingUntil === s.id ? (
+                      <span style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                        <input
+                          type="datetime-local"
+                          style={{ ...inputStyle, padding: '2px 6px', fontSize: 11, width: 160 }}
+                          value={newUntil}
+                          onChange={e => setNewUntil(e.target.value)}
+                        />
+                        <button onClick={() => handleSaveUntil(s)} style={{ background: '#4ade80', color: '#000', border: 'none', borderRadius: 4, padding: '2px 8px', cursor: 'pointer', fontSize: 11 }}>✓</button>
+                        <button onClick={() => setEditingUntil(null)} style={{ background: 'transparent', border: 'none', color: 'var(--xm-muted)', cursor: 'pointer', fontSize: 11 }}>✕</button>
+                      </span>
+                    ) : (
+                      <span
+                        onClick={() => s.status !== 'completed' && s.status !== 'cancelled' && (setEditingUntil(s.id), setNewUntil(utcToLocalInput(s.run_until)))}
+                        style={{ cursor: s.status === 'active' || s.status === 'pending' ? 'pointer' : 'default', textDecoration: s.status === 'active' || s.status === 'pending' ? 'underline dotted' : 'none' }}
+                        title={s.status === 'active' || s.status === 'pending' ? 'Clique para editar' : ''}
+                      >
+                        {fmtDt(s.run_until)}
+                      </span>
+                    )}
+                  </td>
+                  <td style={{ ...tdStyle, padding: '7px 8px', color: 'var(--xm-muted)', whiteSpace: 'nowrap' }}>{fmtDt(s.last_run_at)}</td>
+                  <td style={{ ...tdStyle, padding: '7px 8px', textAlign: 'center' }}>{s.runs_count}</td>
+                  <td style={{ ...tdStyle, padding: '7px 8px' }}>
+                    <span style={{ color: STATUS_COLOR[s.status] || '#fff', fontWeight: 600, fontSize: 11 }}>{s.status}</span>
+                  </td>
+                  <td style={{ ...tdStyle, padding: '7px 8px', whiteSpace: 'nowrap' }}>
+                    {(s.status === 'pending' || s.status === 'active') && (
+                      <>
+                        <button
+                          onClick={() => handleRunNow(s)}
+                          disabled={running === s.id}
+                          style={{ background: '#6366f1', color: '#fff', border: 'none', borderRadius: 5, padding: '3px 10px', cursor: 'pointer', fontSize: 11, fontWeight: 700, marginRight: 5 }}
+                        >
+                          {running === s.id ? '…' : 'Run Now'}
+                        </button>
+                        <button
+                          onClick={() => handleCancel(s)}
+                          disabled={cancelling === s.id}
+                          style={{ background: 'transparent', border: '1px solid #f87171', color: '#f87171', borderRadius: 5, padding: '3px 8px', cursor: 'pointer', fontSize: 11 }}
+                        >
+                          {cancelling === s.id ? '…' : 'Cancelar'}
+                        </button>
+                      </>
+                    )}
+                    {actionMsg[s.id]?.startsWith('ok') && (
+                      <span style={{ color: '#4ade80', fontSize: 11, marginLeft: 4 }}>{actionMsg[s.id]}</span>
+                    )}
+                    {actionMsg[s.id]?.startsWith('!') && (
+                      <span style={{ color: '#f87171', fontSize: 11, marginLeft: 4 }}>{actionMsg[s.id].slice(1)}</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {schedules.some(s => s.notes) && (
+            <div style={{ marginTop: 8, fontSize: 11, color: 'var(--xm-muted)' }}>
+              {schedules.filter(s => s.notes).map(s => (
+                <div key={s.id}><strong>#{s.id}:</strong> {s.notes}</div>
+              ))}
+            </div>
+          )}
+          <p style={{ fontSize: 11, color: 'var(--xm-muted)', marginTop: 6, marginBottom: 0 }}>
+            O scheduler roda a cada 5 min. "Fim" sublinhado = clique para editar. Stage precisa ter stage_days com match_schedule configurado.
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Componente principal ───────────────────────────────────────────────────────
 
 export default function AdminStages({ token }) {
@@ -877,6 +1260,7 @@ export default function AdminStages({ token }) {
       captain_multiplier: s.captain_multiplier ?? 1.3,
       price_min: s.price_min ?? 12,
       price_max: s.price_max ?? 35,
+      pubg_tournament_id: s.pubg_tournament_id || '',
     })
     setMsg(''); setModal({ mode: 'edit', data: s })
   }
@@ -895,6 +1279,7 @@ export default function AdminStages({ token }) {
         lineup_close_at: localInputToUtc(form.lineup_close_at),
         start_date: localInputToUtc(form.start_date),
         end_date: localInputToUtc(form.end_date),
+        pubg_tournament_id: form.pubg_tournament_id?.trim() || null,
       }
       if (modal.mode === 'create') {
         await call('POST', '/admin/stages', body)
@@ -948,6 +1333,9 @@ export default function AdminStages({ token }) {
         placeholder="Filtrar por championship..."
         style={{ maxWidth: 320, marginBottom: 14 }}
       />
+
+      <SeatlonPanel token={token} stages={stages} onAssigned={loadStages} />
+      <SyncSchedulesPanel token={token} />
 
       <div style={{ background: 'rgba(18,21,28,0.9)', border: '1px solid var(--xm-border)', borderRadius: 12, overflow: 'hidden' }}>
         {loading ? (
@@ -1129,6 +1517,15 @@ export default function AdminStages({ token }) {
               </select>
             </Field>
           </div>
+
+          <Field label="Tournament ID (PUBG API)">
+            <input
+              style={inputStyle}
+              value={form.pubg_tournament_id}
+              onChange={f('pubg_tournament_id')}
+              placeholder="ex: as-pgs4ws — deixe vazio para remover"
+            />
+          </Field>
 
           {/* Badge de timezone + hint */}
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 8, padding: '10px 14px' }}>

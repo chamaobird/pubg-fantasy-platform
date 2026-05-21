@@ -26,6 +26,7 @@ from app.routers.leagues import router as leagues_router
 from app.routers.ws import router as ws_router
 from app.routers.feedback import router as feedback_router
 from app.routers.faceoffs import router as faceoffs_router
+from app.routers.admin.stage_sync import router as stage_sync_router
 
 
 logging.basicConfig(
@@ -226,6 +227,7 @@ app.include_router(leagues_router)
 app.include_router(ws_router)
 app.include_router(feedback_router)
 app.include_router(faceoffs_router)
+app.include_router(stage_sync_router)
 
 
 # ── Health ────────────────────────────────────────────────────────────────────

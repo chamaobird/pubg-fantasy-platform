@@ -230,6 +230,13 @@ def _seatlon_monitor_job() -> None:
     run_seatlon_monitor()
 
 
+# ── Job 6: stage_sync ────────────────────────────────────────────────────────
+
+def _stage_sync_job() -> None:
+    from app.jobs.stage_sync_job import run_stage_sync_schedules
+    run_stage_sync_schedules()
+
+
 # ── Factory ───────────────────────────────────────────────────────────────────
 
 def create_scheduler() -> BackgroundScheduler:
@@ -283,6 +290,16 @@ def create_scheduler() -> BackgroundScheduler:
         name="Seatlon tournament ID monitor",
         max_instances=1,
         misfire_grace_time=300,
+    )
+
+    scheduler.add_job(
+        _stage_sync_job,
+        trigger="interval",
+        minutes=5,
+        id="stage_sync",
+        name="Stage sync scheduler (match import por janela de tempo)",
+        max_instances=1,
+        misfire_grace_time=60,
     )
 
     return scheduler
