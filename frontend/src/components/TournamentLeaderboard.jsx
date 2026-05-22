@@ -112,8 +112,10 @@ export default function TournamentLeaderboard({
   const rankingsRef = useRef([]) // snapshot do fetch anterior para calcular deltas
   const [loading,   setLoading]   = useState(false)
   const [error,     setError]     = useState(null)
-  const [myUserId,  setMyUserId]  = useState(null)
-  const [myLineups, setMyLineups] = useState([])
+  const [myUserId,     setMyUserId]     = useState(null)
+  const [myLineups,    setMyLineups]    = useState([])
+  const [expandedUserId, setExpandedUserId] = useState(null)
+  const [lineupCache,  setLineupCache]  = useState({})
 
   const [submissions,        setSubmissions]  = useState([])
   const [submissionsLoading, setSubLoading]   = useState(false)
@@ -167,6 +169,8 @@ export default function TournamentLeaderboard({
     setError(null)
     setSubmissions([])
     setMyLineups([])
+    setExpandedUserId(null)
+    setLineupCache({})
     hasScrolledRef.current = false
   }, [stageId])
 
@@ -358,6 +362,21 @@ export default function TournamentLeaderboard({
 
   const myRankEntry = myUserId ? rankings.find(e => e.user_id === myUserId) : null
 
+  // ── Inline expansion ──────────────────────────────────────────────────────
+  const toggleExpand = (userId) => {
+    if (!isLocked) return
+    if (expandedUserId === userId) { setExpandedUserId(null); return }
+    setExpandedUserId(userId)
+    if (lineupCache[userId]) return
+    fetch(`${API_BASE_URL}/lineups/stage/${stageId}/user/${userId}`,
+      { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+      .then(r => r.ok ? r.json() : [])
+      .catch(() => [])
+      .then(data => setLineupCache(prev => ({ ...prev, [userId]: Array.isArray(data) ? data : [] })))
+  }
+
+  const compDayMap = buildDayMap(siblingStages)
+
   return (
     <>
     <div className="min-h-screen" style={{ background: 'transparent' }}>
@@ -539,44 +558,67 @@ export default function TournamentLeaderboard({
                 Ver detalhes
               </button>
             </div>
-            <div style={{ padding: '10px 14px', display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {(lastDayLineup.players || [])
+            {(() => {
+              const allPlayers = lastDayLineup.players || []
+              const titulares = allPlayers
                 .filter(p => p.slot_type === 'titular')
                 .sort((a, b) => {
                   if (a.is_captain) return -1
                   if (b.is_captain) return 1
                   return (b.points_earned ?? -Infinity) - (a.points_earned ?? -Infinity)
                 })
-                .map(p => (
-                  <span key={p.id} style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 4,
-                    padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 600,
-                    background: p.is_captain ? 'rgba(240,192,64,0.10)' : 'rgba(20,184,166,0.07)',
-                    border: p.is_captain ? '1px solid rgba(240,192,64,0.35)' : '1px solid rgba(20,184,166,0.25)',
-                    color: p.is_captain ? '#f0c040' : 'var(--xm-text)',
-                    fontFamily: "'JetBrains Mono', monospace",
-                  }}>
-                    {p.is_captain && <span style={{ fontSize: 10 }}>⭐</span>}
-                    {fmtName(p.person_name)}
-                    {p.points_earned != null && (
-                      <span style={{ fontSize: 10, color: p.is_captain ? '#f0c040' : 'var(--xm-muted)', marginLeft: 2 }}>
-                        {Number(p.points_earned).toFixed(1)}
-                      </span>
-                    )}
-                  </span>
-                ))}
-              {(lastDayLineup.players || []).filter(p => p.slot_type === 'reserve').map(p => (
-                <span key={p.id} style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 4,
-                  padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 600,
-                  background: 'rgba(0,0,0,0.20)', border: '1px solid rgba(255,255,255,0.07)',
-                  color: 'var(--xm-muted)', opacity: 0.7,
-                  fontFamily: "'JetBrains Mono', monospace",
+              const reserve = allPlayers.find(p => p.slot_type === 'reserve')
+              return (
+                <div style={{
+                  padding: '12px 16px',
+                  display: 'grid',
+                  gridTemplateColumns: `repeat(${titulares.length}, 1fr)${reserve ? ' auto' : ''}`,
+                  gap: 8,
+                  alignItems: 'stretch',
                 }}>
-                  RES · {fmtName(p.person_name)}
-                </span>
-              ))}
-            </div>
+                  {titulares.map(p => (
+                    <div key={p.id} style={{
+                      display: 'flex', flexDirection: 'column', alignItems: 'center',
+                      gap: 5, padding: '10px 6px', borderRadius: 8, textAlign: 'center',
+                      background: p.is_captain ? 'rgba(240,192,64,0.07)' : 'rgba(20,184,166,0.05)',
+                      border: p.is_captain ? '1px solid rgba(240,192,64,0.4)' : '1px solid rgba(20,184,166,0.18)',
+                    }}>
+                      {p.is_captain && (
+                        <span style={{ fontSize: 8, fontWeight: 800, letterSpacing: '0.06em', color: '#f0c040', fontFamily: "'JetBrains Mono', monospace" }}>
+                          ⭐ CAP
+                        </span>
+                      )}
+                      <TeamLogo teamName={formatTeamTag(p.person_name, p.team_name)} size={30} />
+                      <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--xm-text)', lineHeight: 1 }}>
+                        {fmtName(p.person_name)}
+                      </span>
+                      <span style={{ fontSize: 17, fontWeight: 800, fontFamily: "'JetBrains Mono', monospace", lineHeight: 1, color: p.is_captain ? '#f0c040' : 'var(--xm-orange)' }}>
+                        {p.points_earned != null ? Number(p.points_earned).toFixed(1) : '—'}
+                      </span>
+                    </div>
+                  ))}
+                  {reserve && (
+                    <div style={{
+                      display: 'flex', flexDirection: 'column', alignItems: 'center',
+                      gap: 5, padding: '10px 10px', borderRadius: 8, textAlign: 'center',
+                      background: 'rgba(0,0,0,0.15)', border: '1px solid rgba(255,255,255,0.06)',
+                      opacity: 0.55, minWidth: 68,
+                    }}>
+                      <span style={{ fontSize: 8, fontWeight: 800, letterSpacing: '0.06em', color: 'var(--xm-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
+                        RES
+                      </span>
+                      <TeamLogo teamName={formatTeamTag(reserve.person_name, reserve.team_name)} size={30} />
+                      <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--xm-muted)', lineHeight: 1 }}>
+                        {fmtName(reserve.person_name)}
+                      </span>
+                      <span style={{ fontSize: 14, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", lineHeight: 1, color: 'var(--xm-muted)' }}>
+                        {reserve.points_earned != null ? Number(reserve.points_earned).toFixed(1) : '—'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
           </div>
         </div>
       )}
@@ -755,24 +797,28 @@ export default function TournamentLeaderboard({
                 </thead>
                 <tbody>
                   {rankings.map((entry, idx) => {
-                    const pos      = entry.rank ?? (idx + 1)
-                    const isTop3   = pos <= 3
-                    const isMe     = entry.user_id === myUserId
-                    const pts      = getPoints(entry)
-                    const canClick = isLocked && token
+                    const pos        = entry.rank ?? (idx + 1)
+                    const isTop3     = pos <= 3
+                    const isMe       = entry.user_id === myUserId
+                    const pts        = getPoints(entry)
+                    const canClick   = isLocked && token
+                    const isExpanded = expandedUserId === entry.user_id
                     return (
+                      <>
                       <tr key={entry.user_id}
                         ref={isMe ? myRowRef : null}
-                        onClick={canClick ? () => setViewUser({ userId: entry.user_id, username: ownerLabel(entry) }) : undefined}
+                        onClick={canClick ? () => toggleExpand(entry.user_id) : undefined}
                         style={{
-                          borderBottom: '1px solid #13161f',
-                          background: isMe ? 'rgba(20,184,166,0.06)' : isTop3 ? RANK_BG[pos] : 'transparent',
+                          borderBottom: isExpanded ? 'none' : '1px solid #13161f',
+                          background: isExpanded
+                            ? (isMe ? 'rgba(20,184,166,0.10)' : 'rgba(255,255,255,0.04)')
+                            : isMe ? 'rgba(20,184,166,0.06)' : isTop3 ? RANK_BG[pos] : 'transparent',
                           outline: isMe ? '1px solid rgba(20,184,166,0.18)' : 'none',
                           outlineOffset: '-1px',
                           cursor: canClick ? 'pointer' : 'default',
                         }}
-                        onMouseEnter={e => { if (!isMe) e.currentTarget.style.background = canClick ? '#1e2435' : '#161b27' }}
-                        onMouseLeave={e => { e.currentTarget.style.background = isMe ? 'rgba(20,184,166,0.06)' : isTop3 ? RANK_BG[pos] : 'transparent' }}>
+                        onMouseEnter={e => { if (!isExpanded) e.currentTarget.style.background = isMe ? 'rgba(20,184,166,0.10)' : (canClick ? '#1e2435' : '#161b27') }}
+                        onMouseLeave={e => { e.currentTarget.style.background = isExpanded ? (isMe ? 'rgba(20,184,166,0.10)' : 'rgba(255,255,255,0.04)') : isMe ? 'rgba(20,184,166,0.06)' : isTop3 ? RANK_BG[pos] : 'transparent' }}>
                         <td className="px-4 py-[13px]">
                           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
                             <span className="text-[13px] font-bold tabular-nums"
@@ -801,12 +847,12 @@ export default function TournamentLeaderboard({
                             {canClick && (
                               <span className="text-[9px] font-bold px-1.5 py-0.5 rounded"
                                 style={{
-                                  background: isMe ? 'rgba(20,184,166,0.10)' : 'rgba(255,255,255,0.04)',
-                                  border: isMe ? '1px solid rgba(20,184,166,0.30)' : '1px solid rgba(255,255,255,0.08)',
-                                  color: isMe ? '#2dd4bf' : 'var(--xm-muted)',
+                                  background: isExpanded ? 'rgba(96,165,250,0.12)' : isMe ? 'rgba(20,184,166,0.10)' : 'rgba(255,255,255,0.04)',
+                                  border: isExpanded ? '1px solid rgba(96,165,250,0.35)' : isMe ? '1px solid rgba(20,184,166,0.30)' : '1px solid rgba(255,255,255,0.08)',
+                                  color: isExpanded ? 'var(--xm-blue)' : isMe ? '#2dd4bf' : 'var(--xm-muted)',
                                   fontFamily: "'JetBrains Mono', monospace",
                                 }}>
-                                {isMe ? 'meu time' : 'ver time'}
+                                {isExpanded ? '▲ fechar' : isMe ? '▼ meu time' : '▼ ver time'}
                               </span>
                             )}
                           </div>
@@ -818,6 +864,19 @@ export default function TournamentLeaderboard({
                           </span>
                         </td>
                       </tr>
+                      {isExpanded && (
+                        <tr key={`${entry.user_id}-exp`}>
+                          <td colSpan={3} style={{ padding: 0, borderBottom: '1px solid var(--xm-border)' }}>
+                            <InlineLineup
+                              userId={entry.user_id}
+                              isMe={isMe}
+                              lineups={lineupCache[entry.user_id]}
+                              dayMap={compDayMap}
+                            />
+                          </td>
+                        </tr>
+                      )}
+                      </>
                     )
                   })}
                 </tbody>
@@ -858,6 +917,111 @@ export default function TournamentLeaderboard({
 }
 
 // ── Sub-componentes ────────────────────────────────────────────────────────
+
+function InlineLineup({ userId, isMe, lineups, dayMap }) {
+  if (!lineups) {
+    return (
+      <div style={{ padding: '14px 20px', color: 'var(--xm-muted)', fontSize: 12, textAlign: 'center' }}>
+        Carregando…
+      </div>
+    )
+  }
+  if (lineups.length === 0) {
+    return (
+      <div style={{ padding: '14px 20px', color: 'var(--xm-muted)', fontSize: 12, textAlign: 'center' }}>
+        Sem lineup para este stage.
+      </div>
+    )
+  }
+
+  const sorted = [...lineups].sort((a, b) => a.stage_day_id - b.stage_day_id)
+
+  return (
+    <div style={{
+      background: isMe ? 'rgba(20,184,166,0.04)' : 'rgba(0,0,0,0.18)',
+      borderTop: isMe ? '1px solid rgba(20,184,166,0.15)' : '1px solid rgba(255,255,255,0.05)',
+    }}>
+      {sorted.map((lineup, li) => {
+        const dayInfo  = dayMap?.get(lineup.stage_day_id)
+        const dayLabel = dayInfo ? `${dayInfo.stageName} · Dia ${dayInfo.dayNumber}` : `Dia ${li + 1}`
+        const titulares = (lineup.players || [])
+          .filter(p => p.slot_type === 'titular')
+          .sort((a, b) => {
+            if (a.is_captain) return -1
+            if (b.is_captain) return 1
+            return (b.points_earned ?? -Infinity) - (a.points_earned ?? -Infinity)
+          })
+        const reserve = (lineup.players || []).find(p => p.slot_type === 'reserve')
+        const isPending = lineup.total_points == null
+
+        return (
+          <div key={lineup.id} style={{
+            borderBottom: li < sorted.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+            padding: '10px 16px',
+          }}>
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              marginBottom: 8,
+            }}>
+              <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--xm-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
+                {dayLabel}
+              </span>
+              <span style={{ fontSize: 14, fontWeight: 800, fontFamily: "'JetBrains Mono', monospace", color: isPending ? 'var(--xm-muted)' : 'var(--xm-orange)' }}>
+                {isPending ? '—' : Number(lineup.total_points).toFixed(2)} {!isPending && <span style={{ fontSize: 10, color: 'var(--xm-muted)' }}>pts</span>}
+              </span>
+            </div>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: `repeat(${titulares.length}, 1fr)${reserve ? ' 60px' : ''}`,
+              gap: 6,
+            }}>
+              {titulares.map(p => (
+                <div key={p.id} style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center',
+                  gap: 4, padding: '8px 4px', borderRadius: 7, textAlign: 'center',
+                  background: p.is_captain ? 'rgba(240,192,64,0.07)' : 'rgba(255,255,255,0.03)',
+                  border: p.is_captain ? '1px solid rgba(240,192,64,0.35)' : '1px solid rgba(255,255,255,0.06)',
+                }}>
+                  {p.is_captain && (
+                    <span style={{ fontSize: 7, fontWeight: 800, letterSpacing: '0.06em', color: '#f0c040', fontFamily: "'JetBrains Mono', monospace" }}>
+                      ⭐ CAP
+                    </span>
+                  )}
+                  <TeamLogo teamName={formatTeamTag(p.person_name, p.team_name)} size={26} />
+                  <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--xm-text)', lineHeight: 1 }}>
+                    {fmtName(p.person_name)}
+                  </span>
+                  <span style={{ fontSize: 14, fontWeight: 800, fontFamily: "'JetBrains Mono', monospace", lineHeight: 1, color: p.is_captain ? '#f0c040' : p.points_earned > 0 ? 'var(--xm-orange)' : 'var(--xm-muted)' }}>
+                    {p.points_earned != null ? Number(p.points_earned).toFixed(1) : '—'}
+                  </span>
+                </div>
+              ))}
+              {reserve && (
+                <div style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center',
+                  gap: 4, padding: '8px 4px', borderRadius: 7, textAlign: 'center',
+                  background: 'rgba(0,0,0,0.15)', border: '1px solid rgba(255,255,255,0.04)',
+                  opacity: 0.5,
+                }}>
+                  <span style={{ fontSize: 7, fontWeight: 800, letterSpacing: '0.06em', color: 'var(--xm-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
+                    RES
+                  </span>
+                  <TeamLogo teamName={formatTeamTag(reserve.person_name, reserve.team_name)} size={26} />
+                  <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--xm-muted)', lineHeight: 1 }}>
+                    {fmtName(reserve.person_name)}
+                  </span>
+                  <span style={{ fontSize: 12, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", lineHeight: 1, color: 'var(--xm-muted)' }}>
+                    {reserve.points_earned != null ? Number(reserve.points_earned).toFixed(1) : '—'}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
 
 function FilterRow({ label, checked, onChange, gold = false, indent = false }) {
   const activeColor = gold ? '#f0c040' : 'var(--xm-blue)'

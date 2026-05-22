@@ -112,14 +112,9 @@ export default function PlayerStatsPage({
   }
   const selectAllStages = () => setSelectedStageIds(allSiblings.map(s => s.id))
 
-  const stageShortLabel = (stageName) => {
-    const n = (stageName || '').toLowerCase()
-    if (n.includes('group'))    return 'GS'
-    if (n.includes('winner'))   return 'WS'
-    if (n.includes('survival')) return 'SUV'
-    if (n.includes('wild'))     return 'WB'
-    if (n.includes('final'))    return 'FIN'
-    return (stageName || '').slice(0, 3).toUpperCase() || '?'
+  const extractStageName = (fullName = '') => {
+    const m = fullName.match(/[—–]\s*(.+)$/)
+    return m ? m[1].trim().toUpperCase() : fullName.trim().toUpperCase()
   }
 
   // ── Hierarquia de filtros ─────────────────────────────────────────────────
@@ -282,8 +277,10 @@ export default function PlayerStatsPage({
                       style={{
                         ...selectStyle,
                         position: 'relative',
-                        padding: '4px 10px', fontWeight: 700, fontSize: '11px',
-                        letterSpacing: '0.06em',
+                        padding: '5px 12px', fontWeight: 700, fontSize: '10px',
+                        letterSpacing: '0.05em', lineHeight: '1.25',
+                        whiteSpace: 'normal', textAlign: 'center',
+                        maxWidth: '120px', minHeight: '34px',
                         background: isSelected ? 'rgba(249,115,22,0.10)' : '#0d0f14',
                         borderColor: isCurrentStg
                           ? 'rgba(20,184,166,0.6)'
@@ -291,7 +288,7 @@ export default function PlayerStatsPage({
                         color: isSelected ? 'var(--xm-orange)' : 'var(--xm-muted)',
                         boxShadow: isCurrentStg ? 'inset 0 0 0 1px rgba(20,184,166,0.25)' : 'none',
                       }}>
-                      {stageShortLabel(s.name)}
+                      {extractStageName(s.name)}
                       {isCurrentStg && (
                         <span style={{
                           position: 'absolute', top: '-4px', right: '-4px',
@@ -307,57 +304,77 @@ export default function PlayerStatsPage({
             )}
 
             {isSingleCurrentStage && stageDays.length > 0 && (
-              <div className="flex items-center gap-1">
-                {stageDays.length > 1 && (
-                  <button
-                    onClick={() => { setSelectedDayId(null); setSelectedMatchId(null) }}
-                    style={{
-                      ...selectStyle, padding: '4px 10px', fontWeight: 600,
-                      background: !selectedDayId ? 'rgba(240,192,64,0.12)' : '#0d0f14',
-                      borderColor: !selectedDayId ? 'rgba(240,192,64,0.5)' : 'var(--xm-border)',
-                      color: !selectedDayId ? '#f0c040' : 'var(--xm-muted)',
-                    }}>
-                    TOTAL
-                  </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  {stageDays.length > 1 && (
+                    <button
+                      onClick={() => { setSelectedDayId(null); setSelectedMatchId(null) }}
+                      style={{
+                        ...selectStyle, padding: '4px 10px', fontWeight: 700, fontSize: '10px', letterSpacing: '0.06em',
+                        background: !selectedDayId ? 'rgba(240,192,64,0.12)' : '#0d0f14',
+                        borderColor: !selectedDayId ? 'rgba(240,192,64,0.5)' : 'var(--xm-border)',
+                        color: !selectedDayId ? '#f0c040' : 'var(--xm-muted)',
+                      }}>
+                      TOTAL
+                    </button>
+                  )}
+                  {stageDays.map(d => {
+                    const isActive = selectedDayId === d.id
+                    return (
+                      <button key={d.id}
+                        onClick={() => {
+                          if (isActive) { setSelectedDayId(null); setSelectedMatchId(null) }
+                          else { setSelectedDayId(d.id); setSelectedMatchId(null) }
+                        }}
+                        style={{
+                          ...selectStyle, padding: '4px 12px', fontWeight: 700, fontSize: '10px',
+                          letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: 4,
+                          background: isActive ? 'rgba(96,165,250,0.12)' : '#0d0f14',
+                          borderColor: isActive ? 'rgba(96,165,250,0.5)' : 'var(--xm-border)',
+                          color: isActive ? 'var(--xm-blue)' : 'var(--xm-muted)',
+                        }}>
+                        DIA {d.day_number}
+                        {isActive && <span style={{ fontSize: 8, opacity: 0.8 }}>▾</span>}
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {selectedDayId && matches.length > 0 && (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 3, flexWrap: 'wrap',
+                    paddingLeft: 8, borderLeft: '2px solid rgba(96,165,250,0.25)',
+                  }}>
+                    <button
+                      onClick={() => setSelectedMatchId(null)}
+                      style={{
+                        ...selectStyle, padding: '3px 8px', fontSize: '10px', fontWeight: 700, letterSpacing: '0.05em',
+                        background: !selectedMatchId ? 'rgba(96,165,250,0.10)' : '#0d0f14',
+                        borderColor: !selectedMatchId ? 'rgba(96,165,250,0.4)' : 'var(--xm-border)',
+                        color: !selectedMatchId ? 'var(--xm-blue)' : 'var(--xm-muted)',
+                      }}>
+                      TODAS
+                    </button>
+                    {matches.map(m => {
+                      const mapInfo = m.map_name ? (MAP_DISPLAY[m.map_name] ?? { icon: '🗺️', name: m.map_name }) : null
+                      const isChosen = selectedMatchId === m.id
+                      return (
+                        <button key={m.id}
+                          onClick={() => setSelectedMatchId(isChosen ? null : m.id)}
+                          style={{
+                            ...selectStyle, padding: '3px 8px', fontSize: '10px', fontWeight: 700,
+                            background: isChosen ? 'rgba(96,165,250,0.12)' : '#0d0f14',
+                            borderColor: isChosen ? 'rgba(96,165,250,0.5)' : 'var(--xm-border)',
+                            color: isChosen ? 'var(--xm-blue)' : 'var(--xm-muted)',
+                          }}
+                          title={mapInfo ? mapInfo.name : `Partida ${m.match_number}`}>
+                          {mapInfo ? `${mapInfo.icon} P${m.match_number}` : `P${m.match_number}`}
+                        </button>
+                      )
+                    })}
+                  </div>
                 )}
-                {stageDays.map(d => (
-                  <button key={d.id}
-                    onClick={() => { setSelectedDayId(d.id); setSelectedMatchId(null) }}
-                    style={{
-                      ...selectStyle, padding: '4px 10px', fontWeight: 600,
-                      background: selectedDayId === d.id ? 'rgba(96,165,250,0.12)' : '#0d0f14',
-                      borderColor: selectedDayId === d.id ? 'rgba(96,165,250,0.5)' : 'var(--xm-border)',
-                      color: selectedDayId === d.id ? 'var(--xm-blue)' : 'var(--xm-muted)',
-                    }}>
-                    Dia {d.day_number}
-                  </button>
-                ))}
               </div>
-            )}
-
-            {isSingleCurrentStage && selectedDayId && matches.length > 0 && (
-              <select
-                value={selectedMatchId ?? ''}
-                onChange={e => setSelectedMatchId(e.target.value ? Number(e.target.value) : null)}
-                style={{ ...selectStyle, minWidth: '180px' }}>
-                <option value="">Dia inteiro</option>
-                {matches.map(m => {
-                  const map = m.map_name ? (MAP_DISPLAY[m.map_name] ?? { icon: '🗺️', name: m.map_name }) : null
-                  const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Sao_Paulo'
-                  const time = m.played_at
-                    ? new Date(m.played_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: userTz })
-                    : `#${m.id}`
-                  return <option key={m.id} value={m.id}>{map ? `P${m.match_number} ${map.icon} ${map.name} — ${time}` : `P${m.match_number} — ${time}`}</option>
-                })}
-              </select>
-            )}
-
-            {(selectedDayId || selectedMatchId) && (
-              <button
-                onClick={() => { setSelectedDayId(null); setSelectedMatchId(null) }}
-                style={{ ...selectStyle, color: 'var(--xm-red)', borderColor: 'rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.05)' }}>
-                ✕ Limpar
-              </button>
             )}
           </div>
         </div>
