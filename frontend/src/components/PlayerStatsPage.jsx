@@ -3,7 +3,7 @@
 // Hierarquia: Stage → Dia → Partida
 // A tabela de jogadores é renderizada por PlayerStatsTable (fonte única de verdade).
 
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { API_BASE_URL as API_BASE } from '../config'
 import { track } from '../lib/analytics'
 import PlayerStatsTable from './PlayerStatsTable'
@@ -112,33 +112,15 @@ export default function PlayerStatsPage({
   }
   const selectAllStages = () => setSelectedStageIds(allSiblings.map(s => s.id))
 
-  const didInitStages = useRef(false)
-  useEffect(() => {
-    if (allSiblings.length > 1 && !didInitStages.current) {
-      setSelectedStageIds(allSiblings.map(s => s.id))
-      didInitStages.current = true
-    }
-  }, [allSiblings])
-  useEffect(() => { didInitStages.current = false }, [propStageId])
-
-  const [stageDropdownOpen, setStageDropdownOpen] = useState(false)
-  const stageDropdownRef = useRef(null)
-  useEffect(() => {
-    if (!stageDropdownOpen) return
-    const handler = (e) => {
-      if (stageDropdownRef.current && !stageDropdownRef.current.contains(e.target)) setStageDropdownOpen(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [stageDropdownOpen])
-
-  const stageDropdownLabel = isAllSelected
-    ? 'Tudo'
-    : selectedStageIds.length === 0
-      ? 'Nenhum'
-      : selectedStageIds.length === 1
-        ? (() => { const idx = allSiblings.findIndex(s => s.id === selectedStageIds[0]); return idx >= 0 ? `Dia ${idx + 1}` : '1 dia' })()
-        : `${selectedStageIds.length} dias`
+  const stageShortLabel = (stageName) => {
+    const n = (stageName || '').toLowerCase()
+    if (n.includes('group'))    return 'GS'
+    if (n.includes('winner'))   return 'WS'
+    if (n.includes('survival')) return 'SUV'
+    if (n.includes('wild'))     return 'WB'
+    if (n.includes('final'))    return 'FIN'
+    return (stageName || '').slice(0, 3).toUpperCase() || '?'
+  }
 
   // ── Hierarquia de filtros ─────────────────────────────────────────────────
   const [stageDays, setStageDays]             = useState([])
@@ -277,62 +259,50 @@ export default function PlayerStatsPage({
           <div className="flex flex-wrap items-center gap-3">
 
             {allSiblings.length > 1 && (
-              <div ref={stageDropdownRef} style={{ position: 'relative' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
                 <button
-                  onClick={() => setStageDropdownOpen(o => !o)}
+                  onClick={selectAllStages}
                   style={{
-                    ...selectStyle, padding: '5px 12px', fontWeight: 600,
-                    display: 'flex', alignItems: 'center', gap: '6px',
-                    background: isAllSelected ? 'rgba(240,192,64,0.08)' : 'rgba(249,115,22,0.08)',
-                    borderColor: isAllSelected ? 'rgba(240,192,64,0.4)' : 'rgba(249,115,22,0.4)',
-                    color: isAllSelected ? '#f0c040' : 'var(--xm-orange)',
+                    ...selectStyle,
+                    padding: '4px 10px', fontWeight: 700, fontSize: '11px',
+                    letterSpacing: '0.06em',
+                    background: isAllSelected ? 'rgba(240,192,64,0.12)' : '#0d0f14',
+                    borderColor: isAllSelected ? 'rgba(240,192,64,0.5)' : 'var(--xm-border)',
+                    color: isAllSelected ? '#f0c040' : 'var(--xm-muted)',
                   }}>
-                  <span style={{ fontSize: '11px' }}>📅</span>
-                  {stageDropdownLabel}
-                  <span style={{ fontSize: '10px', opacity: 0.7, marginLeft: '2px' }}>{stageDropdownOpen ? '▲' : '▼'}</span>
+                  TODOS
                 </button>
-
-                {stageDropdownOpen && (
-                  <div style={{
-                    position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 200,
-                    background: '#0d0f14', border: '1px solid var(--xm-border)',
-                    borderRadius: '8px', padding: '6px', minWidth: '150px',
-                    boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
-                  }}>
-                    <label style={{
-                      display: 'flex', alignItems: 'center', gap: '8px',
-                      padding: '6px 10px', cursor: 'pointer', borderRadius: '5px',
-                      background: isAllSelected ? 'rgba(240,192,64,0.08)' : 'transparent',
-                      color: isAllSelected ? '#f0c040' : 'var(--xm-muted)',
-                      fontSize: '13px', fontWeight: 600, transition: 'background 0.1s',
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
-                    onMouseLeave={e => e.currentTarget.style.background = isAllSelected ? 'rgba(240,192,64,0.08)' : 'transparent'}>
-                      <input type="checkbox" checked={isAllSelected} onChange={selectAllStages}
-                        style={{ accentColor: '#f0c040', width: '14px', height: '14px', cursor: 'pointer' }} />
-                      Tudo
-                    </label>
-                    <div style={{ borderTop: '1px solid var(--xm-border)', margin: '4px 0' }} />
-                    {allSiblings.map((s, idx) => {
-                      const isChecked = selectedStageIds.includes(s.id)
-                      return (
-                        <label key={s.id} style={{
-                          display: 'flex', alignItems: 'center', gap: '8px',
-                          padding: '6px 10px', cursor: 'pointer', borderRadius: '5px',
-                          background: isChecked ? 'rgba(249,115,22,0.08)' : 'transparent',
-                          color: isChecked ? 'var(--xm-orange)' : 'var(--xm-muted)',
-                          fontSize: '13px', fontWeight: 600, transition: 'background 0.1s',
-                        }}
-                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
-                        onMouseLeave={e => e.currentTarget.style.background = isChecked ? 'rgba(249,115,22,0.08)' : 'transparent'}>
-                          <input type="checkbox" checked={isChecked} onChange={() => toggleStage(s.id)}
-                            style={{ accentColor: 'var(--xm-orange)', width: '14px', height: '14px', cursor: 'pointer' }} />
-                          Dia {idx + 1}
-                        </label>
-                      )
-                    })}
-                  </div>
-                )}
+                {allSiblings.map(s => {
+                  const isSelected   = selectedStageIds.includes(s.id)
+                  const isCurrentStg = s.id === stageId
+                  return (
+                    <button
+                      key={s.id}
+                      onClick={() => toggleStage(s.id)}
+                      style={{
+                        ...selectStyle,
+                        position: 'relative',
+                        padding: '4px 10px', fontWeight: 700, fontSize: '11px',
+                        letterSpacing: '0.06em',
+                        background: isSelected ? 'rgba(249,115,22,0.10)' : '#0d0f14',
+                        borderColor: isCurrentStg
+                          ? 'rgba(20,184,166,0.6)'
+                          : isSelected ? 'rgba(249,115,22,0.45)' : 'var(--xm-border)',
+                        color: isSelected ? 'var(--xm-orange)' : 'var(--xm-muted)',
+                        boxShadow: isCurrentStg ? 'inset 0 0 0 1px rgba(20,184,166,0.25)' : 'none',
+                      }}>
+                      {stageShortLabel(s.name)}
+                      {isCurrentStg && (
+                        <span style={{
+                          position: 'absolute', top: '-4px', right: '-4px',
+                          width: '7px', height: '7px', borderRadius: '50%',
+                          background: '#14b8a6',
+                          border: '1px solid #0d0f14',
+                        }} />
+                      )}
+                    </button>
+                  )
+                })}
               </div>
             )}
 

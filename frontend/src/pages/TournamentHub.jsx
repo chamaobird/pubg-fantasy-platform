@@ -12,7 +12,6 @@ import PlayerStatsPage from '../components/PlayerStatsPage'
 import AdminPricingPanel from '../components/AdminPricingPanel'
 import AdminOpsPanel from '../components/AdminOpsPanel'
 import PriceHistoryModal from '../components/PriceHistoryModal'
-import LineupResultsPage from './LineupResultsPage'
 import FaceoffPage from './FaceoffPage'
 
 const TAB_LINEUP      = 'lineup'
@@ -62,14 +61,15 @@ export default function TournamentHub() {
   }, [id])
 
   const isFinished = stage ? (!stage.is_active) : false
-  const isLocked   = stage ? (stage.lineup_status === 'locked') : false
+  const isLocked   = stage ? (stage.lineup_status === 'locked' || stage.lineup_status === 'live') : false
   const isClosed   = stage ? (stage.lineup_status === 'closed' && stage.stage_phase !== 'preview') : false
   const isPreview  = stage ? (stage.stage_phase === 'preview') : false
   const canEdit    = stage ? (stage.lineup_status === 'open') : false
 
   // closed puro: não exibe tab de lineup
   // preview: exibe tab mas em modo leitura (lobby visível, montagem bloqueada)
-  const showLineupTab = !isFinished && !isClosed
+  // locked/live: lineup migra para leaderboard (Opção B+)
+  const showLineupTab = !isFinished && !isClosed && !isLocked
 
   const I = (name) => <DashIcon name={name} size={13} />
   const ALL_TABS = [
@@ -84,8 +84,8 @@ export default function TournamentHub() {
   const activeTab = TABS.find(t => t.id === tab) ? tab : TABS[0]?.id ?? TAB_LEADERBOARD
 
   useEffect(() => {
-    if (isFinished) setTab(TAB_LEADERBOARD)
-  }, [isFinished])
+    if (isFinished || isLocked) setTab(TAB_LEADERBOARD)
+  }, [isFinished, isLocked])
 
   return (
     <>
@@ -103,17 +103,13 @@ export default function TournamentHub() {
         onTabChange={setTab}
       >
         {activeTab === TAB_LINEUP && (
-          isLocked ? (
-            <LineupResultsPage token={token} stageId={String(id)} embedded />
-          ) : (
-            <LineupBuilder
-              token={token}
-              stageId={Number(id)}
-              canEdit={canEdit}
-              isPreview={isPreview}
-              onPlayerInfoClick={(roster) => setPriceModalRoster(roster)}
-            />
-          )
+          <LineupBuilder
+            token={token}
+            stageId={Number(id)}
+            canEdit={canEdit}
+            isPreview={isPreview}
+            onPlayerInfoClick={(roster) => setPriceModalRoster(roster)}
+          />
         )}
         {activeTab === TAB_LEADERBOARD && (
           <TournamentLeaderboard

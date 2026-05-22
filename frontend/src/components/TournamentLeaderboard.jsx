@@ -113,6 +113,7 @@ export default function TournamentLeaderboard({
   const [loading,   setLoading]   = useState(false)
   const [error,     setError]     = useState(null)
   const [myUserId,  setMyUserId]  = useState(null)
+  const [myLineups, setMyLineups] = useState([])
 
   const [submissions,        setSubmissions]  = useState([])
   const [submissionsLoading, setSubLoading]   = useState(false)
@@ -165,6 +166,7 @@ export default function TournamentLeaderboard({
     rankingsRef.current = new Map()
     setError(null)
     setSubmissions([])
+    setMyLineups([])
     hasScrolledRef.current = false
   }, [stageId])
 
@@ -187,6 +189,17 @@ export default function TournamentLeaderboard({
       .then(d => { if (d?.id) setMyUserId(d.id) })
       .catch(() => {})
   }, [token])
+
+  // ── Meu lineup quando locked ─────────────────────────────────────────────
+  useEffect(() => {
+    if (!isLocked || !myUserId || !stageId) { setMyLineups([]); return }
+    fetch(`${API_BASE_URL}/lineups/stage/${stageId}/user/${myUserId}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+      .then(r => r.ok ? r.json() : [])
+      .then(d => setMyLineups(Array.isArray(d) ? d : []))
+      .catch(() => setMyLineups([]))
+  }, [isLocked, myUserId, stageId, token])
 
   // ── Callback myRank + auto-scroll para linha "EU" ──────────────────────
   useEffect(() => {
@@ -339,6 +352,12 @@ export default function TournamentLeaderboard({
   // ── Computed ─────────────────────────────────────────────────────────────
   const getPoints = (e) => e.total_points !== undefined ? e.total_points : (e.points ?? 0)
 
+  const lastDayLineup = myLineups.length > 0
+    ? myLineups.reduce((best, l) => (l.stage_day_id > best.stage_day_id ? l : best))
+    : null
+
+  const myRankEntry = myUserId ? rankings.find(e => e.user_id === myUserId) : null
+
   return (
     <>
     <div className="min-h-screen" style={{ background: 'transparent' }}>
@@ -467,6 +486,100 @@ export default function TournamentLeaderboard({
           )}
         </div>
       </div>
+
+      {/* ── Meu Resultado (stage locked/live) ───────────────────────────────── */}
+      {isLocked && lastDayLineup && (
+        <div className="max-w-3xl mx-auto px-4 pt-4 pb-0">
+          <div style={{
+            borderRadius: 12,
+            border: '1px solid rgba(20,184,166,0.35)',
+            background: 'var(--xm-surface-1)',
+            overflow: 'hidden',
+          }}>
+            <div style={{ height: 2, background: 'linear-gradient(90deg, #14b8a6 0%, rgba(20,184,166,0.3) 60%, transparent 100%)' }} />
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '10px 16px',
+              background: 'rgba(20,184,166,0.06)',
+              borderBottom: '1px solid rgba(20,184,166,0.15)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{
+                  fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase',
+                  color: '#14b8a6', fontFamily: "'JetBrains Mono', monospace",
+                }}>
+                  MEU RESULTADO
+                </span>
+                {myRankEntry && (
+                  <span style={{
+                    fontSize: 11, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace",
+                    color: '#f0c040',
+                    background: 'rgba(240,192,64,0.12)', border: '1px solid rgba(240,192,64,0.35)',
+                    borderRadius: 4, padding: '1px 7px',
+                  }}>
+                    #{myRankEntry.rank ?? '—'}
+                  </span>
+                )}
+                {myRankEntry && (
+                  <span style={{
+                    fontSize: 15, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace",
+                    color: '#f0c040',
+                  }}>
+                    {Number(getPoints(myRankEntry)).toFixed(2)} pts
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={() => myUserId && setViewUser({ userId: myUserId, username: 'Meu Lineup' })}
+                style={{
+                  background: 'rgba(20,184,166,0.10)', border: '1px solid rgba(20,184,166,0.35)',
+                  borderRadius: 7, padding: '4px 12px', fontSize: 12, fontWeight: 600,
+                  color: '#2dd4bf', cursor: 'pointer',
+                }}>
+                Ver detalhes
+              </button>
+            </div>
+            <div style={{ padding: '10px 14px', display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {(lastDayLineup.players || [])
+                .filter(p => p.slot_type === 'titular')
+                .sort((a, b) => {
+                  if (a.is_captain) return -1
+                  if (b.is_captain) return 1
+                  return (b.points_earned ?? -Infinity) - (a.points_earned ?? -Infinity)
+                })
+                .map(p => (
+                  <span key={p.id} style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 600,
+                    background: p.is_captain ? 'rgba(240,192,64,0.10)' : 'rgba(20,184,166,0.07)',
+                    border: p.is_captain ? '1px solid rgba(240,192,64,0.35)' : '1px solid rgba(20,184,166,0.25)',
+                    color: p.is_captain ? '#f0c040' : 'var(--xm-text)',
+                    fontFamily: "'JetBrains Mono', monospace",
+                  }}>
+                    {p.is_captain && <span style={{ fontSize: 10 }}>⭐</span>}
+                    {fmtName(p.person_name)}
+                    {p.points_earned != null && (
+                      <span style={{ fontSize: 10, color: p.is_captain ? '#f0c040' : 'var(--xm-muted)', marginLeft: 2 }}>
+                        {Number(p.points_earned).toFixed(1)}
+                      </span>
+                    )}
+                  </span>
+                ))}
+              {(lastDayLineup.players || []).filter(p => p.slot_type === 'reserve').map(p => (
+                <span key={p.id} style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                  padding: '3px 9px', borderRadius: 5, fontSize: 12, fontWeight: 600,
+                  background: 'rgba(0,0,0,0.20)', border: '1px solid rgba(255,255,255,0.07)',
+                  color: 'var(--xm-muted)', opacity: 0.7,
+                  fontFamily: "'JetBrains Mono', monospace",
+                }}>
+                  RES · {fmtName(p.person_name)}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Submissões (stage atual aberta) ─────────────────────────────────── */}
       {showSubmissions && (
