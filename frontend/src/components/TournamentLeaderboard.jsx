@@ -509,114 +509,57 @@ export default function TournamentLeaderboard({
       {/* ── Meu Resultado (stage locked/live) ───────────────────────────────── */}
       {isLocked && lastDayLineup && (
         <div className="max-w-3xl mx-auto px-4 pt-4 pb-0">
-          <div style={{
-            borderRadius: 12,
-            border: '1px solid rgba(20,184,166,0.35)',
-            background: 'var(--xm-surface-1)',
-            overflow: 'hidden',
-          }}>
+          <div style={{ borderRadius: 12, border: '1px solid rgba(20,184,166,0.3)', background: 'var(--xm-surface-1)', overflow: 'hidden' }}>
             <div style={{ height: 2, background: 'linear-gradient(90deg, #14b8a6 0%, rgba(20,184,166,0.3) 60%, transparent 100%)' }} />
-            <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '10px 16px',
-              background: 'rgba(20,184,166,0.06)',
-              borderBottom: '1px solid rgba(20,184,166,0.15)',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{
-                  fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase',
-                  color: '#14b8a6', fontFamily: "'JetBrains Mono', monospace",
-                }}>
-                  MEU RESULTADO
-                </span>
-                {myRankEntry && (
-                  <span style={{
-                    fontSize: 11, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace",
-                    color: '#f0c040',
-                    background: 'rgba(240,192,64,0.12)', border: '1px solid rgba(240,192,64,0.35)',
-                    borderRadius: 4, padding: '1px 7px',
-                  }}>
-                    #{myRankEntry.rank ?? '—'}
-                  </span>
-                )}
-                {myRankEntry && (
-                  <span style={{
-                    fontSize: 15, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace",
-                    color: '#f0c040',
-                  }}>
-                    {Number(getPoints(myRankEntry)).toFixed(2)} pts
-                  </span>
-                )}
+
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid rgba(20,184,166,0.12)', background: 'rgba(20,184,166,0.04)' }}>
+              <div>
+                <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#14b8a6', fontFamily: "'JetBrains Mono', monospace", marginBottom: 2 }}>
+                  MEU RESULTADO{myRankEntry ? ` · #${myRankEntry.rank ?? '—'}` : ''}
+                </div>
+                <div style={{ fontSize: 10, color: 'var(--xm-muted)', fontFamily: "'JetBrains Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                  CLASSIFICAÇÃO GERAL
+                </div>
               </div>
-              <button
-                onClick={() => myUserId && setViewUser({ userId: myUserId, username: 'Meu Lineup' })}
-                style={{
-                  background: 'rgba(20,184,166,0.10)', border: '1px solid rgba(20,184,166,0.35)',
-                  borderRadius: 7, padding: '4px 12px', fontSize: 12, fontWeight: 600,
-                  color: '#2dd4bf', cursor: 'pointer',
-                }}>
-                Ver detalhes
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: 9, color: 'var(--xm-muted)', fontFamily: "'JetBrains Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 1 }}>
+                    TOTAL DE PONTOS
+                  </div>
+                  <div style={{ fontSize: 26, fontWeight: 800, color: '#14b8a6', fontFamily: "'JetBrains Mono', monospace", lineHeight: 1 }}>
+                    {myRankEntry ? Number(getPoints(myRankEntry)).toFixed(2) : '—'}
+                  </div>
+                </div>
+                <button
+                  onClick={() => myUserId && setViewUser({ userId: myUserId, username: 'Meu Lineup' })}
+                  style={{ background: 'rgba(20,184,166,0.10)', border: '1px solid rgba(20,184,166,0.35)', borderRadius: 8, padding: '6px 14px', fontSize: 11, fontWeight: 700, color: '#2dd4bf', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                  Ver lineup completo →
+                </button>
+              </div>
             </div>
+
+            {/* Titular cards */}
             {(() => {
               const allPlayers = lastDayLineup.players || []
               const titulares = allPlayers
                 .filter(p => p.slot_type === 'titular')
-                .sort((a, b) => {
-                  if (a.is_captain) return -1
-                  if (b.is_captain) return 1
-                  return (b.points_earned ?? -Infinity) - (a.points_earned ?? -Infinity)
-                })
+                .sort((a, b) => { if (a.is_captain) return -1; if (b.is_captain) return 1; return (b.points_earned ?? -Infinity) - (a.points_earned ?? -Infinity) })
               const reserve = allPlayers.find(p => p.slot_type === 'reserve')
               return (
-                <div style={{
-                  padding: '12px 16px',
-                  display: 'grid',
-                  gridTemplateColumns: `repeat(${titulares.length}, 1fr)${reserve ? ' auto' : ''}`,
-                  gap: 8,
-                  alignItems: 'stretch',
-                }}>
-                  {titulares.map(p => (
-                    <div key={p.id} style={{
-                      display: 'flex', flexDirection: 'column', alignItems: 'center',
-                      gap: 5, padding: '10px 6px', borderRadius: 8, textAlign: 'center',
-                      background: p.is_captain ? 'rgba(240,192,64,0.07)' : 'rgba(20,184,166,0.05)',
-                      border: p.is_captain ? '1px solid rgba(240,192,64,0.4)' : '1px solid rgba(20,184,166,0.18)',
-                    }}>
-                      {p.is_captain && (
-                        <span style={{ fontSize: 8, fontWeight: 800, letterSpacing: '0.06em', color: '#f0c040', fontFamily: "'JetBrains Mono', monospace" }}>
-                          ⭐ CAP
-                        </span>
-                      )}
-                      <TeamLogo teamName={formatTeamTag(p.person_name, p.team_name)} size={30} />
-                      <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--xm-text)', lineHeight: 1 }}>
-                        {fmtName(p.person_name)}
-                      </span>
-                      <span style={{ fontSize: 17, fontWeight: 800, fontFamily: "'JetBrains Mono', monospace", lineHeight: 1, color: p.is_captain ? '#f0c040' : 'var(--xm-orange)' }}>
-                        {p.points_earned != null ? Number(p.points_earned).toFixed(1) : '—'}
-                      </span>
-                    </div>
-                  ))}
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: `repeat(${titulares.length}, 1fr)`, gap: 10, padding: '16px 16px 0' }}>
+                    {titulares.map(p => <PlayerCard key={p.id} p={p} size={52} />)}
+                  </div>
                   {reserve && (
-                    <div style={{
-                      display: 'flex', flexDirection: 'column', alignItems: 'center',
-                      gap: 5, padding: '10px 10px', borderRadius: 8, textAlign: 'center',
-                      background: 'rgba(0,0,0,0.15)', border: '1px solid rgba(255,255,255,0.06)',
-                      opacity: 0.55, minWidth: 68,
-                    }}>
-                      <span style={{ fontSize: 8, fontWeight: 800, letterSpacing: '0.06em', color: 'var(--xm-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
-                        RES
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px 16px' }}>
+                      <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.14em', color: 'var(--xm-muted)', fontFamily: "'JetBrains Mono', monospace", textTransform: 'uppercase', writingMode: 'vertical-rl', transform: 'rotate(180deg)', userSelect: 'none' }}>
+                        RESERVA
                       </span>
-                      <TeamLogo teamName={formatTeamTag(reserve.person_name, reserve.team_name)} size={30} />
-                      <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--xm-muted)', lineHeight: 1 }}>
-                        {fmtName(reserve.person_name)}
-                      </span>
-                      <span style={{ fontSize: 14, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", lineHeight: 1, color: 'var(--xm-muted)' }}>
-                        {reserve.points_earned != null ? Number(reserve.points_earned).toFixed(1) : '—'}
-                      </span>
+                      <PlayerCard p={reserve} size={44} isReserve />
                     </div>
                   )}
-                </div>
+                </>
               )
             })()}
           </div>
@@ -803,65 +746,93 @@ export default function TournamentLeaderboard({
                     const pts        = getPoints(entry)
                     const canClick   = isLocked && token
                     const isExpanded = expandedUserId === entry.user_id
+                    const rankColor  = isTop3 ? RANK_COLORS[pos] : null
+                    const delta      = rankDeltaMap.get(entry.user_id)
+                    const initials   = (ownerLabel(entry)[0] || '?').toUpperCase()
+
                     return (
                       <>
                       <tr key={entry.user_id}
                         ref={isMe ? myRowRef : null}
                         onClick={canClick ? () => toggleExpand(entry.user_id) : undefined}
                         style={{
+                          borderLeft: rankColor ? `3px solid ${rankColor}` : '3px solid transparent',
                           borderBottom: isExpanded ? 'none' : '1px solid #13161f',
                           background: isExpanded
-                            ? (isMe ? 'rgba(20,184,166,0.10)' : 'rgba(255,255,255,0.04)')
-                            : isMe ? 'rgba(20,184,166,0.06)' : isTop3 ? RANK_BG[pos] : 'transparent',
-                          outline: isMe ? '1px solid rgba(20,184,166,0.18)' : 'none',
-                          outlineOffset: '-1px',
+                            ? (isMe ? 'rgba(20,184,166,0.08)' : 'rgba(255,255,255,0.03)')
+                            : isMe ? 'rgba(20,184,166,0.05)' : isTop3 ? RANK_BG[pos] : 'transparent',
                           cursor: canClick ? 'pointer' : 'default',
+                          transition: 'background 0.12s',
                         }}
-                        onMouseEnter={e => { if (!isExpanded) e.currentTarget.style.background = isMe ? 'rgba(20,184,166,0.10)' : (canClick ? '#1e2435' : '#161b27') }}
-                        onMouseLeave={e => { e.currentTarget.style.background = isExpanded ? (isMe ? 'rgba(20,184,166,0.10)' : 'rgba(255,255,255,0.04)') : isMe ? 'rgba(20,184,166,0.06)' : isTop3 ? RANK_BG[pos] : 'transparent' }}>
-                        <td className="px-4 py-[13px]">
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-                            <span className="text-[13px] font-bold tabular-nums"
-                              style={{ fontFamily: "'JetBrains Mono', monospace", color: isTop3 ? RANK_COLORS[pos] : 'var(--surface-4)' }}>
-                              {String(pos).padStart(2, '0')}
-                            </span>
-                            {(() => {
-                              const delta = rankDeltaMap.get(entry.user_id)
-                              if (!delta) return null
-                              if (delta > 0) return <span style={{ fontSize: '8px', fontWeight: 700, color: '#4ade80', lineHeight: 1 }}>▲{delta}</span>
-                              return <span style={{ fontSize: '8px', fontWeight: 700, color: '#f87171', lineHeight: 1 }}>▼{Math.abs(delta)}</span>
-                            })()}
+                        onMouseEnter={e => { if (!isExpanded) e.currentTarget.style.background = isMe ? 'rgba(20,184,166,0.10)' : canClick ? '#1e2435' : '#161b27' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = isExpanded ? (isMe ? 'rgba(20,184,166,0.08)' : 'rgba(255,255,255,0.03)') : isMe ? 'rgba(20,184,166,0.05)' : isTop3 ? RANK_BG[pos] : 'transparent' }}>
+
+                        {/* Rank badge */}
+                        <td style={{ padding: '14px 10px 14px 14px', width: 52 }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                            <div style={{
+                              width: 30, height: 30, borderRadius: '50%',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              background: rankColor ? `${rankColor}22` : 'rgba(255,255,255,0.05)',
+                              border: `1px solid ${rankColor ? rankColor + '55' : 'rgba(255,255,255,0.09)'}`,
+                              fontSize: 11, fontWeight: 800, fontFamily: "'JetBrains Mono', monospace",
+                              color: rankColor || 'var(--xm-muted)',
+                              boxShadow: rankColor ? `0 0 8px ${rankColor}33` : 'none',
+                            }}>
+                              {pos}
+                            </div>
+                            {delta ? (
+                              <span style={{ fontSize: 8, fontWeight: 700, lineHeight: 1, color: delta > 0 ? '#4ade80' : '#f87171' }}>
+                                {delta > 0 ? `▲${delta}` : `▼${Math.abs(delta)}`}
+                              </span>
+                            ) : null}
                           </div>
                         </td>
-                        <td className="px-4 py-[13px]">
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <span className="text-[13px]" style={{ fontFamily: "'JetBrains Mono', monospace", color: canClick ? 'var(--xm-text)' : 'var(--xm-muted)' }}>
-                              {ownerLabel(entry)}
-                            </span>
-                            {isMe && (
-                              <span className="text-[10px] font-bold tracking-[0.06em] px-2 py-0.5 rounded"
-                                style={{ background: 'rgba(20,184,166,0.18)', border: '1px solid rgba(20,184,166,0.4)', color: '#2dd4bf' }}>
-                                EU
-                              </span>
-                            )}
-                            {canClick && (
-                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded"
-                                style={{
-                                  background: isExpanded ? 'rgba(96,165,250,0.12)' : isMe ? 'rgba(20,184,166,0.10)' : 'rgba(255,255,255,0.04)',
-                                  border: isExpanded ? '1px solid rgba(96,165,250,0.35)' : isMe ? '1px solid rgba(20,184,166,0.30)' : '1px solid rgba(255,255,255,0.08)',
-                                  color: isExpanded ? 'var(--xm-blue)' : isMe ? '#2dd4bf' : 'var(--xm-muted)',
-                                  fontFamily: "'JetBrains Mono', monospace",
-                                }}>
-                                {isExpanded ? '▲ fechar' : isMe ? '▼ meu time' : '▼ ver time'}
-                              </span>
-                            )}
+
+                        {/* Manager */}
+                        <td style={{ padding: '14px 8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            {/* Initials avatar */}
+                            <div style={{
+                              width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              background: isMe ? 'rgba(20,184,166,0.18)' : 'rgba(255,255,255,0.06)',
+                              border: `1px solid ${isMe ? 'rgba(20,184,166,0.45)' : 'rgba(255,255,255,0.09)'}`,
+                              fontSize: 13, fontWeight: 800, fontFamily: "'JetBrains Mono', monospace",
+                              color: isMe ? '#2dd4bf' : 'var(--xm-muted)',
+                            }}>
+                              {initials}
+                            </div>
+                            <div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <span style={{ fontSize: 14, fontWeight: 600, color: canClick ? 'var(--xm-text)' : 'var(--xm-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
+                                  {ownerLabel(entry)}
+                                </span>
+                                {isMe && (
+                                  <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.08em', padding: '1px 6px', borderRadius: 4, background: 'rgba(20,184,166,0.18)', border: '1px solid rgba(20,184,166,0.4)', color: '#2dd4bf', fontFamily: "'JetBrains Mono', monospace" }}>
+                                    VOCÊ
+                                  </span>
+                                )}
+                                {canClick && (
+                                  <span style={{ fontSize: 9, color: isExpanded ? 'var(--xm-blue)' : 'var(--xm-muted)', fontFamily: "'JetBrains Mono', monospace", transition: 'color 0.1s' }}>
+                                    {isExpanded ? '▲' : '▼'}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
                           </div>
                         </td>
-                        <td className="px-4 py-[13px] text-right">
-                          <span className="text-[15px] font-bold tabular-nums"
-                            style={{ fontFamily: "'JetBrains Mono', monospace", color: pts > 0 ? 'var(--xm-gold)' : '#374151' }}>
-                            {Number(pts).toFixed(2)}
-                          </span>
+
+                        {/* Points */}
+                        <td style={{ padding: '14px 16px', textAlign: 'right' }}>
+                          <div style={{ lineHeight: 1 }}>
+                            <div style={{ fontSize: 20, fontWeight: 800, fontFamily: "'JetBrains Mono', monospace", color: rankColor || (pts > 0 ? 'var(--xm-gold)' : '#374151') }}>
+                              {Number(pts).toFixed(2)}
+                            </div>
+                            <div style={{ fontSize: 8, color: 'var(--xm-muted)', fontFamily: "'JetBrains Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 2 }}>
+                              pts
+                            </div>
+                          </div>
                         </td>
                       </tr>
                       {isExpanded && (
@@ -918,17 +889,61 @@ export default function TournamentLeaderboard({
 
 // ── Sub-componentes ────────────────────────────────────────────────────────
 
+function PlayerCard({ p, size = 52, isReserve = false }) {
+  const isCap = p.is_captain
+  return (
+    <div style={{
+      display: 'flex', flexDirection: 'column', alignItems: 'center',
+      gap: 6, padding: size >= 48 ? '14px 8px' : '10px 6px',
+      borderRadius: 10, textAlign: 'center', position: 'relative',
+      background: isCap ? 'rgba(240,192,64,0.07)' : isReserve ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.03)',
+      border: `1px solid ${isCap ? 'rgba(240,192,64,0.5)' : isReserve ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.07)'}`,
+      boxShadow: isCap ? '0 0 18px rgba(240,192,64,0.12)' : 'none',
+      opacity: isReserve ? 0.65 : 1,
+      flex: isReserve ? '0 0 auto' : undefined,
+      minWidth: isReserve ? 90 : undefined,
+    }}>
+      {isCap && (
+        <div style={{
+          position: 'absolute', top: 6, right: 6,
+          fontSize: 8, fontWeight: 800, fontFamily: "'JetBrains Mono', monospace",
+          color: '#f0c040', background: 'rgba(240,192,64,0.18)',
+          border: '1px solid rgba(240,192,64,0.5)', borderRadius: 4, padding: '1px 5px',
+        }}>
+          C 2×
+        </div>
+      )}
+      <TeamLogo teamName={formatTeamTag(p.person_name, p.team_name)} size={size} />
+      <div>
+        <div style={{ fontSize: size >= 48 ? 13 : 11, fontWeight: 700, color: isReserve ? 'var(--xm-muted)' : 'var(--xm-text)', lineHeight: 1.2 }}>
+          {fmtName(p.person_name)}
+        </div>
+        <div style={{ fontSize: 9, color: 'var(--xm-muted)', fontFamily: "'JetBrains Mono', monospace", marginTop: 1 }}>
+          {p.team_name || '—'}
+        </div>
+      </div>
+      <div style={{
+        fontSize: size >= 48 ? 20 : 16, fontWeight: 800,
+        fontFamily: "'JetBrains Mono', monospace", lineHeight: 1,
+        color: isCap ? '#f0c040' : isReserve ? 'var(--xm-muted)' : '#14b8a6',
+      }}>
+        {p.points_earned != null ? Number(p.points_earned).toFixed(1) : '—'}
+      </div>
+    </div>
+  )
+}
+
 function InlineLineup({ userId, isMe, lineups, dayMap }) {
   if (!lineups) {
     return (
-      <div style={{ padding: '14px 20px', color: 'var(--xm-muted)', fontSize: 12, textAlign: 'center' }}>
+      <div style={{ padding: '16px 20px', color: 'var(--xm-muted)', fontSize: 12, textAlign: 'center' }}>
         Carregando…
       </div>
     )
   }
   if (lineups.length === 0) {
     return (
-      <div style={{ padding: '14px 20px', color: 'var(--xm-muted)', fontSize: 12, textAlign: 'center' }}>
+      <div style={{ padding: '16px 20px', color: 'var(--xm-muted)', fontSize: 12, textAlign: 'center' }}>
         Sem lineup para este stage.
       </div>
     )
@@ -938,84 +953,45 @@ function InlineLineup({ userId, isMe, lineups, dayMap }) {
 
   return (
     <div style={{
-      background: isMe ? 'rgba(20,184,166,0.04)' : 'rgba(0,0,0,0.18)',
-      borderTop: isMe ? '1px solid rgba(20,184,166,0.15)' : '1px solid rgba(255,255,255,0.05)',
+      background: isMe ? 'rgba(20,184,166,0.04)' : 'rgba(0,0,0,0.2)',
+      borderTop: `1px solid ${isMe ? 'rgba(20,184,166,0.15)' : 'rgba(255,255,255,0.05)'}`,
     }}>
       {sorted.map((lineup, li) => {
-        const dayInfo  = dayMap?.get(lineup.stage_day_id)
-        const dayLabel = dayInfo ? `${dayInfo.stageName} · Dia ${dayInfo.dayNumber}` : `Dia ${li + 1}`
+        const dayInfo   = dayMap?.get(lineup.stage_day_id)
+        const dayLabel  = dayInfo ? `${dayInfo.stageName} · Dia ${dayInfo.dayNumber}` : `Dia ${li + 1}`
         const titulares = (lineup.players || [])
           .filter(p => p.slot_type === 'titular')
-          .sort((a, b) => {
-            if (a.is_captain) return -1
-            if (b.is_captain) return 1
-            return (b.points_earned ?? -Infinity) - (a.points_earned ?? -Infinity)
-          })
-        const reserve = (lineup.players || []).find(p => p.slot_type === 'reserve')
+          .sort((a, b) => { if (a.is_captain) return -1; if (b.is_captain) return 1; return (b.points_earned ?? -Infinity) - (a.points_earned ?? -Infinity) })
+        const reserve   = (lineup.players || []).find(p => p.slot_type === 'reserve')
         const isPending = lineup.total_points == null
 
         return (
-          <div key={lineup.id} style={{
-            borderBottom: li < sorted.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
-            padding: '10px 16px',
-          }}>
-            <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              marginBottom: 8,
-            }}>
-              <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--xm-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
-                {dayLabel}
+          <div key={lineup.id} style={{ borderBottom: li < sorted.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none', padding: '12px 16px' }}>
+            {/* Day header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: isMe ? '#14b8a6' : 'var(--xm-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
+                ESCALAÇÃO — {dayLabel.toUpperCase()}
               </span>
-              <span style={{ fontSize: 14, fontWeight: 800, fontFamily: "'JetBrains Mono', monospace", color: isPending ? 'var(--xm-muted)' : 'var(--xm-orange)' }}>
-                {isPending ? '—' : Number(lineup.total_points).toFixed(2)} {!isPending && <span style={{ fontSize: 10, color: 'var(--xm-muted)' }}>pts</span>}
+              <span style={{ fontSize: 16, fontWeight: 800, fontFamily: "'JetBrains Mono', monospace", color: isPending ? 'var(--xm-muted)' : 'var(--xm-orange)' }}>
+                {isPending ? '—' : `${Number(lineup.total_points).toFixed(2)}`}
+                {!isPending && <span style={{ fontSize: 9, color: 'var(--xm-muted)', marginLeft: 3 }}>pts</span>}
               </span>
             </div>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: `repeat(${titulares.length}, 1fr)${reserve ? ' 60px' : ''}`,
-              gap: 6,
-            }}>
-              {titulares.map(p => (
-                <div key={p.id} style={{
-                  display: 'flex', flexDirection: 'column', alignItems: 'center',
-                  gap: 4, padding: '8px 4px', borderRadius: 7, textAlign: 'center',
-                  background: p.is_captain ? 'rgba(240,192,64,0.07)' : 'rgba(255,255,255,0.03)',
-                  border: p.is_captain ? '1px solid rgba(240,192,64,0.35)' : '1px solid rgba(255,255,255,0.06)',
-                }}>
-                  {p.is_captain && (
-                    <span style={{ fontSize: 7, fontWeight: 800, letterSpacing: '0.06em', color: '#f0c040', fontFamily: "'JetBrains Mono', monospace" }}>
-                      ⭐ CAP
-                    </span>
-                  )}
-                  <TeamLogo teamName={formatTeamTag(p.person_name, p.team_name)} size={26} />
-                  <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--xm-text)', lineHeight: 1 }}>
-                    {fmtName(p.person_name)}
-                  </span>
-                  <span style={{ fontSize: 14, fontWeight: 800, fontFamily: "'JetBrains Mono', monospace", lineHeight: 1, color: p.is_captain ? '#f0c040' : p.points_earned > 0 ? 'var(--xm-orange)' : 'var(--xm-muted)' }}>
-                    {p.points_earned != null ? Number(p.points_earned).toFixed(1) : '—'}
-                  </span>
-                </div>
-              ))}
-              {reserve && (
-                <div style={{
-                  display: 'flex', flexDirection: 'column', alignItems: 'center',
-                  gap: 4, padding: '8px 4px', borderRadius: 7, textAlign: 'center',
-                  background: 'rgba(0,0,0,0.15)', border: '1px solid rgba(255,255,255,0.04)',
-                  opacity: 0.5,
-                }}>
-                  <span style={{ fontSize: 7, fontWeight: 800, letterSpacing: '0.06em', color: 'var(--xm-muted)', fontFamily: "'JetBrains Mono', monospace" }}>
-                    RES
-                  </span>
-                  <TeamLogo teamName={formatTeamTag(reserve.person_name, reserve.team_name)} size={26} />
-                  <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--xm-muted)', lineHeight: 1 }}>
-                    {fmtName(reserve.person_name)}
-                  </span>
-                  <span style={{ fontSize: 12, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", lineHeight: 1, color: 'var(--xm-muted)' }}>
-                    {reserve.points_earned != null ? Number(reserve.points_earned).toFixed(1) : '—'}
-                  </span>
-                </div>
-              )}
+
+            {/* Player cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${titulares.length}, 1fr)`, gap: 6, marginBottom: reserve ? 8 : 0 }}>
+              {titulares.map(p => <PlayerCard key={p.id} p={p} size={40} />)}
             </div>
+
+            {/* Reserve */}
+            {reserve && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
+                <span style={{ fontSize: 7, fontWeight: 700, letterSpacing: '0.14em', color: 'var(--xm-muted)', fontFamily: "'JetBrains Mono', monospace", textTransform: 'uppercase', writingMode: 'vertical-rl', transform: 'rotate(180deg)', userSelect: 'none' }}>
+                  RES
+                </span>
+                <PlayerCard p={reserve} size={36} isReserve />
+              </div>
+            )}
           </div>
         )
       })}
