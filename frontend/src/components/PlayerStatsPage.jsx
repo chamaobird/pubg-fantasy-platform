@@ -333,7 +333,7 @@ export default function PlayerStatsPage({
                           borderColor: isActive ? 'rgba(96,165,250,0.5)' : 'var(--xm-border)',
                           color: isActive ? 'var(--xm-blue)' : 'var(--xm-muted)',
                         }}>
-                        DIA {d.day_number}
+                        {stageDays.length === 1 ? 'POR PARTIDAS' : `DIA ${d.day_number}`}
                         {isActive && <span style={{ fontSize: 8, opacity: 0.8 }}>▾</span>}
                       </button>
                     )
