@@ -267,16 +267,29 @@ def _import_single_match(
             error="Nenhum StageDay encontrado para a Stage. Crie um StageDay primeiro.",
         )
 
-    # Verifica se match já existe (scoped por stage_day da stage)
+    # Verifica se match já existe globalmente (constraint uq_match_pubg_shard é global)
     existing_match = (
         db.query(Match)
-        .join(StageDay, Match.stage_day_id == StageDay.id)
         .filter(
             Match.pubg_match_id == pubg_match_id,
-            StageDay.stage_id   == stage.id,
+            Match.shard         == stage.shard,
         )
         .first()
     )
+
+    # Match existe em outra stage — não pode re-importar (constraint global impediria INSERT)
+    if existing_match:
+        existing_stage_day = db.query(StageDay).get(existing_match.stage_day_id)
+        if existing_stage_day and existing_stage_day.stage_id != stage.id:
+            logger.warning(
+                "[Import] match %s já existe na stage %s (stage_day %s) — não pode importar para stage %s",
+                pubg_match_id, existing_stage_day.stage_id, existing_match.stage_day_id, stage.id,
+            )
+            return MatchImportResult(
+                pubg_match_id=pubg_match_id,
+                status="error",
+                error=f"Match já importado para outra stage (stage_day_id={existing_match.stage_day_id}). Cada match pertence a uma única stage.",
+            )
 
     if existing_match and not force_reprocess:
         logger.info("[Import] match %s já existe — skipping", pubg_match_id)
