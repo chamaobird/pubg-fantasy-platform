@@ -40,6 +40,7 @@ from app.models.stage_day import StageDay
 from app.models.user import User
 from app.models.user_stat import UserDayStat, UserStageStat
 from app.services.pricing import get_pricing_breakdown_batch
+from app.models.substitution import StageSubstitution
 
 router = APIRouter(prefix="/stages", tags=["Stages"])
 
@@ -196,6 +197,11 @@ class PlayerStatOut(BaseModel):
 
     # Composição do preço — preenchida para exibição no modal
     price_components: Optional[dict] = None
+
+    # Substituição: presente quando jogador foi substituído ou entrou como sub
+    # {"type": "out", "by_person_id": int, "by_person_name": str}  — jogador saiu
+    # {"type": "in",  "for_person_id": int, "for_person_name": str} — jogador entrou
+    substitution_info: Optional[dict] = None
 
     model_config = {"from_attributes": True}
 
@@ -644,6 +650,22 @@ def get_player_stats(
     # Composição do preço para exibição no modal
     breakdown_map = get_pricing_breakdown_batch(list(person_ids), db)
 
+    # Substituições da stage — mapa bidirecional para anotação
+    subs = db.query(StageSubstitution).filter(StageSubstitution.stage_id == stage_id).all()
+    sub_out_map: dict[int, dict] = {}  # out_person_id → {by_person_id, by_person_name}
+    sub_in_map:  dict[int, dict] = {}  # in_person_id  → {for_person_id, for_person_name}
+    for s in subs:
+        sub_out_map[s.out_person_id] = {
+            "type": "out",
+            "by_person_id": s.in_person_id,
+            "by_person_name": s.in_person.display_name if s.in_person else None,
+        }
+        sub_in_map[s.in_person_id] = {
+            "type": "in",
+            "for_person_id": s.out_person_id,
+            "for_person_name": s.out_person.display_name if s.out_person else None,
+        }
+
     is_full_stage = match_id is None and stage_day_id is None
 
     result = []
@@ -658,6 +680,8 @@ def get_player_stats(
                 {"day": day, "pts": round(pts, 2)}
                 for day, pts in sorted(a["pts_by_day"].items())
             ]
+
+        substitution_info = sub_out_map.get(person_id) or sub_in_map.get(person_id)
 
         result.append(PlayerStatOut(
             person_id=person_id,
@@ -684,6 +708,7 @@ def get_player_stats(
                 {**breakdown_map[person_id], "final_price": cost_map.get(person_id)}
                 if person_id in breakdown_map else None
             ),
+            substitution_info=substitution_info,
         ))
 
     result.sort(key=lambda x: x.total_xama_points, reverse=True)

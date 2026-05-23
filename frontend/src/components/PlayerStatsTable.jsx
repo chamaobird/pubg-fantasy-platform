@@ -338,6 +338,26 @@ export default function PlayerStatsTable({
                         >
                           {playerName}
                         </span>
+                        {p.substitution_info?.type === 'out' && (
+                          <span title={`Substituído por ${p.substitution_info.by_person_name ?? '—'}`} style={{
+                            fontSize: '10px', fontWeight: 700, letterSpacing: '0.05em',
+                            background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.35)',
+                            borderRadius: '4px', padding: '1px 6px', color: '#fca5a5',
+                            cursor: 'default', userSelect: 'none', lineHeight: 1.6,
+                          }}>
+                            SUB↑ {p.substitution_info.by_person_name}
+                          </span>
+                        )}
+                        {p.substitution_info?.type === 'in' && (
+                          <span title={`Entrou no lugar de ${p.substitution_info.for_person_name ?? '—'}`} style={{
+                            fontSize: '10px', fontWeight: 700, letterSpacing: '0.05em',
+                            background: 'rgba(96,165,250,0.12)', border: '1px solid rgba(96,165,250,0.35)',
+                            borderRadius: '4px', padding: '1px 6px', color: '#93c5fd',
+                            cursor: 'default', userSelect: 'none', lineHeight: 1.6,
+                          }}>
+                            SUB↓ {p.substitution_info.for_person_name}
+                          </span>
+                        )}
                         {badgeMap.has(p.person_id) && (
                           <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap' }}>
                             {BADGE_DEFS.filter(d => badgeMap.get(p.person_id).has(d.key)).map(def => (

@@ -19,6 +19,7 @@ from app.models.feedback import Feedback
 from app.models.oauth_code import OAuthCode
 from app.models.faceoff import Faceoff, FaceoffVote
 from app.models.stage_sync_schedule import StageSyncSchedule
+from app.models.substitution import StageSubstitution
 
 __all__ = [
     "User",
@@ -46,4 +47,5 @@ __all__ = [
     "Faceoff",
     "FaceoffVote",
     "StageSyncSchedule",
+    "StageSubstitution",
 ]

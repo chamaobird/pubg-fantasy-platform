@@ -160,6 +160,20 @@ export default function AdminOpsPanel({ stageId, token }) {
   // Import manual
   const [matchIds,   setMatchIds]   = useState('')
 
+  // Unresolved players from last import
+  const [unresolvedPlayers, setUnresolvedPlayers] = useState([])
+
+  // Substituições
+  const [subs,           setSubs]           = useState([])
+  const [subOutSearch,   setSubOutSearch]   = useState('')
+  const [subOutResults,  setSubOutResults]  = useState([])
+  const [subOutPerson,   setSubOutPerson]   = useState(null)   // {id, name}
+  const [subInSearch,    setSubInSearch]    = useState('')
+  const [subInResults,   setSubInResults]   = useState([])
+  const [subInPerson,    setSubInPerson]    = useState(null)   // {id, name}
+  const [subLoading,     setSubLoading]     = useState(false)
+  const [subResult,      setSubResult]      = useState(null)
+
   // Stats state
   const [statsLoading, setStatsLoading] = useState(false)
   const [statsResult,  setStatsResult]  = useState(null)
@@ -186,7 +200,17 @@ export default function AdminOpsPanel({ stageId, token }) {
       .catch(() => setDaysError('Erro ao carregar dias da stage'))
   }, [stageId])
 
-  useEffect(() => { loadDays() }, [loadDays])
+  const loadSubs = useCallback(() => {
+    if (!stageId) return
+    fetch(`${API_BASE_URL}/admin/stages/${stageId}/substitutions`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(setSubs)
+      .catch(() => {})
+  }, [stageId, token])
+
+  useEffect(() => { loadDays(); loadSubs() }, [loadDays, loadSubs])
 
   // ── Helpers de chamada de API ─────────────────────────────────────────────
 
@@ -290,34 +314,43 @@ export default function AdminOpsPanel({ stageId, token }) {
     else setSelectedMatches(new Set(newIds))
   }
 
+  async function doImport(ids) {
+    setImportLoading(true)
+    setImportResult(null)
+    setUnresolvedPlayers([])
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/stages/${stageId}/import-matches`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ pubg_match_ids: ids, stage_day_id: importDay ? Number(importDay) : null, force_reprocess: forceReproc }),
+      })
+      const d = await res.json().catch(() => null)
+      if (!res.ok) {
+        setImportResult({ ok: false, message: d?.detail || `HTTP ${res.status}` })
+      } else {
+        const lines = [`Importados: ${d.imported ?? 0}`, `Skippados: ${d.skipped ?? 0}`]
+        if (d.errors?.length) lines.push(`Erros: ${d.errors.map(e => e.error || e).join(', ')}`)
+        if (d.unresolved_players?.length) lines.push(`Não resolvidos: ${d.unresolved_players.join(', ')}`)
+        setImportResult({ ok: true, message: lines.join('\n') })
+        if (d.unresolved_players?.length) setUnresolvedPlayers(d.unresolved_players)
+      }
+    } catch (e) {
+      setImportResult({ ok: false, message: e.message })
+    } finally {
+      setImportLoading(false)
+    }
+  }
+
   function handleImportTournament() {
     const ids = [...selectedMatches]
     if (!ids.length) return setImportResult({ ok: false, message: 'Nenhuma partida selecionada.' })
-    callApi(
-      `/admin/stages/${stageId}/import-matches`,
-      { pubg_match_ids: ids, stage_day_id: importDay ? Number(importDay) : null, force_reprocess: forceReproc },
-      'POST', setImportLoading, setImportResult,
-      d => {
-        const lines = [`Importados: ${d.imported ?? 0}`, `Skippados: ${d.skipped ?? 0}`]
-        if (d.errors?.length) lines.push(`Erros: ${d.errors.join(', ')}`)
-        return lines.join('\n')
-      },
-    )
+    doImport(ids)
   }
 
   function handleImportManual() {
     const ids = matchIds.split(/[\n,\s]+/).map(s => s.trim()).filter(Boolean)
     if (!ids.length) return setImportResult({ ok: false, message: 'Nenhum match ID informado.' })
-    callApi(
-      `/admin/stages/${stageId}/import-matches`,
-      { pubg_match_ids: ids, stage_day_id: importDay ? Number(importDay) : null, force_reprocess: forceReproc },
-      'POST', setImportLoading, setImportResult,
-      d => {
-        const lines = [`Importados: ${d.imported ?? 0}`, `Skippados: ${d.skipped ?? 0}`]
-        if (d.errors?.length) lines.push(`Erros: ${d.errors.join(', ')}`)
-        return lines.join('\n')
-      },
-    )
+    doImport(ids)
   }
 
   function handleRecalcStats() {
@@ -339,6 +372,53 @@ export default function AdminOpsPanel({ stageId, token }) {
         return parts.join('\n')
       },
     )
+  }
+
+  async function searchPersons(q, setResults) {
+    if (!q.trim()) return setResults([])
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/persons?search=${encodeURIComponent(q.trim())}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const data = await res.json().catch(() => [])
+      setResults(Array.isArray(data) ? data : (data.items ?? []))
+    } catch { setResults([]) }
+  }
+
+  async function handleSaveSub() {
+    if (!subOutPerson || !subInPerson) return
+    setSubLoading(true)
+    setSubResult(null)
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/stages/${stageId}/substitutions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ out_person_id: subOutPerson.id, in_person_id: subInPerson.id }),
+      })
+      const d = await res.json().catch(() => null)
+      if (!res.ok) {
+        setSubResult({ ok: false, message: d?.detail || `HTTP ${res.status}` })
+      } else {
+        setSubResult({ ok: true, message: `Substituição registrada: ${d.out_person_name} → ${d.in_person_name}` })
+        setSubOutPerson(null); setSubOutSearch(''); setSubOutResults([])
+        setSubInPerson(null);  setSubInSearch('');  setSubInResults([])
+        loadSubs()
+      }
+    } catch (e) {
+      setSubResult({ ok: false, message: e.message })
+    } finally {
+      setSubLoading(false)
+    }
+  }
+
+  async function handleDeleteSub(subId) {
+    try {
+      await fetch(`${API_BASE_URL}/admin/stages/${stageId}/substitutions/${subId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      loadSubs()
+    } catch {}
   }
 
   // ── Render helpers ────────────────────────────────────────────────────────
@@ -513,6 +593,110 @@ export default function AdminOpsPanel({ stageId, token }) {
             <StatusBadge result={importResult} />
           </div>
         )}
+      </div>
+
+      {/* ── Substituições ── */}
+      <div style={card}>
+        <div style={sectionTitle}>Substituições</div>
+        <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginBottom: '12px' }}>
+          Registre quando um titular não jogou e um sub entrou no lugar. O sub é adicionado ao roster
+          automaticamente (<code style={{ color: 'var(--xm-orange)' }}>is_available=False</code>). Reimporte as partidas após salvar.
+        </div>
+
+        {/* Jogadores não resolvidos do último import */}
+        {unresolvedPlayers.length > 0 && (
+          <div style={{ marginBottom: '12px', padding: '8px 12px', borderRadius: 6, background: 'rgba(251,191,36,0.07)', border: '1px solid rgba(251,191,36,0.2)' }}>
+            <div style={{ fontSize: '11px', fontWeight: 700, color: '#fbbf24', marginBottom: 4 }}>
+              ⚠ Não resolvidos no último import
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {unresolvedPlayers.map(alias => (
+                <span key={alias} style={{ fontSize: '11px', fontFamily: 'monospace', background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: 4, padding: '1px 8px', color: '#fde68a' }}>
+                  {alias}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Lista de substituições existentes */}
+        {subs.length > 0 && (
+          <div style={{ marginBottom: '14px' }}>
+            {subs.map(s => (
+              <div key={s.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', borderRadius: 6, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', marginBottom: 4 }}>
+                <span style={{ fontSize: '13px' }}>
+                  <span style={{ color: '#fca5a5' }}>{s.out_person_name}</span>
+                  <span style={{ color: 'rgba(255,255,255,0.3)', margin: '0 6px' }}>→</span>
+                  <span style={{ color: '#93c5fd' }}>{s.in_person_name}</span>
+                </span>
+                <button onClick={() => handleDeleteSub(s.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(248,113,113,0.6)', fontSize: '14px', padding: '0 4px' }} title="Remover">×</button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Form: registrar nova substituição */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+          <div>
+            <span style={label}>Titular que saiu</span>
+            <input
+              style={input_}
+              placeholder="Buscar por nome…"
+              value={subOutPerson ? subOutPerson.name : subOutSearch}
+              onChange={e => {
+                if (subOutPerson) { setSubOutPerson(null) }
+                setSubOutSearch(e.target.value)
+                searchPersons(e.target.value, setSubOutResults)
+              }}
+            />
+            {subOutResults.length > 0 && !subOutPerson && (
+              <div style={{ borderRadius: 6, border: '1px solid rgba(255,255,255,0.1)', background: '#0d0f14', marginTop: 2, zIndex: 10 }}>
+                {subOutResults.map(p => (
+                  <div key={p.id} onClick={() => { setSubOutPerson({ id: p.id, name: p.display_name }); setSubOutResults([]) }}
+                    style={{ padding: '6px 10px', fontSize: 12, cursor: 'pointer', borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(249,115,22,0.08)'}
+                    onMouseLeave={e => e.currentTarget.style.background = ''}>
+                    {p.display_name}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div>
+            <span style={label}>Sub que entrou</span>
+            <input
+              style={input_}
+              placeholder="Buscar por nome…"
+              value={subInPerson ? subInPerson.name : subInSearch}
+              onChange={e => {
+                if (subInPerson) { setSubInPerson(null) }
+                setSubInSearch(e.target.value)
+                searchPersons(e.target.value, setSubInResults)
+              }}
+            />
+            {subInResults.length > 0 && !subInPerson && (
+              <div style={{ borderRadius: 6, border: '1px solid rgba(255,255,255,0.1)', background: '#0d0f14', marginTop: 2, zIndex: 10 }}>
+                {subInResults.map(p => (
+                  <div key={p.id} onClick={() => { setSubInPerson({ id: p.id, name: p.display_name }); setSubInResults([]) }}
+                    style={{ padding: '6px 10px', fontSize: 12, cursor: 'pointer', borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(249,115,22,0.08)'}
+                    onMouseLeave={e => e.currentTarget.style.background = ''}>
+                    {p.display_name}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <button
+          style={btn('secondary')}
+          onClick={handleSaveSub}
+          disabled={subLoading || !subOutPerson || !subInPerson}
+        >
+          {subLoading ? 'Salvando…' : 'Salvar Substituição'}
+        </button>
+        <StatusBadge result={subResult} />
       </div>
 
       {/* ── Stats & Scoring ── */}
