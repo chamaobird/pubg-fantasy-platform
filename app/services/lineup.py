@@ -208,6 +208,17 @@ def replicate_lineup_for_day(
         logger.warning("[Lineup] replicate: StageDay %s não encontrado", stage_day_id)
         return None
 
+    # Stage com lineups independentes por dia — replicação não se aplica
+    from app.models.stage import Stage as StageModel
+    stage_obj = db.query(StageModel).filter(StageModel.id == stage_day.stage_id).first()
+    if stage_obj and stage_obj.independent_lineups:
+        logger.info(
+            "[Lineup] replicate: user=%s stage_day=%s — stage %s tem independent_lineups=True. "
+            "Replicação desabilitada; usuário deve submeter lineup próprio para cada dia.",
+            user_id, stage_day_id, stage_day.stage_id,
+        )
+        return None
+
     # Busca o StageDay anterior (day_number - 1, mesma stage)
     prev_day = (
         db.query(StageDay)

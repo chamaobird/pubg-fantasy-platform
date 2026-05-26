@@ -27,6 +27,7 @@ class StageCreate(BaseModel):
     pricing_distribution: str = "linear"
     pricing_newcomer_cost: int = 15
     captain_multiplier: float = 1.30
+    independent_lineups: bool = False
     # pricing_n_matches removido — substituído por MAX_MATCHES=50 global
     # em app/services/pricing.py (Bloco B). Coluna existe no banco mas não é lida.
 
@@ -91,6 +92,7 @@ class StageUpdate(BaseModel):
     pricing_distribution: Optional[str] = None
     pricing_newcomer_cost: Optional[int] = None
     captain_multiplier: Optional[float] = None
+    independent_lineups: Optional[bool] = None
     is_active: Optional[bool] = None
     pubg_tournament_id: Optional[str] = None
     # pricing_n_matches removido — não aceita mais atualização via API
@@ -148,6 +150,7 @@ class StageResponse(BaseModel):
     price_max: int
     pricing_distribution: str
     pricing_newcomer_cost: int
+    independent_lineups: bool
     is_active: bool
     pubg_tournament_id: Optional[str]
     created_at: datetime

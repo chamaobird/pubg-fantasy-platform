@@ -387,6 +387,48 @@ def update_stage(
     return stage
 
 
+@router.get("/{stage_id}/next-stage")
+def get_next_stage(
+    stage_id: int,
+    db: Session = Depends(get_db),
+    _admin: User = Depends(require_admin),
+):
+    """
+    Retorna a próxima stage do mesmo championship: menor id > stage_id
+    com lineup_status != 'open'. Admin usa para preview antes de abrir.
+    """
+    current = _get_or_404(db, stage_id)
+
+    next_stage = (
+        db.query(Stage)
+        .filter(
+            Stage.championship_id == current.championship_id,
+            Stage.id > stage_id,
+            Stage.lineup_status != "open",
+            Stage.is_active == True,
+        )
+        .order_by(Stage.id.asc())
+        .first()
+    )
+
+    if not next_stage:
+        return None
+
+    return {
+        "id":                    next_stage.id,
+        "name":                  next_stage.name,
+        "short_name":            next_stage.short_name,
+        "lineup_status":         next_stage.lineup_status,
+        "price_min":             next_stage.price_min,
+        "price_max":             next_stage.price_max,
+        "pricing_newcomer_cost": next_stage.pricing_newcomer_cost,
+        "captain_multiplier":    float(next_stage.captain_multiplier),
+        "shard":                 next_stage.shard,
+        "pubg_tournament_id":    next_stage.pubg_tournament_id,
+        "independent_lineups":   next_stage.independent_lineups,
+    }
+
+
 @router.delete("/{stage_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_stage(
     stage_id: int,

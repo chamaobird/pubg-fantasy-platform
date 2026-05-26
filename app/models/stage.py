@@ -126,6 +126,12 @@ class Stage(Base):
         comment="ID do torneio na PUBG API (ex: am-pas126). Usado para pc-tournament match discovery.",
     )
 
+    independent_lineups: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        server_default=text("false"),
+        comment="True = cada StageDay exige lineup próprio; sem replicação automática. Usar em Finals multi-dia.",
+    )
     is_active: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default=text("true")
     )

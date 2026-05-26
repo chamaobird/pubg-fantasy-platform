@@ -356,6 +356,76 @@ def preflight_roster(
     }
 
 
+@router.get("/days/{stage_day_id}/missing-players")
+def missing_players_check(
+    stage_id: int,
+    stage_day_id: int,
+    db: Session = Depends(get_db),
+    _admin: User = Depends(require_admin),
+):
+    """
+    Retorna jogadores do roster (is_available=True) que não aparecem em nenhuma
+    partida do dia informado. Sinal de possível substituição não registrada.
+
+    Inclui flag has_substitution=True se já há StageSubstitution registrada
+    para o jogador nesta stage.
+    """
+    from app.models.match import Match
+    from app.models.match_stat import MatchStat
+    from app.models.substitution import StageSubstitution
+
+    _get_stage_or_404(db, stage_id)
+
+    roster_rows = (
+        db.query(Roster)
+        .join(Person, Roster.person_id == Person.id)
+        .filter(Roster.stage_id == stage_id, Roster.is_available == True)
+        .all()
+    )
+    if not roster_rows:
+        return {"stage_day_id": stage_day_id, "missing": [], "total_roster": 0, "total_with_stats": 0}
+
+    # Persons com stats no dia
+    persons_with_stats = {
+        row[0]
+        for row in (
+            db.query(MatchStat.person_id)
+            .join(Match, MatchStat.match_id == Match.id)
+            .filter(Match.stage_day_id == stage_day_id)
+            .distinct()
+            .all()
+        )
+    }
+
+    # Subs já registradas nesta stage
+    subs_out = {
+        row[0]
+        for row in (
+            db.query(StageSubstitution.out_person_id)
+            .filter(StageSubstitution.stage_id == stage_id)
+            .all()
+        )
+    }
+
+    missing = []
+    for r in roster_rows:
+        if r.person_id not in persons_with_stats:
+            person = db.query(Person).filter(Person.id == r.person_id).first()
+            missing.append({
+                "person_id": r.person_id,
+                "person_name": person.display_name if person else str(r.person_id),
+                "team_name": r.team_name,
+                "has_substitution": r.person_id in subs_out,
+            })
+
+    return {
+        "stage_day_id": stage_day_id,
+        "missing": missing,
+        "total_roster": len(roster_rows),
+        "total_with_stats": len(persons_with_stats),
+    }
+
+
 @router.get("/teams", response_model=list[TeamInRoster])
 def list_teams_in_roster(
     stage_id: int,

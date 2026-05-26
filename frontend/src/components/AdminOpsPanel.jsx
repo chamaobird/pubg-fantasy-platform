@@ -178,6 +178,16 @@ export default function AdminOpsPanel({ stageId, token }) {
   const [preflightData,    setPreflightData]    = useState(null)
   const [preflightLoading, setPreflightLoading] = useState(false)
 
+  // Missing players (pré-scoring)
+  const [missingPlayers,  setMissingPlayers]  = useState(null)
+  const [missingLoading,  setMissingLoading]  = useState(false)
+
+  // Próxima stage
+  const [nextStage,        setNextStage]        = useState(undefined) // undefined=não buscado, null=não existe
+  const [nextLoading,      setNextLoading]      = useState(false)
+  const [openNextLoading,  setOpenNextLoading]  = useState(false)
+  const [openNextResult,   setOpenNextResult]   = useState(null)
+
   // Stats state
   const [statsLoading, setStatsLoading] = useState(false)
   const [statsResult,  setStatsResult]  = useState(null)
@@ -215,6 +225,19 @@ export default function AdminOpsPanel({ stageId, token }) {
   }, [stageId, token])
 
   useEffect(() => { loadDays(); loadSubs() }, [loadDays, loadSubs])
+
+  useEffect(() => {
+    if (!scoreDay || !stageId || !token) { setMissingPlayers(null); return }
+    setMissingLoading(true)
+    setMissingPlayers(null)
+    fetch(`${API_BASE_URL}/admin/stages/${stageId}/roster/days/${scoreDay}/missing-players`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(d => setMissingPlayers(d))
+      .catch(() => setMissingPlayers(null))
+      .finally(() => setMissingLoading(false))
+  }, [scoreDay, stageId, token])
 
   // ── Helpers de chamada de API ─────────────────────────────────────────────
 
@@ -412,6 +435,55 @@ export default function AdminOpsPanel({ stageId, token }) {
       setSubResult({ ok: false, message: e.message })
     } finally {
       setSubLoading(false)
+    }
+  }
+
+  async function handleFetchNextStage() {
+    setNextLoading(true)
+    setNextStage(undefined)
+    setOpenNextResult(null)
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/stages/${stageId}/next-stage`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const d = await res.json().catch(() => null)
+      setNextStage(res.ok ? d : null)
+    } catch { setNextStage(null) }
+    finally { setNextLoading(false) }
+  }
+
+  async function handleOpenNextStage() {
+    if (!nextStage) return
+    setOpenNextLoading(true)
+    setOpenNextResult(null)
+    try {
+      // 1. Recalcular pricing
+      const r1 = await fetch(`${API_BASE_URL}/admin/pricing/stages/${nextStage.id}/recalculate-pricing`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!r1.ok) {
+        const d = await r1.json().catch(() => null)
+        setOpenNextResult({ ok: false, message: `Pricing falhou: ${d?.detail || r1.status}` })
+        return
+      }
+      // 2. Abrir lineup
+      const r2 = await fetch(`${API_BASE_URL}/admin/stages/${nextStage.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ lineup_status: 'open' }),
+      })
+      const d2 = await r2.json().catch(() => null)
+      if (!r2.ok) {
+        setOpenNextResult({ ok: false, message: `Abrir lineup falhou: ${d2?.detail || r2.status}` })
+      } else {
+        setOpenNextResult({ ok: true, message: `${nextStage.name} aberta com sucesso!` })
+        setNextStage(prev => prev ? { ...prev, lineup_status: 'open' } : prev)
+      }
+    } catch (e) {
+      setOpenNextResult({ ok: false, message: e.message })
+    } finally {
+      setOpenNextLoading(false)
     }
   }
 
@@ -816,6 +888,38 @@ export default function AdminOpsPanel({ stageId, token }) {
               {scoreDayLoading ? 'Pontuando…' : 'Pontuar Dia'}
             </button>
           </div>
+
+          {missingLoading && (
+            <div style={{ marginTop: 8, fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>Verificando roster…</div>
+          )}
+          {missingPlayers && missingPlayers.missing.length > 0 && (
+            <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 8, background: 'rgba(251,191,36,0.07)', border: '1px solid rgba(251,191,36,0.25)' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#fbbf24', marginBottom: 8 }}>
+                ⚠ {missingPlayers.missing.length} jogador(es) do roster sem stats hoje — possíveis substituídos
+              </div>
+              {missingPlayers.missing.map(p => (
+                <div key={p.person_id} style={{ fontSize: 12, padding: '2px 0', display: 'flex', alignItems: 'center', gap: 8, color: 'rgba(255,255,255,0.75)' }}>
+                  <span style={{ color: '#fde68a', fontWeight: 600 }}>{p.person_name}</span>
+                  <span style={{ color: 'rgba(255,255,255,0.3)' }}>—</span>
+                  <span>{p.team_name}</span>
+                  {p.has_substitution && (
+                    <span style={{ fontSize: 10, fontWeight: 700, background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 4, padding: '1px 6px', color: '#86efac' }}>
+                      sub registrada
+                    </span>
+                  )}
+                </div>
+              ))}
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 8 }}>
+                Registre a substituição na seção acima antes de pontuar, se necessário.
+              </div>
+            </div>
+          )}
+          {missingPlayers && missingPlayers.missing.length === 0 && scoreDay && (
+            <div style={{ marginTop: 8, fontSize: 12, color: '#86efac' }}>
+              ✓ Todos os {missingPlayers.total_roster} jogadores do roster aparecem em pelo menos uma partida.
+            </div>
+          )}
+
           <StatusBadge result={scoreDayResult} />
           {scoreDayResult?.ok && (
             <div style={{ marginTop: 8 }}>
@@ -833,6 +937,61 @@ export default function AdminOpsPanel({ stageId, token }) {
             </div>
           )}
         </div>
+      </div>
+
+      {/* ── Próxima Stage ── */}
+      <div style={card}>
+        <div style={sectionTitle}>Transição de Stage</div>
+        <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginBottom: '12px' }}>
+          Infere a próxima stage do championship, recalcula pricing e abre o lineup.
+          O roster deve estar configurado antes de confirmar.
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: nextStage !== undefined ? 14 : 0 }}>
+          <button style={btn('secondary')} onClick={handleFetchNextStage} disabled={nextLoading}>
+            {nextLoading ? 'Buscando…' : 'Buscar Próxima Stage'}
+          </button>
+          {nextStage === null && !nextLoading && (
+            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>Nenhuma stage pendente encontrada.</span>
+          )}
+        </div>
+
+        {nextStage && (
+          <div style={{ padding: '12px 14px', borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(249,115,22,0.15)', marginBottom: 12 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--xm-orange)', marginBottom: 8 }}>
+              {nextStage.name}
+              <span style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.4)', marginLeft: 8 }}>
+                [{nextStage.lineup_status}] · {nextStage.shard}
+              </span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px 16px', fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 10 }}>
+              <span>price_min: <b style={{ color: '#fff' }}>{nextStage.price_min}</b></span>
+              <span>price_max: <b style={{ color: '#fff' }}>{nextStage.price_max}</b></span>
+              <span>newcomer: <b style={{ color: '#fff' }}>{nextStage.pricing_newcomer_cost}</b></span>
+              <span>captain: <b style={{ color: '#fff' }}>×{nextStage.captain_multiplier}</b></span>
+              {nextStage.pubg_tournament_id && (
+                <span style={{ gridColumn: 'span 2' }}>tournament_id: <b style={{ color: '#fff', fontFamily: 'monospace' }}>{nextStage.pubg_tournament_id}</b></span>
+              )}
+              {nextStage.independent_lineups && (
+                <span style={{ gridColumn: 'span 3', color: '#fbbf24' }}>⚡ Lineups independentes por dia</span>
+              )}
+            </div>
+
+            {nextStage.lineup_status !== 'open' ? (
+              <button
+                style={btn('primary')}
+                onClick={handleOpenNextStage}
+                disabled={openNextLoading}
+              >
+                {openNextLoading ? 'Abrindo…' : `Confirmar — Abrir ${nextStage.short_name}`}
+              </button>
+            ) : (
+              <span style={{ fontSize: 12, color: '#86efac', fontWeight: 600 }}>✓ Lineup já aberto</span>
+            )}
+          </div>
+        )}
+
+        <StatusBadge result={openNextResult} />
       </div>
 
     </div>

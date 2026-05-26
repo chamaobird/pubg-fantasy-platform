@@ -33,6 +33,7 @@ const BLANK = {
   lineup_size: 4, captain_multiplier: 1.3,
   price_min: 12, price_max: 35,
   pubg_tournament_id: '',
+  independent_lineups: false,
 }
 
 // ── Timezone helpers ──────────────────────────────────────────────────────────
@@ -1261,6 +1262,7 @@ export default function AdminStages({ token }) {
       price_min: s.price_min ?? 12,
       price_max: s.price_max ?? 35,
       pubg_tournament_id: s.pubg_tournament_id || '',
+      independent_lineups: s.independent_lineups ?? false,
     })
     setMsg(''); setModal({ mode: 'edit', data: s })
   }
@@ -1526,6 +1528,19 @@ export default function AdminStages({ token }) {
               placeholder="ex: as-pgs4ws — deixe vazio para remover"
             />
           </Field>
+
+          <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '8px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <input
+              type="checkbox"
+              checked={!!form.independent_lineups}
+              onChange={e => setForm(p => ({ ...p, independent_lineups: e.target.checked }))}
+              style={{ accentColor: 'var(--xm-orange)', width: 16, height: 16 }}
+            />
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.85)' }}>Lineups independentes por dia</div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>Finals multi-dia: cada StageDay exige escalação própria, sem replicação automática do dia anterior.</div>
+            </div>
+          </label>
 
           {/* Badge de timezone + hint */}
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 8, padding: '10px 14px' }}>
