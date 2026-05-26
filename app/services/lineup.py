@@ -218,10 +218,20 @@ def replicate_lineup_for_day(
         .first()
     )
     if not prev_day:
-        logger.info(
-            "[Lineup] replicate: user=%s — sem dia anterior para stage_day=%s",
-            user_id, stage_day_id,
-        )
+        if stage_day.day_number == 1:
+            logger.warning(
+                "[Lineup] replicate: user=%s stage_day=%s — primeiro dia da stage %s "
+                "(day_number=1). Não há dia anterior nesta stage. "
+                "ATENÇÃO: replicação cross-stage não é suportada — "
+                "stages independentes (ex: Finals D1/D2) exigem lineup manual.",
+                user_id, stage_day_id, stage_day.stage_id,
+            )
+        else:
+            logger.warning(
+                "[Lineup] replicate: user=%s stage_day=%s — não encontrado StageDay "
+                "day_number=%s na stage %s. Replicação abortada.",
+                user_id, stage_day_id, stage_day.day_number - 1, stage_day.stage_id,
+            )
         return None
 
     # Busca lineup válido do dia anterior

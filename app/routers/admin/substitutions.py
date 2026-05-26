@@ -8,6 +8,7 @@ DELETE /admin/stages/{stage_id}/substitutions/{sub_id} → remove substituição
 """
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -43,6 +44,7 @@ class SubstitutionOut(BaseModel):
     out_person_name: Optional[str]
     in_person_id: int
     in_person_name: Optional[str]
+    created_at: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
 
@@ -68,7 +70,12 @@ def _get_person_or_404(db: Session, person_id: int) -> Person:
 @router.get("", response_model=list[SubstitutionOut])
 def list_substitutions(stage_id: int, db: Session = Depends(get_db)):
     _get_stage_or_404(db, stage_id)
-    rows = db.query(StageSubstitution).filter(StageSubstitution.stage_id == stage_id).all()
+    rows = (
+        db.query(StageSubstitution)
+        .filter(StageSubstitution.stage_id == stage_id)
+        .order_by(StageSubstitution.created_at)
+        .all()
+    )
     result = []
     for s in rows:
         result.append(SubstitutionOut(
@@ -78,6 +85,7 @@ def list_substitutions(stage_id: int, db: Session = Depends(get_db)):
             out_person_name=s.out_person.display_name if s.out_person else None,
             in_person_id=s.in_person_id,
             in_person_name=s.in_person.display_name if s.in_person else None,
+            created_at=s.created_at,
         ))
     return result
 

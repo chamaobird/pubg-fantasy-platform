@@ -174,6 +174,10 @@ export default function AdminOpsPanel({ stageId, token }) {
   const [subLoading,     setSubLoading]     = useState(false)
   const [subResult,      setSubResult]      = useState(null)
 
+  // Saúde da Stage (preflight)
+  const [preflightData,    setPreflightData]    = useState(null)
+  const [preflightLoading, setPreflightLoading] = useState(false)
+
   // Stats state
   const [statsLoading, setStatsLoading] = useState(false)
   const [statsResult,  setStatsResult]  = useState(null)
@@ -411,6 +415,19 @@ export default function AdminOpsPanel({ stageId, token }) {
     }
   }
 
+  async function handlePreflight() {
+    setPreflightLoading(true)
+    setPreflightData(null)
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/stages/${stageId}/roster/preflight`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const d = await res.json().catch(() => null)
+      if (res.ok) setPreflightData(d)
+    } catch {}
+    finally { setPreflightLoading(false) }
+  }
+
   async function handleDeleteSub(subId) {
     try {
       await fetch(`${API_BASE_URL}/admin/stages/${stageId}/substitutions/${subId}`, {
@@ -437,6 +454,67 @@ export default function AdminOpsPanel({ stageId, token }) {
 
   return (
     <div style={{ maxWidth: '600px' }}>
+
+      {/* ── Saúde da Stage ── */}
+      <div style={card}>
+        <div style={sectionTitle}>Saúde da Stage</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: preflightData ? 14 : 0 }}>
+          <button style={btn('secondary')} onClick={handlePreflight} disabled={preflightLoading}>
+            {preflightLoading ? 'Verificando…' : 'Verificar Accounts'}
+          </button>
+          {preflightData && (
+            <span style={{ fontSize: 12, fontWeight: 600, color: preflightData.ok && preflightData.config_warnings.length === 0 ? '#86efac' : '#fca5a5' }}>
+              {preflightData.ok && preflightData.config_warnings.length === 0
+                ? `✓ Tudo ok (${preflightData.total_active} jogadores)`
+                : `${preflightData.issues_count} problema(s) de account`}
+            </span>
+          )}
+        </div>
+
+        {preflightData && (
+          <>
+            {preflightData.issues.length > 0 && (
+              <div style={{ marginBottom: 10, padding: '8px 12px', borderRadius: 6, background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#fca5a5', marginBottom: 6 }}>
+                  Jogadores sem account válido ({preflightData.shard}):
+                </div>
+                {preflightData.issues.map(iss => (
+                  <div key={iss.person_id} style={{ fontSize: 12, padding: '2px 0', color: 'rgba(255,255,255,0.75)' }}>
+                    <span style={{ fontFamily: 'monospace', color: '#fca5a5', marginRight: 6 }}>[{iss.status}]</span>
+                    {iss.person_name}
+                    <span style={{ color: 'rgba(255,255,255,0.35)', margin: '0 6px' }}>—</span>
+                    {iss.team_name}
+                    {iss.pending_ids?.length > 0 && (
+                      <span style={{ fontSize: 10, fontFamily: 'monospace', color: 'rgba(255,255,255,0.3)', marginLeft: 8 }}>
+                        ({iss.pending_ids[0]})
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {preflightData.config_warnings.length > 0 && (
+              <div style={{ padding: '8px 12px', borderRadius: 6, background: 'rgba(251,191,36,0.07)', border: '1px solid rgba(251,191,36,0.2)' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#fbbf24', marginBottom: 6 }}>
+                  Configurações:
+                </div>
+                {preflightData.config_warnings.map(w => (
+                  <div key={w.check} style={{ fontSize: 12, color: '#fde68a', padding: '2px 0' }}>
+                    ⚠ {w.message}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {preflightData.ok && preflightData.config_warnings.length === 0 && (
+              <div style={{ fontSize: 12, color: '#86efac' }}>
+                {preflightData.total_active} jogadores com account ok. Nenhum warning de configuração.
+              </div>
+            )}
+          </>
+        )}
+      </div>
 
       {/* ── Importar Partidas ── */}
       <div style={card}>
@@ -573,6 +651,11 @@ export default function AdminOpsPanel({ stageId, token }) {
                 {days.map(d => <option key={d.id} value={d.id}>{dayLabel(d)}</option>)}
               </select>
             </div>
+            {preflightData && preflightData.issues_count > 0 && (
+              <div style={{ marginBottom: 10, padding: '6px 10px', borderRadius: 6, background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.2)', fontSize: 12, color: '#fca5a5' }}>
+                ⚠ {preflightData.issues_count} jogador(es) sem account válido — alguns aliases podem aparecer como não resolvidos.
+              </div>
+            )}
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'rgba(255,255,255,0.5)', cursor: 'pointer' }}>
                 <input type='checkbox' checked={forceReproc} onChange={e => setForceReproc(e.target.checked)} style={{ accentColor: 'var(--xm-orange)' }} />
@@ -628,6 +711,11 @@ export default function AdminOpsPanel({ stageId, token }) {
                   <span style={{ color: '#fca5a5' }}>{s.out_person_name}</span>
                   <span style={{ color: 'rgba(255,255,255,0.3)', margin: '0 6px' }}>→</span>
                   <span style={{ color: '#93c5fd' }}>{s.in_person_name}</span>
+                  {s.created_at && (
+                    <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)', marginLeft: 10, fontVariantNumeric: 'tabular-nums' }}>
+                      {fmtUtc(s.created_at)}
+                    </span>
+                  )}
                 </span>
                 <button onClick={() => handleDeleteSub(s.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(248,113,113,0.6)', fontSize: '14px', padding: '0 4px' }} title="Remover">×</button>
               </div>
