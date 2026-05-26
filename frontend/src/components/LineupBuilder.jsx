@@ -592,6 +592,26 @@ export default function LineupBuilder({
             </div>
           )}
 
+          {/* Banner independent_lineups — aparece quando stage tem dias independentes e o dia ativo não tem lineup */}
+          {stage?.independent_lineups && stageDays.length > 1 && !currentDayLineup && canEdit && (
+            <div style={{
+              background: 'rgba(99,102,241,0.08)',
+              border: '1px solid rgba(99,102,241,0.25)',
+              borderRadius: 8, padding: '10px 16px', marginBottom: 12,
+              display: 'flex', alignItems: 'center', gap: 10,
+            }}>
+              <span style={{ fontSize: 16 }}>📋</span>
+              <div>
+                <div style={{ color: '#a5b4fc', fontSize: 13, fontWeight: 700 }}>
+                  Nova escalação necessária
+                </div>
+                <div style={{ color: 'var(--xm-muted)', fontSize: 12, marginTop: 2 }}>
+                  Cada dia desta fase requer uma escalação própria — o lineup anterior não é reaproveitado automaticamente.
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Banner de stage fechada (closed/locked mas não preview) */}
           {stage && !stage.lineup_open && !isPreview && (
             <div style={{
