@@ -81,9 +81,12 @@ export const TEAM_NAME_TO_TAG = {
   'SOOPers':              'DNS',
   'Theerathon Five':      'T5',
   'Four Angry Men':       '4AM',
+  // PGS C2S2 — novos nomes / rebranding
+  'Gen.G':                'GEN',  // nome correto C2S2 (era "Gen.G Esports")
+  'GAM x TE':             'GTE',  // The Expendables renomeada
   // PGS S2 — Survival Stage (8 times diretos)
-  'Gen.G Esports':        'GEN',
-  'The Expendables':      'GTE',
+  'Gen.G Esports':        'GEN',  // variante histórica (manter para stages passadas)
+  'The Expendables':      'GTE',  // variante histórica
   'Finhay Cerberus':      'FCE',
   'CERBERUS Esports':     'FCE',  // variante DB Group Stage
   'Change the Game':      'CTG',

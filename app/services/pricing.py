@@ -260,10 +260,22 @@ def calculate_stage_pricing(
         _record_price_history(roster.id, new_cost, source, stage_day_id, db)
         updated += 1
 
+    # Reservas (is_available=False) sempre custam price_min — nunca entram na régua
+    reserves: list[Roster] = (
+        db.query(Roster)
+        .filter(Roster.stage_id == stage_id, Roster.is_available == False)  # noqa: E712
+        .all()
+    )
+    for reserve in reserves:
+        reserve_cost = float(stage.price_min)
+        if reserve.fantasy_cost != reserve_cost:
+            reserve.fantasy_cost = reserve_cost
+            _record_price_history(reserve.id, reserve_cost, source, stage_day_id, db)
+
     db.flush()
     logger.info(
-        "Stage %d: pricing concluído — updated=%d skipped=%d newcomers=%d",
-        stage_id, updated, skipped, newcomers,
+        "Stage %d: pricing concluído — updated=%d skipped=%d newcomers=%d reserves=%d",
+        stage_id, updated, skipped, newcomers, len(reserves),
     )
     return {"updated": updated, "skipped": skipped, "newcomers": newcomers}
 
