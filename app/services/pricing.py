@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
 
 DECAY_LAMBDA      = 0.02   # λ da curva e^(-λ × dias)
 MAX_DAYS          = 150    # corte hard: partidas mais antigas são ignoradas
-MAX_MATCHES       = 50     # máximo de partidas no histórico
+MAX_MATCHES       = 200    # máximo de partidas no histórico (aumentado de 50; veteranos com 100+ partidas na janela não eram truncados corretamente)
 MIN_VALID_MATCHES = 5      # mínimo de partidas válidas (= 1 dia completo de competição)
 
 
