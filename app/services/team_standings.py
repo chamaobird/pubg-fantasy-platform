@@ -105,7 +105,12 @@ def calculate_team_tournament_standings(
         })
 
     # 4. Ordena e atribui rank
-    ranked = sorted(team_data.values(), key=lambda t: t["total_pts"], reverse=True)
+    # Tiebreaker oficial: total_pts → survival_pts → kill_pts
+    ranked = sorted(
+        team_data.values(),
+        key=lambda t: (t["total_pts"], t["survival_pts"], t["kill_pts"]),
+        reverse=True,
+    )
     for i, entry in enumerate(ranked):
         entry["rank"] = i + 1
 
