@@ -556,3 +556,35 @@ def scan_unresolved(
             "3) POST /admin/stages/{stage_id}/reprocess-all para re-importar."
         ) if deduped_unresolved else "Nenhum jogador não resolvido — dados completos.",
     }
+
+
+# ── Team Standings by Stage ────────────────────────────────────────────────────
+
+@router.get(
+    "/{stage_id}/team-standings",
+    summary="Standings por time de uma stage específica",
+    description=(
+        "Calcula standings usando a fórmula oficial do torneio PUBG "
+        "(survival pts + kills) apenas para os matches desta stage. "
+        "Use top_n para filtrar os N primeiros colocados."
+    ),
+)
+def get_stage_team_standings(
+    stage_id: int,
+    top_n: int = 16,
+    db: Session = Depends(get_db),
+    _admin: User = Depends(require_admin),
+) -> dict:
+    from app.services.team_standings import calculate_team_tournament_standings
+
+    stage = _get_or_404(db, stage_id)
+    standings = calculate_team_tournament_standings(
+        stage.championship_id, db, stage_ids=[stage_id]
+    )
+    return {
+        "stage_id": stage_id,
+        "stage_name": stage.name,
+        "top_n": top_n,
+        "total_teams": len(standings),
+        "standings": standings[:top_n],
+    }

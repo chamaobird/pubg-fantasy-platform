@@ -1,7 +1,7 @@
 // frontend/src/components/AdminOpsPanel.jsx
 // Painel admin de operações de dia: import de matches, stats e scoring.
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { API_BASE_URL } from '../config'
 
 // ── Estilos ──────────────────────────────────────────────────────────────────
@@ -163,6 +163,9 @@ export default function AdminOpsPanel({ stageId, token }) {
   // Unresolved players from last import
   const [unresolvedPlayers, setUnresolvedPlayers] = useState([])
 
+  // Ref para scroll ao form de substituição
+  const subFormRef = useRef(null)
+
   // Substituições
   const [subs,           setSubs]           = useState([])
   const [subOutSearch,   setSubOutSearch]   = useState('')
@@ -173,6 +176,11 @@ export default function AdminOpsPanel({ stageId, token }) {
   const [subInPerson,    setSubInPerson]    = useState(null)   // {id, name}
   const [subLoading,     setSubLoading]     = useState(false)
   const [subResult,      setSubResult]      = useState(null)
+
+  // Standings da stage
+  const [standingsData,    setStandingsData]    = useState(null)
+  const [standingsLoading, setStandingsLoading] = useState(false)
+  const [standingsTopN,    setStandingsTopN]    = useState(8)
 
   // Saúde da Stage (preflight)
   const [preflightData,    setPreflightData]    = useState(null)
@@ -410,6 +418,32 @@ export default function AdminOpsPanel({ stageId, token }) {
       const data = await res.json().catch(() => [])
       setResults(Array.isArray(data) ? data : (data.items ?? []))
     } catch { setResults([]) }
+  }
+
+  function handlePreFillSub(person_id, person_name) {
+    setSubOutPerson({ id: person_id, name: person_name })
+    setSubOutSearch('')
+    setSubOutResults([])
+    setSubResult(null)
+    setTimeout(() => subFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50)
+  }
+
+  async function handleLoadStandings() {
+    setStandingsLoading(true)
+    setStandingsData(null)
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/admin/stages/${stageId}/team-standings?top_n=${standingsTopN}`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      )
+      const d = await res.json().catch(() => null)
+      if (res.ok) setStandingsData(d)
+      else setStandingsData({ error: d?.detail || `HTTP ${res.status}` })
+    } catch (e) {
+      setStandingsData({ error: e.message })
+    } finally {
+      setStandingsLoading(false)
+    }
   }
 
   async function handleSaveSub() {
@@ -796,7 +830,7 @@ export default function AdminOpsPanel({ stageId, token }) {
         )}
 
         {/* Form: registrar nova substituição */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+        <div ref={subFormRef} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
           <div>
             <span style={label}>Titular que saiu</span>
             <input
@@ -898,20 +932,25 @@ export default function AdminOpsPanel({ stageId, token }) {
                 ⚠ {missingPlayers.missing.length} jogador(es) do roster sem stats hoje — possíveis substituídos
               </div>
               {missingPlayers.missing.map(p => (
-                <div key={p.person_id} style={{ fontSize: 12, padding: '2px 0', display: 'flex', alignItems: 'center', gap: 8, color: 'rgba(255,255,255,0.75)' }}>
+                <div key={p.person_id} style={{ fontSize: 12, padding: '4px 0', display: 'flex', alignItems: 'center', gap: 8, color: 'rgba(255,255,255,0.75)' }}>
                   <span style={{ color: '#fde68a', fontWeight: 600 }}>{p.person_name}</span>
                   <span style={{ color: 'rgba(255,255,255,0.3)' }}>—</span>
                   <span>{p.team_name}</span>
-                  {p.has_substitution && (
+                  {p.has_substitution ? (
                     <span style={{ fontSize: 10, fontWeight: 700, background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 4, padding: '1px 6px', color: '#86efac' }}>
                       sub registrada
                     </span>
+                  ) : (
+                    <button
+                      onClick={() => handlePreFillSub(p.person_id, p.person_name)}
+                      style={{ fontSize: 10, fontWeight: 600, background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.3)', borderRadius: 4, padding: '2px 8px', color: 'var(--xm-orange)', cursor: 'pointer' }}
+                      title="Pré-preencher como titular que saiu"
+                    >
+                      → registrar sub
+                    </button>
                   )}
                 </div>
               ))}
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 8 }}>
-                Registre a substituição na seção acima antes de pontuar, se necessário.
-              </div>
             </div>
           )}
           {missingPlayers && missingPlayers.missing.length === 0 && scoreDay && (
@@ -992,6 +1031,57 @@ export default function AdminOpsPanel({ stageId, token }) {
         )}
 
         <StatusBadge result={openNextResult} />
+      </div>
+
+      {/* ── Standings da Stage ── */}
+      <div style={card}>
+        <div style={sectionTitle}>Standings da Stage</div>
+        <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginBottom: '12px' }}>
+          Ranking por pontuação oficial PUBG (sobrevivência + kills). Útil para identificar classificados para a próxima fase.
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Top</span>
+            <select
+              style={{ ...select, width: 70 }}
+              value={standingsTopN}
+              onChange={e => setStandingsTopN(Number(e.target.value))}
+            >
+              {[4, 8, 12, 16].map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </div>
+          <button style={btn('secondary')} onClick={handleLoadStandings} disabled={standingsLoading}>
+            {standingsLoading ? 'Calculando…' : 'Calcular Standings'}
+          </button>
+        </div>
+
+        {standingsData?.error && (
+          <div style={{ fontSize: 12, color: '#fca5a5' }}>{standingsData.error}</div>
+        )}
+        {standingsData?.standings && (
+          <div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginBottom: 8 }}>
+              {standingsData.stage_name} · {standingsData.standings.length} de {standingsData.total_teams} times
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '32px 1fr 60px 60px 60px', gap: '2px 0', fontSize: 12 }}>
+              <span style={{ color: 'rgba(255,255,255,0.3)', paddingBottom: 4 }}>#</span>
+              <span style={{ color: 'rgba(255,255,255,0.3)', paddingBottom: 4 }}>Time</span>
+              <span style={{ color: 'rgba(255,255,255,0.3)', textAlign: 'right', paddingBottom: 4 }}>Pts</span>
+              <span style={{ color: 'rgba(255,255,255,0.3)', textAlign: 'right', paddingBottom: 4 }}>Surv</span>
+              <span style={{ color: 'rgba(255,255,255,0.3)', textAlign: 'right', paddingBottom: 4 }}>Kills</span>
+              {standingsData.standings.map((s, i) => (
+                <>
+                  <span key={`r${i}`} style={{ color: i < standingsTopN ? 'var(--xm-orange)' : 'rgba(255,255,255,0.4)', fontWeight: 700 }}>{s.rank}</span>
+                  <span key={`n${i}`} style={{ color: i < 8 ? '#fff' : 'rgba(255,255,255,0.6)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.team_name}</span>
+                  <span key={`t${i}`} style={{ textAlign: 'right', fontWeight: 700, color: '#fde68a' }}>{s.total_pts}</span>
+                  <span key={`sv${i}`} style={{ textAlign: 'right', color: 'rgba(255,255,255,0.5)' }}>{s.survival_pts}</span>
+                  <span key={`k${i}`} style={{ textAlign: 'right', color: 'rgba(255,255,255,0.5)' }}>{s.kill_pts}</span>
+                </>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
     </div>
