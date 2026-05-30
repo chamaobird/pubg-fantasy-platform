@@ -120,6 +120,7 @@ export default function TournamentHub() {
             championshipId={stage?.championship_id ?? null}
             championshipShortName={stage?.championship_short_name ?? ''}
             siblingStages={siblingStages}
+            independentLineups={stage?.independent_lineups ?? false}
             onMyRankFound={(position, total_points) => setMyRank({ position, total_points })}
           />
         )}

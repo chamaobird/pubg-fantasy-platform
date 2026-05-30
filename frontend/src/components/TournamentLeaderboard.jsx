@@ -96,6 +96,7 @@ export default function TournamentLeaderboard({
   championshipId        = null,
   championshipShortName = '',
   siblingStages         = [],
+  independentLineups    = false,
   onMyRankFound         = null,
 }) {
   const isOpen   = lineupStatus === 'open'
@@ -138,7 +139,10 @@ export default function TournamentLeaderboard({
   const myRowRef      = useRef(null)
   const hasScrolledRef = useRef(false)
 
+  // Para stages com independent_lineups, o leaderboard sempre mostra rankings
+  // (dias anteriores já pontuados ficam visíveis mesmo enquanto o próximo dia está aberto).
   const showSubmissions = isOpen
+    && !independentLineups
     && selectedKeys.size === 1
     && selectedKeys.has(`stage_${stageId}`)
 

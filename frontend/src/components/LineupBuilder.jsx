@@ -310,6 +310,18 @@ export default function LineupBuilder({
     return () => clearInterval(timer)
   }, [stageId, canEdit])
 
+  // ── Effects — limpar seleção ao trocar de day (independent_lineups) ───────
+  useEffect(() => {
+    // Quando activeStageDayId muda (ex: Day 1 → Day 2), limpa o estado de seleção
+    // para que o lineup do dia anterior não contamine o novo dia.
+    setSelectedPlayers([])
+    setReservePlayer(null)
+    setCaptainId(null)
+    setSaveError('')
+    setSaveSuccess(null)
+    loadedLineupIdRef.current = null
+  }, [activeStageDayId]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Effects — popular builder com lineup existente ───────────────────────
   useEffect(() => {
     if (!currentDayLineup || players.length === 0) return
