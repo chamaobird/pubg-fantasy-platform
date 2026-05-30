@@ -948,6 +948,10 @@ export default function AdminOpsPanel({ stageId, token }) {
                     <span style={{ fontSize: 10, fontWeight: 700, background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 4, padding: '1px 6px', color: '#86efac' }}>
                       sub registrada
                     </span>
+                  ) : p.is_sub_in ? (
+                    <span style={{ fontSize: 10, fontWeight: 700, background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: 4, padding: '1px 6px', color: '#a5b4fc' }}>
+                      é o sub que entrou — verificar stats
+                    </span>
                   ) : (
                     <button
                       onClick={() => handlePreFillSub(p.person_id, p.person_name)}
