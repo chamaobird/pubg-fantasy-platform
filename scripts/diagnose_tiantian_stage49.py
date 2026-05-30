@@ -8,6 +8,7 @@ Usage:
 import sys, os, argparse
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+import app.models.team  # noqa
 import app.models.team_member  # noqa
 from app.database import SessionLocal
 from app.models.person import Person

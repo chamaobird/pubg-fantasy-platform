@@ -3,8 +3,8 @@
 scripts/fix_stage49_pero_roster.py
 
 Corrige o roster da PeRo na Final Stage (stage 49):
-  - Aixleft (id=350): is_available=True  → False  (titular que saiu)
-  - 04NB    (id=67):  is_available=False → True   (sub que entrou, agora titular)
+  - Aixleft (id=350): is_available=True  -> False  (titular que saiu)
+  - 04NB    (id=67):  is_available=False -> True   (sub que entrou, agora titular)
 
 Após aplicar, dispara recalculate-pricing via API.
 
@@ -27,8 +27,8 @@ from app.models.person import Person
 from app.models.player_account import PlayerAccount
 
 STAGE_ID    = 49
-AIXLEFT_ID  = 350   # titular que saiu (→ reserva)
-NB_ID       = 67    # 04NB: sub que entrou (→ titular)
+AIXLEFT_ID  = 350   # titular que saiu (-> reserva)
+NB_ID       = 67    # 04NB: sub que entrou (-> titular)
 TIAN_ID     = 7     # tiantianhaovo: verificar account pc-tournament
 
 SHARD = "pc-tournament"
@@ -51,8 +51,8 @@ def run(db, confirm: bool):
         return
 
     print(f"  Estado atual:")
-    print(f"    Aixleft (id={AIXLEFT_ID}): is_available={aixleft_r.is_available}  → será False")
-    print(f"    04NB    (id={NB_ID}): is_available={nb_r.is_available}      → será True")
+    print(f"    Aixleft (id={AIXLEFT_ID}): is_available={aixleft_r.is_available}  -> sera False")
+    print(f"    04NB    (id={NB_ID}): is_available={nb_r.is_available}      -> sera True")
     print()
 
     # ── 2. Verificar PlayerAccount do tiantianhaovo ────────────────────────────
@@ -77,11 +77,12 @@ def run(db, confirm: bool):
         nb_r.is_available      = True
         db.commit()
         print("  [OK] Roster atualizado:")
-        print(f"    Aixleft → is_available=False")
-        print(f"    04NB    → is_available=True")
+        print(f"    Aixleft -> is_available=False")
+        print(f"    04NB    -> is_available=True")
         print()
         print("  Próximo passo: Execute repricing via admin panel ou:")
         print(f"    POST /admin/pricing/stages/{STAGE_ID}/recalculate-pricing")
+
     else:
         print("  [DRY-RUN] Nenhuma alteração aplicada. Use --confirm para aplicar.")
 
