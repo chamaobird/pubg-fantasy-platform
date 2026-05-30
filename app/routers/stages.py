@@ -107,6 +107,7 @@ class StageDayOut(BaseModel):
     day_number: int
     date: Optional[datetime]
     is_active: bool = True
+    lineup_close_at: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
 

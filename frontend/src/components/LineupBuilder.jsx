@@ -132,9 +132,17 @@ export default function LineupBuilder({
   // ── Stage day ativo ─────────────────────────────────────────────────────
   const activeStageDayId = useMemo(() => {
     if (stageDays.length === 0) return null
+    // Para stages com independent_lineups, seleciona o primeiro day cujo
+    // lineup_close_at ainda não passou — garante que o usuário edita o dia correto.
+    if (stage?.independent_lineups) {
+      const now = new Date()
+      const upcoming = stageDays.find(d => d.lineup_close_at && new Date(d.lineup_close_at) > now)
+      if (upcoming) return upcoming.id
+      return stageDays[stageDays.length - 1].id
+    }
     const active = stageDays.find(d => d.is_active)
     return active ? active.id : stageDays[stageDays.length - 1].id
-  }, [stageDays])
+  }, [stageDays, stage])
 
   const currentDayLineup = useMemo(
     () => myLineups.find(l => l.stage_day_id === activeStageDayId) || null,
