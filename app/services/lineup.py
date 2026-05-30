@@ -81,7 +81,7 @@ def submit_lineup(
         raise ValueError(f"StageDay {stage_day_id} não encontrado")
 
     stage = stage_day.stage
-    _assert_lineup_open(stage)
+    _assert_lineup_open(stage, stage_day)
 
     # Valida contagem de titulares
     if len(titular_roster_ids) != TITULAR_COUNT:
@@ -440,15 +440,26 @@ def replicate_all_missing_lineups(db: Session, stage_day_id: int) -> dict:
 # Helpers internos
 # ---------------------------------------------------------------------------
 
-def _assert_lineup_open(stage: Stage) -> None:
+def _assert_lineup_open(stage: Stage, stage_day=None) -> None:
     """
     Garante que a stage está com lineup_status='open'.
+    Para stages com independent_lineups=True, também verifica que o prazo
+    do dia específico ainda não passou (stage_day.lineup_close_at).
     """
+    from datetime import datetime, timezone
+
     if stage.lineup_status != "open":
         raise ValueError(
             f"Lineups não estão abertos para esta stage "
             f"(status atual: '{stage.lineup_status}')"
         )
+
+    if stage.independent_lineups and stage_day and stage_day.lineup_close_at:
+        now = datetime.now(tz=timezone.utc)
+        if now >= stage_day.lineup_close_at:
+            raise ValueError(
+                f"O prazo para escalação do Dia {stage_day.day_number} já encerrou."
+            )
 
 
 def _load_and_validate_rosters(
