@@ -368,8 +368,10 @@ def update_stage(
                     except Exception:
                         pass  # auto-resolve falhou — admin usa bulk-resolve manualmente
 
-    # Sincroniza o StageDay do dia 1 quando start_date ou lineup_close_at mudam.
-    # Premissa: cada stage tem um único dia (day_number=1).
+    # Sincroniza StageDay quando start_date ou lineup_close_at mudam.
+    # Para stages normais: sincroniza day_number=1.
+    # Para independent_lineups: lineup_close_at vai para o ÚLTIMO day (final lock);
+    # start_date ainda vai para day_number=1.
     if "start_date" in updates or "lineup_close_at" in updates:
         day1 = (
             db.query(StageDay)
@@ -380,7 +382,17 @@ def update_stage(
             if "start_date" in updates and stage.start_date:
                 day1.date = stage.start_date.date()
             if "lineup_close_at" in updates:
-                day1.lineup_close_at = stage.lineup_close_at
+                if stage.independent_lineups:
+                    last_day = (
+                        db.query(StageDay)
+                        .filter(StageDay.stage_id == stage_id)
+                        .order_by(StageDay.day_number.desc())
+                        .first()
+                    )
+                    target_day = last_day or day1
+                else:
+                    target_day = day1
+                target_day.lineup_close_at = stage.lineup_close_at
 
     db.commit()
     db.refresh(stage)

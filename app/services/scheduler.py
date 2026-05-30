@@ -70,6 +70,8 @@ def _lineup_control_job() -> None:
 
 
 def _process_stage_status(db, stage, now: datetime) -> None:
+    from app.models.stage_day import StageDay
+
     old_status = stage.lineup_status
 
     if stage.lineup_status == "closed":
@@ -80,9 +82,26 @@ def _process_stage_status(db, stage, now: datetime) -> None:
             _apply_faceoff_lifecycle(db, stage, old_status, "open")
 
     if stage.lineup_status == "open":
-        if stage.lineup_close_at:
-            _maybe_send_over_budget_reminders(db, stage, now)
-        if stage.lineup_close_at and now >= stage.lineup_close_at:
+        # Para independent_lineups, a stage só trava quando o ÚLTIMO day fecha.
+        # Cada day intermediário tem seu próprio lineup_close_at usado apenas para
+        # replicação (_replicate_missing_lineups), mas a stage permanece aberta.
+        effective_close_at = stage.lineup_close_at
+        if stage.independent_lineups:
+            last_day = (
+                db.query(StageDay)
+                .filter(
+                    StageDay.stage_id == stage.id,
+                    StageDay.lineup_close_at.isnot(None),
+                )
+                .order_by(StageDay.lineup_close_at.desc())
+                .first()
+            )
+            if last_day and last_day.lineup_close_at:
+                effective_close_at = last_day.lineup_close_at
+
+        if effective_close_at:
+            _maybe_send_over_budget_reminders(db, stage, now, effective_close_at)
+        if effective_close_at and now >= effective_close_at:
             _replicate_missing_lineups(db, stage, now)
             stage.lineup_status = "locked"
             stage.stage_phase = "live"  # exibe como "EM JOGO" no dashboard
@@ -169,11 +188,12 @@ def _notify_lineup_open(db, stage) -> None:
         )
 
 
-def _maybe_send_over_budget_reminders(db, stage, now: datetime) -> None:
+def _maybe_send_over_budget_reminders(db, stage, now: datetime, effective_close_at=None) -> None:
     """Envia email 1h antes do close para usuários com lineup inválido (over-budget)."""
     if stage.id in _over_budget_reminder_sent:
         return
-    threshold = stage.lineup_close_at - timedelta(hours=1)
+    close_at = effective_close_at or stage.lineup_close_at
+    threshold = close_at - timedelta(hours=1)
     if now < threshold:
         return
 
