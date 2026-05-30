@@ -428,6 +428,14 @@ export default function AdminOpsPanel({ stageId, token }) {
     setTimeout(() => subFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50)
   }
 
+  function handlePreFillSubIn(person_id, person_name) {
+    setSubInPerson({ id: person_id, name: person_name })
+    setSubInSearch('')
+    setSubInResults([])
+    setSubResult(null)
+    setTimeout(() => subFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50)
+  }
+
   async function handleLoadStandings() {
     setStandingsLoading(true)
     setStandingsData(null)
@@ -956,6 +964,33 @@ export default function AdminOpsPanel({ stageId, token }) {
           {missingPlayers && missingPlayers.missing.length === 0 && scoreDay && (
             <div style={{ marginTop: 8, fontSize: 12, color: '#86efac' }}>
               ✓ Todos os {missingPlayers.total_roster} jogadores do roster aparecem em pelo menos uma partida.
+            </div>
+          )}
+          {missingPlayers && missingPlayers.unexpected && missingPlayers.unexpected.length > 0 && (
+            <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 8, background: 'rgba(99,102,241,0.07)', border: '1px solid rgba(99,102,241,0.25)' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#818cf8', marginBottom: 8 }}>
+                ↑ {missingPlayers.unexpected.length} jogador(es) com stats fora do roster ativo — possíveis subs que entraram
+              </div>
+              {missingPlayers.unexpected.map(p => (
+                <div key={p.person_id} style={{ fontSize: 12, padding: '4px 0', display: 'flex', alignItems: 'center', gap: 8, color: 'rgba(255,255,255,0.75)' }}>
+                  <span style={{ color: '#c7d2fe', fontWeight: 600 }}>{p.person_name}</span>
+                  <span style={{ color: 'rgba(255,255,255,0.3)' }}>—</span>
+                  <span>{p.team_name || '?'}</span>
+                  {p.has_substitution ? (
+                    <span style={{ fontSize: 10, fontWeight: 700, background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 4, padding: '1px 6px', color: '#86efac' }}>
+                      sub registrada
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => handlePreFillSubIn(p.person_id, p.person_name)}
+                      style={{ fontSize: 10, fontWeight: 600, background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: 4, padding: '2px 8px', color: '#818cf8', cursor: 'pointer' }}
+                      title="Pré-preencher como substituto que entrou"
+                    >
+                      → registrar como sub que entrou
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
           )}
 

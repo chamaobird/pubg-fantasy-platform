@@ -418,9 +418,44 @@ def missing_players_check(
                 "has_substitution": r.person_id in subs_out,
             })
 
+    # Persons com stats no dia que NÃO estão no roster ativo (is_available=True)
+    # → possíveis substitutos que entraram
+    active_roster_ids = {r.person_id for r in roster_rows}
+
+    # Subs já registradas como "in" nesta stage
+    subs_in = {
+        row[0]
+        for row in (
+            db.query(StageSubstitution.in_person_id)
+            .filter(StageSubstitution.stage_id == stage_id)
+            .all()
+        )
+    }
+
+    # team_name de reservas (is_available=False) no mesmo stage
+    reserve_roster = {
+        r.person_id: r.team_name
+        for r in db.query(Roster).filter(
+            Roster.stage_id == stage_id, Roster.is_available == False
+        ).all()
+    }
+
+    unexpected = []
+    for person_id in persons_with_stats:
+        if person_id not in active_roster_ids:
+            person = db.query(Person).filter(Person.id == person_id).first()
+            team_name = reserve_roster.get(person_id)
+            unexpected.append({
+                "person_id": person_id,
+                "person_name": person.display_name if person else str(person_id),
+                "team_name": team_name,
+                "has_substitution": person_id in subs_in,
+            })
+
     return {
         "stage_day_id": stage_day_id,
         "missing": missing,
+        "unexpected": unexpected,
         "total_roster": len(roster_rows),
         "total_with_stats": len(persons_with_stats),
     }
