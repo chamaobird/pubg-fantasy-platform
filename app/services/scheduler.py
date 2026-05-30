@@ -87,16 +87,17 @@ def _process_stage_status(db, stage, now: datetime) -> None:
         # replicação (_replicate_missing_lineups), mas a stage permanece aberta.
         effective_close_at = stage.lineup_close_at
         if stage.independent_lineups:
+            # Use the last day by day_number (not by close time).
+            # If the final day has no lineup_close_at yet, the stage isn't done — skip locking.
             last_day = (
                 db.query(StageDay)
-                .filter(
-                    StageDay.stage_id == stage.id,
-                    StageDay.lineup_close_at.isnot(None),
-                )
-                .order_by(StageDay.lineup_close_at.desc())
+                .filter(StageDay.stage_id == stage.id)
+                .order_by(StageDay.day_number.desc())
                 .first()
             )
-            if last_day and last_day.lineup_close_at:
+            if last_day is None or last_day.lineup_close_at is None:
+                effective_close_at = None  # final day not configured → hold off locking
+            else:
                 effective_close_at = last_day.lineup_close_at
 
         if effective_close_at:
