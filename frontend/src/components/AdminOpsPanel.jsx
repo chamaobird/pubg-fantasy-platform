@@ -204,6 +204,12 @@ export default function AdminOpsPanel({ stageId, token }) {
   const [reassignLoading,    setReassignLoading]    = useState(false)
   const [reassignResult,     setReassignResult]     = useState(null)
 
+  // Sync automático state
+  const [syncStatus,       setSyncStatus]       = useState(null)   // null=not loaded
+  const [syncLoading,      setSyncLoading]      = useState(false)
+  const [syncRunLoading,   setSyncRunLoading]   = useState(false)
+  const [syncRunResult,    setSyncRunResult]    = useState(null)
+
   // Stats state
   const [statsLoading, setStatsLoading] = useState(false)
   const [statsResult,  setStatsResult]  = useState(null)
@@ -537,6 +543,43 @@ export default function AdminOpsPanel({ stageId, token }) {
     }
   }
 
+  const loadSyncStatus = useCallback(() => {
+    if (!stageId || !token) return
+    setSyncLoading(true)
+    fetch(`${API_BASE_URL}/admin/stage-sync/by-stage/${stageId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(d => setSyncStatus(d))
+      .catch(() => setSyncStatus(null))
+      .finally(() => setSyncLoading(false))
+  }, [stageId, token])
+
+  useEffect(() => { loadSyncStatus() }, [loadSyncStatus])
+
+  async function handleSyncRunNow() {
+    if (!syncStatus?.schedule_id) return
+    setSyncRunLoading(true)
+    setSyncRunResult(null)
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/stage-sync/${syncStatus.schedule_id}/run-now`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const d = await res.json().catch(() => null)
+      if (!res.ok) {
+        setSyncRunResult({ ok: false, message: d?.detail || `HTTP ${res.status}` })
+      } else {
+        setSyncRunResult({ ok: true, message: `Run #${d.runs_count} executado em ${fmtUtc(d.ran_at)}` })
+        loadSyncStatus()
+      }
+    } catch (e) {
+      setSyncRunResult({ ok: false, message: e.message })
+    } finally {
+      setSyncRunLoading(false)
+    }
+  }
+
   async function handleLoadStageMatches() {
     setStageMatchesLoading(true)
     setStageMatches(null)
@@ -691,6 +734,104 @@ export default function AdminOpsPanel({ stageId, token }) {
               </div>
             )}
           </>
+        )}
+      </div>
+
+      {/* ── Sync Automático ── */}
+      <div style={card}>
+        <div style={sectionTitle}>Sync Automático</div>
+
+        {syncLoading && (
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>Verificando…</div>
+        )}
+
+        {!syncLoading && syncStatus && !syncStatus.configured && (
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
+            {syncStatus.tournament_id
+              ? `Tournament ID configurado (${syncStatus.tournament_id}) mas sync não foi ativado. Salve a stage com start_date + end_date para ativar.`
+              : 'Stage sem pubg_tournament_id — sync automático não disponível.'}
+          </div>
+        )}
+
+        {!syncLoading && syncStatus?.configured && (
+          <div>
+            {/* Status header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+              <span style={{
+                fontSize: 11, fontWeight: 700, padding: '2px 10px', borderRadius: 20,
+                background: syncStatus.status === 'active' ? 'rgba(34,197,94,0.12)' :
+                            syncStatus.status === 'pending' ? 'rgba(251,191,36,0.12)' :
+                            'rgba(255,255,255,0.06)',
+                color: syncStatus.status === 'active' ? '#86efac' :
+                       syncStatus.status === 'pending' ? '#fde68a' :
+                       'rgba(255,255,255,0.4)',
+                border: `1px solid ${syncStatus.status === 'active' ? 'rgba(34,197,94,0.25)' :
+                                     syncStatus.status === 'pending' ? 'rgba(251,191,36,0.25)' :
+                                     'rgba(255,255,255,0.1)'}`,
+              }}>
+                {syncStatus.status}
+              </span>
+              <span style={{ fontSize: 12, fontFamily: 'monospace', color: 'var(--xm-orange)' }}>
+                {syncStatus.tournament_id}
+              </span>
+              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
+                a cada {syncStatus.interval_min} min
+              </span>
+            </div>
+
+            {/* Time window */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px', fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 12 }}>
+              <span>Início: <b style={{ color: '#fff' }}>{syncStatus.run_from ? fmtUtc(syncStatus.run_from) : '—'}</b></span>
+              <span>Fim: <b style={{ color: '#fff' }}>{syncStatus.run_until ? fmtUtc(syncStatus.run_until) : '—'}</b></span>
+              {syncStatus.last_run_at && (
+                <span style={{ gridColumn: 'span 2' }}>
+                  Último run: <b style={{ color: '#fff' }}>{fmtUtc(syncStatus.last_run_at)}</b>
+                  {syncStatus.runs_count > 0 && <span style={{ color: 'rgba(255,255,255,0.3)', marginLeft: 6 }}>#{syncStatus.runs_count}</span>}
+                  {syncStatus.last_import_count > 0 && (
+                    <span style={{ color: '#86efac', marginLeft: 8 }}>+{syncStatus.last_import_count} importado(s)</span>
+                  )}
+                </span>
+              )}
+            </div>
+
+            {/* Unresolved warning */}
+            {syncStatus.last_unresolved?.length > 0 && (
+              <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 8, background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.25)' }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#fca5a5', marginBottom: 6 }}>
+                  ⚠ {syncStatus.last_unresolved.length} alias(es) não resolvido(s) — auto-score bloqueado
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                  {syncStatus.last_unresolved.map(alias => (
+                    <span key={alias} style={{ fontSize: 11, fontFamily: 'monospace', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 4, padding: '1px 8px', color: '#fca5a5' }}>
+                      {alias}
+                    </span>
+                  ))}
+                </div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 6 }}>
+                  Registre os aliases via PlayerAccount no admin e execute "Reprocessar" ou aguarde o próximo sync.
+                </div>
+              </div>
+            )}
+
+            {syncStatus.last_unresolved?.length === 0 && syncStatus.last_run_at && (
+              <div style={{ fontSize: 12, color: '#86efac', marginBottom: 10 }}>
+                ✓ Último run sem aliases pendentes
+              </div>
+            )}
+
+            {/* Manual trigger */}
+            {syncStatus.status !== 'completed' && syncStatus.status !== 'cancelled' && (
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                <button style={btn('secondary')} onClick={handleSyncRunNow} disabled={syncRunLoading}>
+                  {syncRunLoading ? 'Executando…' : 'Forçar Sync Agora'}
+                </button>
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>
+                  Ignora o intervalo e roda imediatamente
+                </span>
+              </div>
+            )}
+            <StatusBadge result={syncRunResult} />
+          </div>
         )}
       </div>
 

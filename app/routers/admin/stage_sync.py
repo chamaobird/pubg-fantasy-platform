@@ -153,6 +153,60 @@ def run_now(
         raise HTTPException(status_code=409, detail=str(exc))
 
 
+@router.get("/by-stage/{stage_id}")
+def get_schedule_by_stage(
+    stage_id: int,
+    db: Session = Depends(get_db),
+    _admin: User = Depends(require_admin),
+):
+    """
+    Retorna o StageSyncSchedule ativo/pendente para uma stage,
+    incluindo unresolved players do último run (se houver).
+    """
+    import json
+    from app.models.stage import Stage
+
+    stage = db.query(Stage).filter(Stage.id == stage_id).first()
+    if not stage:
+        raise HTTPException(status_code=404, detail=f"Stage {stage_id} não encontrada")
+
+    sched = (
+        db.query(StageSyncSchedule)
+        .filter(StageSyncSchedule.stage_id == stage_id)
+        .order_by(StageSyncSchedule.id.desc())
+        .first()
+    )
+
+    if not sched:
+        return {
+            "configured": False,
+            "tournament_id": stage.pubg_tournament_id,
+            "stage_name": stage.name,
+        }
+
+    notes_data: dict = {}
+    if sched.notes:
+        try:
+            notes_data = json.loads(sched.notes)
+        except (ValueError, TypeError):
+            pass
+
+    return {
+        "configured": True,
+        "schedule_id": sched.id,
+        "stage_name": stage.name,
+        "tournament_id": sched.tournament_id,
+        "status": sched.status,
+        "interval_min": sched.interval_min,
+        "run_from": sched.run_from.isoformat() if sched.run_from else None,
+        "run_until": sched.run_until.isoformat() if sched.run_until else None,
+        "last_run_at": sched.last_run_at.isoformat() if sched.last_run_at else None,
+        "runs_count": sched.runs_count,
+        "last_import_count": notes_data.get("last_import_count", 0),
+        "last_unresolved": notes_data.get("last_unresolved", []),
+    }
+
+
 @router.post("/{schedule_id}/cancel")
 def cancel_schedule(
     schedule_id: int,

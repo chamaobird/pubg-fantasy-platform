@@ -66,6 +66,41 @@ def _validate_roster_source(db: Session, stage_id: int) -> None:
         )
 
 
+def _maybe_upsert_sync_schedule(db: Session, stage: Stage) -> None:
+    """
+    Auto-cria ou atualiza StageSyncSchedule para stages pc-tournament.
+    Chamado quando pubg_tournament_id / start_date / end_date são definidos.
+    Não sobrescreve schedules completed ou cancelled.
+    """
+    from datetime import timedelta
+    from app.models.stage_sync_schedule import StageSyncSchedule
+
+    existing = (
+        db.query(StageSyncSchedule)
+        .filter(StageSyncSchedule.stage_id == stage.id)
+        .order_by(StageSyncSchedule.id.desc())
+        .first()
+    )
+
+    run_until = stage.end_date + timedelta(hours=3)
+
+    if existing and existing.status not in ("completed", "cancelled"):
+        existing.tournament_id = stage.pubg_tournament_id
+        existing.run_from  = stage.start_date
+        existing.run_until = run_until
+        db.add(existing)
+    elif not existing or existing.status in ("completed", "cancelled"):
+        db.add(StageSyncSchedule(
+            stage_id      = stage.id,
+            tournament_id = stage.pubg_tournament_id,
+            interval_min  = 5,
+            run_from      = stage.start_date,
+            run_until     = run_until,
+            status        = "pending",
+            notes         = None,
+        ))
+
+
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
 @router.post("", response_model=StageResponse, status_code=status.HTTP_201_CREATED)
@@ -98,6 +133,11 @@ def create_stage(
 
     db.commit()
     db.refresh(stage)
+
+    # Auto-create StageSyncSchedule when all required fields are present
+    if stage.pubg_tournament_id and stage.start_date and stage.end_date and stage.shard == "pc-tournament":
+        _maybe_upsert_sync_schedule(db, stage)
+
     return stage
 
 
@@ -393,6 +433,12 @@ def update_stage(
                 else:
                     target_day = day1
                 target_day.lineup_close_at = stage.lineup_close_at
+
+    # Auto-create/update StageSyncSchedule when tournament fields are present/changed
+    tournament_fields = {"pubg_tournament_id", "start_date", "end_date", "shard"}
+    if tournament_fields & set(updates.keys()):
+        if stage.pubg_tournament_id and stage.start_date and stage.end_date and stage.shard == "pc-tournament":
+            _maybe_upsert_sync_schedule(db, stage)
 
     db.commit()
     db.refresh(stage)
