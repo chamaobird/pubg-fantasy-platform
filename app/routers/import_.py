@@ -208,6 +208,137 @@ def reprocess_all_matches_endpoint(
     }
 
 
+@router.get(
+    "/{stage_id}/matches",
+    summary="Listar matches importados de uma Stage",
+    description="Retorna todos os matches da Stage com o stage_day ao qual pertencem.",
+)
+def list_stage_matches_endpoint(
+    stage_id: int,
+    db: Session = Depends(get_db),
+    _admin = Depends(require_admin),
+):
+    from sqlalchemy import text as sql_text
+    rows = db.execute(
+        sql_text("""
+            SELECT m.id, m.pubg_match_id, m.played_at, m.map_name,
+                   sd.id as stage_day_id, sd.day_number
+            FROM match m
+            JOIN stage_day sd ON sd.id = m.stage_day_id
+            WHERE sd.stage_id = :stage_id
+            ORDER BY m.played_at ASC NULLS LAST, m.id ASC
+        """),
+        {"stage_id": stage_id},
+    ).fetchall()
+    return [
+        {
+            "id": r.id,
+            "pubg_match_id": r.pubg_match_id,
+            "played_at": r.played_at.isoformat() if r.played_at else None,
+            "map_name": r.map_name,
+            "stage_day_id": r.stage_day_id,
+            "day_number": r.day_number,
+        }
+        for r in rows
+    ]
+
+
+class ReassignMatchDayRequest(BaseModel):
+    match_ids: list[int]
+    target_stage_day_id: int
+
+
+@router.post(
+    "/{stage_id}/reassign-match-day",
+    summary="Mover matches para outro StageDay",
+    description=(
+        "Move os matches indicados para o StageDay alvo. "
+        "Limpa automaticamente UserDayStat e UserStageStat dos dias afetados "
+        "para que o scoring possa ser refeito do zero."
+    ),
+)
+def reassign_match_day_endpoint(
+    stage_id: int,
+    body: ReassignMatchDayRequest,
+    db: Session = Depends(get_db),
+    _admin = Depends(require_admin),
+):
+    from sqlalchemy import text as sql_text
+    from app.models import Match, StageDay
+    from app.models.user_stat import UserDayStat, UserStageStat
+
+    if not body.match_ids:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="match_ids não pode ser vazio")
+
+    # Validate target stage day belongs to this stage
+    target_day = db.query(StageDay).filter(
+        StageDay.id == body.target_stage_day_id,
+        StageDay.stage_id == stage_id,
+    ).first()
+    if not target_day:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"StageDay {body.target_stage_day_id} não pertence à stage {stage_id}",
+        )
+
+    # Validate all matches belong to this stage and collect their current stage_day_ids
+    rows = db.execute(
+        sql_text("""
+            SELECT m.id, m.pubg_match_id, m.stage_day_id
+            FROM match m
+            JOIN stage_day sd ON sd.id = m.stage_day_id
+            WHERE m.id = ANY(:ids) AND sd.stage_id = :stage_id
+        """),
+        {"ids": body.match_ids, "stage_id": stage_id},
+    ).fetchall()
+
+    found_ids = {r.id for r in rows}
+    missing = [i for i in body.match_ids if i not in found_ids]
+    if missing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Matches não encontrados na stage {stage_id}: {missing}",
+        )
+
+    source_day_ids = {r.stage_day_id for r in rows}
+    affected_day_ids = source_day_ids | {body.target_stage_day_id}
+
+    # Move matches
+    moved = db.execute(
+        sql_text("UPDATE match SET stage_day_id = :target WHERE id = ANY(:ids)"),
+        {"target": body.target_stage_day_id, "ids": body.match_ids},
+    ).rowcount
+
+    # Clear UserDayStat for all affected days
+    cleared_day_stats = db.execute(
+        sql_text("DELETE FROM user_day_stat WHERE stage_day_id = ANY(:ids)"),
+        {"ids": list(affected_day_ids)},
+    ).rowcount
+
+    # Clear UserStageStat for this stage
+    cleared_stage_stats = db.execute(
+        sql_text("DELETE FROM user_stage_stat WHERE stage_id = :stage_id"),
+        {"stage_id": stage_id},
+    ).rowcount
+
+    db.commit()
+
+    logger.info(
+        "[reassign-match-day] stage=%s moved=%s matches to sd=%s, cleared %s day_stats, %s stage_stats",
+        stage_id, moved, body.target_stage_day_id, cleared_day_stats, cleared_stage_stats,
+    )
+
+    return {
+        "moved": moved,
+        "target_stage_day_id": body.target_stage_day_id,
+        "target_day_number": target_day.day_number,
+        "affected_stage_days": sorted(affected_day_ids),
+        "cleared_day_stats": cleared_day_stats,
+        "cleared_stage_stats": cleared_stage_stats,
+        "next_step": "Re-execute 'Pontuar Dia' para cada dia afetado.",
+    }
+
+
 @router.post(
     "/{stage_id}/recalculate-stage-stats",
     summary="Recalcular PERSON_STAGE_STAT do zero",

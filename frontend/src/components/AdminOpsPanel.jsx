@@ -196,6 +196,14 @@ export default function AdminOpsPanel({ stageId, token }) {
   const [openNextLoading,  setOpenNextLoading]  = useState(false)
   const [openNextResult,   setOpenNextResult]   = useState(null)
 
+  // Reassign match day state
+  const [stageMatches,       setStageMatches]       = useState(null)   // null = not loaded
+  const [stageMatchesLoading, setStageMatchesLoading] = useState(false)
+  const [reassignSelected,   setReassignSelected]   = useState(new Set())
+  const [reassignTargetDay,  setReassignTargetDay]  = useState('')
+  const [reassignLoading,    setReassignLoading]    = useState(false)
+  const [reassignResult,     setReassignResult]     = useState(null)
+
   // Stats state
   const [statsLoading, setStatsLoading] = useState(false)
   const [statsResult,  setStatsResult]  = useState(null)
@@ -529,6 +537,62 @@ export default function AdminOpsPanel({ stageId, token }) {
     }
   }
 
+  async function handleLoadStageMatches() {
+    setStageMatchesLoading(true)
+    setStageMatches(null)
+    setReassignSelected(new Set())
+    setReassignResult(null)
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/stages/${stageId}/matches`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const d = await res.json().catch(() => null)
+      if (res.ok) setStageMatches(d)
+      else setReassignResult({ ok: false, message: d?.detail || `HTTP ${res.status}` })
+    } catch (e) {
+      setReassignResult({ ok: false, message: e.message })
+    } finally {
+      setStageMatchesLoading(false)
+    }
+  }
+
+  function toggleReassign(id) {
+    setReassignSelected(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  async function handleReassign() {
+    if (!reassignSelected.size || !reassignTargetDay) return
+    setReassignLoading(true)
+    setReassignResult(null)
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/stages/${stageId}/reassign-match-day`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ match_ids: [...reassignSelected], target_stage_day_id: Number(reassignTargetDay) }),
+      })
+      const d = await res.json().catch(() => null)
+      if (!res.ok) {
+        setReassignResult({ ok: false, message: d?.detail || `HTTP ${res.status}` })
+      } else {
+        setReassignResult({
+          ok: true,
+          message: `${d.moved} partida(s) movida(s) para Dia ${d.target_day_number}.\n${d.cleared_day_stats} day_stats + ${d.cleared_stage_stats} stage_stats apagados.\n${d.next_step}`,
+        })
+        setReassignSelected(new Set())
+        handleLoadStageMatches()
+      }
+    } catch (e) {
+      setReassignResult({ ok: false, message: e.message })
+    } finally {
+      setReassignLoading(false)
+    }
+  }
+
   async function handlePreflight() {
     setPreflightLoading(true)
     setPreflightData(null)
@@ -790,6 +854,89 @@ export default function AdminOpsPanel({ stageId, token }) {
             <StatusBadge result={importResult} />
           </div>
         )}
+      </div>
+
+      {/* ── Corrigir Dia das Partidas ── */}
+      <div style={card}>
+        <div style={sectionTitle}>Corrigir Dia das Partidas</div>
+        <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginBottom: '12px' }}>
+          Mova partidas importadas para o dia correto. Stats e scoring dos dias afetados são apagados automaticamente para reprocessamento.
+        </div>
+
+        <button style={btn('secondary')} onClick={handleLoadStageMatches} disabled={stageMatchesLoading}>
+          {stageMatchesLoading ? 'Carregando…' : 'Carregar Partidas'}
+        </button>
+
+        {stageMatches && stageMatches.length === 0 && (
+          <div style={{ marginTop: 10, fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>Nenhuma partida importada.</div>
+        )}
+
+        {stageMatches && stageMatches.length > 0 && (
+          <div style={{ marginTop: 14 }}>
+            {/* Group by day */}
+            {days.map(d => {
+              const dayMatches = stageMatches.filter(m => m.stage_day_id === d.id)
+              if (!dayMatches.length) return null
+              return (
+                <div key={d.id} style={{ marginBottom: 12 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 4 }}>
+                    Dia {d.day_number}
+                  </div>
+                  {dayMatches.map((m, i) => {
+                    const checked = reassignSelected.has(m.id)
+                    return (
+                      <div
+                        key={m.id}
+                        onClick={() => toggleReassign(m.id)}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 10,
+                          padding: '7px 10px', cursor: 'pointer', borderRadius: 5,
+                          background: checked ? 'rgba(249,115,22,0.08)' : 'transparent',
+                          border: `1px solid ${checked ? 'rgba(249,115,22,0.25)' : 'rgba(255,255,255,0.05)'}`,
+                          marginBottom: 3,
+                        }}
+                      >
+                        <input type="checkbox" checked={checked} onChange={() => {}} style={{ accentColor: 'var(--xm-orange)', flexShrink: 0 }} />
+                        <span style={{ fontFamily: 'monospace', fontSize: 11, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'rgba(255,255,255,0.7)' }}>
+                          {m.pubg_match_id}
+                        </span>
+                        {m.played_at && (
+                          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', flexShrink: 0 }}>{fmtUtc(m.played_at)}</span>
+                        )}
+                        {m.map_name && (
+                          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', flexShrink: 0 }}>{m.map_name.replace('_Main', '')}</span>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            })}
+
+            {reassignSelected.size > 0 && (
+              <div style={{ marginTop: 14, padding: '12px 14px', borderRadius: 8, background: 'rgba(249,115,22,0.05)', border: '1px solid rgba(249,115,22,0.2)' }}>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 8 }}>
+                  {reassignSelected.size} partida(s) selecionada(s) — mover para:
+                </div>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                  <select style={{ ...select, flex: 1 }} value={reassignTargetDay} onChange={e => setReassignTargetDay(e.target.value)}>
+                    <option value=''>— selecione o dia destino —</option>
+                    {days.map(d => <option key={d.id} value={d.id}>{dayLabel(d)}</option>)}
+                  </select>
+                  <button
+                    style={btn('primary')}
+                    onClick={handleReassign}
+                    disabled={reassignLoading || !reassignTargetDay}
+                  >
+                    {reassignLoading ? 'Movendo…' : 'Mover'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        <StatusBadge result={reassignResult} />
       </div>
 
       {/* ── Substituições ── */}
