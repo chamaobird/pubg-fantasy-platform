@@ -161,7 +161,15 @@ def add_to_roster(
             detail=f"Person {body.person_id} is already in the roster for stage {stage_id}",
         )
 
-    roster = Roster(stage_id=stage_id, **body.model_dump())
+    data = body.model_dump()
+    # Reserva sem custo explícito → usa price_min da stage
+    if not data.get("is_available") and data.get("fantasy_cost") is None:
+        from app.models.stage import Stage as StageModel
+        stage_obj = db.query(StageModel).filter(StageModel.id == stage_id).first()
+        if stage_obj and stage_obj.price_min:
+            data["fantasy_cost"] = stage_obj.price_min
+
+    roster = Roster(stage_id=stage_id, **data)
     db.add(roster)
     db.flush()  # ensure roster.id is populated
     _log_change(db, roster, "created", _admin)

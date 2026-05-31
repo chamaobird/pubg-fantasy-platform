@@ -220,15 +220,18 @@ function RosterPanel({ stage, token }) {
     finally { setLoadingLog(false) }
   }
 
+  const [addAsReserve, setAddAsReserve] = useState(false)
+
   const handleAddPlayer = async (person) => {
     if (!addTeam.trim()) { setMsg('!Informe o nome do time antes de adicionar.'); return }
     try {
       const entry = await call('POST', `/admin/stages/${stage.id}/roster`, {
         person_id: person.id,
         team_name: addTeam.trim(),
+        is_available: !addAsReserve,
       })
       setRoster(prev => [...prev, { ...entry, person_name: person.display_name }])
-      setSearchQ(''); setSearchResults([]); setMsg(`${person.display_name} adicionado.`)
+      setSearchQ(''); setSearchResults([]); setMsg(`${person.display_name} adicionado${addAsReserve ? ' como reserva' : ''}.`)
     } catch (e) { setMsg('!' + e.message) }
   }
 
@@ -533,7 +536,7 @@ function RosterPanel({ stage, token }) {
                   display: 'flex', alignItems: 'center', gap: 6,
                   padding: '5px 10px',
                   borderTop: '1px solid rgba(255,255,255,0.04)',
-                  opacity: r.is_available ? 1 : 0.45,
+                  background: r.is_available ? 'none' : 'rgba(251,146,60,0.03)',
                 }}>
                   {/* nome / edição de time */}
                   {editingId === r.id ? (
@@ -546,16 +549,16 @@ function RosterPanel({ stage, token }) {
                       placeholder="tag do time"
                     />
                   ) : (
-                    <span
-                      style={{ fontSize: 12, flex: 1, color: 'var(--xm-text)', cursor: 'default' }}
-                      title={`ID pessoa: ${r.person_id}`}
-                    >
+                    <span style={{ fontSize: 12, flex: 1, color: 'var(--xm-text)', cursor: 'default', display: 'flex', alignItems: 'center', gap: 5 }} title={`ID pessoa: ${r.person_id}`}>
                       {r.person_name}
+                      {!r.is_available && (
+                        <span style={{ fontSize: 9, color: '#fb923c', fontWeight: 700, border: '1px solid rgba(251,146,60,0.4)', borderRadius: 3, padding: '0px 4px', letterSpacing: '0.05em' }}>RESERVA</span>
+                      )}
                     </span>
                   )}
 
                   {/* custo */}
-                  <span style={{ fontSize: 11, color: 'var(--xm-muted)', fontFamily: 'JetBrains Mono, monospace', minWidth: 28, textAlign: 'right' }}>
+                  <span style={{ fontSize: 11, color: r.is_available ? 'var(--xm-muted)' : '#fb923c', fontFamily: 'JetBrains Mono, monospace', minWidth: 28, textAlign: 'right' }}>
                     {r.effective_cost != null ? r.effective_cost : '—'}
                   </span>
 
@@ -574,9 +577,9 @@ function RosterPanel({ stage, token }) {
                       >✎</button>
                       <button
                         onClick={() => handleToggleAvailable(r)}
-                        title={r.is_available ? 'Desativar' : 'Ativar'}
-                        style={iconBtnStyle(r.is_available ? 'var(--xm-green)' : '#6b7280')}
-                      >{r.is_available ? '●' : '○'}</button>
+                        title={r.is_available ? 'Marcar como RESERVA' : 'Marcar como TITULAR'}
+                        style={{ ...iconBtnStyle(r.is_available ? 'var(--xm-green)' : '#fb923c'), fontSize: 10, fontWeight: 700, letterSpacing: '0.03em' }}
+                      >{r.is_available ? 'T' : 'R'}</button>
                       <button
                         onClick={() => handleRemove(r)}
                         title="Remover do roster"
@@ -637,6 +640,15 @@ function RosterPanel({ stage, token }) {
             value={addTeam}
             onChange={e => setAddTeam(e.target.value)}
           />
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--xm-muted)', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
+            <input
+              type="checkbox"
+              checked={addAsReserve}
+              onChange={e => setAddAsReserve(e.target.checked)}
+              style={{ accentColor: '#fb923c', cursor: 'pointer' }}
+            />
+            <span style={{ color: addAsReserve ? '#fb923c' : 'var(--xm-muted)' }}>Reserva</span>
+          </label>
         </div>
       </div>
     </div>

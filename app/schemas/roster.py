@@ -14,6 +14,7 @@ class RosterCreate(BaseModel):
     fantasy_cost: Optional[int] = None
     cost_override: Optional[int] = None
     newcomer_to_tier: bool = False
+    is_available: bool = True  # False = reserva/substituto
 
     @field_validator("fantasy_cost", "cost_override")
     @classmethod
