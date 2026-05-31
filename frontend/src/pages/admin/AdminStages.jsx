@@ -25,6 +25,16 @@ const api = (token) => async (method, path, body) => {
 
 const LINEUP_STATUS_OPTIONS = ['closed', 'open', 'locked']
 const STAGE_PHASE_OPTIONS = ['upcoming', 'preview', 'live', 'finished']
+function makeBlankDays(n) {
+  return Array.from({ length: n }, (_, i) => ({
+    day_number: i + 1,
+    lineup_open_at: '',
+    lineup_close_at: '',
+    first_match_at: '',
+    last_match_at: '',
+  }))
+}
+
 const BLANK = {
   championship_id: '', name: '', short_name: '', shard: 'steam',
   lineup_status: 'closed', stage_phase: 'upcoming',
@@ -34,6 +44,8 @@ const BLANK = {
   price_min: 12, price_max: 35,
   pubg_tournament_id: '',
   independent_lineups: false,
+  num_days: 3,
+  daysSchedule: makeBlankDays(3),
 }
 
 // ── Timezone helpers ──────────────────────────────────────────────────────────
@@ -1247,7 +1259,25 @@ export default function AdminStages({ token }) {
     setForm({ ...BLANK, championship_id: champFilter || '' })
     setMsg(''); setModal({ mode: 'create' })
   }
-  const openEdit = (s) => {
+  const openEdit = async (s) => {
+    let daysSchedule = makeBlankDays(3)
+    let num_days = 3
+    if (s.independent_lineups) {
+      try {
+        const days = await call('GET', `/admin/stage-days?stage_id=${s.id}`)
+        const sorted = [...days].sort((a, b) => a.day_number - b.day_number)
+        num_days = sorted.length || 3
+        daysSchedule = sorted.length
+          ? sorted.map(d => ({
+              day_number: d.day_number,
+              lineup_open_at: utcToLocalInput(d.lineup_open_at),
+              lineup_close_at: utcToLocalInput(d.lineup_close_at),
+              first_match_at: utcToLocalInput(d.first_match_at),
+              last_match_at: utcToLocalInput(d.last_match_at),
+            }))
+          : makeBlankDays(num_days)
+      } catch {}
+    }
     setForm({
       championship_id: s.championship_id,
       name: s.name, short_name: s.short_name || '', shard: s.shard,
@@ -1263,6 +1293,8 @@ export default function AdminStages({ token }) {
       price_max: s.price_max ?? 35,
       pubg_tournament_id: s.pubg_tournament_id || '',
       independent_lineups: s.independent_lineups ?? false,
+      num_days,
+      daysSchedule,
     })
     setMsg(''); setModal({ mode: 'edit', data: s })
   }
@@ -1270,18 +1302,48 @@ export default function AdminStages({ token }) {
   const handleSave = async () => {
     setSaving(true); setMsg('')
     try {
+      // For independent_lineups: derive stage-level times from per-day schedule
+      let lineup_open_at = localInputToUtc(form.lineup_open_at)
+      let lineup_close_at = localInputToUtc(form.lineup_close_at)
+      let start_date = localInputToUtc(form.start_date)
+      let end_date = localInputToUtc(form.end_date)
+      let days_schedule = null
+
+      if (form.independent_lineups && form.daysSchedule?.length) {
+        const ds = form.daysSchedule
+        const first = ds[0]
+        const last = ds[ds.length - 1]
+        if (first.lineup_open_at) lineup_open_at = localInputToUtc(first.lineup_open_at)
+        if (last.lineup_close_at) lineup_close_at = localInputToUtc(last.lineup_close_at)
+        if (first.first_match_at) start_date = localInputToUtc(first.first_match_at)
+        if (last.last_match_at) end_date = localInputToUtc(last.last_match_at)
+        days_schedule = ds.map(d => ({
+          day_number: d.day_number,
+          lineup_open_at: localInputToUtc(d.lineup_open_at),
+          lineup_close_at: localInputToUtc(d.lineup_close_at),
+          first_match_at: localInputToUtc(d.first_match_at),
+          last_match_at: localInputToUtc(d.last_match_at),
+        }))
+      }
+
       const body = {
-        ...form,
         championship_id: parseInt(form.championship_id),
+        name: form.name,
+        short_name: form.short_name,
+        shard: form.shard,
+        lineup_status: form.lineup_status,
+        stage_phase: form.stage_phase,
         lineup_size: parseInt(form.lineup_size),
         captain_multiplier: parseFloat(form.captain_multiplier),
         price_min: parseFloat(form.price_min),
         price_max: parseFloat(form.price_max),
-        lineup_open_at: localInputToUtc(form.lineup_open_at),
-        lineup_close_at: localInputToUtc(form.lineup_close_at),
-        start_date: localInputToUtc(form.start_date),
-        end_date: localInputToUtc(form.end_date),
         pubg_tournament_id: form.pubg_tournament_id?.trim() || null,
+        independent_lineups: form.independent_lineups,
+        lineup_open_at,
+        lineup_close_at,
+        start_date,
+        end_date,
+        ...(days_schedule ? { days_schedule } : {}),
       }
       if (modal.mode === 'create') {
         await call('POST', '/admin/stages', body)
@@ -1533,7 +1595,14 @@ export default function AdminStages({ token }) {
             <input
               type="checkbox"
               checked={!!form.independent_lineups}
-              onChange={e => setForm(p => ({ ...p, independent_lineups: e.target.checked }))}
+              onChange={e => {
+                const on = e.target.checked
+                setForm(p => ({
+                  ...p,
+                  independent_lineups: on,
+                  daysSchedule: on ? makeBlankDays(p.num_days || 3) : p.daysSchedule,
+                }))
+              }}
               style={{ accentColor: 'var(--xm-orange)', width: 16, height: 16 }}
             />
             <div>
@@ -1552,23 +1621,87 @@ export default function AdminStages({ token }) {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <Field label="Lineup abre em (quando users podem montar)">
-              <input style={inputStyle} type="datetime-local" value={form.lineup_open_at} onChange={f('lineup_open_at')} />
-            </Field>
-            <Field label="Lineup fecha em (prazo final de edição)">
-              <input style={inputStyle} type="datetime-local" value={form.lineup_close_at} onChange={f('lineup_close_at')} />
-            </Field>
-          </div>
+          {form.independent_lineups ? (
+            /* ── Multi-day schedule ── */
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+                <span style={{ fontSize: 12, color: 'var(--xm-muted)' }}>Número de dias:</span>
+                {[2, 3, 4, 5].map(n => (
+                  <button key={n} onClick={() => setForm(p => ({
+                    ...p,
+                    num_days: n,
+                    daysSchedule: Array.from({ length: n }, (_, i) => p.daysSchedule[i] || { day_number: i + 1, lineup_open_at: '', lineup_close_at: '', first_match_at: '', last_match_at: '' }),
+                  }))} style={{
+                    padding: '3px 12px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700,
+                    background: (form.num_days || 3) === n ? 'var(--xm-orange)' : 'rgba(255,255,255,0.07)',
+                    color: (form.num_days || 3) === n ? '#000' : 'rgba(255,255,255,0.5)',
+                  }}>{n}</button>
+                ))}
+                <button
+                  onClick={() => {
+                    const first = form.daysSchedule[0]
+                    setForm(p => ({
+                      ...p,
+                      daysSchedule: p.daysSchedule.map((d, i) => i === 0 ? d : {
+                        ...d,
+                        lineup_open_at: first.lineup_open_at,
+                        lineup_close_at: first.lineup_close_at,
+                      }),
+                    }))
+                  }}
+                  style={{ marginLeft: 'auto', fontSize: 11, padding: '3px 10px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.15)', background: 'transparent', color: 'rgba(255,255,255,0.4)', cursor: 'pointer' }}
+                  title="Copia lineup_open_at e lineup_close_at do Dia 1 para todos os outros dias"
+                >
+                  Copiar horários Dia 1 →
+                </button>
+              </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <Field label="Data/hora da 1ª partida">
-              <input style={inputStyle} type="datetime-local" value={form.start_date} onChange={f('start_date')} />
-            </Field>
-            <Field label="Data/hora da última partida">
-              <input style={inputStyle} type="datetime-local" value={form.end_date} onChange={f('end_date')} />
-            </Field>
-          </div>
+              {form.daysSchedule?.map((day, idx) => (
+                <div key={day.day_number} style={{ marginBottom: 12, padding: '12px 14px', borderRadius: 8, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--xm-orange)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 8 }}>Dia {day.day_number}</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                    <Field label="Lineup abre em">
+                      <input style={inputStyle} type="datetime-local" value={day.lineup_open_at}
+                        onChange={e => setForm(p => ({ ...p, daysSchedule: p.daysSchedule.map((d, i) => i === idx ? { ...d, lineup_open_at: e.target.value } : d) }))} />
+                    </Field>
+                    <Field label="Lineup fecha em">
+                      <input style={inputStyle} type="datetime-local" value={day.lineup_close_at}
+                        onChange={e => setForm(p => ({ ...p, daysSchedule: p.daysSchedule.map((d, i) => i === idx ? { ...d, lineup_close_at: e.target.value } : d) }))} />
+                    </Field>
+                    <Field label="1ª Partida">
+                      <input style={inputStyle} type="datetime-local" value={day.first_match_at}
+                        onChange={e => setForm(p => ({ ...p, daysSchedule: p.daysSchedule.map((d, i) => i === idx ? { ...d, first_match_at: e.target.value } : d) }))} />
+                    </Field>
+                    <Field label="Última Partida">
+                      <input style={inputStyle} type="datetime-local" value={day.last_match_at}
+                        onChange={e => setForm(p => ({ ...p, daysSchedule: p.daysSchedule.map((d, i) => i === idx ? { ...d, last_match_at: e.target.value } : d) }))} />
+                    </Field>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            /* ── Single-day schedule ── */
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <Field label="Lineup abre em (quando users podem montar)">
+                  <input style={inputStyle} type="datetime-local" value={form.lineup_open_at} onChange={f('lineup_open_at')} />
+                </Field>
+                <Field label="Lineup fecha em (prazo final de edição)">
+                  <input style={inputStyle} type="datetime-local" value={form.lineup_close_at} onChange={f('lineup_close_at')} />
+                </Field>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <Field label="Data/hora da 1ª partida">
+                  <input style={inputStyle} type="datetime-local" value={form.start_date} onChange={f('start_date')} />
+                </Field>
+                <Field label="Data/hora da última partida">
+                  <input style={inputStyle} type="datetime-local" value={form.end_date} onChange={f('end_date')} />
+                </Field>
+              </div>
+            </>
+          )}
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12 }}>
             <Field label="Jogadores (lineup_size)">

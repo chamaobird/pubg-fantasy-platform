@@ -39,6 +39,21 @@ class StageDay(Base):
         nullable=True,
         comment="[{match_number, import_after, pubg_match_id?, processed_at?}, ...]",
     )
+    lineup_open_at: Mapped[Optional[DateTime]] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="When users can start editing lineup for this day",
+    )
+    first_match_at: Mapped[Optional[DateTime]] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="Expected start of first match — sync lower bound for this day",
+    )
+    last_match_at: Mapped[Optional[DateTime]] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="Expected end of last match — informational + display",
+    )
     last_import_at: Mapped[Optional[DateTime]] = mapped_column(
         DateTime(timezone=True),
         nullable=True,

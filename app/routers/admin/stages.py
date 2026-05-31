@@ -117,13 +117,28 @@ def create_stage(
     if body.roster_source_stage_id:
         _validate_roster_source(db, body.roster_source_stage_id)
 
-    stage = Stage(**body.model_dump())
+    stage_data = body.model_dump(exclude={"days_schedule"})
+    stage = Stage(**stage_data)
     db.add(stage)
-    db.flush()  # popula stage.id antes de criar o StageDay
+    db.flush()  # popula stage.id antes de criar os StageDays
 
-    # Auto-cria StageDay(day_number=1) quando start_date está preenchido.
-    # Premissa: cada stage representa um único dia de jogo.
-    if stage.start_date:
+    if body.days_schedule:
+        # Multi-day: cria um StageDay por entrada, ordenados por day_number
+        for ds in sorted(body.days_schedule, key=lambda d: d.day_number):
+            day_date = ds.date or (ds.first_match_at.date() if ds.first_match_at else None)
+            if not day_date and stage.start_date:
+                day_date = stage.start_date.date()
+            db.add(StageDay(
+                stage_id=stage.id,
+                day_number=ds.day_number,
+                date=day_date,
+                lineup_open_at=ds.lineup_open_at,
+                lineup_close_at=ds.lineup_close_at,
+                first_match_at=ds.first_match_at,
+                last_match_at=ds.last_match_at,
+            ))
+    elif stage.start_date:
+        # Single-day fallback: auto-cria Day 1
         db.add(StageDay(
             stage_id=stage.id,
             day_number=1,
@@ -407,6 +422,45 @@ def update_stage(
                                 f.status = "resolved"
                     except Exception:
                         pass  # auto-resolve falhou — admin usa bulk-resolve manualmente
+
+    # Upsert per-day schedule when provided
+    if "days_schedule" in updates and updates["days_schedule"]:
+        from app.schemas.stage import DayScheduleInput as _DSI
+        for ds in sorted(updates["days_schedule"], key=lambda d: d.day_number if isinstance(d, _DSI) else d["day_number"]):
+            ds_num = ds.day_number if isinstance(ds, _DSI) else ds["day_number"]
+            existing_day = (
+                db.query(StageDay)
+                .filter(StageDay.stage_id == stage_id, StageDay.day_number == ds_num)
+                .first()
+            )
+            day_date = (ds.date if isinstance(ds, _DSI) else ds.get("date")) or (
+                ds.first_match_at.date() if isinstance(ds, _DSI) and ds.first_match_at else None
+            )
+            if existing_day:
+                if day_date:
+                    existing_day.date = day_date
+                if isinstance(ds, _DSI):
+                    if ds.lineup_open_at is not None:
+                        existing_day.lineup_open_at = ds.lineup_open_at
+                    if ds.lineup_close_at is not None:
+                        existing_day.lineup_close_at = ds.lineup_close_at
+                    if ds.first_match_at is not None:
+                        existing_day.first_match_at = ds.first_match_at
+                    if ds.last_match_at is not None:
+                        existing_day.last_match_at = ds.last_match_at
+                db.add(existing_day)
+            else:
+                if not day_date and stage.start_date:
+                    day_date = stage.start_date.date()
+                db.add(StageDay(
+                    stage_id=stage_id,
+                    day_number=ds_num,
+                    date=day_date,
+                    lineup_open_at=ds.lineup_open_at if isinstance(ds, _DSI) else ds.get("lineup_open_at"),
+                    lineup_close_at=ds.lineup_close_at if isinstance(ds, _DSI) else ds.get("lineup_close_at"),
+                    first_match_at=ds.first_match_at if isinstance(ds, _DSI) else ds.get("first_match_at"),
+                    last_match_at=ds.last_match_at if isinstance(ds, _DSI) else ds.get("last_match_at"),
+                ))
 
     # Sincroniza StageDay quando start_date ou lineup_close_at mudam.
     # Para stages normais: sincroniza day_number=1.

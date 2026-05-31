@@ -183,8 +183,17 @@ def _execute_tournament_sync(
         if pubg_match_id in already_imported:
             continue
         target_day = _find_day_for_match(days, played_at_str)
-        if target_day:
-            new_to_import.append((pubg_match_id, target_day.id))
+        if not target_day:
+            continue
+        # Don't import Day N matches before first_match_at of that day
+        if target_day.first_match_at and played_at_str:
+            try:
+                played_at = datetime.fromisoformat(played_at_str.replace("Z", "+00:00"))
+                if played_at < target_day.first_match_at:
+                    continue
+            except ValueError:
+                pass
+        new_to_import.append((pubg_match_id, target_day.id))
 
     if not new_to_import:
         return 0, []

@@ -1079,6 +1079,9 @@ export default function LineupBuilder({
                           {isRecCaptain && (
                             <span title="Recomendado como capitão — melhor pts/g do lineup" style={{ marginLeft: 4, fontSize: 9, color: 'rgba(250,204,21,0.75)', fontWeight: 700 }}>★REC</span>
                           )}
+                          {p.is_available === false && (
+                            <span title="Substituto — pode não jogar" style={{ marginLeft: 4, fontSize: 9, color: '#fb923c', fontWeight: 700, border: '1px solid rgba(251,146,60,0.4)', borderRadius: 3, padding: '0px 4px' }}>RESERVA</span>
+                          )}
                           {p.newcomer_to_tier && (
                             <span style={{ marginLeft: 4, fontSize: 9, color: '#60a5fa', fontWeight: 700 }}>NEW</span>
                           )}

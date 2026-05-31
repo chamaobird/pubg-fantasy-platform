@@ -13,7 +13,10 @@ class StageDayCreate(BaseModel):
     stage_id: int
     day_number: int
     date: date
+    lineup_open_at: Optional[datetime] = None
     lineup_close_at: Optional[datetime] = None
+    first_match_at: Optional[datetime] = None
+    last_match_at: Optional[datetime] = None
 
     @field_validator("day_number")
     @classmethod
@@ -28,7 +31,10 @@ class StageDayCreate(BaseModel):
 class StageDayUpdate(BaseModel):
     day_number: Optional[int] = None
     date: Optional[date] = None
+    lineup_open_at: Optional[datetime] = None
     lineup_close_at: Optional[datetime] = None
+    first_match_at: Optional[datetime] = None
+    last_match_at: Optional[datetime] = None
 
     @field_validator("day_number")
     @classmethod
@@ -45,7 +51,10 @@ class StageDayResponse(BaseModel):
     stage_id: int
     day_number: int
     date: date
-    lineup_close_at: Optional[datetime]
+    lineup_open_at: Optional[datetime] = None
+    lineup_close_at: Optional[datetime] = None
+    first_match_at: Optional[datetime] = None
+    last_match_at: Optional[datetime] = None
     match_schedule: Optional[list[Any]] = None
     last_import_at: Optional[datetime] = None
     created_at: datetime

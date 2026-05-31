@@ -1,9 +1,19 @@
 # app/schemas/stage.py
 from __future__ import annotations
 from typing import Optional, List
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, field_validator, model_validator
+
+
+class DayScheduleInput(BaseModel):
+    """Per-day schedule for independent_lineups stages."""
+    day_number: int
+    date: Optional[date] = None
+    lineup_open_at: Optional[datetime] = None
+    lineup_close_at: Optional[datetime] = None
+    first_match_at: Optional[datetime] = None
+    last_match_at: Optional[datetime] = None
 
 
 # ── Create ────────────────────────────────────────────────────────────────────
@@ -28,6 +38,7 @@ class StageCreate(BaseModel):
     pricing_newcomer_cost: int = 15
     captain_multiplier: float = 1.30
     independent_lineups: bool = False
+    days_schedule: Optional[List[DayScheduleInput]] = None
     # pricing_n_matches removido — substituído por MAX_MATCHES=50 global
     # em app/services/pricing.py (Bloco B). Coluna existe no banco mas não é lida.
 
@@ -93,6 +104,7 @@ class StageUpdate(BaseModel):
     pricing_newcomer_cost: Optional[int] = None
     captain_multiplier: Optional[float] = None
     independent_lineups: Optional[bool] = None
+    days_schedule: Optional[List[DayScheduleInput]] = None
     is_active: Optional[bool] = None
     pubg_tournament_id: Optional[str] = None
     # pricing_n_matches removido — não aceita mais atualização via API

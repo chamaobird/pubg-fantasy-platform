@@ -474,11 +474,13 @@ def _compute_trend_map(db: Session, person_ids: list[int]) -> dict[int, Optional
 )
 def list_stage_roster(stage_id: int, db: Session = Depends(get_db)) -> list[RosterPlayerOut]:
     _get_stage_or_404(db, stage_id)
+    # Include reserves (is_available=False) — they appear in lineup builder with RESERVA badge.
+    # Starters first (is_available=True), reserves at the bottom.
     rosters = (
         db.query(Roster)
         .options(joinedload(Roster.person))
-        .filter(Roster.stage_id == stage_id, Roster.is_available == True)  # noqa: E712
-        .order_by(Roster.id)
+        .filter(Roster.stage_id == stage_id)
+        .order_by(Roster.is_available.desc(), Roster.id)
         .all()
     )
     person_ids = [r.person_id for r in rosters]
