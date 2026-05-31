@@ -457,20 +457,32 @@ export default function AdminEmail({ token }) {
     finally { setPreviewing(false) }
   }
 
-  async function handleDispatch() {
+  async function handleDispatch(force = false) {
     if (!selected) return
     const missing = selected.variables.filter(v => v.required && !variables[v.key]?.toString().trim())
     if (missing.length > 0) { setError(`Campo obrigatório: ${missing[0].label}`); return }
-    if (!confirm(`Confirmar disparo de "${selected.label}" para: ${RECIPIENT_LABELS[recipientGroup] || recipientGroup}?`)) return
+    if (!force && !confirm(`Confirmar disparo de "${selected.label}" para: ${RECIPIENT_LABELS[recipientGroup] || recipientGroup}?`)) return
 
     setLoading(true); setError(null); setResult(null)
     try {
       const res = await fetch(`${API_BASE_URL}/admin/email/dispatch`, {
         method: 'POST',
         headers: headers(),
-        body: JSON.stringify({ template_key: selected.key, variables, recipient_group: recipientGroup }),
+        body: JSON.stringify({ template_key: selected.key, variables, recipient_group: recipientGroup, force }),
       })
       const data = await res.json()
+      if (res.status === 409 && data.detail?.already_sent) {
+        // Já enviado — pede confirmação explícita de reenvio
+        const d = data.detail
+        const sentAt = new Date(d.last_sent_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+        const ok = confirm(
+          `⚠️ Este email já foi enviado em ${sentAt} para ${d.sent_count} destinatário(s)` +
+          (d.triggered_by ? ` por ${d.triggered_by}` : '') +
+          `.\n\nReenviar mesmo assim?`
+        )
+        if (ok) await handleDispatch(true)
+        return
+      }
       if (!res.ok) throw new Error(data.detail || 'Erro ao enviar')
       setResult(data)
       loadChecklist()

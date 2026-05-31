@@ -19,6 +19,43 @@ from app.models.user import User as UserModel
 
 router = APIRouter(prefix="/admin/email", tags=["admin-email"])
 
+
+# ── Deduplication helper ──────────────────────────────────────────────────────
+
+def _find_recent_log(
+    db: Session,
+    template_key: str,
+    stage_id: int | None,
+    within_hours: int = 12,
+) -> "EmailLog | None":
+    """
+    Retorna o EmailLog mais recente para (template_key, stage_id) nas últimas
+    `within_hours` horas. Retorna None se não encontrado.
+
+    Templates sem stage_id (announcement, championship_start) usam janela de 6h.
+    """
+    from datetime import timedelta
+    from sqlalchemy import text
+
+    hours = within_hours if stage_id is not None else 6
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+
+    q = (
+        db.query(EmailLog)
+        .filter(
+            EmailLog.template_key == template_key,
+            EmailLog.sent_at >= cutoff,
+            EmailLog.sent_count > 0,  # ignora logs de "mark-sent manual" (sent_count=0)
+        )
+    )
+    if stage_id is not None:
+        q = q.filter(EmailLog.stage_id == stage_id)
+    else:
+        q = q.filter(EmailLog.stage_id.is_(None))
+
+    return q.order_by(EmailLog.sent_at.desc()).first()
+
+
 # ── Definição dos templates disponíveis ───────────────────────────────────────
 
 TEMPLATES: dict[str, dict] = {
@@ -127,6 +164,7 @@ class DispatchRequest(BaseModel):
     template_key: str
     variables: dict
     recipient_group: str = "all"
+    force: bool = False  # True = reenviar mesmo que já exista log recente
 
 
 class EmailLogOut(BaseModel):
@@ -170,6 +208,21 @@ def dispatch_email(
     for var in tpl["variables"]:
         if var["required"] and not req.variables.get(var["key"]):
             raise HTTPException(status_code=400, detail=f"Variável obrigatória ausente: '{var['key']}'")
+
+    # ── Deduplicação: bloqueia reenvio acidental ──────────────────────────────
+    if not req.force:
+        stage_id_for_guard = int(req.variables["stage_id"]) if "stage_id" in req.variables else None
+        recent = _find_recent_log(db, req.template_key, stage_id_for_guard)
+        if recent:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "already_sent": True,
+                    "last_sent_at": recent.sent_at.isoformat(),
+                    "sent_count": recent.sent_count,
+                    "triggered_by": recent.triggered_by,
+                },
+            )
 
     from app.services import email as svc
 

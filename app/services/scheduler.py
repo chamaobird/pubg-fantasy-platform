@@ -36,9 +36,6 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 logger = logging.getLogger(__name__)
 
-# In-memory: evita enviar o lembrete de over-budget mais de uma vez por stage
-_over_budget_reminder_sent: set[int] = set()
-
 
 # ── Job 1: lineup_control ─────────────────────────────────────────────────────
 
@@ -171,15 +168,19 @@ def _apply_faceoff_lifecycle(db, stage, prev_status: str, new_status: str) -> No
 
 
 def _maybe_send_over_budget_reminders(db, stage, now: datetime, effective_close_at=None) -> None:
-    """Envia email 1h antes do close para usuários com lineup inválido (over-budget)."""
-    if stage.id in _over_budget_reminder_sent:
-        return
+    """Envia email 1h antes do close para usuários com lineup inválido (over-budget).
+    Usa EmailLog para deduplicação persistente (sobrevive a restarts)."""
     close_at = effective_close_at or stage.lineup_close_at
     threshold = close_at - timedelta(hours=1)
     if now < threshold:
         return
 
+    # Deduplicação via DB: só envia se não há log recente (12h) para esta stage
+    if _over_budget_already_sent(db, stage.id):
+        return
+
     try:
+        from app.models.email_log import EmailLog
         from app.models.lineup import Lineup
         from app.models.stage_day import StageDay
         from app.models.user import User
@@ -190,7 +191,8 @@ def _maybe_send_over_budget_reminders(db, stage, now: datetime, effective_close_
             db.query(StageDay).filter(StageDay.stage_id == stage.id).all()
         ]
         if not day_ids:
-            _over_budget_reminder_sent.add(stage.id)
+            # Registra no log para não tentar de novo
+            _log_over_budget_sent(db, stage.id, 0)
             return
 
         invalid_pairs = (
@@ -222,7 +224,7 @@ def _maybe_send_over_budget_reminders(db, stage, now: datetime, effective_close_
                     user.id, exc,
                 )
 
-        _over_budget_reminder_sent.add(stage.id)
+        _log_over_budget_sent(db, stage.id, sent)
         if sent:
             logger.info(
                 "over_budget_reminder: stage %s — %d emails enviados (1h antes do close)",
@@ -233,6 +235,34 @@ def _maybe_send_over_budget_reminders(db, stage, now: datetime, effective_close_
         logger.error(
             "over_budget_reminder: erro stage %s: %s", stage.id, exc, exc_info=True,
         )
+
+
+def _over_budget_already_sent(db, stage_id: int) -> bool:
+    """Verifica se over_budget_reminder já foi enviado para esta stage (janela 12h)."""
+    from datetime import timedelta as td
+    from app.models.email_log import EmailLog
+    cutoff = datetime.now(timezone.utc) - td(hours=12)
+    return db.query(EmailLog).filter(
+        EmailLog.template_key == "over_budget_reminder",
+        EmailLog.stage_id == stage_id,
+        EmailLog.sent_at >= cutoff,
+    ).first() is not None
+
+
+def _log_over_budget_sent(db, stage_id: int, sent_count: int) -> None:
+    """Registra o envio do over_budget_reminder no EmailLog."""
+    from app.models.email_log import EmailLog
+    log = EmailLog(
+        template_key="over_budget_reminder",
+        subject=f"XAMA Fantasy — Lineup inválido (stage {stage_id})",
+        recipient_group="over_budget",
+        stage_id=stage_id,
+        sent_count=sent_count,
+        failed_count=0,
+        triggered_by="scheduler",
+    )
+    db.add(log)
+    db.commit()
 
 
 def _replicate_missing_lineups(db, stage, now: datetime) -> None:
