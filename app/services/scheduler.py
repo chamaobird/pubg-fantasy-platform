@@ -78,7 +78,8 @@ def _process_stage_status(db, stage, now: datetime) -> None:
         if stage.lineup_open_at and now >= stage.lineup_open_at:
             stage.lineup_status = "open"
             logger.info("lineup_control: stage %s (%s) → open", stage.id, stage.name)
-            _notify_lineup_open(db, stage)
+            # Email de abertura NÃO é automático — admin dispara manualmente
+            # pelo painel /admin/email para evitar envios indesejados.
             _apply_faceoff_lifecycle(db, stage, old_status, "open")
 
     if stage.lineup_status == "open":
@@ -167,26 +168,6 @@ def _apply_faceoff_lifecycle(db, stage, prev_status: str, new_status: str) -> No
                 updated, stage.championship_id,
             )
 
-
-def _notify_lineup_open(db, stage) -> None:
-    try:
-        from app.services.email import broadcast_lineup_open
-        close_iso = stage.lineup_close_at.isoformat() if stage.lineup_close_at else None
-        result = broadcast_lineup_open(
-            db=db,
-            stage_name=stage.name,
-            stage_id=stage.id,
-            close_iso=close_iso,
-        )
-        logger.info(
-            "lineup_control: notificação lineup_open stage %s — %s",
-            stage.id, result,
-        )
-    except Exception as exc:
-        logger.error(
-            "lineup_control: erro ao notificar lineup_open stage %s: %s",
-            stage.id, exc, exc_info=True,
-        )
 
 
 def _maybe_send_over_budget_reminders(db, stage, now: datetime, effective_close_at=None) -> None:
